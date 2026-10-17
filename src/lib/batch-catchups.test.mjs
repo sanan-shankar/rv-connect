@@ -25,10 +25,9 @@ import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 
 import {
-  BATCH_CADENCE,
   BATCH_CATCHUP_FLOOR,
-  BATCH_QUESTIONS_TO_START,
   isBatchCatchup,
+  isEditionRunning,
   mayChangeCatchupPicture,
 } from "./catchups-core.ts";
 import { ROOT, read, decomment, balancedBody } from "./test-kit.mjs";
@@ -235,11 +234,9 @@ test("a batch Catch-up is created with no Keeper, no invite link and a picture",
   // There is nobody to invite: the membership IS the batch. This is what
   // closes joinCatchupByToken on it.
   assert.match(body, /inviteToken: null/, "a batch Catch-up is being given an invite link");
-  // Every three months (owner, 2026-09-27: "if it's monthly now, make it
-  // quarterly"). Written on the row rather than left to the column default,
-  // which is "monthly" and is what every batch got by omission before this.
-  assert.equal(BATCH_CADENCE, "quarterly");
-  assert.match(body, /cadence: BATCH_CADENCE/, "a batch Catch-up is falling back to the monthly column default");
+  // No rhythm and no hold (2026-10-17): it was quarterly and made paused, and
+  // both went when Editions stopped starting on their own.
+  assert.doesNotMatch(body, /cadence|paused/, "a batch Catch-up is being given a rhythm or a hold again");
   // Every Catch-up has a photograph from the day it is made (spec 3.4).
   assert.match(
     body,
@@ -253,30 +250,29 @@ test("a batch Catch-up is created with no Keeper, no invite link and a picture",
     /_count\.members < BATCH_CATCHUP_FLOOR/,
     "ensureBatchCatchup no longer checks the floor"
   );
-  // Edition 1 appears at ten, open for questions, but does not start: no
-  // deadline and nobody told (owner, 2026-09-22: "don't let it send
-  // notifications. just have questions indefinitely open").
+  // Edition 1 appears at ten but does not start: no deadline and nobody told
+  // (owner, 2026-09-22: "don't let it send notifications"). It is IDLE, and the
+  // first Start puts the clock on this row.
   assert.match(body, /status: "collecting"/, "a new batch Catch-up does not start collecting");
   assert.match(body, /questionsCloseAt: null/, "a new batch Catch-up is starting its clock on its own");
   assert.ok(!/notify/i.test(body), "a new batch Catch-up is telling people it exists");
 });
 
-test("the third question is what starts a batch's clock", () => {
-  // "when 3 questions have been asked, then start the 3 day window"
-  assert.equal(BATCH_QUESTIONS_TO_START, 3);
+test("a batch's first Edition is idle until somebody presses Start, however many questions sit in it", () => {
+  /* The third question used to start a batch's clock ("when 3 questions have
+     been asked, then start the 3 day window", 2026-09-22). Since 2026-10-17
+     only Start does: "You should just be able to start it whenever you want."
+     Batch of 2018 has two questions in its first Edition today, and they wait
+     for the Start that carries them in. */
+  const neverStarted = { status: "collecting", questionsCloseAt: null };
+  assert.equal(isEditionRunning(neverStarted), false, "a never-started Edition reads as running");
   const submit = balancedBody(
     decomment(read("src/app/(main)/catchups/actions.ts")),
     "export async function submitPrompt"
   );
   assert.ok(submit, "submitPrompt is gone; this pin is reading nothing");
-  assert.match(submit, /asked >= BATCH_QUESTIONS_TO_START/, "the question count no longer starts the window");
-  // The null in the where is what makes two simultaneous third questions start
-  // it once, not twice.
-  assert.match(
-    submit,
-    /where: \{ id: editionId, status: "collecting", questionsCloseAt: null \}/,
-    "starting the window is no longer guarded against a second start"
-  );
+  assert.match(submit, /refuseIfIdle\(edition\)/, "a question can land in an idle Edition again, unseen by anyone");
+  assert.doesNotMatch(submit, /questionsCloseAt:\s*deadlineIn/, "a question is starting the clock again");
 });
 
 test("all three creation paths exist, and the signup one is the moment a batch crosses ten", () => {

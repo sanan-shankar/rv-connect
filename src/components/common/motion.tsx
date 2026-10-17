@@ -79,7 +79,7 @@ export const EASE_SEGMENT_GLIDE = [0.4, 0, 0.2, 1] as const;
 
 /* Locked to the curve above (Motion takes `ease` and `duration` as separate transition props,
    so nothing else enforces they travel together) so every segmented-pill call site -- profile,
-   directory, signup, the Catch-ups cadence controls -- glides at the same speed and none of them
+   directory, signup -- glides at the same speed and none of them
    can drift out of step with a locally-typed number. ~220ms: close to how long `SPRINGS.snappy`
    took to settle including its bounce-back (~267ms, from the damping ratio above: a 2%-settling
    time of roughly 4 / (damping ratio * natural frequency)), so removing the overshoot does not

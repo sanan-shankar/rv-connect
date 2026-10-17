@@ -305,11 +305,8 @@ export const PRESSURE_FIXTURE: CatchupExportFile = {
       batchYear: null,
       title: null,
       intro: "The one that has everything in it.",
-      cadence: "monthly",
       status: "active",
       createdById: CAST.ordinary.id,
-      nextOpensAt: "2026-10-01T04:30:00.000Z",
-      pausedAt: null,
       createdAt: "2026-07-01T04:30:00.000Z",
       updatedAt: "2026-08-15T04:30:00.000Z",
       members: [
@@ -383,11 +380,8 @@ export const PRESSURE_FIXTURE: CatchupExportFile = {
       batchYear: 1961,
       title: null,
       intro: null,
-      cadence: "quarterly",
       status: "active",
       createdById: null,
-      nextOpensAt: null,
-      pausedAt: null,
       createdAt: "2026-09-01T04:30:00.000Z",
       updatedAt: "2026-09-01T04:30:00.000Z",
       members: [

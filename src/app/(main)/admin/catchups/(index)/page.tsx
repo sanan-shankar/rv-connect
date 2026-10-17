@@ -6,7 +6,7 @@ import { requireAdminPage } from "@/lib/admin";
 import { overdueEditionWhere } from "@/lib/catchups-core";
 import { ADMIN_MEASURE, AdminEmpty, AdminSection } from "@/components/admin/admin-chrome";
 import { Chip } from "@/components/admin/admin-chip";
-import { EDITION_STATUS, SERIES_STATUS } from "@/components/admin/catchup-status";
+import { editionChip, SERIES_STATUS } from "@/components/admin/catchup-status";
 import { formatDisplayDate, metaLine } from "@/lib/utils";
 import { advanceDueCatchups } from "@/lib/catchups";
 
@@ -56,7 +56,6 @@ export default async function AdminCatchupsPage() {
         id: true,
         title: true,
         status: true,
-        cadence: true,
         group: { select: { name: true, _count: { select: { members: true } } } },
         createdBy: { select: { id: true, name: true } },
         editions: {
@@ -89,11 +88,12 @@ export default async function AdminCatchupsPage() {
 
   function card(c: (typeof catchups)[number]) {
     const edition = c.editions[0];
-    const status = edition ? (EDITION_STATUS[edition.status] ?? EDITION_STATUS.draft) : null;
+    const status = edition ? editionChip(edition) : null;
     const isStuck = edition ? overdueIds.has(edition.id) : false;
 
     // The date this Edition is actually waiting on, which depends on where it
     // has got to. Showing both would say almost nothing.
+    // An idle collecting row has no deadline, so it has no date here either.
     const due =
       edition?.status === "collecting"
         ? edition.questionsCloseAt
@@ -124,17 +124,13 @@ export default async function AdminCatchupsPage() {
             <p className="mt-0.5 text-[12px] text-muted-foreground">
               {metaLine(
                 `${c.group._count.members} ${c.group._count.members === 1 ? "person" : "people"}`,
-                c.cadence,
                 c.createdBy ? `Kept by ${c.createdBy.name}` : "No keeper"
               )}
             </p>
           </div>
           <div className="flex shrink-0 flex-wrap items-center gap-1">
-            {c.status !== "active" && (
-              <Chip
-                label={SERIES_STATUS[c.status]?.label ?? c.status}
-                tone={SERIES_STATUS[c.status]?.tone ?? "idle"}
-              />
+            {c.status === "ended" && (
+              <Chip label={SERIES_STATUS.ended.label} tone={SERIES_STATUS.ended.tone} />
             )}
             {status && <Chip label={status.label} tone={isStuck ? "bad" : status.tone} />}
           </div>

@@ -81,9 +81,7 @@ export async function loadSketchEdition(
         select: {
           id: true,
           title: true,
-          cadence: true,
           createdById: true,
-          nextOpensAt: true,
           group: {
             select: {
               id: true,
@@ -227,8 +225,7 @@ export async function loadSketchEdition(
     ),
     number: edition.number,
     publishedAt: edition.publishedAt.toISOString(),
-    nextOpensAt: edition.catchup.nextOpensAt?.toISOString() ?? null,
-    cadence: edition.catchup.cadence,
+    nextOpensAt: null,
     members,
     contributors,
     questions,

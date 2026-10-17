@@ -1,7 +1,7 @@
 /* ------------------------------------------------------------------ *
  *  Catch-ups: the PURE half of the engine.
  *
- *  The 30-question library, the timing and cadence constants, the calendar
+ *  The 30-question library, the timing constants, the calendar
  *  math, the state machine (computeStatus + planNextAction and every patch
  *  helper), the copy helpers, the keyless Spotify resolver and the P2021
  *  guard. No database, no clock of its own, no Sentry: every boundary here is
@@ -26,7 +26,6 @@ import { randomUUID } from "node:crypto";
 import { valleyDaysBetween } from "./utils.ts";
 import { isMissingTable } from "./prisma-errors.ts";
 import type {
-  Cadence,
   CatchupStatus,
   CatchupNotifyKind,
   EditionStatus,
@@ -39,7 +38,7 @@ import type {
  *  import instead of a static `import`:
  *
  *  The pure state machine below (computeStatus, planNextAction, the
- *  patch helpers, cadence math) is unit-tested with
+ *  patch helpers, calendar math) is unit-tested with
  *  `node --test src/lib/catchups-core.test.mjs` and MUST run with no database.
  *  Node strips `import type` entirely, so the only remaining static import
  *  here is erased at load; a static `import { prisma }` would instead pull
@@ -194,12 +193,6 @@ function orderFor(ed: { status: EditionStatus; timeCapsule?: boolean }): Edition
   return ed.timeCapsule || ed.status === "sealed" ? CAPSULE_ORDER : STATUS_ORDER;
 }
 
-export const CADENCE_LABELS: Record<Cadence, string> = {
-  biweekly: "Biweekly",
-  monthly: "Monthly",
-  quarterly: "Quarterly",
-};
-
 // ─── The question library (spec section 4) ───────────────────────────────────
 
 export type CatchupPromptSet = {
@@ -285,30 +278,6 @@ export const CATCHUP_PROMPT_SETS: CatchupPromptSet[] = [
 
 // ─── Calendar math ───────────────────────────────────────────────────────────
 
-/**
- * UTC-safe month addition (deterministic across machines; no timezone
- * machinery, per spec), with the day of the month CLAMPED to the target month.
- *
- * `setUTCMonth` alone overflows: an Edition published on 31 January and set to a
- * monthly rhythm asked for 31 February and got 3 March, skipping February
- * altogether; 31 October + 1 month landed on 1 December, skipping November
- * (audit C-144). About one publish in ten falls on a 29th-31st, and the
- * symptom is a rhythm that slides a few days and occasionally loses a month,
- * with nothing anywhere reporting it. The last day of a short month is the
- * honest answer to "a month after the 31st".
- */
-function addMonths(date: Date, n: number): Date {
-  const day = date.getUTCDate();
-  const d = new Date(date.getTime());
-  // From the 1st, so the month step itself can never overflow; then take
-  // whichever comes first, the original day or the end of the target month.
-  d.setUTCDate(1);
-  d.setUTCMonth(d.getUTCMonth() + n);
-  const daysInTarget = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate();
-  d.setUTCDate(Math.min(day, daysInTarget));
-  return d;
-}
-
 export function addDays(date: Date, n: number): Date {
   return new Date(date.getTime() + n * DAY_MS);
 }
@@ -371,15 +340,14 @@ const IST_OFFSET_MS = 330 * 60 * 1000;
  * mistake a member would notice. Then the civil hour every deadline lands on,
  * so it opens with the morning cron rather than whenever somebody visits.
  *
- * NOT `snapToDeadlineHour(addMonths(sealedAt, 12))`: snapping rounds FORWARD,
+ * NOT a snapped twelve-months-on: snapping rounds FORWARD,
  * so a capsule sealed by the 07:30 cron would open on the 15th, a day late,
  * every year. This lands on the date itself: sealed at 05:30 IST it opens an
  * hour and a half over a year, sealed at 23:59 IST seventeen hours short, and
  * never a whole day either way.
  *
  * 29 February has no anniversary three years in four, so it opens on 28
- * February: the last day of the month it was sealed in, the rule
- * `addMonths` already applies to a monthly rhythm anchored on the 31st.
+ * February: the last day of the month it was sealed in.
  */
 export function capsuleOpensAt(sealedAt: Date): Date {
   const valley = new Date(sealedAt.getTime() + IST_OFFSET_MS);
@@ -390,18 +358,10 @@ export function capsuleOpensAt(sealedAt: Date): Date {
   return new Date(Date.UTC(year, month, day) + DEADLINE_HOUR_UTC_MS);
 }
 
-/** nextOpensAt = publishedAt + cadenceGap: 14d biweekly, ~1 month monthly, ~3 months quarterly. */
-export function addCadenceGap(from: Date, cadence: Cadence): Date {
-  switch (cadence) {
-    case "biweekly":
-      return addDays(from, 14);
-    case "quarterly":
-      return addMonths(from, 3);
-    case "monthly":
-    default:
-      return addMonths(from, 1);
-  }
-}
+/* `addCadenceGap` and the month arithmetic under it stood here: they booked
+   the next Edition a rhythm after the last one came out. There is no rhythm
+   any more (2026-10-17, docs/planning/catchups-rework/editions-on-demand.md).
+   An Edition starts because somebody in the Catch-up starts it. */
 
 /**
  * The two ways a Catch-up names itself. A Keeper's own title always wins; the
@@ -475,25 +435,13 @@ export function isEffectiveKeeper(opts: {
  */
 export const BATCH_CATCHUP_FLOOR = 10;
 
-/**
- * How many questions a batch's first Edition waits for before its question
- * window starts. The owner, 2026-09-22: "don't let it send notifications. just
- * have questions indefinitely open. when 3 questions have been asked, then
- * start the 3 day window." A batch reaching ten is an accident of signups, not
- * a decision to start anything, so the first Edition opens with no deadline
- * (`questionsCloseAt` null, which `computeStatus` already reads as "still
- * collecting") and tells nobody. The third question is the batch deciding.
- */
-export const BATCH_QUESTIONS_TO_START = 3;
-
-/**
- * How often a batch Catch-up runs: every three months. Owner, 2026-09-27, on
- * learning they were monthly: "if it's monthly now, make it quarterly". A
- * batch has no Keeper, so nobody can change it in the app; this is the whole
- * setting. It used to be the column default ("monthly") by omission, which is
- * why it is named here rather than left to the schema.
- */
-export const BATCH_CADENCE: Cadence = "quarterly";
+/* `BATCH_QUESTIONS_TO_START` and `BATCH_CADENCE` stood here. A batch's first
+   Edition used to start itself on its third question, and later ones arrived
+   every three months. Both were ways of starting something nobody had
+   started. The owner, 2026-10-17: "You should just be able to start it
+   whenever you want. And then it ends when it ends. And then it just doesn't
+   go until you start it again." So a batch Catch-up is made idle and stays
+   idle until a member presses Start (`isEditionRunning` below). */
 
 /**
  * Is this a batch Catch-up?
@@ -516,16 +464,17 @@ export function isBatchCatchup(batchYear: number | null | undefined): boolean {
  * his own correction, N30, after asking "Can anyone open answering? That
  * shouldn't be allowed. Because many people would click it by accident.
  * Especially on a batch thing." His later word, 2026-09-27, overturns that
- * worry rather than the reasoning behind it: "make everyone a keeper ... and
- * have all of them paused by default." Everyone in the batch now runs the
- * cycle together -- choosing questions, opening answering, extending,
- * nudging, closing and publishing, starting the next Edition, pausing and
- * resuming -- and the accident risk N30 named is answered by starting paused
- * (`ensureBatchCatchup`) rather than by locking the controls to nobody.
+ * worry rather than the reasoning behind it: "make everyone a keeper".
+ * Everyone in the batch runs the cycle together -- starting an Edition,
+ * choosing questions, opening answering, extending, closing and publishing --
+ * and the accident risk N30 named is answered by a confirmation that says how
+ * many people will be told, rather than by locking the controls to nobody.
+ * (It was answered by every batch starting paused until 2026-10-17, when
+ * Editions stopped running on their own and there was nothing left to hold.)
  *
  * What is LEFT refusing this sentence is membership and identity: the batch
  * IS the roster, so there is still nobody to add, remove, or hand a Keeper's
- * hat to, and the name, the rhythm and ending it stay fixed the same way.
+ * hat to, and the name and ending it stay fixed the same way.
  * `loadKeeperScope` and `loadKeeperEdition` each take an `allowBatch` opt-in
  * per caller now; the cycle controls pass it, these six do not.
  *
@@ -533,7 +482,7 @@ export function isBatchCatchup(batchYear: number | null | undefined): boolean {
  * same every time and has nothing to do with who is asking.
  */
 export const BATCH_CATCHUP_REFUSAL =
-  "A batch Catch-up's roster is the batch itself, so there is nobody to add, remove, or hand the Keeper's hat to. The name, the rhythm and ending it stay fixed the same way.";
+  "A batch Catch-up's roster is the batch itself, so there is nobody to add, remove, or hand the Keeper's hat to. Its name stays fixed, and it cannot be ended, for the same reason.";
 
 /**
  * And the exit, which refuses for a different reason and so says a different
@@ -744,9 +693,10 @@ function dueReminder(ed: EditionTiming, now: Date): { daysLeft: number } | null 
  * owner's worklist that no action of his could clear (2026-09-15: "it's
  * paused. let it be paused wtf should I do").
  *
- *   PAUSED OR ENDED. `advanceEdition` freezes the clock of a Catch-up that is
- *   not active, so its deadline stays in the past for as long as it is held.
- *   That is the pause working, not a stuck Edition.
+ *   ENDED. `advanceEdition` freezes the clock of a Catch-up that has ended,
+ *   so a deadline inside it stays in the past for good. That is the ending
+ *   working, not a stuck Edition. (A legacy `paused` row runs like an active
+ *   one now, so it is on the list like one.)
  *
  *   DORMANT. A question window that closed empty, twice, parks the Edition
  *   until somebody asks something (`planNextAction`). Zero questions past the
@@ -762,10 +712,10 @@ export function overdueEditionWhere(now: Date) {
       {
         status: "collecting",
         questionsCloseAt: { lt: now },
-        catchup: { status: "active" },
+        catchup: { status: { not: "ended" } },
         prompts: { some: {} },
       },
-      { status: "answering", answersCloseAt: { lt: now }, catchup: { status: "active" } },
+      { status: "answering", answersCloseAt: { lt: now }, catchup: { status: { not: "ended" } } },
       // A time capsule past its opening day that has not opened is the one
       // failure nobody else would notice for a year (build phase 14).
       { status: "sealed", publishAt: { lt: now } },
@@ -782,14 +732,14 @@ export function shouldExtendForTooFew(ed: EditionTiming, entryCount: number): bo
  * No-questions: extend the question window once when it closes with nothing in
  * it. The mirror of `shouldExtendForTooFew`, one phase earlier.
  *
- * After that extension an Edition with still no questions goes DORMANT rather than
+ * After that extension an Edition with still no questions FIZZLES rather than
  * opening answering (see planNextAction). Opening it would invite the whole
  * group to answer nothing, then nudge every one of them daily for a week about
- * the questions that do not exist, then publish an empty keepsake and start the
- * cycle again next cadence -- forever, until a human ends the Catch-up (audit
- * B-062). Doing nothing is the honest state for an Edition nobody asked anything
- * in, and it is self-healing: the first question submitted revives it
- * (`reviveDormantEdition` in the actions).
+ * the questions that do not exist, then publish an empty keepsake (audit
+ * B-062). Fizzling clears its question deadline, which is what makes it idle
+ * (`isEditionRunning`): the home draws Start, and the next Start reuses the row
+ * with a fresh window. A question used to revive it; since 2026-10-17 only
+ * Start does.
  */
 function shouldExtendForNoQuestions(ed: EditionTiming, promptCount: number): boolean {
   return promptCount === 0 && (ed.remindersSent & REMINDER_QUESTIONS_EXTENDED) === 0;
@@ -799,7 +749,8 @@ function shouldExtendForNoQuestions(ed: EditionTiming, promptCount: number): boo
 
 export type EditionPatch = {
   status?: EditionStatus;
-  questionsCloseAt?: Date;
+  /** Null only from `fizzlePatch`: an Edition with no question deadline is idle. */
+  questionsCloseAt?: Date | null;
   answersCloseAt?: Date;
   publishedAt?: Date;
   remindersSent?: number;
@@ -833,13 +784,13 @@ export function answeringPatch(ed: EditionTiming, now: Date): EditionPatch {
  * and re-seeds the daily bucket, so buying the group more time does not
  * immediately spend it on a reminder saying so.
  *
- * From the deadline OR from now, whichever is later (audit C-028). An Edition
- * that went dormant -- its question window closed empty, its one automatic
- * extension already spent -- keeps a `questionsCloseAt` weeks in the past, and
- * extending from that put the new deadline in the past too: the write applied,
- * the Keeper was told it had worked, and nothing whatsoever changed. Extending
- * a live window still means "the date on the page moves N days", which is the
- * thing this is careful about.
+ * From the deadline OR from now, whichever is later (audit C-028). A window
+ * that has just closed keeps its `questionsCloseAt` in the past until the clock
+ * moves it on, and extending from that put the new deadline in the past too:
+ * the write applied, the Keeper was told it had worked, and nothing whatsoever
+ * changed. Extending a live window still means "the date on the page moves N
+ * days", which is the thing this is careful about. (An IDLE Edition has no
+ * deadline at all and is refused before this runs; only Start gives it one.)
  */
 export function extendPhasePatch(ed: EditionTiming, days: number, now: Date): EditionPatch | null {
   const anchor = (t: Date | string | null | undefined): Date =>
@@ -877,71 +828,22 @@ export function publishPatch(now: Date): EditionPatch {
  *
  * `publishedAt` stays null until it opens, because it is the Edition's NAME
  * (see publishPatch) and an Edition nobody can read has not come out.
- * `sealedAt` is when answering actually closed, which is what the rhythm and
- * the opening date are both measured from.
+ * `sealedAt` is when answering actually closed, which is what the opening date
+ * is measured from.
  */
 export function sealPatch(now: Date): EditionPatch {
   return { status: "sealed", sealedAt: now, publishAt: capsuleOpensAt(now) };
 }
 
-/**
- * One instant, moved forward by however long the freeze lasted: resume hands
- * the group back exactly the time the pause took.
- *
- * Every deadline still AHEAD of the moment the freeze began moves forward by
- * the paused duration; anything already behind it is history and stays put. So
- * a Catch-up paused with two days left to answer resumes with two days left,
- * whether the pause lasted an hour or a season. The daily reminder bucket needs
- * no touching: shifting the close date pushes days-left back up, which the
- * bucket already reads as a new day and lets the next nudge fire.
- *
- * `pausedAt` is null on rows paused before the freeze semantics existed. Those
- * ran their clocks out in real time, so there is no duration to credit and this
- * returns an empty patch.
- */
-export function shiftPausedInstant(
-  at: Date | string | null | undefined,
-  pausedAt: Date | string | null | undefined,
-  resumedAt: Date
-): Date | null {
-  const from = ms(pausedAt);
-  const m = ms(at);
-  if (from == null || m == null) return null;
-  const by = resumedAt.getTime() - from;
-  // Nothing to credit (no freeze stamp, a clock that went backwards), or a
-  // moment already behind the freeze and therefore history: leave it alone.
-  if (by <= 0 || m <= from) return null;
-  return new Date(m + by);
-}
+/* `shiftPausedInstant` and `shiftEditionPatch` stood here: resuming a held
+   Catch-up gave its deadlines back the time the hold took. Hold went when
+   Editions stopped running on a rhythm (2026-10-17): with nothing scheduled
+   there is nothing to hold between Editions, and inside one "give everyone
+   longer" is the same act with a date on it. */
 
-/** `shiftPausedInstant` over an Edition's two deadlines, as a patch. */
-export function shiftEditionPatch(
-  // Only the three deadlines, not a whole EditionTiming: the status and the
-  // reminder bitmask play no part, and asking for less lets a caller hand over
-  // a raw Prisma row without widening its status back to EditionStatus.
-  ed: {
-    questionsCloseAt: Date | string | null;
-    answersCloseAt: Date | string | null;
-  },
-  pausedAt: Date | string | null | undefined,
-  resumedAt: Date
-): EditionPatch {
-  const patch: EditionPatch = {};
-  /* NOT snapped to the civil hour, deliberately, and this is the one place a
-     deadline is not. A resume credits back exactly the time the freeze took --
-     "paused with two days left, resumed with two days left" -- and rounding
-     forward to the next 07:00 hands the group up to a day it was not owed,
-     which breaks the one guarantee this function makes. The spec names the
-     three places that snap (answeringPatch, extendPhasePatch, the create
-     path); resume is not one of them. The cost is small and bounded: a
-     resumed deadline sits at an odd minute, and the Edition it belongs to
-     still lands on the next tick or the next page view, because a deadline
-     is a threshold rather than a scheduled moment. */
-  const q = shiftPausedInstant(ed.questionsCloseAt, pausedAt, resumedAt);
-  if (q) patch.questionsCloseAt = q;
-  const a = shiftPausedInstant(ed.answersCloseAt, pausedAt, resumedAt);
-  if (a) patch.answersCloseAt = a;
-  return patch;
+/** An Edition that closed empty twice: no deadline, so idle (`isEditionRunning`). */
+function fizzlePatch(): EditionPatch {
+  return { questionsCloseAt: null };
 }
 
 /** No-questions extension: push the question window 3 days and set bit 3. */
@@ -977,7 +879,6 @@ export type EditionAction =
       to: EditionStatus;
       patch: EditionPatch;
       notify: CatchupNotifyKind | null;
-      setsNextOpensAt: boolean;
       /**
        * What the row's flag must say for the write to land, or null. The
        * compare-and-swap carries it, so a caller holding a stale or missing
@@ -988,6 +889,7 @@ export type EditionAction =
     }
   | { kind: "extend"; patch: EditionPatch; notify: "catchup_answers_open" }
   | { kind: "extend-questions"; patch: EditionPatch; notify: "catchup_questions_open" }
+  | { kind: "fizzle"; patch: EditionPatch }
   | { kind: "reminder"; daysLeft: number; patch: EditionPatch };
 
 /**
@@ -1020,24 +922,27 @@ export function planNextAction(ed: EditionTiming, counts: EditionCounts, now: Da
           notify: "catchup_questions_open",
         };
       }
-      return { kind: "none" }; // dormant; revived by the first question
+      // Its one extension spent and still empty: it fizzles. Clearing the
+      // deadline is the whole write, and it is what makes the Edition idle,
+      // so the next Start reuses this row and no page view counts its
+      // questions again (the sweep skips a collecting row with no deadline).
+      return { kind: "fizzle", patch: fizzlePatch() };
     }
     if (ed.status === "answering" && (next === "published" || next === "sealed")) {
       if (shouldExtendForTooFew(ed, counts.entries)) {
         return { kind: "extend", patch: extendPatch(ed, now), notify: "catchup_answers_open" };
       }
       if (next === "sealed") {
-        /* A time capsule closes the same way and lands sealed. The rhythm
-           carries on from here (the capsule is one Edition, his 33), so
-           `nextOpensAt` is stamped now, not in a year; and the group is told
-           the day it opens, so a week of writing does not just vanish. */
+        /* A time capsule closes the same way and lands sealed. The Catch-up
+           is idle from here, free to start its next Edition (the capsule is
+           one Edition, his 33), and the group is told the day it opens, so a
+           week of writing does not just vanish. */
         return {
           kind: "transition",
           from: "answering",
           to: "sealed",
           patch: sealPatch(now),
           notify: "catchup_sealed",
-          setsNextOpensAt: true,
           requires: { timeCapsule: true },
         };
       }
@@ -1051,21 +956,17 @@ export function planNextAction(ed: EditionTiming, counts: EditionCounts, now: Da
         to: "published",
         patch: publishPatch(now),
         notify: "catchup_published",
-        setsNextOpensAt: true,
         requires: { timeCapsule: false },
       };
     }
     if (ed.status === "sealed" && next === "published") {
-      /* A year later: the same publish, the same bell. It books nothing,
-         because the rhythm was booked when it sealed and has been running
-         since. */
+      /* A year later: the same publish, the same bell. */
       return {
         kind: "transition",
         from: "sealed",
         to: "published",
         patch: publishPatch(now),
         notify: "catchup_published",
-        setsNextOpensAt: false,
         requires: { timeCapsule: true },
       };
     }
@@ -1076,7 +977,6 @@ export function planNextAction(ed: EditionTiming, counts: EditionCounts, now: Da
         to: "answering",
         patch: answeringPatch(ed, now),
         notify: "catchup_answers_open",
-        setsNextOpensAt: false,
         requires: null,
       };
     }
@@ -1087,7 +987,6 @@ export function planNextAction(ed: EditionTiming, counts: EditionCounts, now: Da
       to: next,
       patch: { status: next },
       notify: null,
-      setsNextOpensAt: false,
       requires: null,
     };
   }
@@ -1102,6 +1001,39 @@ export function planNextAction(ed: EditionTiming, counts: EditionCounts, now: Da
   }
 
   return { kind: "none" };
+}
+
+// ─── Idle or running ─────────────────────────────────────────────────────────
+
+/**
+ * Is an Edition under way, or is the Catch-up idle and waiting for somebody to
+ * start one?
+ *
+ * There is no rhythm (owner, 2026-10-17: "You should just be able to start it
+ * whenever you want. And then it ends when it ends. And then it just doesn't go
+ * until you start it again."), so this is the question every surface asks
+ * before it offers Start, and the one `openEdition` asks before it agrees.
+ *
+ * ONE FIELD DECIDES IT. Running is `answering`, or `collecting` with a question
+ * deadline. Idle is everything else: out (published), sealed, or `collecting`
+ * with no deadline -- which is both a batch's first Edition, made that way and
+ * told to nobody, and one that FIZZLED (closed empty, extension spent), because
+ * the clock clears the deadline when it fizzles (`planNextAction`). Start puts
+ * a deadline on that same row.
+ *
+ * It used to be three fields and a question count, which every caller had to
+ * fetch and the clock had to agree with; a fizzled row then sat in the
+ * page-view sweep for good, counting its questions on every visit. Storing the
+ * state in the deadline made all of that one null check.
+ *
+ * Takes the status as a plain string so a raw Prisma row passes as it is.
+ */
+export function isEditionRunning(ed: {
+  status: string;
+  questionsCloseAt: Date | string | null | undefined;
+}): boolean {
+  if (ed.status === "answering") return true;
+  return ed.status === "collecting" && ms(ed.questionsCloseAt) != null;
 }
 
 // ─── Friendly status copy (shared so every surface reads the same) ────────────
@@ -1261,9 +1193,9 @@ export function describeEditionStatus(
  *    implied. That's so stupid."
  *
  * So collecting returns null -- the ask box IS the line -- and answering
- * carries the deadline and nothing else. Held returns null too: the clock is
- * not running, so printing a deadline under a card that says the Catch-up is
- * on hold is the page contradicting itself in two lines.
+ * carries the deadline and nothing else. Out returns null as well: the place
+ * under the cover is where Start goes, and "The next one opens 6 December"
+ * went with the rhythm that booked it (2026-10-17).
  */
 export function homeStateLine(
   catchupStatus: CatchupStatus,
@@ -1271,10 +1203,8 @@ export function homeStateLine(
     status: EditionStatus;
     answersCloseAt?: Date | string | null;
   } | null,
-  nextOpensAt: Date | string | null,
-  fmt: { dayAndDate: (d: Date | string) => string; longDate: (d: Date | string) => string }
+  fmt: { dayAndDate: (d: Date | string) => string }
 ): string | null {
-  if (catchupStatus === "paused") return null;
   /* "Ended" and not "Ended 17 April", for the same reason `catchupStageLine`
      gives below: NOTHING RECORDS WHEN A CATCH-UP ENDED. `status` flips to
      "ended" and `updatedAt` moves again for any edit after, so a date here
@@ -1284,11 +1214,6 @@ export function homeStateLine(
   if (!edition) return null;
   if (edition.status === "answering") {
     return edition.answersCloseAt ? `Answers close ${fmt.dayAndDate(edition.answersCloseAt)}` : null;
-  }
-  /* A sealed Edition is the latest only until the rhythm opens the next one,
-     and the rhythm was booked when it sealed, so the line is the same. */
-  if (edition.status === "published" || edition.status === "sealed") {
-    return nextOpensAt ? `The next one opens ${fmt.longDate(nextOpensAt)}` : null;
   }
   return null;
 }
@@ -1300,18 +1225,29 @@ export function catchupStageLine(
     answersCloseAt?: Date | string | null;
     publishedAt?: Date | string | null;
     publishAt?: Date | string | null;
+    questionsCloseAt?: Date | string | null;
+    /** Only to tell a never-started first Edition from one that fizzled
+     *  later. Never printed: an Edition is named by its date. */
+    number?: number;
   } | null,
   /** Injected so this stays pure and testable, and so the app has one date
    *  voice: `formatDayAndDate` and `formatDisplayDateLong` from lib/utils,
    *  both pinned to the valley's own day. */
   fmt: { dayAndDate: (d: Date | string) => string; longDate: (d: Date | string) => string }
 ): string {
-  // The Catch-up's own state outranks the Edition's: a paused Catch-up with a
-  // live Edition inside it is paused, and today's home hides that Edition
-  // behind a whole replacement page (recon section 11).
-  if (catchupStatus === "paused") return "Paused";
+  // The Catch-up's own state outranks the Edition's: an ended Catch-up with an
+  // Edition left inside it is ended.
   if (catchupStatus === "ended") return "Ended";
   if (!edition) return "No Editions yet";
+  /* Idle on a `collecting` row: no question deadline, the one signal
+     `isEditionRunning` reads. Never started, or fizzled. "Open for questions"
+     would be a lie on both, since there is no box to ask in until somebody
+     presses Start. Explicitly null, not merely absent, so a caller that did
+     not select the column cannot turn a running row idle. Nothing has ever
+     come out of a first Edition, whichever it is. */
+  if (edition.status === "collecting" && edition.questionsCloseAt === null) {
+    return edition.number === 1 ? "No Editions yet" : "Nothing running";
+  }
   switch (edition.status) {
     case "collecting":
       return "Open for questions";

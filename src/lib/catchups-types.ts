@@ -31,11 +31,19 @@ import type { StoredPhoto } from "@/lib/photo-layout";
  */
 export type EditionStatus = "draft" | "collecting" | "answering" | "sealed" | "published";
 
-/** Catchup.status. */
+/**
+ * Catchup.status.
+ *
+ * `paused` is LEGACY: nothing writes it since Editions stopped running on a
+ * rhythm (2026-10-17, docs/planning/catchups-rework/editions-on-demand.md), so
+ * there is nothing left to hold. Rows written before that are read as active
+ * everywhere, which is what lets the cleanup migration run on either side of
+ * the deploy. Only `ended` freezes anything.
+ *
+ * `Cadence` stood beside this until the same day. There is no rhythm: an
+ * Edition starts because somebody in the Catch-up starts it.
+ */
 export type CatchupStatus = "active" | "paused" | "ended";
-
-/** Catchup.cadence. All three are recurring. */
-export type Cadence = "biweekly" | "monthly" | "quarterly";
 
 /** CatchupPref.reminderMode. */
 export type ReminderMode = "all" | "last" | "off";
@@ -254,7 +262,10 @@ type NotifyBaseCtx = {
 
 export type NotifyQuestionsOpenFn = (
   db: CatchupDb,
-  ctx: NotifyBaseCtx & { excludeUserId?: string }
+  /** `starterName`: who pressed Start, said in the bell, so an Edition reads
+   *  as somebody in the group asking rather than the app on a timer. Absent
+   *  when the Catch-up itself is being created, which has its own sentence. */
+  ctx: NotifyBaseCtx & { excludeUserId?: string; starterName?: string }
 ) => Promise<void>;
 
 export type NotifyAnswersOpenFn = (

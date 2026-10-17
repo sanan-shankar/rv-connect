@@ -31,7 +31,6 @@
  * ------------------------------------------------------------------ */
 
 import type {
-  Cadence,
   CatchupStatus,
   EditionStatus,
   PromptKind,
@@ -168,14 +167,14 @@ export type ExportedCatchup = {
   batchYear: number | null;
   title: string | null;
   intro: string | null;
-  cadence: Cadence;
+  /* `cadence`, `nextOpensAt` and `pausedAt` were exported here until
+     2026-10-17, when the rhythm and the hold went (editions-on-demand.md).
+     Nothing reads them and their columns are on their way out. */
   status: CatchupStatus;
   createdById: string | null;
   /** Deliberately NOT exported: `Catchup.inviteToken` is a bearer token.
    *  Whoever holds an export folder would otherwise hold the ability to join
    *  every Catch-up in it. A restore mints a fresh one. */
-  nextOpensAt: string | null;
-  pausedAt: string | null;
   createdAt: string;
   updatedAt: string;
   members: ExportedMembership[];

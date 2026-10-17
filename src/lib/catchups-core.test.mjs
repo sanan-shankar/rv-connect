@@ -31,7 +31,7 @@ import {
   computeStatus,
   nextEditionStatus,
   planNextAction,
-  addCadenceGap,
+  isEditionRunning,
   answerReminderMessage,
   valleyDaysLeft,
   addDays,
@@ -53,8 +53,6 @@ import {
   TICK_GRACE_MS,
   extendPhasePatch,
   REMINDER_QUESTIONS_EXTENDED,
-  shiftEditionPatch,
-  shiftPausedInstant,
 } from "./catchups-core.ts";
 import { PROMPT_CATEGORIES } from "./catchups-types.ts";
 import { formatDayAndDate, formatDisplayDateLong } from "./utils.ts";
@@ -190,7 +188,7 @@ test("planNextAction: collecting -> answering fires answers-open once, then is a
   assert.equal(planNextAction(ed, counts(0), NOW).kind, "none"); // idempotent
 });
 
-test("planNextAction: answering -> published fires published + schedules the next Edition", () => {
+test("planNextAction: answering -> published fires published, and books nothing", () => {
   /* One transition where there were two. The close used to be silent
      (answering -> preparing, notify null) and the announcement came a day
      later; now they are the same step, so an Edition cannot come out with
@@ -201,7 +199,9 @@ test("planNextAction: answering -> published fires published + schedules the nex
   assert.equal(a.from, "answering");
   assert.equal(a.to, "published");
   assert.equal(a.notify, "catchup_published");
-  assert.equal(a.setsNextOpensAt, true);
+  // There is no rhythm (2026-10-17): coming out leaves the Catch-up idle, and
+  // the next Edition starts when somebody starts it.
+  assert.equal("setsNextOpensAt" in a, false, "publishing books the next Edition again");
   assert.ok(a.patch.publishedAt instanceof Date);
   assert.equal(a.patch.publishAt, undefined, "publishAt is gone, not merely unset");
 });
@@ -434,17 +434,23 @@ test("planNextAction: a question window closing with no questions extends once, 
   assert.equal(planNextAction(ed, counts(0, 0), NOW).kind, "none"); // window is future again
 });
 
-test("planNextAction: after its one extension a still-empty Edition goes dormant, forever", () => {
+test("planNextAction: after its one extension a still-empty Edition fizzles, once, and then nothing", () => {
   const ed = edition({
     status: "collecting",
     questionsCloseAt: at(-HOUR_MS),
     remindersSent: REMINDER_QUESTIONS_EXTENDED,
   });
-  // Not a transition, not an extension, not a reminder: nothing at all.
-  assert.equal(planNextAction(ed, counts(0, 0), NOW).kind, "none");
-  // And still nothing a month later -- this is what stops the abandoned-
+  // Not a transition, not an extension, not a reminder: the deadline goes,
+  // which is what makes it idle (2026-10-17).
+  const a = planNextAction(ed, counts(0, 0), NOW);
+  assert.equal(a.kind, "fizzle");
+  assert.equal(a.patch.questionsCloseAt, null);
+  assert.equal("notify" in a, false, "fizzling tells somebody; nothing happened anybody can act on");
+  const fizzled = applyPatch(ed, a.patch);
+  assert.equal(isEditionRunning(fizzled), false);
+  // And nothing at all a month later -- this is what stops the abandoned-
   // Catch-up loop (open empty -> nudge daily -> publish empty -> repeat).
-  assert.equal(planNextAction(ed, counts(0, 0), at(30 * DAY_MS)).kind, "none");
+  assert.equal(planNextAction(fizzled, counts(0, 0), at(30 * DAY_MS)).kind, "none");
 });
 
 test("planNextAction: one question is enough to open answering normally", () => {
@@ -459,114 +465,52 @@ test("planNextAction: one question is enough to open answering normally", () => 
   assert.equal(a.notify, "catchup_answers_open");
 });
 
-// ─── pause freezes the Edition; resume hands the time back (audit B-060/B-061) ──
+// ─── idle or running (2026-10-17: Editions start by hand) ────────────────────
+/* The pause arithmetic (shiftEditionPatch, shiftPausedInstant) and the rhythm
+   arithmetic (addCadenceGap, and C-144's month clamp under it) were tested
+   here. Both went with the rhythm; there is nothing to hold and nothing to
+   book. What replaced them is one question: is anything running? */
 
-test("shiftEditionPatch: moves every deadline still ahead of the freeze, by the pause", () => {
-  const pausedAt = at(-2 * DAY_MS); // paused two days ago
-  const ed = edition({
-    status: "answering",
-    questionsCloseAt: at(-5 * DAY_MS), // already past when the freeze began: history
-    answersCloseAt: at(-DAY_MS), // 1 day left at the freeze, now expired
-  });
-  const patch = shiftEditionPatch(ed, pausedAt, NOW);
-  assert.equal(patch.questionsCloseAt, undefined); // untouched
-  // The answer window had one day left when the freeze began; it has one day
-  // left again now, two days later.
-  assert.equal(patch.answersCloseAt.getTime(), at(DAY_MS).getTime());
+test("isEditionRunning: answering runs; out, sealed and draft do not", () => {
+  assert.equal(isEditionRunning(edition({ status: "answering", answersCloseAt: at(DAY_MS) })), true);
+  assert.equal(isEditionRunning(edition({ status: "published" })), false);
+  assert.equal(isEditionRunning(edition({ status: "sealed" })), false);
+  assert.equal(isEditionRunning(edition({ status: "draft" })), false);
 });
 
-test("shiftEditionPatch: an Edition paused mid-answering resumes with the same days left", () => {
-  const pausedAt = at(-30 * DAY_MS);
-  const ed = edition({ status: "answering", answersCloseAt: at(-27 * DAY_MS) });
-  const patch = shiftEditionPatch(ed, pausedAt, NOW);
-  // 3 days left at the freeze, 3 days left at resume, a month later.
-  assert.equal(daysLeftUntil(patch.answersCloseAt, NOW), 3);
+test("isEditionRunning: a collecting row runs exactly when it has a question deadline", () => {
+  // A batch's first Edition, made at ten members and told to nobody, and a
+  // fizzled one: both have no deadline, both idle, whatever is in them.
+  assert.equal(isEditionRunning(edition({ status: "collecting", questionsCloseAt: null })), false);
+  // An open window, and one that has just closed: the clock is about to move
+  // it on (answering, the silent extension, or the fizzle), so it still runs
+  // and nobody may start a second Edition on top of it.
+  assert.equal(isEditionRunning(edition({ status: "collecting", questionsCloseAt: at(DAY_MS) })), true);
+  assert.equal(isEditionRunning(edition({ status: "collecting", questionsCloseAt: at(-HOUR_MS) })), true);
 });
 
-test("shiftPausedInstant: the next Edition's schedule gets the same credit", () => {
-  // A Catch-up paused a month before its next Edition is due should not open one
-  // the instant it resumes: nextOpensAt moves by the pause, like everything else.
-  const nextOpensAt = at(-20 * DAY_MS); // was due 20 days ago, during the freeze
-  const shifted = shiftPausedInstant(nextOpensAt, at(-30 * DAY_MS), NOW);
-  assert.equal(shifted.getTime(), at(10 * DAY_MS).getTime()); // 10 days out again
-});
-
-test("shiftEditionPatch: no freeze stamp means no credit, and no crash", () => {
-  const ed = edition({ status: "answering", answersCloseAt: at(DAY_MS) });
-  assert.deepEqual(shiftEditionPatch(ed, null, NOW), {});
-  assert.deepEqual(shiftEditionPatch(ed, undefined, NOW), {});
-  // A clock that went backwards credits nothing rather than pulling deadlines in.
-  assert.deepEqual(shiftEditionPatch(ed, at(HOUR_MS), NOW), {});
-});
-
-test("shiftEditionPatch: the shifted window re-arms the daily reminder", () => {
-  // The bucket held "1 day left" from the last nudge before the pause. After
-  // the shift days-left is 3 again, so the bucket differs and the next daily
-  // reminder is due -- no extra bookkeeping needed on resume.
-  const paused = edition({
-    status: "answering",
-    answersCloseAt: at(-27 * DAY_MS),
-    remindersSent: withDailyBucket(0, 1),
-  });
-  const patch = shiftEditionPatch(paused, at(-30 * DAY_MS), NOW);
-  const resumed = applyPatch(paused, patch);
-  const action = planNextAction(resumed, counts(0), NOW);
-  assert.equal(action.kind, "reminder");
-  assert.equal(action.daysLeft, 3);
-});
-
-// ─── cadence math ────────────────────────────────────────────────────────────
-
-test("addCadenceGap: biweekly is exactly 14 days", () => {
-  const from = new Date("2026-01-15T00:00:00.000Z");
-  assert.equal(addCadenceGap(from, "biweekly").toISOString(), "2026-01-29T00:00:00.000Z");
-});
-
-test("addCadenceGap: monthly is one calendar month", () => {
-  const from = new Date("2026-01-15T00:00:00.000Z");
-  assert.equal(addCadenceGap(from, "monthly").toISOString(), "2026-02-15T00:00:00.000Z");
-});
-
-test("C-144: a rhythm anchored on the 31st does not skip a month", () => {
-  // setUTCMonth alone overflows: 31 Jan + 1 month asked for 31 February and
-  // got 3 March, so a monthly Catch-up skipped February entirely.
-  const jan31 = new Date("2027-01-31T10:00:00.000Z");
-  const next = addCadenceGap(jan31, "monthly");
-  assert.equal(next.getUTCMonth(), 1, "a monthly rhythm skipped February");
-  assert.equal(next.toISOString(), "2027-02-28T10:00:00.000Z");
-  // A leap year keeps the extra day.
-  assert.equal(
-    addCadenceGap(new Date("2028-01-31T10:00:00.000Z"), "monthly").toISOString(),
-    "2028-02-29T10:00:00.000Z"
-  );
-  // ...and a 31-day month followed by a 30-day one.
-  assert.equal(
-    addCadenceGap(new Date("2026-10-31T10:00:00.000Z"), "monthly").toISOString(),
-    "2026-11-30T10:00:00.000Z"
-  );
-  // Quarterly is the same arithmetic three months out.
-  assert.equal(
-    addCadenceGap(new Date("2026-11-30T10:00:00.000Z"), "quarterly").toISOString(),
-    "2027-02-28T10:00:00.000Z"
-  );
-  // The property behind all four: the day never runs past the month asked for.
-  for (let month = 0; month < 12; month++) {
-    for (const day of [28, 29, 30, 31]) {
-      const from = new Date(Date.UTC(2027, month, 1, 9, 0, 0));
-      const last = new Date(Date.UTC(2027, month + 1, 0)).getUTCDate();
-      if (day > last) continue;
-      from.setUTCDate(day);
-      const to = addCadenceGap(from, "monthly");
-      assert.equal(to.getUTCMonth(), (month + 1) % 12, `${from.toISOString()} landed in the wrong month`);
-      assert.ok(to.getUTCDate() <= day);
-      assert.equal(to.getUTCHours(), 9, "the time of day moved");
+test("the clock never touches an idle Edition, and leaves every closed-empty one idle in the end", () => {
+  /* The two sides of one rule, over a grid: idle (no deadline) means the
+     clock has nothing to do, at any time, with any question count; and a
+     window that closes empty is extended once and then fizzled, never left
+     running with nothing in it. Pinned together so the predicate and the
+     plan cannot drift apart (simplify review, 2026-10-17). */
+  for (const offset of [-30 * DAY_MS, -HOUR_MS, 0, HOUR_MS, 30 * DAY_MS]) {
+    for (const bits of [0, REMINDER_QUESTIONS_EXTENDED]) {
+      for (const prompts of [0, 1, 5]) {
+        const idle = edition({ status: "collecting", questionsCloseAt: null, remindersSent: bits });
+        assert.equal(planNextAction(idle, counts(0, prompts), at(offset)).kind, "none");
+      }
     }
   }
-});
-
-test("addCadenceGap: quarterly is three calendar months", () => {
-  const from = new Date("2026-01-15T00:00:00.000Z");
-  assert.equal(addCadenceGap(from, "quarterly").toISOString(), "2026-04-15T00:00:00.000Z");
+  let ed = edition({ status: "collecting", questionsCloseAt: at(-HOUR_MS), remindersSent: 0 });
+  for (let step = 0; step < 4 && isEditionRunning(ed); step += 1) {
+    const a = planNextAction(ed, counts(0, 0), at(step * 4 * DAY_MS));
+    assert.notEqual(a.kind, "transition", "an empty Edition opened for answers");
+    if (a.kind === "none") break;
+    ed = applyPatch(ed, a.patch);
+  }
+  assert.equal(isEditionRunning(ed), false, "a twice-empty Edition is still running");
 });
 
 // ─── keeper power + labels ───────────────────────────────────────────────────
@@ -651,10 +595,10 @@ test("describeEditionStatus: readable per-status copy", () => {
 const FMT = { dayAndDate: formatDayAndDate, longDate: formatDisplayDateLong };
 
 test("catchupStageLine: the Catch-up's own state outranks the Edition's", () => {
-  const live = { status: "answering", answersCloseAt: at(3 * DAY_MS) };
-  /* A paused Catch-up with a live Edition inside it reads as paused, and a
-     card never says two things at once. */
-  assert.equal(catchupStageLine("paused", live, FMT), "Paused");
+  const live = { status: "answering", answersCloseAt: "2026-08-20T01:30:00.000Z" };
+  /* A legacy paused row runs like any other since 2026-10-17, so it says what
+     its Edition is doing. Nothing pauses a Catch-up any more. */
+  assert.equal(catchupStageLine("paused", live, FMT), "Answers close Thursday 20 August");
   /* No date after "Ended": nothing records when a Catch-up ended, and
      inventing a column for one line on one card is a migration. */
   assert.equal(catchupStageLine("ended", live, FMT), "Ended");
@@ -679,6 +623,26 @@ test("catchupStageLine: a countdown belongs on the page you are already on", () 
      "3 days left", the two have collapsed back into one. */
   const line = catchupStageLine("active", { status: "answering", answersCloseAt: at(3 * DAY_MS) }, FMT);
   assert.ok(!/left|tomorrow|last day/.test(line), line);
+});
+
+test("catchupStageLine: an idle collecting row is not open for questions", () => {
+  /* A batch's never-started first Edition, and one that fizzled. There is no
+     box to ask in until somebody presses Start, and the card says so in the
+     same words the home's idle card uses. */
+  assert.equal(
+    catchupStageLine("active", { status: "collecting", questionsCloseAt: null, number: 1 }, FMT),
+    "No Editions yet"
+  );
+  assert.equal(
+    catchupStageLine("active", { status: "collecting", questionsCloseAt: null, number: 3 }, FMT),
+    "Nothing running"
+  );
+  assert.equal(
+    catchupStageLine("active", { status: "collecting", questionsCloseAt: at(DAY_MS), number: 3 }, FMT),
+    "Open for questions"
+  );
+  // A caller that did not select the deadline cannot make a running row idle.
+  assert.equal(catchupStageLine("active", { status: "collecting" }, FMT), "Open for questions");
 });
 
 test("catchupStageLine: every state has a line, including the ones nothing reaches", () => {
@@ -945,15 +909,17 @@ test("C-182: a photo removed mid-upload is not resurrected when the upload lands
   );
 });
 
-test("the admin's past-its-date list leaves out a paused Catch-up and a dormant Edition", () => {
+test("the admin's past-its-date list leaves out an ended Catch-up and a fizzled Edition", () => {
   /* Owner, 2026-09-15, about a paused Catch-up on his worklist: "it's paused.
      let it be paused wtf should I do". A frozen clock and an Edition nobody
-     asked anything in are both working as designed, and neither has a fix. */
+     asked anything in are both working as designed, and neither has a fix.
+     Only ENDED freezes since 2026-10-17; a legacy paused row runs, so if it
+     is past its date it is genuinely stuck. */
   const now = new Date("2026-09-15T12:00:00Z");
   const [collecting, answering, sealed] = overdueEditionWhere(now).OR;
-  assert.deepEqual(collecting.catchup, { status: "active" });
+  assert.deepEqual(collecting.catchup, { status: { not: "ended" } });
   assert.deepEqual(collecting.prompts, { some: {} });
-  assert.deepEqual(answering.catchup, { status: "active" });
+  assert.deepEqual(answering.catchup, { status: { not: "ended" } });
   // A time capsule opens on its date whatever the Catch-up is doing.
   assert.equal(sealed.catchup, undefined);
   for (const clause of [collecting, answering, sealed]) {

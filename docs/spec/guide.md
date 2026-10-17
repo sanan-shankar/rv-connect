@@ -310,7 +310,7 @@ What each covers, in his order. The chapters in `src/components/guide/chapters/`
 | Directory | Who lives where | Map (blue circle: several cities, tap to zoom; green: one city, tap for its people), Batches, People (search, filters) | Everything on your profile is seen by members; fill in what you are comfortable with; who sees contact details |
 | Collection | The photograph you never had to show someone | Contribute, the year, review; the kinds along the top, sorts, the years down the side, search | Full-resolution download and asking the uploader; the Class Collection (unreviewed, your batch only, free) |
 | Letters | Writing longer or more considered than a post | Seen in the Feed and in Letters, likes and comments, up to 3 photos | Drafts, on any device |
-| Catch-ups | Keeping up with a whole group at once | Three days of questions (own or from the library, anonymous if you like), a week of answers (named, up to 3 photos), then the Edition, for its members only | Your batch's (every three months), your own (the Keeper sets the rhythm), picture, reminders, leaving |
+| Catch-ups | Keeping up with a whole group at once | Three days of questions (own or from the library, anonymous if you like), a week of answers (named, up to 3 photos), then the Edition, for its members only | Anyone in it starts an Edition when they want one (no rhythm since 2026-10-17); your batch's, your own, picture, reminders, leaving |
 
 ### 7.1 Where the code corrected the memo
 

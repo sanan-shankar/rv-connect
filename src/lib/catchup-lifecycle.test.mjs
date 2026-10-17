@@ -14,94 +14,93 @@ import { read, decomment, balancedBody } from "./test-kit.mjs";
  *  database here is the live production one.
  * ------------------------------------------------------------------ */
 
-test("B-061: the clock stops for a Catch-up that is not active", () => {
+test("B-061: the clock stops for a Catch-up that has ended, and only for that", () => {
   const src = decomment(read("src/lib/catchups.ts"));
   // The one gate, inside advanceEdition, which every caller comes through.
   /* With one exception since build phase 14: a sealed time capsule opens on
      its date whatever the Catch-up is doing, and nothing else gets through.
      time-capsule-rule.test.mjs pins why the plan for a sealed Edition has one
-     step and books nothing. */
+     step.
+
+     ENDED, not "not active". Until 2026-10-17 a paused Catch-up froze too;
+     there is nothing to hold since Editions stopped running on a rhythm, and a
+     legacy `paused` row runs like any other, which is what lets its cleanup
+     migration land on either side of the deploy. */
   assert.match(
     src,
-    /meta\.catchupStatus !== "active" && edition\.status !== "sealed"\)\s*return;/,
-    "advanceEdition no longer refuses to advance a paused or ended Catch-up"
+    /meta\.catchupStatus === "ended" && edition\.status !== "sealed"\)\s*return;/,
+    "advanceEdition no longer refuses to advance an ended Catch-up, or freezes a paused one again"
   );
-  /* And the sweep does not even load them. Pinned on the property rather than
-     on one nesting of it: the two reads this used to spell out became one on
-     2026-09-05 (refactor audit 2, C3), so what matters is that the sweep's own
-     query still narrows to active Catch-ups and to the viewer's scope, not
-     where in the `where` those clauses sit. */
+  /* And the sweep does not even load ended ones. Pinned on the property rather
+     than on one nesting of it, so what matters is that the sweep's own query
+     still narrows past ended Catch-ups and to the viewer's scope. */
   const sweep = balancedBody(src, "export async function advanceDueCatchups");
   assert.ok(sweep, "advanceDueCatchups is gone; this pin is reading nothing");
   assert.match(
     sweep,
-    /status: "active"/,
-    "advanceDueCatchups no longer scopes its query to active Catch-ups"
+    /status: \{ not: "ended" \}/,
+    "advanceDueCatchups no longer skips ended Catch-ups"
   );
   assert.match(
     sweep,
     /\.\.\.scope/,
     "advanceDueCatchups no longer scopes its query to the viewer's own Catch-ups"
   );
+  // It opens nothing. An Edition starts because somebody starts it.
+  assert.doesNotMatch(sweep, /openEdition|nextOpensAt/, "the sweep is opening Editions on its own again");
 });
 
-test("B-061: pausing stamps the freeze, ending and resuming clear it", () => {
+test("B-061: ending is the one freeze; nothing pauses any more", () => {
   const src = decomment(read("src/app/(main)/catchups/actions.ts"));
-  assert.match(src, /status: "paused", pausedAt: new Date\(\)/, "pause does not stamp pausedAt");
-  assert.match(src, /status: "active", pausedAt: null/, "resume does not clear pausedAt");
-  assert.match(src, /status: "ended", nextOpensAt: null, pausedAt: null/, "end does not clear pausedAt");
-  // Pause is an edge, not a re-stamp: an already-paused row must not have its
-  // credit extended by a second pause.
-  assert.match(
-    src,
-    /where: \{ id: catchupId, status: "active" \}/,
-    "pause is no longer conditional on the Catch-up being active"
-  );
+  assert.doesNotMatch(src, /export async function (pauseCatchup|resumeCatchup)\b/, "hold is back, with nothing scheduled to hold");
+  assert.doesNotMatch(src, /status: "paused"/, "something writes a paused Catch-up again");
+  const end = balancedBody(src, "export async function endCatchup");
+  assert.ok(end, "endCatchup is gone; this pin is reading nothing");
+  assert.match(end, /data: \{ status: "ended" \}/, "end does not end it");
 });
 
-test("B-061: every hand-driven write into a live Edition refuses a frozen Catch-up", () => {
+test("B-061: every hand-driven write into a live Edition refuses an ended Catch-up", () => {
   const src = decomment(read("src/app/(main)/catchups/actions.ts"));
 
   // The clock gate in advanceEdition covers the automatic half only. These
-  // six write the edition directly, in their own transactions, and each used
-  // to check the EDITION's status alone -- which does not change on a pause. A
-  // Keeper with a tab opened before the pause could still publish the Edition and
-  // notify the whole group under a page saying it was paused.
-  //
-  // Six, not seven: `publishNow` is deleted with `preparing` (2026-09-08), and
-  // `closeAndPrepare` is `closeAndPublish` -- the close IS the publish now.
-  const MUST_REFUSE_WHEN_FROZEN = [
+  // write the edition directly, in their own transactions, and each used to
+  // check the EDITION's status alone -- which does not change when a Catch-up
+  // ends. A tab opened before the end could still publish the Edition and
+  // notify the whole group under a page saying it had ended.
+  const MUST_REFUSE_WHEN_ENDED = [
     "openAnswering",
     "closeAndPublish",
     "extendDeadline",
     "nudgeGroup",
     "submitPrompt",
     "submitEntry",
+    "startEdition",
+    // Idle Editions stay `collecting` after a Catch-up ends, so curating them
+    // is a write into an ended Catch-up too (write-path review, 2026-10-17).
+    "curatePrompt",
   ];
-  for (const name of MUST_REFUSE_WHEN_FROZEN) {
+  for (const name of MUST_REFUSE_WHEN_ENDED) {
     const start = src.indexOf(`export async function ${name}`);
     assert.ok(start > -1, `${name} has been renamed or removed`);
     const rest = src.slice(start);
     const end = rest.indexOf("export async function", 1);
     const body = end === -1 ? rest : rest.slice(0, end);
-    // Two spellings, one guarantee. The five Keeper controls now reach the
-    // freeze through `loadKeeperEdition`, which the two member submissions do
-    // not use (their status check has to run before the frozen one), so they
-    // still call `refuseIfFrozen` themselves.
+    // Two spellings, one guarantee. The Keeper controls reach it through
+    // `loadKeeperEdition`; the member submissions and Start call
+    // `refuseIfEnded` themselves.
     assert.match(
       body,
-      /refuseIfFrozen\(|loadKeeperEdition\(/,
-      `${name} writes into an Edition without refusing a paused or ended Catch-up`
+      /refuseIfEnded\(|loadKeeperEdition\(/,
+      `${name} writes into an Edition without refusing an ended Catch-up`
     );
-    // Delegating is not enough: `loadKeeperEdition` only runs the freeze when
-    // it is GIVEN a pausedHint, so a call without one looks gated and is not.
-    // That is the exact hole this test exists to catch, so it is checked
-    // rather than assumed.
-    if (!/refuseIfFrozen\(/.test(body)) {
+    // Delegating is not enough: `loadKeeperEdition` only runs the check when
+    // it is ASKED to (`refuseEnded: true`), so a call without it looks gated
+    // and is not. That is the exact hole this test exists to catch.
+    if (!/refuseIfEnded\(/.test(body)) {
       assert.match(
         body,
-        /pausedHint:/,
-        `${name} calls loadKeeperEdition without a pausedHint, so nothing refuses a frozen Catch-up`
+        /refuseEnded: true/,
+        `${name} calls loadKeeperEdition without refuseEnded, so nothing refuses an ended Catch-up`
       );
     }
   }
@@ -111,58 +110,76 @@ test("B-061: every hand-driven write into a live Edition refuses a frozen Catch-
   assert.ok(helper, "loadKeeperEdition has been renamed or removed");
   assert.match(
     helper,
-    /refuseIfFrozen\(/,
-    "loadKeeperEdition no longer refuses a frozen Catch-up, so five Keeper controls lost their gate at once"
+    /refuseIfEnded\(/,
+    "loadKeeperEdition no longer refuses an ended Catch-up, so every Keeper control lost its gate at once"
   );
 
-  /* And the SCREEN. `/catchups/[catchupId]/answer` is a 308 to the home since
-     build phase 7 -- answering happens on the home now (N77) -- so the screen
-     half of this guard moved with it. The home's Edition region tests the
-     CATCH-UP's state before the Edition's, so a paused Catch-up gets the "on
-     hold" card and an ended one gets nothing; neither can reach the composer.
+  /* The SCREEN. Answering happens on the home (N77), and the home's Edition
+     region tests the CATCH-UP's state before the Edition's: an ended one gets
+     nothing and an idle one gets Start, so neither can reach the box or the
+     composer.
 
-     Order is the whole of it. Read the other way round, `answering` would
-     match first and a frozen Catch-up would draw a writing box whose saves
-     `submitEntry` then refuses one at a time. */
+     Order is the whole of it. Read the other way round, `collecting` or
+     `answering` would match first and an ended or idle Catch-up would draw a
+     box whose every write is then refused. */
   const home = decomment(read("src/components/catchups/home/catchup-home.tsx"));
   const region = balancedBody(home, "function EditionRegion");
   assert.ok(region, "EditionRegion is gone; this pin is reading nothing");
   const ended = region.indexOf('catchupStatus === "ended"');
-  const paused = region.indexOf('catchupStatus === "paused"');
+  const idle = region.indexOf("if (data.idle)");
+  const collecting = region.indexOf('status === "collecting"');
   const answering = region.indexOf('status === "answering"');
-  assert.ok(ended > -1 && paused > -1, "the home no longer tests the Catch-up's own state");
-  assert.ok(answering > -1, "the home no longer draws the composer; this pin is reading nothing");
+  assert.ok(ended > -1 && idle > -1, "the home no longer tests the Catch-up's own state");
+  assert.ok(collecting > -1 && answering > -1, "the home no longer draws the box and the composer; this pin is reading nothing");
   assert.ok(
-    ended < answering && paused < answering,
-    "the home offers the composer before it checks for a frozen Catch-up"
+    ended < collecting && idle < collecting && ended < answering && idle < answering,
+    "the home offers the box or the composer before it checks for an ended or idle Catch-up"
   );
 });
 
-test("B-060: resume re-arms the rhythm rather than leaving a dead Catch-up", () => {
+test("an idle Catch-up refuses every write that would start its clock behind everyone's back", () => {
+  /* An idle `collecting` row -- a batch's never-started first, or one that
+     fizzled -- is waiting for Start, which is the one thing that tells people.
+     A question used to start a batch's clock silently; "give everyone longer"
+     or "open answering" would now. So the three writes that can reach a
+     collecting row all ask first. */
   const src = decomment(read("src/app/(main)/catchups/actions.ts"));
-  // resumeCatchup must reach for addCadenceGap: without it, a Catch-up whose
-  // Edition published while paused sits active forever with no future Edition and
-  // no control anywhere in the app to start one.
-  const resume = src.slice(src.indexOf("export async function resumeCatchup"));
-  const body = resume.slice(0, resume.indexOf("export async function", 1));
-  assert.match(body, /addCadenceGap/, "resumeCatchup no longer backfills nextOpensAt");
-  assert.match(body, /shiftEditionPatch/, "resumeCatchup no longer gives back the paused time");
-  // The compare-and-swap pins the freeze stamp, not just the status: a
-  // pause/resume/pause cycle racing this one would otherwise credit the wrong
-  // duration to every deadline below.
+  for (const name of ["submitPrompt", "openAnswering", "extendDeadline"]) {
+    const body = balancedBody(src, `export async function ${name}`);
+    assert.ok(body, `${name} is gone; this pin is reading nothing`);
+    assert.match(body, /refuseIfIdle\(edition\)/, `${name} can start an idle Catch-up's clock with nobody told`);
+  }
+  // Matched on the source rather than through balancedBody, which would stop
+  // at the `{ error: string }` in the return type.
   assert.match(
-    body,
-    /status: "paused", pausedAt \}/,
-    "resumeCatchup's compare-and-swap no longer pins pausedAt"
+    src,
+    /function refuseIfIdle\([^)]*\)[^{]*\{[^}]*\}[^{]*\{[\s\S]{0,200}?isEditionRunning\(/,
+    "refuseIfIdle is gone, or no longer asks the one idle test"
   );
+});
+
+test("B-060's successor: there is always a way to start the next Edition", () => {
+  /* B-060 was a Catch-up sitting active for ever with no future Edition and no
+     control anywhere to start one. Its fix re-armed the rhythm on resume; with
+     no rhythm the fix is simpler and wider -- whenever nothing is running the
+     home draws Start, for anyone in it, and the opener reuses a fizzled or
+     never-started row rather than refusing on it. */
+  const lib = decomment(read("src/lib/catchups.ts"));
+  const open = balancedBody(lib, "export async function openEdition");
+  assert.ok(open, "openEdition is gone; this pin is reading nothing");
+  assert.match(open, /isEditionRunning\(/, "openEdition no longer refuses to start a second Edition on top of a running one");
+  assert.match(open, /status === "collecting"/, "openEdition no longer reuses an idle collecting row");
+  assert.match(open, /notifyQuestionsOpen\(tx/, "starting an Edition no longer tells anyone, inside the same transaction");
+  const page = decomment(read("src/app/(main)/catchups/[catchupId]/(home)/page.tsx"));
+  assert.match(page, /const idle =/, "the home no longer works out whether it is idle");
 });
 
 test("B-062: the header does not count down a Catch-up whose clock is stopped", () => {
   const src = decomment(read("src/app/(main)/catchups/[catchupId]/(home)/page.tsx"));
   assert.match(
     src,
-    /catchup\.status === "active"\s*\?\s*editionCountdownLabel/,
-    "the page header prints a live countdown over the paused banner again"
+    /catchup\.status !== "ended"\s*\?\s*editionCountdownLabel/,
+    "the page header prints a live countdown over an ended Catch-up again"
   );
 });
 

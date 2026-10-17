@@ -25,14 +25,15 @@
  *
  *  THE ONE IDEA UNDER IT. A Catch-up's settings are the Catch-up
  *  described, and some of those descriptions you may change. So "This
- *  Catch-up" holds THE SAME THREE ROWS for everybody -- Name, Picture,
- *  Rhythm -- and who you are decides which of them open. A row you may
- *  not change still states its answer; it just has no chevron and does
- *  not press.
+ *  Catch-up" holds THE SAME ROWS for everybody -- Name, Picture -- and
+ *  who you are decides which of them open. A row you may not change
+ *  still states its answer; it just has no chevron and does not press.
+ *  (Rhythm was the third until 2026-10-17, when Editions stopped running
+ *  on one.)
  *
  *  That is what fixes the batch case. A batch Catch-up would otherwise
  *  come out as a single row, which is correct and looks like a mistake.
- *  Now it is the same panel with two rows sealed, which says the thing he
+ *  Now it is the same panel with its name sealed, which says the thing he
  *  wanted said without a sentence teaching it: "the batch catch-up, you
  *  don't add members. The members are fixed."
  *
@@ -48,14 +49,14 @@
  *  Cancel then the verb), a CHOOSER (options unfolding in the row), and
  *  an EDITOR (title, one field, Cancel then Save).
  *
- *  ── ONE DIVERGENCE FROM THE DRAWING, and it is the data ──
+ *  ── WHAT LEFT IT ON 2026-10-17 ──
  *
- *  The lab room offered four rhythms: every month, every two months,
- *  every three months, twice a year. `Catchup.cadence` has three
- *  ("biweekly" | "monthly" | "quarterly") and build phase 7 ships no
- *  migration, so this offers the three that exist, worded in the
- *  drawing's own register. Whether he wants the other two is a question
- *  for him and a one-column change, not something to invent here.
+ *  Rhythm, Hold the next Edition / Start it again, and Start the next
+ *  Edition now. There is no rhythm, so nothing to choose and nothing to
+ *  hold; and Start is the home's own primary action now, because in here
+ *  is where a 2024 alumnus did not find it and made a second Catch-up of
+ *  her whole batch instead. Its confirmation still lives in this file,
+ *  with the rest of the family.
  * ------------------------------------------------------------------ */
 
 import { useEffect, useRef, useState } from "react";
@@ -68,10 +69,7 @@ import {
   Image as ImageIcon,
   Inbox,
   LogOut,
-  Pause as PauseIcon,
   PenLine,
-  Play,
-  Repeat,
   Send,
   Type,
   type LucideIcon,
@@ -90,7 +88,7 @@ import {
 import { EASE_OUT_SMOOTH } from "@/components/common/motion";
 import { callAction } from "@/lib/call-action";
 import { cn, formatDayMonth } from "@/lib/utils";
-import type { Cadence, ReminderMode } from "@/lib/catchups-types";
+import type { ReminderMode } from "@/lib/catchups-types";
 import {
   closeAndPublish,
   endCatchup,
@@ -98,13 +96,10 @@ import {
   leaveCatchup,
   nudgeGroup,
   openAnswering,
-  pauseCatchup,
   renameCatchup,
-  resumeCatchup,
   setCatchupArchived,
   setReminderPref,
-  startNextEditionNow,
-  updateCatchupCadence,
+  startEdition,
 } from "@/app/(main)/catchups/actions";
 import type { SettingsCatchup } from "./types";
 import { PicturePickerDialog } from "@/components/catchups/home/picture-picker-dialog";
@@ -118,7 +113,7 @@ import { PicturePickerDialog } from "@/components/catchups/home/picture-picker-d
  *  So a row has exactly two x positions in it -- the icon, and the text.
  *
  *  Which also settles the hint. A row either has an answer or it needs
- *  explaining, never both: "Rhythm / Every month" wants no gloss, and
+ *  explaining, never both: "Reminders / Never" wants no gloss, and
  *  "Open answering / Stop taking questions, start writing" has no answer
  *  to give.
  *
@@ -126,15 +121,13 @@ import { PicturePickerDialog } from "@/components/catchups/home/picture-picker-d
  *  ever has. That makes those rows physically taller and slower to read,
  *  which is the right shape for a control you cannot take back. */
 
-export type ChoiceKey = "rhythm" | "reminders" | "extend";
+export type ChoiceKey = "reminders" | "extend";
 
 export type ConfirmKey =
   | "open-answering"
   | "nudge"
   | "close-now"
-  | "start-next"
-  | "hold"
-  | "resume"
+  | "start"
   | "end"
   | "leave"
   | "put-away";
@@ -162,16 +155,6 @@ type Group = { label: string; rows: Row[] };
 
 /* ── the choices ───────────────────────────────────────────────────── */
 
-/** The app's three cadences, in the drawing's register. `CADENCE_LABELS`
- *  in `catchups-core.ts` says "Monthly"; that one heads a column in the
- *  admin room, where a bare adjective is right. A settings row is
- *  answering "how often?", so it answers in words. */
-const RHYTHMS: ReadonlyArray<{ value: Cadence; label: string }> = [
-  { value: "biweekly", label: "Every two weeks" },
-  { value: "monthly", label: "Every month" },
-  { value: "quarterly", label: "Every three months" },
-];
-
 const REMINDERS: ReadonlyArray<{ value: ReminderMode; label: string }> = [
   { value: "all", label: "Daily" },
   { value: "last", label: "On the last day" },
@@ -187,7 +170,6 @@ const LONGER: ReadonlyArray<{ value: number; label: string }> = [
 ];
 
 const CHOICES: Record<ChoiceKey, ReadonlyArray<{ value: string | number; label: string }>> = {
-  rhythm: RHYTHMS,
   reminders: REMINDERS,
   extend: LONGER,
 };
@@ -200,10 +182,11 @@ function labelOf(k: ChoiceKey, value: string | number | null): string {
 
 /** This Edition: the cycle's controls over the clock. The Keeper's, on a
  *  people Catch-up; any batch member's, on a batch one (owner, 2026-09-27:
- *  "make everyone a keeper"). Absent only when `canRun` is false, paused,
- *  ended, or there is no live Edition to run. */
+ *  "make everyone a keeper"). Absent when `canRun` is false, when the
+ *  Catch-up has ended, and whenever it is idle -- `state` is "none" then,
+ *  and Start is on the home, not in here. */
 function editionGroup(c: SettingsCatchup, extended: number | null): Group | null {
-  if (!c.canRun || c.paused || c.ended || !c.editionId) return null;
+  if (!c.canRun || c.ended || !c.editionId) return null;
   const closes = c.answersCloseAt ? formatDayMonth(c.answersCloseAt) : "";
   const longer: Row = {
     key: "extend",
@@ -249,25 +232,14 @@ function editionGroup(c: SettingsCatchup, extended: number | null): Group | null
               opens: { shape: "confirm", key: "close-now" },
             },
           ]
-        : c.state === "published"
-          ? [
-              {
-                key: "start-next",
-                label: "Start the next Edition now",
-                icon: Play,
-                line: "Do not wait for the rhythm",
-                oneWay: true,
-                opens: { shape: "confirm", key: "start-next" },
-              },
-            ]
-          : [];
+        : [];
   return rows.length ? { label: "This Edition", rows } : null;
 }
 
-/** This Catch-up: the same three rows for everybody, then the Keeper's
- *  two. Name, Picture and Rhythm are what the Catch-up IS, so they are
- *  stated whether or not you may change them. */
-function catchupGroup(c: SettingsCatchup, cadence: Cadence): Group {
+/** This Catch-up: the same two rows for everybody, then the Keeper's
+ *  one. Name and Picture are what the Catch-up IS, so they are stated
+ *  whether or not you may change them. */
+function catchupGroup(c: SettingsCatchup): Group {
   const rows: Row[] = [
     {
       key: "name",
@@ -283,36 +255,7 @@ function catchupGroup(c: SettingsCatchup, cadence: Cadence): Group {
       line: "The photograph on its card and header",
       opens: c.canChangePicture ? { shape: "picture" } : undefined,
     },
-    {
-      key: "rhythm",
-      label: "Rhythm",
-      icon: Repeat,
-      line: labelOf("rhythm", cadence),
-      choose: c.youKeep ? "rhythm" : undefined,
-    },
   ];
-  // Hold and resume are cycle verbs (owner, 2026-09-27), so every batch
-  // member holds them the same way they hold open-answering and the rest --
-  // `canRun`, not `youKeep`.
-  if (c.canRun && !c.ended) {
-    rows.push(
-      c.paused
-        ? {
-            key: "resume",
-            label: "Start it again",
-            icon: Play,
-            line: "Let the clock run",
-            opens: { shape: "confirm", key: "resume" },
-          }
-        : {
-            key: "hold",
-            label: "Hold the next Edition",
-            icon: PauseIcon,
-            line: "Nothing goes out until you say",
-            opens: { shape: "confirm", key: "hold" },
-          },
-    );
-  }
   // Ending is the roster's call, and on a batch Catch-up the roster is
   // everyone and no one at once -- there is nobody to make that call for
   // the rest, so it stays the narrower, Keeper-only permission.
@@ -367,10 +310,10 @@ function youGroup(c: SettingsCatchup, reminder: ReminderMode): Group {
 
 export function settingsGroups(
   c: SettingsCatchup,
-  at: { cadence: Cadence; reminder: ReminderMode; extended: number | null },
+  at: { reminder: ReminderMode; extended: number | null },
 ): Group[] {
   const edition = editionGroup(c, at.extended);
-  return [...(edition ? [edition] : []), catchupGroup(c, at.cadence), youGroup(c, at.reminder)];
+  return [...(edition ? [edition] : []), catchupGroup(c), youGroup(c, at.reminder)];
 }
 
 /* ── the pills a row unfolds ───────────────────────────────────────── *
@@ -442,7 +385,7 @@ function SettingRow({
 }: {
   r: Row;
   open: boolean;
-  at: { cadence: Cadence; reminder: ReminderMode; extended: number | null };
+  at: { reminder: ReminderMode; extended: number | null };
   busy: boolean;
   onOpen: (o: Opens) => void;
   onToggle: () => void;
@@ -450,8 +393,7 @@ function SettingRow({
 }) {
   const Icon = r.icon;
   const press = r.opens ? () => onOpen(r.opens!) : r.choose ? onToggle : undefined;
-  const current =
-    r.choose === "rhythm" ? at.cadence : r.choose === "reminders" ? at.reminder : at.extended;
+  const current = r.choose === "reminders" ? at.reminder : at.extended;
 
   const body = (
     <>
@@ -507,7 +449,7 @@ function SettingRow({
   );
 
   /* A fact, not a control: no glyph weight, nothing to press. This is the
-     row a batch Catch-up's Name and Rhythm become, and it is how the panel
+     row a batch Catch-up's Name becomes, and it is how the panel
      says "fixed" without a sentence explaining it. */
   if (!press) {
     return <div className="flex items-start gap-3 px-3 py-2.5">{body}</div>;
@@ -570,7 +512,7 @@ function SettingsPanel({
   className,
 }: {
   c: SettingsCatchup;
-  at: { cadence: Cadence; reminder: ReminderMode; extended: number | null };
+  at: { reminder: ReminderMode; extended: number | null };
   /** Which row is unfolded. One at a time. */
   open: string | null;
   busy: boolean;
@@ -722,6 +664,8 @@ function EditBody({
 export function confirmCopy(
   key: ConfirmKey,
   name: string,
+  /** Everyone in the Catch-up, the viewer included. Only Start says it. */
+  people = 0,
 ): { title: string; line: string; verb: string; oneWay: boolean } {
   switch (key) {
     case "open-answering":
@@ -745,27 +689,23 @@ export function confirmCopy(
         verb: "Send it out",
         oneWay: true,
       };
-    case "start-next":
+    /* The one place the head count is said, because it is the whole of
+       what this costs: every one of them gets a bell. The accident worry
+       (N30) that once kept this Keeper-only is answered here instead. Not
+       styled one-way: an Edition that starts is the point of the page, and
+       the cinnamon button is for acts nobody wants to take by mistake. */
+    case "start": {
+      const others = Math.max(0, people - 1);
       return {
-        title: "Start the next Edition now",
-        line: "Questions open today rather than on the rhythm, and everyone is told. The rhythm carries on from here.",
-        verb: "Start it",
-        oneWay: true,
-      };
-    case "hold":
-      return {
-        title: "Hold the next Edition",
-        line: "Nothing goes out until you start it again. Everything already published stays where it is.",
-        verb: "Hold it",
-        oneWay: false,
-      };
-    case "resume":
-      return {
-        title: "Start it again",
-        line: "The clock runs from today, and the next Edition arrives on the rhythm.",
+        title: "Start a new Edition",
+        line:
+          others === 0
+            ? "Questions open for three days."
+            : `${others === 1 ? "The one other person" : `All ${others} other people`} in ${name} ${others === 1 ? "is" : "are"} told, and questions open for three days.`,
         verb: "Start it",
         oneWay: false,
       };
+    }
     case "end":
       return {
         title: `End ${name}`,
@@ -834,7 +774,6 @@ export function PictureDoor({
  *  SERVER renders -- the state line, the Edition region, the sidebar --
  *  and the actions' own `revalidatePath` only invalidates the cache. */
 export function useSettings(c: SettingsCatchup, onGone: () => void) {
-  const [cadence, setCadence] = useState<Cadence>(c.cadence);
   const [reminder, setReminder] = useState<ReminderMode>(c.reminderMode);
   /* Null means nobody has pushed the deadline in this session, which is why
      the row shows the deadline itself until somebody does. */
@@ -845,9 +784,8 @@ export function useSettings(c: SettingsCatchup, onGone: () => void) {
   const [busy, setBusy] = useState(false);
 
   /* The server is the authority. When a refresh brings new props down --
-     someone else changed the rhythm, or the Edition moved on -- the local
-     copies follow rather than pinning a stale answer on screen. */
-  useEffect(() => setCadence(c.cadence), [c.cadence]);
+     someone else renamed it, or the Edition moved on -- the local copies
+     follow rather than pinning a stale answer on screen. */
   useEffect(() => setReminder(c.reminderMode), [c.reminderMode]);
   useEffect(() => setName(c.name), [c.name]);
 
@@ -866,18 +804,10 @@ export function useSettings(c: SettingsCatchup, onGone: () => void) {
     }
   }
 
-  const live: SettingsCatchup = { ...c, name, cadence, reminderMode: reminder };
+  const live: SettingsCatchup = { ...c, name, reminderMode: reminder };
 
   async function pick(k: ChoiceKey, v: string | number) {
     setRow(null);
-    if (k === "rhythm") {
-      const was = cadence;
-      const next = v as Cadence;
-      if (next === was) return;
-      setCadence(next);
-      await run(() => updateCatchupCadence(c.catchupId, next), () => setCadence(was));
-      return;
-    }
     if (k === "reminders") {
       const was = reminder;
       const next = v as ReminderMode;
@@ -907,12 +837,8 @@ export function useSettings(c: SettingsCatchup, onGone: () => void) {
           return id ? await nudgeGroup(id) : { error: NO_EDITION };
         case "close-now":
           return id ? await closeAndPublish(id) : { error: NO_EDITION };
-        case "start-next":
-          return await startNextEditionNow(c.catchupId);
-        case "hold":
-          return await pauseCatchup(c.catchupId);
-        case "resume":
-          return await resumeCatchup(c.catchupId);
+        case "start":
+          return await startEdition(c.catchupId);
         case "end":
           return await endCatchup(c.catchupId);
         case "leave":
@@ -941,7 +867,7 @@ export function useSettings(c: SettingsCatchup, onGone: () => void) {
     busy,
     panel: {
       c: live,
-      at: { cadence, reminder, extended },
+      at: { reminder, extended },
       open: row,
       busy,
       onOpenRow: setRow,
@@ -1010,7 +936,7 @@ export function SettingsDialogs({
         <DialogContent initialFocus={panel} ref={panel} tabIndex={-1}>
           {open?.shape === "confirm" &&
             (() => {
-              const copy = confirmCopy(open.key, c.name);
+              const copy = confirmCopy(open.key, c.name, c.people);
               return (
                 <ConfirmBody
                   title={copy.title}

@@ -82,8 +82,9 @@ export type SketchEdition = {
   catchupName: string;
   number: number;
   publishedAt: string;
+  /** Always null since 2026-10-17: nothing books the next Edition any more.
+   *  Kept so this room still draws the sketch it was signed off with. */
   nextOpensAt: string | null;
-  cadence: string;
   /** Everyone in the Catch-up, Keeper first, then alphabetical. */
   members: SketchPerson[];
   /** Everyone who wrote in, in the order they first appear. */

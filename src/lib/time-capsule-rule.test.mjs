@@ -8,6 +8,7 @@ import {
   TICK_GRACE_MS,
   capsuleOpensAt,
   computeStatus,
+  isEditionRunning,
   nextEditionStatus,
   planNextAction,
   sealPatch,
@@ -137,7 +138,6 @@ test("sealed means nothing moves until the morning it opens, then it opens once"
   assert.equal(open.from, "sealed");
   assert.equal(open.to, "published");
   assert.equal(open.notify, "catchup_published");
-  assert.equal(open.setsNextOpensAt, false, "opening a capsule re-booked the rhythm");
   assert.deepEqual(open.requires, { timeCapsule: true });
   assert.equal(iso(open.patch.publishedAt), iso(morning));
   const early = new Date(new Date("2027-09-14T01:30:00Z").getTime() - TICK_GRACE_MS);
@@ -160,28 +160,24 @@ test("a very stale capsule cascades to sealed and stops there", () => {
   assert.equal(nextEditionStatus(stale, NOW), "answering", "a capsule skipped a step");
 });
 
-test("the rhythm carries on while one Edition is sealed", () => {
-  // Booked at the seal, from the seal.
-  assert.equal(planNextAction(edition(), counts(), NOW).setsNextOpensAt, true);
-
+test("a sealed Edition leaves the Catch-up free to start its next one", () => {
+  /* His 33: the capsule is one Edition, not the Catch-up. It used to carry the
+     rhythm on from the seal; with no rhythm (2026-10-17) it simply leaves the
+     Catch-up idle, and Start opens the next Edition beside it while it waits
+     out its year. */
+  const sealed = edition({ status: "sealed", publishAt: new Date("2027-09-14T01:30:00Z") });
+  assert.equal(isEditionRunning(sealed), false, "a sealed capsule blocks the next Edition");
   const core = decomment(read("src/lib/catchups.ts"));
-  const due = balancedBody(core, "async function openNextEditionIfDue");
-  assert.match(due, /latest\.status !== "published" && latest\.status !== "sealed"/, "a sealed Edition stops the rhythm");
-
-  const actions = decomment(read("src/app/(main)/catchups/actions.ts"));
-  const start = balancedBody(actions, "export async function startNextEditionNow");
-  assert.match(start, /newest\.status !== "published" && newest\.status !== "sealed"/);
-  const resume = balancedBody(actions, "export async function resumeCatchup");
-  assert.match(resume, /latest\.status === "published" \|\| latest\.status === "sealed"/);
-  const cadence = balancedBody(actions, "export async function updateCatchupCadence");
-  assert.match(cadence, /status: \{ in: \["published", "sealed"\] \}/);
-  assert.match(cadence, /lastClosed\?\.sealedAt \?\? lastClosed\?\.publishedAt/, "the rhythm counts from a capsule's opening, a year late");
+  const open = balancedBody(core, "export async function openEdition");
+  assert.ok(open, "openEdition is gone; this pin is reading nothing");
+  // A sealed newest is not reused in place: only an idle COLLECTING row is.
+  assert.match(open, /newest && newest\.status === "collecting"/, "openEdition would reuse a sealed row in place");
 });
 
-test("a capsule opens on its date even when its Catch-up is held or ended", () => {
+test("a capsule opens on its date even when its Catch-up has ended", () => {
   const core = decomment(read("src/lib/catchups.ts"));
   const advance = balancedBody(core, "export async function advanceEdition");
-  assert.match(advance, /meta\.catchupStatus !== "active" && edition\.status !== "sealed"\)\s*return;/);
+  assert.match(advance, /meta\.catchupStatus === "ended" && edition\.status !== "sealed"\)\s*return;/);
   // The entry count a capsule's close needs, so it is not mistaken for empty.
   assert.match(advance, /closing === "published" \|\| closing === "sealed"/);
   const sweep = balancedBody(core, "export async function advanceDueCatchups");
@@ -223,14 +219,14 @@ test("when: only while collecting questions", () => {
   }
 });
 
-test("the marking action: member, not frozen, who, when, and the window re-read by the write", () => {
+test("the marking action: member, not ended, who, when, and the window re-read by the write", () => {
   const src = decomment(read("src/app/(main)/catchups/actions.ts"));
   const fn = balancedBody(src, "export async function setEditionTimeCapsule");
   assert.ok(fn, "setEditionTimeCapsule is gone");
   const order = [
     "requireVerifiedMember(",
     "loadMemberEdition(",
-    "refuseIfFrozen(",
+    "refuseIfEnded(",
     "mayMarkTimeCapsule(",
     "decideTimeCapsuleMark(",
     "catchupEdition.updateMany(",
@@ -328,10 +324,9 @@ test("the stand-in lines say what a sealed Edition is and nothing about it", () 
   const opens = new Date("2027-09-14T01:30:00Z");
   assert.match(catchupStageLine("active", { status: "sealed", publishAt: opens }, DATE_VOICE), /^Sealed until 14 September 2027$/);
   assert.equal(describeEditionStatus({ status: "sealed" }), "Sealed");
-  assert.equal(
-    homeStateLine("active", { status: "sealed" }, new Date("2026-10-14T02:00:00Z"), DATE_VOICE),
-    "The next one opens 14 October 2026"
-  );
+  // Under the home's region the sealed state says nothing: that slot is
+  // Start's now, since there is no next date to give (2026-10-17).
+  assert.equal(homeStateLine("active", { status: "sealed" }, DATE_VOICE), null);
 });
 
 /* ---- schema, migration, exports, demo -------------------------------- */

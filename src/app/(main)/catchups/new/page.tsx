@@ -5,7 +5,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { AlmostReady } from "@/components/catchups/almost-ready";
 import { CreateCatchupForm } from "@/components/catchups/create/create-catchup-form";
 import type { PickedPerson } from "@/components/catchups/create/people-picker";
-import { CADENCE_LABELS, isMissingCatchupTable } from "@/lib/catchups";
+import { isMissingCatchupTable } from "@/lib/catchups";
 import { IDENTITY_SELECT } from "@/lib/people-select";
 
 export const metadata: Metadata = {
@@ -19,8 +19,10 @@ export const metadata: Metadata = {
  * resolved three shapes: guidance when you had no groups, a group picker, or
  * the form for an already-chosen group. Groups are now being retired as a
  * user-facing feature (owner, 2026-07-25), so all three collapse into one
- * form: name it, pick the people, pick the rhythm. The Group row that still
- * backs membership underneath is created silently by `createCatchupWithPeople`.
+ * form: name it, pick the people. (It picked a rhythm too until 2026-10-17;
+ * there is none now, and a Catch-up's next Edition starts when somebody in it
+ * starts one.) The Group row that still backs membership underneath is created
+ * silently by `createCatchupWithPeople`.
  *
  * The only thing loaded here is the viewer's batch year, which seeds both the
  * suggested name and the "everyone from my batch" shortcut, so the overwhelmingly
@@ -93,11 +95,7 @@ export default async function NewCatchupPage() {
     // margin -- see the two-column arrangement in CreateCatchupForm.
     <div>
       <PageHeader title="Start a Catch-up" />
-      <CreateCatchupForm
-        cadenceLabels={CADENCE_LABELS}
-        myBatchYear={batchYear}
-        me={me}
-      />
+      <CreateCatchupForm myBatchYear={batchYear} me={me} />
     </div>
   );
 }

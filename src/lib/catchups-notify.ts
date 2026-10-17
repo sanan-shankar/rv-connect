@@ -101,7 +101,15 @@ async function createMany(
 
 // ─── Triggers ────────────────────────────────────────────────────────────────
 
-/** Edition enters `collecting`: invite everyone to add a question. */
+/**
+ * Edition enters `collecting`: invite everyone to add a question.
+ *
+ * Named after whoever pressed Start when somebody did (2026-10-17). Nothing
+ * starts on its own any more, so this bell is always one person in the group
+ * asking the rest, and saying who is what makes it read that way rather than
+ * as the app on a timer. Creation has no starter to name here: the Catch-up's
+ * own name is the news.
+ */
 export const notifyQuestionsOpen: NotifyQuestionsOpenFn = async (db, ctx) => {
   const members = (await groupMemberIds(db, ctx.groupId)).filter(
     (id) => id !== ctx.excludeUserId
@@ -110,7 +118,9 @@ export const notifyQuestionsOpen: NotifyQuestionsOpenFn = async (db, ctx) => {
     db,
     members,
     "catchup_questions_open",
-    `${ctx.groupName} is starting a Catch-up. Add a question you want everyone to answer.`,
+    ctx.starterName
+      ? `${ctx.starterName} started a new Edition of ${ctx.groupName}. Add a question you want everyone to answer.`
+      : `${ctx.groupName} is starting a Catch-up. Add a question you want everyone to answer.`,
     `/catchups/${ctx.catchupId}`
   );
 };

@@ -9,7 +9,7 @@
  *  let anybody do anything.
  * ------------------------------------------------------------------ */
 
-import type { Cadence, EditionStatus, ReminderMode } from "@/lib/catchups-types";
+import type { EditionStatus, ReminderMode } from "@/lib/catchups-types";
 
 export type SettingsCatchup = {
   catchupId: string;
@@ -17,24 +17,26 @@ export type SettingsCatchup = {
    *  with no title of its own reads as its group everywhere. */
   name: string;
   isBatch: boolean;
-  /** The live Edition's state, or `none` when there is not one. */
+  /** The running Edition's state, or `none` when the Catch-up is idle:
+   *  nothing has started, the last one is out, or one fizzled
+   *  (`isEditionRunning`). Idle draws no Edition rows here; Start is on the
+   *  home. */
   state: EditionStatus | "none";
-  paused: boolean;
   ended: boolean;
-  /** Holds the CATCH-UP's identity: rename, rhythm, end. False on every
-   *  batch Catch-up -- the batch IS the roster, so there is nobody to
-   *  rename it, change its rhythm or end it. Narrower than `canRun` since
-   *  2026-09-27; it used to also gate hold/resume, which moved to `canRun`
-   *  when those became a cycle verb everyone in a batch holds. */
+  /** Everyone in it, the viewer included, for Start's confirmation: the
+   *  number of bells it rings is the thing worth saying before it does. */
+  people: number;
+  /** Holds the CATCH-UP's identity: rename, end. False on every batch
+   *  Catch-up -- the batch IS the roster, so there is nobody to rename it
+   *  or end it. Narrower than `canRun` since 2026-09-27. */
   youKeep: boolean;
   /** May run the CYCLE: choose questions, open answering, nudge, close
-   *  early, extend, start the next Edition, hold and resume. True on every
-   *  batch Catch-up too (owner, 2026-09-27: "make everyone a keeper"),
-   *  which reverses his earlier N30 -- the accident worry that word
-   *  answered is why a batch starts paused, not why this stays refused. */
+   *  early, extend. True on every batch Catch-up too (owner, 2026-09-27:
+   *  "make everyone a keeper"), which reverses his earlier N30. Starting an
+   *  Edition is wider still -- anyone in any Catch-up, his answer of
+   *  2026-10-17 -- so it is not gated on this. */
   canRun: boolean;
   canChangePicture: boolean;
-  cadence: Cadence;
   reminderMode: ReminderMode;
   /** The Edition the clock rows act on. Null when there is none. */
   editionId: string | null;

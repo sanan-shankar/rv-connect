@@ -7,7 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { requireAdminPage } from "@/lib/admin";
 import { ADMIN_MEASURE, AdminEmpty, AdminSection } from "@/components/admin/admin-chrome";
 import { Chip } from "@/components/admin/admin-chip";
-import { EDITION_STATUS, SERIES_STATUS } from "@/components/admin/catchup-status";
+import { editionChip, SERIES_STATUS } from "@/components/admin/catchup-status";
 import { BirdAvatar } from "@/components/common/bird-avatar";
 import { formatDisplayDate, metaLine } from "@/lib/utils";
 import { renderRichText } from "@/lib/rich-text";
@@ -69,7 +69,6 @@ export default async function AdminCatchupReadingRoom({
       id: true,
       title: true,
       intro: true,
-      cadence: true,
       status: true,
       createdBy: { select: { name: true } },
       group: { select: { name: true, _count: { select: { members: true } } } },
@@ -147,7 +146,6 @@ export default async function AdminCatchupReadingRoom({
         <p className="-mt-4 text-[12.5px] leading-relaxed text-muted-foreground">
           {metaLine(
             `${members} ${members === 1 ? "person" : "people"}`,
-            catchup.cadence,
             catchup.createdBy ? `Kept by ${catchup.createdBy.name}` : "No keeper",
             `${catchup.editions.length} ${catchup.editions.length === 1 ? "Edition" : "Editions"}`
           )}
@@ -170,9 +168,10 @@ export default async function AdminCatchupReadingRoom({
         <AdminEmpty>This Catch-up has no Editions yet.</AdminEmpty>
       ) : (
         catchup.editions.map((edition) => {
-          const status = EDITION_STATUS[edition.status] ?? EDITION_STATUS.draft;
+          const status = editionChip(edition);
           // The date this Edition is actually waiting on, which depends on where
-          // it has got to. Showing all three would say almost nothing.
+          // it has got to. Showing all three would say almost nothing. An idle
+          // collecting row has no deadline, so no date.
           const due =
             edition.status === "collecting"
               ? edition.questionsCloseAt

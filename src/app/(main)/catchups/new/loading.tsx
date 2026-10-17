@@ -1,24 +1,22 @@
 import { PageHeader } from "@/components/layout/page-header";
 import { ButtonSkeleton } from "@/components/common/skeleton";
-import { CADENCE_LABELS } from "@/lib/catchups-core";
 
 /* Mirrors the real page (new/page.tsx + create-catchup-form.tsx): the real
    title through the real PageHeader, then ONE card at the centered column's
-   full 768px, laid out as the form's own `340px 1fr` grid -- Name and Rhythm
-   stacked on the left, With spanning both rows on the right, and the
-   left-aligned pill closing the form across both columns.
+   full 768px, laid out as the form's own `340px 1fr` grid -- Name on the
+   left, With on the right, and the left-aligned pill closing the form across
+   both columns.
 
    A form is nearly all words that never change, so those are drawn: the three
    labels, in the elements the form uses for them. That matters more than it
    looks. Name's label is an inline <label>, so it sits in the div's 24px line
-   box, where With's and Rhythm's are <p>s on their own 16.5px one -- so the
+   box, where With's is a <p> on its own 16.5px one -- so the
    Name field starts 7.5px lower than the search beside it, and a skeleton
    that drew three identical label bars put one of them wrong.
 
    What you type into or press is a placeholder at its own size: the 40px
    fields at the input radius, "Everyone from ..." and "Start the first
-   Edition" as the real Buttons' boxes, your own chip, and the rhythm track as
-   its own box with its words invisible. */
+   Edition" as the real Buttons' boxes, and your own chip. */
 export default function NewCatchupLoading() {
   return (
     <div>
@@ -31,7 +29,7 @@ export default function NewCatchupLoading() {
         </div>
 
         {/* With: the search field, the batch shortcut, then you. */}
-        <div className="sm:col-start-2 sm:row-start-1 sm:row-span-2">
+        <div className="sm:col-start-2 sm:row-start-1">
           <p className={LABEL}>With</p>
           <div className="mt-[var(--space-xs)] space-y-[var(--space-s)]">
             <div className="skeleton-warm h-10 rounded-[var(--radius-input)]" />
@@ -51,21 +49,7 @@ export default function NewCatchupLoading() {
           </div>
         </div>
 
-        {/* Rhythm: the cadence track (cadence-control.tsx). */}
-        <div className="sm:col-start-1 sm:row-start-2">
-          <p className={LABEL}>Rhythm</p>
-          <div className="mt-[var(--space-xs)]">
-            <div className="skeleton-warm inline-flex gap-1 rounded-full border border-transparent p-1">
-              {Object.values(CADENCE_LABELS).map((label) => (
-                <span key={label} className="invisible px-4 py-1.5 text-[13px] font-semibold">
-                  {label}
-                </span>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <div className="flex items-center pt-[var(--space-l)] sm:col-span-2 sm:row-start-3">
+        <div className="flex items-center pt-[var(--space-l)] sm:col-span-2 sm:row-start-2">
           <ButtonSkeleton label="Start the first Edition" />
         </div>
       </div>

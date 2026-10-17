@@ -4,16 +4,21 @@ import { read, decomment, balancedBody } from "./test-kit.mjs";
 
 /* ------------------------------------------------------------------ *
  *  Every batch member is a Keeper for the CYCLE now (owner, 2026-09-27:
- *  "make everyone a keeper ... have all of them paused by default"),
- *  reversing the earlier N30 design where a batch Catch-up refused every
- *  manual control outright. Membership and identity -- add, remove, hand
- *  off the hat, rename, the rhythm, end -- still refuse a batch outright,
- *  because the batch IS the roster.
+ *  "make everyone a keeper"), reversing the earlier N30 design where a
+ *  batch Catch-up refused every manual control outright. Membership and
+ *  identity -- add, remove, hand off the hat, rename, end -- still refuse
+ *  a batch outright, because the batch IS the roster.
  *
- *  What this pins: the nine controls that now let a batch member through
- *  (`allowBatch: true` on `loadKeeperScope` / `loadKeeperEdition`), the six
- *  that still do not, that a new batch Catch-up is born paused, and that
- *  the screens read the same split rather than one flag doing double duty.
+ *  And since 2026-10-17 STARTING an Edition is wider than the cycle: there
+ *  is no rhythm, and anyone in any Catch-up may start one (his answer:
+ *  "Anyone in it"). Hold and the rhythm are gone; a batch is made idle
+ *  rather than paused.
+ *
+ *  What this pins: the controls that let a batch member through
+ *  (`allowBatch: true` on `loadKeeperScope` / `loadKeeperEdition`), the
+ *  ones that still do not, that Start asks nobody's role, that a new batch
+ *  Catch-up is born idle, and that the screens read the same split rather
+ *  than one flag doing double duty.
  * ------------------------------------------------------------------ */
 
 const ACTIONS = "src/app/(main)/catchups/actions.ts";
@@ -33,14 +38,10 @@ const OPENED_TO_BATCH = [
   "closeAndPublish",
   "extendDeadline",
   "nudgeGroup",
-  "pauseCatchup",
-  "resumeCatchup",
-  "startNextEditionNow",
 ];
 
 const STAYS_REFUSED = [
   "renameCatchup",
-  "updateCatchupCadence",
   "endCatchup",
   "addCatchupMembers",
   "removeCatchupMember",
@@ -66,9 +67,22 @@ test("membership and identity controls do not opt in, and stay refused", () => {
       body,
       /allowBatch:\s*true/,
       `${name} now opts a batch member in -- the batch IS the roster, so adding, removing, ` +
-        `handing off the hat, renaming, the rhythm and ending must stay refused there`
+        `handing off the hat, renaming and ending must stay refused there`
     );
   }
+});
+
+test("Start asks for membership and nothing else: anyone in any Catch-up, batch or people", () => {
+  const body = fnBody("startEdition");
+  assert.doesNotMatch(
+    body,
+    /loadKeeperScope\(|loadKeeperEdition\(|isEffectiveKeeper\(/,
+    "startEdition gates on a Keeper again; his answer (2026-10-17) was \"Anyone in it\""
+  );
+  assert.match(body, /ctx\.membership/, "startEdition no longer checks the caller is in the Catch-up");
+  assert.match(body, /refuseIfEnded\(ctx\.catchup\.status\)/, "startEdition starts an Edition in an ended Catch-up");
+  assert.match(body, /requireVerifiedMember\(\)/, "startEdition rings every bell in the group without a confirmed address");
+  assert.match(body, /rateLimit\("catchups"/, "startEdition is not metered, so start/close/start could page the group on a loop");
 });
 
 test("curatePrompt opts a batch member in on BOTH branches: remove and reorder", () => {
@@ -129,26 +143,21 @@ test("the frozen hints on submitPrompt and submitEntry no longer name a Keeper w
   assert.doesNotMatch(actions, /when the Keeper resumes it/, "a paused-batch hint still names \"the Keeper\", who a batch Catch-up does not have");
 });
 
-test("ensureBatchCatchup creates a new batch Catch-up already paused", () => {
+test("ensureBatchCatchup makes a batch Catch-up idle: not paused, no rhythm, a first Edition with no deadline", () => {
   const src = decomment(read("src/lib/batch-catchups.ts"));
   const fn = balancedBody(src, "export async function ensureBatchCatchup(");
   assert.ok(fn, "ensureBatchCatchup is gone or renamed");
   const create = fn.slice(fn.indexOf("tx.catchup.create("), fn.indexOf("});", fn.indexOf("tx.catchup.create(")));
-  assert.match(create, /status:\s*"paused"/, "a new batch Catch-up no longer starts paused");
-  assert.match(create, /pausedAt:\s*now/, "a new batch Catch-up's pausedAt is not stamped at creation");
+  assert.doesNotMatch(create, /paused|pausedAt|cadence/, "a new batch Catch-up is being paused or given a rhythm again");
+  const edition = fn.slice(fn.indexOf("tx.catchupEdition.create("));
+  assert.match(edition, /questionsCloseAt:\s*null/, "the first Edition has a deadline, so it starts itself and tells the batch");
+  assert.doesNotMatch(fn, /notify/, "making a batch Catch-up tells somebody; nobody asked for it");
 });
 
-test("the dated migration pauses every active batch series, idempotently, and is not applied here", () => {
-  const sql = read("prisma/migrations-manual/2026-09-27-batch-catchups-paused.sql");
-  assert.match(sql, /UPDATE\s+"CatchupSeries"/i, "the migration does not touch CatchupSeries");
-  assert.match(sql, /status\s*=\s*'paused'/, "the migration does not set status to paused");
-  assert.match(sql, /"pausedAt"\s*=\s*now\(\)/, "the migration does not stamp pausedAt");
-  assert.match(sql, /"batchYear"\s+IS NOT NULL/, "the migration is not scoped to batch groups");
-  assert.match(
-    sql,
-    /c\.status\s*=\s*'active'/,
-    "the migration has no idempotent guard; a second run would re-stamp pausedAt on an already-paused row"
-  );
+test("the dated migration settles every legacy row into the idle model, idempotently", () => {
+  const sql = read("prisma/migrations-manual/2026-10-17-editions-start-by-hand.sql");
+  assert.match(sql, /SET\s+status\s*=\s*'active'[\s\S]*WHERE\s+status\s*=\s*'paused'/i, "paused rows are not made active");
+  assert.match(sql, /SET\s+"questionsCloseAt"\s*=\s*NULL/, "an Edition that closed empty is not fizzled, so the first page view reopens it");
 });
 
 test("BATCH_CATCHUP_REFUSAL no longer claims nobody keeps a batch Catch-up", () => {
@@ -161,9 +170,7 @@ test("BATCH_CATCHUP_REFUSAL no longer claims nobody keeps a batch Catch-up", () 
 
 /* ------------------------------------------------------------------ *
  *  The screens: canRun and youKeep must diverge for a batch Catch-up,
- *  not move together. `youKeep` used to gate hold/resume too; it must
- *  not any more, or a batch member sees an Edition's cycle controls but
- *  not the hold/resume row sitting right beside them in Settings.
+ *  not move together, and Start must ask neither.
  * ------------------------------------------------------------------ */
 
 const homePage = decomment(
@@ -174,16 +181,20 @@ const settingsSurface = decomment(read("src/components/catchups/settings/setting
 
 test("canRun includes the batch; youKeep does not", () => {
   assert.match(homePage, /canRun:\s*isKeeper \|\| isBatch/, "canRun no longer includes every batch member");
-  assert.match(homePage, /youKeep:\s*isKeeper && !isBatch/, "youKeep now includes the batch, which would offer rename/rhythm/end there");
+  assert.match(homePage, /youKeep:\s*isKeeper && !isBatch/, "youKeep now includes the batch, which would offer rename/end there");
 });
 
-test("the on-hold card's resume button reads canRun, not the narrow per-role isKeeper", () => {
-  const at = catchupHome.indexOf("This Catch-up is on hold");
-  assert.ok(at > -1, "the on-hold card's copy is gone or reworded; retarget this test");
-  const holdCard = catchupHome.slice(at);
-  const button = holdCard.slice(0, holdCard.indexOf("</div>"));
-  assert.match(button, /data\.settings\.canRun/, "a batch member with no individual Keeper role would never see Start it again");
-  assert.doesNotMatch(button, /data\.viewer\.isKeeper/, "the resume button still reads the batch-blind isKeeper flag");
+test("the home offers Start to everyone in an idle Catch-up, on no role at all", () => {
+  const at = catchupHome.indexOf("if (data.idle) {");
+  assert.ok(at > -1, "the home no longer draws an idle state; retarget this test");
+  const idle = catchupHome.slice(at, catchupHome.indexOf('edition?.status === "collecting"', at));
+  assert.match(idle, /onClick=\{onStart\}/, "the idle state has no Start");
+  assert.doesNotMatch(
+    idle,
+    /canRun|isKeeper|youKeep/,
+    "Start is gated on a role again; anyone in any Catch-up may start one (2026-10-17)"
+  );
+  assert.doesNotMatch(catchupHome, /This Catch-up is on hold/, "the on-hold card is back, with nothing left that can hold");
 });
 
 test("question curation reads the same batch-inclusive permission as the rest of the cycle", () => {
@@ -194,15 +205,14 @@ test("question curation reads the same batch-inclusive permission as the rest of
   );
 });
 
-test("settings splits hold/resume (the cycle) from end (identity) onto different permissions", () => {
+test("settings offers no rhythm, no hold and no Start, and end stays on the narrower youKeep", () => {
   const group = settingsSurface.slice(
     settingsSurface.indexOf("function catchupGroup"),
     settingsSurface.indexOf("function youGroup")
   );
-  const holdAt = group.search(/if\s*\(c\.canRun && !c\.ended\)/);
+  assert.doesNotMatch(settingsSurface, /key: "rhythm"|key: "hold"|key: "resume"|key: "start-next"/, "a rhythm, hold or start row is back in settings");
   const endAt = group.indexOf('key: "end"');
-  assert.ok(holdAt > -1, "hold/resume no longer gated on c.canRun -- a batch member would lose the resume row in Settings");
-  assert.ok(endAt > holdAt, "end's row moved ahead of the hold/resume block, or the block structure changed");
+  assert.ok(endAt > -1, "end's row is gone");
   const endGuard = group.slice(0, endAt);
   assert.match(
     endGuard.slice(endGuard.lastIndexOf("if (")),

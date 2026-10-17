@@ -15,7 +15,7 @@ import { catchupShelf, editionSlots } from "@/lib/catchup-shelf";
 import { readEditionIds } from "@/lib/catchup-reads";
 import { COVER_SHOTS } from "@/lib/catchup-pictures";
 import { advanceDueCatchups, isMissingCatchupTable } from "@/lib/catchups";
-import { catchupDisplayName, catchupStageLine } from "@/lib/catchups-core";
+import { catchupDisplayName, catchupStageLine, isEditionRunning } from "@/lib/catchups-core";
 import type { CatchupStatus, EditionStatus } from "@/lib/catchups-types";
 import { formatDayAndDate, formatDisplayDateLong, parseJsonArray } from "@/lib/utils";
 
@@ -62,7 +62,9 @@ export const metadata: Metadata = {
  * ------------------------------------------------------------------ */
 
 /** Forward-only urgency order: whatever wants something from you first, then
- *  whatever there is to read, then the quiet ones. */
+ *  whatever there is to read, then the quiet ones. An IDLE Catch-up ranks with
+ *  the quiet ones whatever its newest row's status (`IDLE_PRIORITY`): nothing
+ *  on it wants anything from you until somebody presses Start. */
 const STATUS_PRIORITY: Partial<Record<EditionStatus, number>> = {
   answering: 0,
   collecting: 1,
@@ -70,6 +72,7 @@ const STATUS_PRIORITY: Partial<Record<EditionStatus, number>> = {
   published: 3,
   sealed: 3,
 };
+const IDLE_PRIORITY = 3;
 
 /** The two real date voices, handed to the pure copy helper so the app spells
  *  a day one way (both are pinned to the valley's own clock). */
@@ -120,6 +123,11 @@ async function loadIndexData(userId: string) {
                   publishedAt: true,
                   // A sealed time capsule's opening day, for its stage line.
                   publishAt: true,
+                  /* An idle `collecting` row has no question deadline
+                     (`isEditionRunning`), and its stage line tells a
+                     never-started first Edition from a later one. */
+                  questionsCloseAt: true,
+                  number: true,
                 },
               },
             },
@@ -132,7 +140,7 @@ async function loadIndexData(userId: string) {
   type Row = {
     card: ListCatchup;
     archived: boolean;
-    editionStatus: EditionStatus | null;
+    priority: number;
   };
 
   const rows: Row[] = [];
@@ -146,7 +154,11 @@ async function loadIndexData(userId: string) {
     const edition = raw ? { ...raw, status: raw.status as EditionStatus } : null;
     rows.push({
       archived: catchupShelf(group.catchup.prefs[0] ?? null) === "archived",
-      editionStatus: edition?.status ?? null,
+      priority: !edition
+        ? (STATUS_PRIORITY.draft as number)
+        : isEditionRunning(edition)
+          ? (STATUS_PRIORITY[edition.status] ?? 50)
+          : IDLE_PRIORITY,
       card: {
         catchupId: group.catchup.id,
         name: catchupDisplayName(group.catchup.title, group.name),
@@ -158,9 +170,7 @@ async function loadIndexData(userId: string) {
 
   const live = rows.filter((r) => !r.archived);
   live.sort((a, b) => {
-    const pa = STATUS_PRIORITY[a.editionStatus ?? "draft"] ?? 50;
-    const pb = STATUS_PRIORITY[b.editionStatus ?? "draft"] ?? 50;
-    if (pa !== pb) return pa - pb;
+    if (a.priority !== b.priority) return a.priority - b.priority;
     return a.card.name.localeCompare(b.card.name);
   });
 

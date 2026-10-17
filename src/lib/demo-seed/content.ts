@@ -840,8 +840,7 @@ export const CATCHUP_KEEPER = "shreya-joshi";
 export const CATCHUP_META = {
   groupName: "The 2010s, loosely",
   title: "The 2010s, loosely",
-  intro: "Anyone who was in the valley somewhere between 2009 and 2020. Monthly, no pressure.",
-  cadence: "monthly",
+  intro: "Anyone who was in the valley somewhere between 2009 and 2020. No pressure.",
 };
 
 /** Edition 1: published. This is the finished artefact a visitor reads. */

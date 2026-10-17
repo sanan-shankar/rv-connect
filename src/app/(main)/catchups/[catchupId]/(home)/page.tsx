@@ -22,6 +22,7 @@ import {
   CATCHUP_PROMPT_SETS,
   editionCountdownLabel,
   homeStateLine,
+  isEditionRunning,
   isEffectiveKeeper,
   isMissingCatchupTable,
   mayChangeCatchupPicture,
@@ -30,7 +31,6 @@ import {
   type AdvanceEditionInput,
 } from "@/lib/catchups";
 import type {
-  Cadence,
   CatchupStatus,
   EditionStatus,
   ReminderMode,
@@ -39,7 +39,7 @@ import { IDENTITY_SELECT } from "@/lib/people-select";
 import { COVER_SHOTS } from "@/lib/catchup-pictures";
 import { readEditionIds } from "@/lib/catchup-reads";
 import { promptKind, type PromptCategory } from "@/lib/catchups-types";
-import { formatDayAndDate, formatDisplayDateLong, parseJsonArray } from "@/lib/utils";
+import { formatDayAndDate, parseJsonArray } from "@/lib/utils";
 
 /* ------------------------------------------------------------------ *
  *  The Catch-up home (spec 3.3): the command surface for the live
@@ -143,7 +143,6 @@ async function loadHome(catchupId: string, viewerId: string): Promise<CatchupHom
       timeCapsule: latestRaw.timeCapsule,
       publishAt: latestRaw.publishAt,
       catchup: {
-        cadence: catchup.cadence,
         status: catchup.status,
         group: { id: catchup.group.id, name: catchup.group.name },
       },
@@ -262,13 +261,12 @@ async function loadHome(catchupId: string, viewerId: string): Promise<CatchupHom
       questionsCloseAt: freshLatest.questionsCloseAt?.toISOString() ?? null,
       answersCloseAt: freshLatest.answersCloseAt?.toISOString() ?? null,
       publishedAt: freshLatest.publishedAt?.toISOString() ?? null,
-      // No countdown on a frozen Catch-up. The clock genuinely is not running
-      // (advanceEdition returns early while paused or ended), and the shell
-      // below already replaces the whole console with "This Catch-up is
-      // paused" -- a header reading "3 days left" over that banner was the
-      // page contradicting itself (audit B-061).
+      // No countdown on an ended Catch-up. The clock genuinely is not running
+      // (advanceEdition returns early once it has ended), and a header reading
+      // "3 days left" over that was the page contradicting itself (audit
+      // B-061). A legacy `paused` row runs, so it counts down like any other.
       countdownLabel:
-        catchup.status === "active"
+        catchup.status !== "ended"
           ? editionCountdownLabel(
               {
                 status,
@@ -345,13 +343,12 @@ async function loadHome(catchupId: string, viewerId: string): Promise<CatchupHom
      at all (architecture 5), so pulling its newest Edition out of the sidebar
      to be drawn there left it drawn NOWHERE -- the one published Edition of
      an ended Catch-up was unreachable from its own home, with the sidebar
-     showing "Your previous Editions appear here" beside it. Same for a paused
-     one, where the region is the on-hold card.
+     showing "Your previous Editions appear here" beside it.
 
-     So: the region claims the newest cover only while the Catch-up is active
-     and that Edition has actually published. Otherwise every published
+     So: the region claims the newest cover only while the Catch-up has not
+     ended and that Edition has actually published. Otherwise every published
      Edition is a back number and the sidebar has all of them. */
-  const regionDrawsLatest = catchup.status === "active" && freshLatest?.status === "published";
+  const regionDrawsLatest = catchup.status !== "ended" && freshLatest?.status === "published";
   const latest = regionDrawsLatest
     ? (covers.find((c) => c.editionId === freshLatest.id) ?? null)
     : null;
@@ -418,15 +415,19 @@ async function loadHome(catchupId: string, viewerId: string): Promise<CatchupHom
 
   const isBatch = isBatchCatchup(catchup.group.batchYear);
 
+  /* IDLE: nothing running, nothing ended. The Edition region draws Start,
+     settings draws no Edition rows, and the state line says nothing, because
+     there is nothing to count down to. */
+  const idle = catchup.status !== "ended" && !(freshLatest && isEditionRunning(freshLatest));
+
   const data: CatchupHomeData = {
     catchupId: catchup.id,
     inviteToken: catchup.inviteToken,
     groupId: catchup.groupId,
     groupName: catchup.group.name,
     title: catchupDisplayName(catchup.title, catchup.group.name),
-    cadence: catchup.cadence as Cadence,
-    nextOpensAt: catchup.nextOpensAt?.toISOString() ?? null,
     catchupStatus: catchup.status as CatchupStatus,
+    idle,
     picture: { src: catchup.pictureSrc, focus: catchup.pictureFocus },
     isBatch,
     members,
@@ -450,29 +451,27 @@ async function loadHome(catchupId: string, viewerId: string): Promise<CatchupHom
       freshLatest
         ? { status: freshLatest.status as EditionStatus, answersCloseAt: freshLatest.answersCloseAt }
         : null,
-      catchup.nextOpensAt,
-      { dayAndDate: formatDayAndDate, longDate: formatDisplayDateLong }
+      { dayAndDate: formatDayAndDate }
     ),
     answering,
     settings: {
       catchupId: catchup.id,
       name: catchupDisplayName(catchup.title, catchup.group.name),
       isBatch,
-      state: (freshLatest?.status as EditionStatus | undefined) ?? "none",
-      paused: catchup.status === "paused",
+      state: idle ? "none" : ((freshLatest?.status as EditionStatus | undefined) ?? "none"),
       ended: catchup.status === "ended",
-      /* SPLIT, since his 2026-09-27 word: "make everyone a keeper ... have
-         all of them paused by default." `canRun` is the CYCLE -- choosing
-         questions, opening answering, extending, nudging, closing and
-         publishing, starting the next Edition, pausing and resuming -- and
-         every batch member now holds it, the same `allowBatch` opt-in
-         `loadKeeperScope`/`loadKeeperEdition` take. `youKeep` is what is
-         LEFT: rename, the rhythm, ending. The batch IS the roster there, so
-         it stays Keeper-only, which for a batch Catch-up is nobody -- his
-         earlier correction (N30) about an accident nobody can undo, and it
-         still holds for exactly these three. Both decide what is OFFERED,
-         never what is allowed; the actions behind them re-derive their own
-         answer from the database. */
+      people: catchup.group.members.length,
+      /* SPLIT, since his 2026-09-27 word: "make everyone a keeper". `canRun`
+         is the CYCLE -- choosing questions, opening answering, extending,
+         nudging, closing and publishing -- and every batch member holds it,
+         the same `allowBatch` opt-in `loadKeeperScope`/`loadKeeperEdition`
+         take. `youKeep` is what is LEFT: rename and ending. The batch IS the
+         roster there, so it stays Keeper-only, which for a batch Catch-up is
+         nobody -- his earlier correction (N30) about an accident nobody can
+         undo, and it still holds for exactly these. Starting an Edition is
+         neither: anyone in any Catch-up may (2026-10-17). All of these decide
+         what is OFFERED, never what is allowed; the actions behind them
+         re-derive their own answer from the database. */
       youKeep: isKeeper && !isBatch,
       canRun: isKeeper || isBatch,
       canChangePicture: mayChangeCatchupPicture({
@@ -481,7 +480,6 @@ async function loadHome(catchupId: string, viewerId: string): Promise<CatchupHom
         groupRole: membership.role,
         batchYear: catchup.group.batchYear,
       }),
-      cadence: catchup.cadence as Cadence,
       reminderMode: (pref?.reminderMode as ReminderMode) ?? "all",
       editionId: freshLatest?.id ?? null,
       answersCloseAt: freshLatest?.answersCloseAt?.toISOString() ?? null,

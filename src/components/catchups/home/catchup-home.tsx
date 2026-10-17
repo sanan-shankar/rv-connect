@@ -163,52 +163,68 @@ function EarlierEditions({
 function EditionRegion({
   data,
   onChanged,
-  onResume,
+  onStart,
 }: {
   data: CatchupHomeData;
   onChanged: () => void;
-  /** Opens the settings' own "Start it again" confirmation. */
-  onResume: () => void;
+  /** Opens Start's confirmation, which says how many people it tells. */
+  onStart: () => void;
 }) {
   const { edition } = data;
 
   /* Over. Tested BEFORE the branches below, because an ended Catch-up has
-     no live Edition: `!edition` was true and it fell through to offering
-     "Start the first Edition" on a Catch-up that is finished and has
-     already had several. His: "why is ended start the first round? ...
-     Firstly, it wouldn't be the first round anyway." */
+     no live Edition, and offering Start on it would be offering "the first
+     Edition" on a Catch-up that is finished and has already had several.
+     His: "why is ended start the first round? ... Firstly, it wouldn't be
+     the first round anyway." */
   if (data.catchupStatus === "ended") return null;
-  if (!edition) return null;
 
-  /* HELD. It used to render exactly what `answering` renders with one word
-     changed, and he caught it: "why is paused the same as answering?" A
-     held Catch-up is not one you can write in -- the clock is stopped, so
-     the box would be a lie. It says so, once, and offers the one control
-     that changes it.
+  /* IDLE, and this is where the page now asks for something. There is no
+     rhythm (2026-10-17): nothing starts until somebody here starts it, and
+     anyone in the Catch-up may. His: "you should be able to start one
+     whenever you want ... And then it ends when it ends. And then it just
+     doesn't go until you start it again."
 
-     The sentence that used to sit here -- "Nothing goes out and no clock
-     is running until someone starts it again" -- is deleted at his word.
-     It explained the mechanism of a state whose name already says it. */
-  if (data.catchupStatus === "paused") {
+     It is the page's ONE primary action, attached to the thing it acts on,
+     which is the rule this file opens with. "Start the next Edition now"
+     sat behind the Settings door instead -- the second place that rule
+     allows -- and a 2024 alumnus never found it there and made a second
+     Catch-up of her whole batch rather than wait for December. So:
+
+       - once one is out, the cover stays where it was and Start sits under
+         it, right-aligned, in the slot "The next one opens 6 December" had;
+       - when nothing has come out, or the last one fizzled, the region is
+         the card the on-hold state used, which he had already passed: one
+         serif line saying the state, one pill. Same words as the list card,
+         so the two cannot disagree. */
+  if (data.idle) {
+    const label =
+      data.latest || data.earlier.length > 0 ? "Start the next Edition" : "Start the first Edition";
+    if (data.latest) {
+      return (
+        <div>
+          <EditionCoverCard e={data.latest} />
+          <div className="mt-3.5 flex justify-end">
+            <Button size="sm" onClick={onStart}>
+              {label}
+            </Button>
+          </div>
+        </div>
+      );
+    }
     return (
       <div className="card-elevated rounded-[var(--radius)] border border-border bg-card p-5">
-        <p className="font-heading text-[17px] text-foreground">This Catch-up is on hold</p>
-        {/* `settings.canRun`, not `viewer.isKeeper`: resuming is a cycle verb,
-            and on a batch Catch-up every member holds it now (owner,
-            2026-09-27), not just a designated Keeper. */}
-        {data.settings.canRun && (
-          /* The confirmation the Settings row opens, not a refresh: the
-             button used to call router.refresh() and nothing else, so the
-             Catch-up stayed on hold (bug audit 3, T3-03). */
-          <Button size="sm" className="mt-4" onClick={onResume}>
-            Start it again
-          </Button>
-        )}
+        <p className="font-heading text-[17px] text-foreground">
+          {data.earlier.length > 0 ? "Nothing running" : "No Editions yet"}
+        </p>
+        <Button size="sm" className="mt-4" onClick={onStart}>
+          {label}
+        </Button>
       </div>
     );
   }
 
-  if (edition.status === "collecting") {
+  if (edition?.status === "collecting") {
     return (
       <div>
         <AskBox
@@ -229,7 +245,7 @@ function EditionRegion({
     );
   }
 
-  if (edition.status === "answering") {
+  if (edition?.status === "answering") {
     return (
       <AnswerExperience
         catchupId={data.catchupId}
@@ -239,10 +255,8 @@ function EditionRegion({
     );
   }
 
-  /* Out. The cover, and nothing else -- the same component the list and
-     the sidebar draw, which is the whole of his "15 different ways in 15
-     different places" complaint answered in one import. */
-  return data.latest ? <EditionCoverCard e={data.latest} /> : null;
+  // Idle was drawn above; what is left is a `draft` row, and nothing makes those.
+  return null;
 }
 
 export function CatchupHome({ data }: { data: CatchupHomeData }) {
@@ -263,7 +277,7 @@ export function CatchupHome({ data }: { data: CatchupHomeData }) {
       <EditionRegion
         data={data}
         onChanged={refresh}
-        onResume={() => s.panel.onOpen({ shape: "confirm", key: "resume" })}
+        onStart={() => s.panel.onOpen({ shape: "confirm", key: "start" })}
       />
       <StateLine words={data.stateLine} />
     </div>

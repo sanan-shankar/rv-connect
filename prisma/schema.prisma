@@ -1086,20 +1086,19 @@ model Catchup {
   createdById String?                       // the Keeper; nullable so the Catch-up survives if they leave
   title       String?                       // optional custom name; UI falls back to "{group} Catch-ups"
   intro       String?                       // one-line description on the home
-  cadence     String    @default("monthly") // "biweekly" | "monthly" | "quarterly"
-  status      String    @default("active")  // "active" | "paused" | "ended"
+  // "active" | "ended". "paused" is legacy, read as active and never written:
+  // there has been nothing to hold since Editions stopped running on a rhythm
+  // (2026-10-17). `cadence`, `nextOpensAt` and `pausedAt` were the rhythm and
+  // the hold, and are out of this model; their columns stay in the database
+  // until 2026-10-17-drop-rhythm-columns.sql runs after the deploy, the way
+  // the song columns went.
+  status      String    @default("active")
   // Shareable invite link (/catchups/join/<token>). A BEARER token: whoever
   // holds it can join, which is what a share link is. Not derived from `id`,
   // which is already public in every URL of this Catch-up. Nullable only
   // because the column was added to a live table; every row has one and
   // createCatchup* always writes one.
   inviteToken String?   @unique
-  nextOpensAt DateTime?                      // when the next Edition auto-opens (recurring cadences)
-  // When the Keeper paused. Pausing FREEZES the live Edition (the clock, the
-  // reminders, the publish), so resume shifts every unreached deadline forward
-  // by exactly this long: the group gets back the window it had, rather than
-  // finding it silently expired. NULL means "not paused".
-  pausedAt    DateTime?
   // The Catch-up's photograph, and it is NOT NULL on purpose. Every Catch-up
   // has one from the day it is made, so there is never a no-picture layout to
   // draw -- his reason, review-2026-09-07 N23: "then we'd have to have 2
@@ -1135,7 +1134,6 @@ model Catchup {
   editions  CatchupEdition[]
   prefs     CatchupPref[]
 
-  @@index([status, nextOpensAt])
   @@map("CatchupSeries") // see collision note above; legacy "Catchup" table exists with incompatible columns
 }
 

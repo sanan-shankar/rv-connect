@@ -57,18 +57,16 @@ import { ownedVoiceRecording } from "@/lib/voice-answer";
 import { purgeImageUrls } from "@/lib/image-purge";
 import { revalidatePath } from "next/cache";
 import {
-  addCadenceGap,
   advanceEdition,
-  openNextEdition,
+  openEdition,
   answeringPatch,
-  EDITION_TIMING_SELECT,
   extendPatch,
   extendPhasePatch,
   isEffectiveKeeper,
   isBatchCatchup,
   BATCH_CATCHUP_REFUSAL,
-  BATCH_QUESTIONS_TO_START,
   BATCH_LEAVE_REFUSAL,
+  isEditionRunning,
   isMissingCatchupTable,
   mayChangeCatchupPicture,
   newInviteToken,
@@ -78,9 +76,6 @@ import {
   decideTimeCapsuleMark,
   QUESTION_WINDOW_DAYS,
   deadlineIn,
-  REMINDER_QUESTIONS_EXTENDED,
-  shiftEditionPatch,
-  shiftPausedInstant,
   shouldExtendForTooFew,
   type AdvanceEditionInput,
 } from "@/lib/catchups";
@@ -98,7 +93,6 @@ import {
 } from "@/lib/catchups-notify";
 import { PROMPT_CATEGORIES } from "@/lib/catchups-types";
 import type {
-  Cadence,
   CatchupStatus,
   EditionStatus,
   PromptCategory,
@@ -120,10 +114,8 @@ const MAX_ACCEPTED_PROMPTS_PER_EDITION = 40;
 
 // ─── Validation ──────────────────────────────────────────────────────────────
 
-const CADENCE_VALUES = ["biweekly", "monthly", "quarterly"] as const;
 const REMINDER_MODE_VALUES = ["all", "last", "off"] as const;
 
-const cadenceSchema = z.enum(CADENCE_VALUES);
 /**
  * Built from the shared `PROMPT_CATEGORIES` array, never from a list retyped
  * here. The hand-written copy this replaces went stale when the question
@@ -149,7 +141,6 @@ const createCatchupWithPeopleSchema = z.object({
   memberIds: z
     .array(z.string().min(1))
     .max(MAX_CATCHUP_PEOPLE, `A Catch-up can start with up to ${MAX_CATCHUP_PEOPLE} people.`),
-  cadence: cadenceSchema.default("monthly"),
 });
 
 /* The same 80 characters creation allows, and the same sentence when it is
@@ -240,7 +231,6 @@ type EditionContext = {
   publishAt: Date | null;
   catchup: {
     createdById: string | null;
-    cadence: Cadence;
     status: CatchupStatus;
     group: { id: string; name: string; batchYear: number | null };
   };
@@ -283,7 +273,6 @@ async function loadFreshEdition(editionId: string): Promise<EditionContext | nul
       catchup: {
         select: {
           createdById: true,
-          cadence: true,
           status: true,
           // `batchYear` is the whole test for "this is a batch Catch-up" (F6),
           // and every Keeper control below refuses one outright.
@@ -307,7 +296,6 @@ async function loadFreshEdition(editionId: string): Promise<EditionContext | nul
     status: fresh.status as EditionStatus,
     catchup: {
       createdById: base.catchup.createdById,
-      cadence: base.catchup.cadence as Cadence,
       status: base.catchup.status as CatchupStatus,
       group: base.catchup.group,
     },
@@ -322,9 +310,6 @@ async function loadCatchupContext(catchupId: string, userId: string) {
       createdById: true,
       status: true,
       groupId: true,
-      cadence: true,
-      nextOpensAt: true,
-      pausedAt: true,
       // See loadFreshEdition: the batch test, for the guard in loadKeeperScope
       // and for the two exits that refuse a batch Catch-up by name. `name`
       // is added for `addCatchupMembers`'s notification, the same field
@@ -340,30 +325,39 @@ async function loadCatchupContext(catchupId: string, userId: string) {
 /**
  * The refusal every write into a live Edition shares.
  *
- * `advanceEdition` freezes the CLOCK for a paused or ended Catch-up, which is
- * the whole of B-061's automatic half. It is not the whole story: four Keeper
- * controls (open answering, close and publish, extend, nudge) and the two
- * member submissions write the edition directly, in their own transactions,
- * and each of them only ever checked the EDITION's status -- `answering` stays
- * `answering` through a pause, so closing it early on a paused Catch-up still
- * published it and notified the whole group under a home page saying it was
- * paused. A stale tab opened before the pause is enough to reach every one of
- * them.
+ * `advanceEdition` freezes the CLOCK of an ended Catch-up, which is the whole
+ * of B-061's automatic half. It is not the whole story: the cycle controls
+ * (open answering, close and publish, extend) and the two member submissions
+ * write the edition directly, in their own transactions, and each of them only
+ * ever checked the EDITION's status -- `answering` stays `answering` when a
+ * Catch-up ends, so closing it early still published it and notified the
+ * whole group under a home page saying it had ended. A stale tab is enough to
+ * reach every one of them.
  *
  * So the freeze is enforced in two places by construction, not one: the clock
  * in `advanceEdition`, and every hand-driven write through here.
+ *
+ * It was `refuseIfFrozen` and refused a PAUSED Catch-up too, with a hint per
+ * caller saying how to resume it. Hold went with the rhythm (2026-10-17):
+ * nothing is scheduled, so there is nothing to hold, and a legacy `paused`
+ * row is read as active everywhere.
  */
-function refuseIfFrozen(
-  status: string,
-  pausedHint: string
-): { error: string } | null {
-  if (status === "active") return null;
-  return {
-    error:
-      status === "paused"
-        ? `This Catch-up is paused. ${pausedHint}`
-        : "This Catch-up has ended.",
-  };
+function refuseIfEnded(status: string): { error: string } | null {
+  return status === "ended" ? { error: "This Catch-up has ended." } : null;
+}
+
+/**
+ * The other refusal a write into an Edition needs since there is no rhythm:
+ * that there IS an Edition running. An idle `collecting` row -- a batch's
+ * never-started first, or one that fizzled (`isEditionRunning`) -- draws Start
+ * on the home and nothing else, so anything arriving here for one is a stale
+ * tab or a hand-made call. Letting it through would start the clock with
+ * nobody told: a question used to do exactly that on a batch, and "give
+ * everyone longer" or "open answering" would now. Only `startEdition` starts.
+ */
+function refuseIfIdle(edition: EditionContext): { error: string } | null {
+  if (edition.status !== "collecting" || isEditionRunning(edition)) return null;
+  return { error: "Nothing is running here yet. Start an Edition first." };
 }
 
 /**
@@ -391,18 +385,20 @@ async function loadMemberEdition(editionId: string, viewerId: string) {
  * and a caller naming its own is also what keeps the sentence next to the
  * thing it refuses.
  *
- * `pausedHint` is what makes this refuse a paused or ended Catch-up (B-061),
- * so omitting it is a real choice, not a default: `curatePrompt`'s two
- * branches leave it off because they are already gated to a `collecting`
- * Edition, which a freeze cannot be reached through. Everything else passes one,
- * and catchup-lifecycle.test.mjs fails a caller that forgets.
+ * `refuseEnded` is what makes this refuse an ended Catch-up (B-061), so
+ * omitting it is a real choice, not a default, and no caller makes it any more.
+ * `curatePrompt` used to, on the reasoning that it is gated to a `collecting`
+ * Edition and an ended Catch-up's frozen clock could not leave one behind. Idle
+ * Editions broke that (2026-10-17): a never-started or fizzled row stays
+ * `collecting` for good, ended or not (write-path review). Every caller passes
+ * it, and catchup-lifecycle.test.mjs fails one that forgets.
  */
 async function loadKeeperEdition(
   editionId: string,
   viewerId: string,
   refusal: {
     notKeeper: string;
-    pausedHint?: string;
+    refuseEnded?: boolean;
     /** Opt in per caller, the `mayChangeCatchupPicture` shape: every batch
      *  member now runs the cycle together (owner, 2026-09-27, "make everyone
      *  a keeper"), but not every Edition-scoped control is part of the
@@ -426,9 +422,9 @@ async function loadKeeperEdition(
   ) {
     return { error: refusal.notKeeper };
   }
-  if (refusal.pausedHint) {
-    const frozen = refuseIfFrozen(edition.catchup.status, refusal.pausedHint);
-    if (frozen) return frozen;
+  if (refusal.refuseEnded) {
+    const ended = refuseIfEnded(edition.catchup.status);
+    if (ended) return ended;
   }
   return { edition, membership };
 }
@@ -454,7 +450,6 @@ async function loadKeeperEdition(
 export async function createCatchupWithPeople(input: {
   name: string;
   memberIds: string[];
-  cadence?: Cadence;
 }) {
   return runAction(async () => {
     const session = await auth();
@@ -471,7 +466,7 @@ export async function createCatchupWithPeople(input: {
 
     const parsed = createCatchupWithPeopleSchema.safeParse(input);
     if (!parsed.success) return { error: parsed.error.issues[0].message };
-    const { name, memberIds, cadence } = parsed.data;
+    const { name, memberIds } = parsed.data;
     const creatorId = session.user.id;
 
     // The creator is always in, and never twice. Anyone who is not a real,
@@ -540,7 +535,6 @@ export async function createCatchupWithPeople(input: {
         data: {
           groupId: group.id,
           createdById: creatorId,
-          cadence,
           inviteToken: newInviteToken(),
           pictureSrc: picture.src,
           pictureFocus: picture.focus,
@@ -588,8 +582,7 @@ export async function createCatchupWithPeople(input: {
  * "join this" from someone already in it is to show them the Catch-up.
  *
  * Ended Catch-ups refuse: joining something nobody will write in again is a
- * dead end, and it is better to say so than to add a silent membership. A
- * PAUSED one accepts, because pausing is temporary by definition.
+ * dead end, and it is better to say so than to add a silent membership.
  */
 export async function joinCatchupByToken(token: string) {
   return runAction(async () => {
@@ -656,9 +649,9 @@ export async function joinCatchupByToken(token: string) {
  *
  * Not gated on `requireVerifiedMember`: this reaches nobody. It sends no
  * notification and no email, and it changes one word on a page the people
- * involved are already reading. A paused or ended Catch-up is not refused for
- * the same reason `setCatchupPicture` is not -- the freeze is on the Edition
- * clock, and a name is not part of the cycle.
+ * involved are already reading. An ended Catch-up is not refused for the same
+ * reason `setCatchupPicture` is not -- the freeze is on the Edition clock, and
+ * a name is not part of the cycle.
  */
 export async function renameCatchup(catchupId: string, title: string) {
   return runAction(async () => {
@@ -684,73 +677,11 @@ export async function renameCatchup(catchupId: string, title: string) {
   });
 }
 
-/** Keeper-only: change the recurring rhythm (spec 3.3 settings). */
-export async function updateCatchupCadence(catchupId: string, cadence: Cadence) {
-  return runAction(async () => {
-    const session = await auth();
-    if (!session?.user?.id) return { error: "Not authenticated" };
-    if (typeof catchupId !== "string" || !catchupId) return { error: "Invalid request." };
-    const parsedCadence = cadenceSchema.safeParse(cadence);
-    if (!parsedCadence.success) return { error: "Pick a valid rhythm." };
-
-    const scope = await loadKeeperScope(catchupId, session.user.id, {
-      notMember: "You are not a member of this group.",
-      notKeeper: "Only the Keeper can change the rhythm.",
-    });
-    if ("error" in scope) return scope;
-    const { catchup } = scope;
-
-    const next = parsedCadence.data;
-    const wasCadence = catchup.cadence as Cadence;
-
-    /* Reschedule what is already booked (audit M08).
-     *
-     * `nextOpensAt` is stamped once, when an Edition publishes, as
-     * publishedAt + the gap for the cadence AT THAT MOMENT. Changing the
-     * cadence used to write the new word and leave that stamp untouched, so a
-     * Keeper moving a quarterly Catch-up to monthly because three months was
-     * too slow then waited the rest of the three months anyway -- with the
-     * settings sheet reading "Monthly" the whole time. The word changed and
-     * nothing else did.
-     *
-     * Recomputed from the same ORIGIN rather than from now, because "monthly"
-     * has to mean a month after the last Edition, not a month after somebody
-     * touched a setting: anchoring on now would let a Keeper push the next
-     * Edition away by opening a menu. If that instant has already gone by, it
-     * lands on now and the next tick opens the Edition, which is the honest
-     * reading of "you are overdue under the new rhythm".
-     *
-     * A Catch-up that has never published has no origin and no rhythm yet, so
-     * there is nothing to move. */
-    /* The origin is when the newest Edition CLOSED. For an ordinary Edition
-       that is `publishedAt`. A time capsule (build phase 14) closed at
-       `sealedAt` and has no `publishedAt` for a year, and once it opens its
-       `publishedAt` is a year after the rhythm started counting from it. So:
-       the newest by number, sealed or published, its seal before its publish. */
-    const lastClosed = await prisma.catchupEdition.findFirst({
-      where: { catchupId, status: { in: ["published", "sealed"] } },
-      orderBy: { number: "desc" },
-      select: { publishedAt: true, sealedAt: true },
-    });
-    const origin = lastClosed?.sealedAt ?? lastClosed?.publishedAt ?? null;
-    const shouldReschedule = next !== wasCadence && catchup.nextOpensAt !== null && origin !== null;
-    const now = new Date();
-    const rescheduled = shouldReschedule
-      ? (() => {
-          const at = addCadenceGap(origin as Date, next);
-          return at.getTime() < now.getTime() ? now : at;
-        })()
-      : undefined;
-
-    await prisma.catchup.update({
-      where: { id: catchupId },
-      data: { cadence: next, ...(rescheduled ? { nextOpensAt: rescheduled } : {}) },
-    });
-    revalidatePath(`/catchups/${catchupId}`);
-    revalidatePath("/catchups");
-    return { success: true };
-  });
-}
+/* `updateCatchupCadence` stood here: the Keeper's choice of every two weeks,
+   every month or every three months, and the rescheduling of whatever was
+   already booked. There is no rhythm since 2026-10-17 (his: "You should just
+   be able to start it whenever you want"); `startEdition` below is the only
+   way an Edition begins. */
 
 /**
  * Replace the Catch-up's photograph, and where its crop is taken from.
@@ -777,9 +708,9 @@ export async function updateCatchupCadence(catchupId: string, cadence: Cadence) 
  * involved are already reading, and the next person who dislikes it changes it
  * back.
  *
- * A paused or ended Catch-up is NOT refused, and that is deliberate: the freeze
- * is on the Edition clock (`refuseIfFrozen`), and a photograph is not part of
- * the cycle. Tidying the picture on something that has ended is harmless.
+ * An ended Catch-up is NOT refused, and that is deliberate: the freeze is on
+ * the Edition clock (`refuseIfEnded`), and a photograph is not part of the
+ * cycle. Tidying the picture on something that has ended is harmless.
  */
 export async function setCatchupPicture(
   catchupId: string,
@@ -837,118 +768,13 @@ export async function setCatchupPicture(
   });
 }
 
-/** Keeper-only on a people Catch-up; any member on a batch one (owner,
- *  2026-09-27, spec 3.3 settings / edge states). */
-export async function pauseCatchup(catchupId: string) {
-  return runAction(async () => {
-    const session = await auth();
-    if (!session?.user?.id) return { error: "Not authenticated" };
-    if (typeof catchupId !== "string" || !catchupId) return { error: "Invalid request." };
-
-    const scope = await loadKeeperScope(catchupId, session.user.id, {
-      notMember: "You are not a member of this group.",
-      notKeeper: "Only the Keeper can pause this Catch-up.",
-      // Pausing and resuming are cycle verbs now (owner, 2026-09-27).
-      allowBatch: true,
-    });
-    if ("error" in scope) return scope;
-    const { catchup } = scope;
-    if (catchup.status === "ended") return { error: "This Catch-up has already ended." };
-
-    // `pausedAt` stamps the moment the freeze begins. From here the live Edition
-    // stops advancing entirely (the gate is in advanceEdition), and resume
-    // shifts every unreached deadline forward by this long, so the group gets
-    // back the window it had rather than finding it expired (audit B-061).
-    // Only stamped on the active -> paused edge: pausing an already-paused
-    // Catch-up must not extend the credit.
-    await prisma.catchup.updateMany({
-      where: { id: catchupId, status: "active" },
-      data: { status: "paused", pausedAt: new Date() },
-    });
-    revalidatePath(`/catchups/${catchupId}`);
-    return { success: true };
-  });
-}
-
-/** Keeper-only on a people Catch-up; any member on a batch one. */
-export async function resumeCatchup(catchupId: string) {
-  return runAction(async () => {
-    const session = await auth();
-    if (!session?.user?.id) return { error: "Not authenticated" };
-    if (typeof catchupId !== "string" || !catchupId) return { error: "Invalid request." };
-
-    const scope = await loadKeeperScope(catchupId, session.user.id, {
-      notMember: "You are not a member of this group.",
-      notKeeper: "Only the Keeper can resume this Catch-up.",
-      allowBatch: true,
-    });
-    if ("error" in scope) return scope;
-    const { catchup } = scope;
-    if (catchup.status !== "paused") return { error: "This Catch-up is not paused." };
-
-    const now = new Date();
-    const pausedAt = catchup.pausedAt;
-
-    await prisma.$transaction(async (tx) => {
-      // Pinned on pausedAt as well as status: another Keeper completing a
-      // whole pause -> resume -> pause cycle between the read above and this
-      // write would leave status back at "paused" with a DIFFERENT freeze
-      // stamp, and every shift below would then credit the wrong duration.
-      const resumed = await tx.catchup.updateMany({
-        where: { id: catchupId, status: "paused", pausedAt },
-        data: { status: "active", pausedAt: null },
-      });
-      if (resumed.count === 0) return; // someone else resumed it first
-
-      const latest = await tx.catchupEdition.findFirst({
-        where: { catchupId },
-        orderBy: { number: "desc" },
-        select: { ...EDITION_TIMING_SELECT, id: true },
-      });
-      if (!latest) return;
-
-      // A sealed time capsule is closed too, and its rhythm was booked when it
-      // sealed (build phase 14); what it waits on is its date, not the clock.
-      if (latest.status === "published" || latest.status === "sealed") {
-        // Nothing live to un-freeze, so the thing to restore is the rhythm.
-        //
-        // Re-arm it when it is missing. An Edition that published while the
-        // Catch-up was paused never wrote nextOpensAt, and nothing else in the
-        // app ever sets it, so the Catch-up sat "active" forever with no future
-        // Edition and no control anywhere to start one (audit B-060). Freezing on
-        // pause should make that unreachable now; this is the belt, and it also
-        // repairs any row already stuck that way. Conditional on the column
-        // still being null so it cannot stamp over a live schedule.
-        const rearmed = await tx.catchup.updateMany({
-          where: { id: catchupId, nextOpensAt: null },
-          data: { nextOpensAt: addCadenceGap(now, catchup.cadence as Cadence) },
-        });
-        if (rearmed.count > 0) return;
-
-        // Otherwise the schedule survived, and it gets the same credit a live
-        // Edition's deadlines get: a Catch-up paused a month before its next
-        // Edition should not open one the instant it resumes.
-        const shifted = shiftPausedInstant(catchup.nextOpensAt, pausedAt, now);
-        if (shifted) {
-          await tx.catchup.updateMany({
-            where: { id: catchupId, nextOpensAt: catchup.nextOpensAt },
-            data: { nextOpensAt: shifted },
-          });
-        }
-        return;
-      }
-
-      // A live Edition: give back exactly the time the freeze took.
-      const patch = shiftEditionPatch(latest, pausedAt, now);
-      if (Object.keys(patch).length > 0) {
-        await tx.catchupEdition.update({ where: { id: latest.id }, data: patch });
-      }
-    });
-
-    revalidatePath(`/catchups/${catchupId}`);
-    return { success: true };
-  });
-}
+/* `pauseCatchup` and `resumeCatchup` stood here, with the arithmetic that gave
+   a resumed Edition back the days its hold took. Holding meant "nothing goes
+   out until you say", which is what every Catch-up is now between Editions:
+   nothing starts until somebody starts it (2026-10-17). Inside an Edition,
+   "give everyone longer" is the same act with a date on it. Every batch
+   Catch-up was made paused so that nobody was bothered by one they had not
+   asked for; being idle does that now, with no switch to find. */
 
 /** Keeper-only: end a Catch-up. Past published Editions stay readable forever. */
 export async function endCatchup(catchupId: string) {
@@ -966,10 +792,7 @@ export async function endCatchup(catchupId: string) {
 
     await prisma.catchup.update({
       where: { id: catchupId },
-      // pausedAt goes with it: ending from a paused state leaves no freeze to
-      // credit, and a stale stamp would shift deadlines if the row were ever
-      // reopened.
-      data: { status: "ended", nextOpensAt: null, pausedAt: null },
+      data: { status: "ended" },
     });
     revalidatePath(`/catchups/${catchupId}`);
     return { success: true };
@@ -1016,11 +839,10 @@ export async function submitPrompt(input: {
     if (edition.status !== "collecting") {
       return { error: "The question window for this Edition is closed." };
     }
-    const frozen = refuseIfFrozen(
-      edition.catchup.status,
-      "You can add a question again once this Catch-up is resumed."
-    );
-    if (frozen) return frozen;
+    const ended = refuseIfEnded(edition.catchup.status);
+    if (ended) return ended;
+    const idle = refuseIfIdle(edition);
+    if (idle) return idle;
 
     /* Deliberately NOT batch-aware, unlike the Edition-scoped controls below
        this one in the file. This decides an ATTRIBUTION (`source`), not a
@@ -1084,10 +906,7 @@ export async function submitPrompt(input: {
         },
         select: { id: true },
       });
-      // Read inside the transaction too: whether this was the FIRST question
-      // decides the dormant-Edition revival below, and a count taken outside
-      // could be a different moment's answer.
-      return { row, wasFirst: _count === 0 };
+      return row;
     });
 
     if (created === "closed") {
@@ -1096,47 +915,12 @@ export async function submitPrompt(input: {
     if (!created) {
       return { error: "This Edition has as many questions as it can hold. Remove one to add another." };
     }
-    const prompt = created.row;
-    const firstQuestion = created.wasFirst;
-
-    // Reviving a dormant Edition. An Edition whose question window closed with
-    // nothing in it does not open for answers -- it goes quiet instead of
-    // nudging the group daily to answer nothing (audit B-062). This is the way
-    // back out: the first question restarts the window, so the rest of the
-    // group gets the usual few days to add theirs rather than being dropped
-    // straight into answering an Edition with exactly one question in it.
-    //
-    // The three conditions together are the dormant state and nothing else:
-    // still collecting, the window already closed, the one auto-extension
-    // already spent, and this was the first question. The conditional
-    // updateMany means a second submitter in the same second cannot push the
-    // deadline out twice.
-    const wasDormant =
-      firstQuestion &&
-      edition.questionsCloseAt != null &&
-      edition.questionsCloseAt.getTime() <= Date.now() &&
-      (edition.remindersSent & REMINDER_QUESTIONS_EXTENDED) !== 0;
-    if (wasDormant) {
-      await prisma.catchupEdition.updateMany({
-        where: { id: editionId, status: "collecting", remindersSent: edition.remindersSent },
-        data: { questionsCloseAt: deadlineIn(new Date(), QUESTION_WINDOW_DAYS) },
-      });
-    }
-
-    // A batch's first Edition opens with no deadline and waits for the batch
-    // to ask BATCH_QUESTIONS_TO_START questions (ensureBatchCatchup). Counted
-    // after the commit rather than inside it, so two questions landing
-    // together still see each other; the null in the `where` means only one
-    // of them starts the clock.
-    if (edition.questionsCloseAt == null) {
-      const asked = await prisma.catchupPrompt.count({ where: { editionId, accepted: true } });
-      if (asked >= BATCH_QUESTIONS_TO_START) {
-        await prisma.catchupEdition.updateMany({
-          where: { id: editionId, status: "collecting", questionsCloseAt: null },
-          data: { questionsCloseAt: deadlineIn(new Date(), QUESTION_WINDOW_DAYS) },
-        });
-      }
-    }
+    /* Two things used to happen here and both went with the rhythm
+       (2026-10-17). The first question into a DORMANT Edition restarted its
+       window, and a batch's third question started its first one. An Edition
+       that fizzled, or a batch nobody has started, is idle now, and the
+       refusal above keeps questions out of it: Start is the one way in. */
+    const prompt = created;
 
     revalidatePath(`/catchups/${edition.catchupId}`);
     return { success: true, promptId: prompt.id, accepted: true };
@@ -1173,6 +957,7 @@ export async function curatePrompt(input: CuratePromptInput) {
 
       const scope = await loadKeeperEdition(editionId, session.user.id, {
         notKeeper: "Only the Keeper can reorder questions.",
+        refuseEnded: true,
         // Choosing questions is a cycle verb (owner, 2026-09-27).
         allowBatch: true,
       });
@@ -1210,6 +995,7 @@ export async function curatePrompt(input: CuratePromptInput) {
 
     const scope = await loadKeeperEdition(prompt.editionId, session.user.id, {
       notKeeper: "Only the Keeper can curate questions.",
+      refuseEnded: true,
       allowBatch: true,
     });
     if ("error" in scope) return scope;
@@ -1237,7 +1023,7 @@ export async function openAnswering(editionId: string) {
 
     const scope = await loadKeeperEdition(editionId, session.user.id, {
       notKeeper: "Only the Keeper can open answering.",
-      pausedHint: "Resume it to pick the Edition back up.",
+      refuseEnded: true,
       allowBatch: true,
     });
     if ("error" in scope) return scope;
@@ -1245,6 +1031,8 @@ export async function openAnswering(editionId: string) {
     if (edition.status !== "collecting") {
       return { error: "This Edition is not collecting questions right now." };
     }
+    const idle = refuseIfIdle(edition);
+    if (idle) return idle;
 
     const now = new Date();
     const patch = answeringPatch(edition, now);
@@ -1309,7 +1097,7 @@ export async function closeAndPublish(editionId: string) {
 
     const scope = await loadKeeperEdition(editionId, session.user.id, {
       notKeeper: "Only the Keeper can close answers early.",
-      pausedHint: "Resume it to pick the Edition back up.",
+      refuseEnded: true,
       allowBatch: true,
     });
     if ("error" in scope) return scope;
@@ -1350,8 +1138,8 @@ export async function closeAndPublish(editionId: string) {
 
     /* A TIME CAPSULE CLOSES INTO `sealed` (build phase 14): the Keeper's early
        close is the clock's close, so it seals exactly as the deadline would,
-       with the rhythm booked and everyone told the day it opens. The flag was
-       read fresh by loadFreshEdition and is required again by the write. */
+       with everyone told the day it opens. The flag was read fresh by
+       loadFreshEdition and is required again by the write. */
     if (edition.timeCapsule) {
       const sealed = sealPatch(now);
       const opensAt = sealed.publishAt as Date;
@@ -1361,12 +1149,6 @@ export async function closeAndPublish(editionId: string) {
           data: sealed,
         });
         if (cas.count === 0) return false;
-        if (edition.catchup.status === "active") {
-          await tx.catchup.update({
-            where: { id: edition.catchupId },
-            data: { nextOpensAt: addCadenceGap(now, edition.catchup.cadence) },
-          });
-        }
         await notifySealed(tx, {
           catchupId: edition.catchupId,
           editionId,
@@ -1384,8 +1166,8 @@ export async function closeAndPublish(editionId: string) {
       return { success: true, extended: false, sealed: true };
     }
 
-    /* The publish and the bell in one transaction, and `nextOpensAt` stamped
-       alongside, exactly as the clock's own `applyEditionAction` does it. An
+    /* The publish and the bell in one transaction, exactly as the clock's own
+       `applyEditionAction` does it. An
        Edition published without `notifyPublished` is an Edition that, for its
        members, simply never happened -- which is why the migration that
        drained `preparing` published those rows through this path rather than
@@ -1401,12 +1183,6 @@ export async function closeAndPublish(editionId: string) {
         data: patch,
       });
       if (cas.count === 0) return false;
-      if (edition.catchup.status === "active") {
-        await tx.catchup.update({
-          where: { id: edition.catchupId },
-          data: { nextOpensAt: addCadenceGap(now, edition.catchup.cadence) },
-        });
-      }
       await notifyPublished(tx, {
         catchupId: edition.catchupId,
         editionId,
@@ -1426,89 +1202,60 @@ export async function closeAndPublish(editionId: string) {
 }
 
 /**
- * Keeper-only on a people Catch-up, any member on a batch one: start the
- * next Edition NOW, without waiting for the rhythm.
+ * Start an Edition: anyone in the Catch-up, whenever it is idle.
  *
- * THE CONTROL NOBODY HAD, and he found it himself: *"literally after
- * publishing I can't start a new round?!?! I have to wait for two weeks
- * minimum ... there's no control for that?? I have to create ANOTHER test
- * catch up."* Confirmed in the code before it was written: `openNextEdition`
- * fired on the clock alone, and no action anywhere started one early, for
- * anyone. Build phase 2, architecture section 6.
+ * THE ONLY WAY ONE BEGINS, since 2026-10-17. There is no rhythm; his words:
+ * "they should have been able to start one when they wished. They shouldn't
+ * have to wait for three weeks or two months or whatever", and "You should just
+ * be able to start it whenever you want. And then it ends when it ends. And
+ * then it just doesn't go until you start it again." It replaces "Start the
+ * next Edition now", which lived in the settings panel where nobody found it:
+ * a 2024 alumnus made a whole second Catch-up of her batch rather than wait for
+ * December (`2026-10-17-fold-2024-duplicate-into-batch.sql`).
  *
- * It is ONE-WAY. An Edition cannot be un-opened, and opening one notifies
- * every member that questions are open, so the accident rule applies: the
- * control lives in the rail, wears a cinnamon dot and confirms, and is never
- * beside the primary action (architecture section 6, N30).
+ * WHO: anyone in it, batch or people Catch-up. His answer, the same day,
+ * "Anyone in it", over Keeper-only: one rule everywhere. The accident worry
+ * (N30) is met by the confirmation the home opens first, which says how many
+ * people will be told.
  *
- * The Keeper holds it on a people Catch-up, like every other one-way Edition
- * control; on a batch one, any member does (owner, 2026-09-27, `allowBatch`
- * below) -- the accident worry that used to keep this Keeper-only on a batch
- * too (N30) is answered by starting paused instead, not by locking the
- * control to nobody.
+ * Verified and metered, because it rings every bell in the group. The shared
+ * "catchups" bucket is the one creation uses, so starting, finishing early and
+ * starting again cannot become a way to page forty people every few minutes.
  *
- * The opening itself is `openNextEdition`, the same function the clock uses,
- * so a hand-started Edition is indistinguishable from a scheduled one --
- * including the compare-and-swap on `nextOpensAt`, which is what stops two
- * Keepers on two stale tabs minting two Editions.
+ * The opening itself is `openEdition`, which also refuses when one is already
+ * running and settles two simultaneous presses into one Edition.
  */
-export async function startNextEditionNow(catchupId: string) {
+export async function startEdition(catchupId: string) {
   return runAction(async () => {
     const session = await auth();
     if (!session?.user?.id) return { error: "Not authenticated" };
     if (typeof catchupId !== "string" || !catchupId) return { error: "Invalid request." };
 
-    // Reaches every member with a notification, so it waits on a confirmed
-    // address like every other action that does (audit M29's tier).
     const gate = await requireVerifiedMember();
     if (!gate.ok) return { error: gate.error };
 
-    const scope = await loadKeeperScope(catchupId, session.user.id, {
-      notMember: "You are not a member of this group.",
-      notKeeper: "Only the Keeper can start the next Edition.",
-      // Starting the next Edition is a cycle verb too (owner, 2026-09-27).
-      allowBatch: true,
-    });
-    if ("error" in scope) return scope;
-    const { catchup } = scope;
-    if (catchup.status !== "active") {
-      return catchup.status === "paused"
-        ? { error: "This Catch-up is paused. Resume it to start the next Edition." }
-        : { error: "This Catch-up has ended." };
-    }
+    const ctx = await loadCatchupContext(catchupId, session.user.id);
+    if (!ctx) return { error: "Catch-up not found." };
+    if (!ctx.membership) return { error: "You are not a member of this group." };
+    const ended = refuseIfEnded(ctx.catchup.status);
+    if (ended) return ended;
+    // After the cheap refusals, so a press that was never going to work does
+    // not spend the shared bucket that creation draws on too (write-path
+    // review). "Already running" is decided inside `openEdition` and still
+    // spends one, which is the price of deciding it where it cannot race.
+    const limited = await rateLimit("catchups", session.user.id);
+    if (!limited.ok) return { error: limited.error };
 
-    /* The newest Edition, read fresh and advanced first. A Keeper looking at a
-       published Edition on a stale tab may be looking at one that has since
-       been superseded, and "start the next one" must mean the next one after
-       whatever is actually there. */
-    const newest = await prisma.catchupEdition.findFirst({
-      where: { catchupId },
-      orderBy: { number: "desc" },
-      select: { id: true, number: true, status: true },
-    });
-    if (!newest) return { error: "This Catch-up has no Edition yet." };
-    // A sealed time capsule has closed: the next one may start while it waits
-    // out its year (build phase 14, his 33).
-    if (newest.status !== "published" && newest.status !== "sealed") {
-      return { error: "There is already an Edition running. This one has to come out first." };
-    }
-
-    const group = await prisma.group.findUnique({
-      where: { id: catchup.groupId },
-      select: { id: true, name: true },
-    });
-    if (!group) return { error: "Catch-up not found." };
-
-    const editionId = await openNextEdition(
-      { id: catchupId, nextOpensAt: catchup.nextOpensAt, group },
-      newest,
-      catchup.nextOpensAt,
-      new Date(),
-      session.user.id
+    const opened = await openEdition(
+      { id: catchupId, group: { id: ctx.catchup.groupId, name: ctx.catchup.group.name } },
+      { id: session.user.id, name: session.user.name ?? "Someone" },
+      new Date()
     );
-    // Lost the compare-and-swap: somebody else, or the clock itself, opened it
-    // in the same breath. Nothing went wrong and there is now an Edition.
-    if (!editionId) return { error: "The next Edition just opened. Reload the page." };
+    if ("refused" in opened) {
+      return opened.refused === "running"
+        ? { error: "An Edition is already running here." }
+        : { error: "Somebody just started one. Reload the page." };
+    }
 
     revalidatePath(`/catchups/${catchupId}`);
     revalidatePath("/catchups");
@@ -1542,11 +1289,13 @@ export async function extendDeadline(editionId: string, days: number) {
 
     const scope = await loadKeeperEdition(editionId, session.user.id, {
       notKeeper: "Only a Keeper can extend the deadline.",
-      pausedHint: "Resume it to pick the Edition back up.",
+      refuseEnded: true,
       allowBatch: true,
     });
     if ("error" in scope) return scope;
     const { edition } = scope;
+    const idle = refuseIfIdle(edition);
+    if (idle) return idle;
 
     const now = new Date();
     const patch = extendPhasePatch(edition, parsedDays.data, now);
@@ -1604,7 +1353,7 @@ export async function extendDeadline(editionId: string, days: number) {
  *  - In this Catch-up, via `loadMemberEdition`, which also brings the clock
  *    current first, so "still collecting" means now and not when the page was
  *    drawn.
- *  - Not paused or ended (`refuseIfFrozen`).
+ *  - Not ended (`refuseIfEnded`).
  *  - WHO: `mayMarkTimeCapsule`. The Keepers of a people Catch-up, anyone in a
  *    batch. Deliberately NOT `loadKeeperEdition`, which turns a batch away
  *    before asking anything else, because it guards transitions nobody can
@@ -1637,8 +1386,8 @@ export async function setEditionTimeCapsule(editionId: string, timeCapsule: bool
     if ("error" in scope) return scope;
     const { edition, membership } = scope;
 
-    const frozen = refuseIfFrozen(edition.catchup.status, "Resume it to pick the Edition back up.");
-    if (frozen) return frozen;
+    const ended = refuseIfEnded(edition.catchup.status);
+    if (ended) return ended;
 
     if (
       !mayMarkTimeCapsule({
@@ -1713,11 +1462,8 @@ export async function submitEntry(input: {
     if (edition.status !== "answering") {
       return { error: "Answering is not open for this Edition right now." };
     }
-    const frozen = refuseIfFrozen(
-      edition.catchup.status,
-      "Answering opens again once this Catch-up is resumed."
-    );
-    if (frozen) return frozen;
+    const ended = refuseIfEnded(edition.catchup.status);
+    if (ended) return ended;
 
     const hasBody = parsed.data.body !== undefined;
     const hasImages = parsed.data.images !== undefined;
@@ -2284,7 +2030,7 @@ async function loadKeeperScope(
     /** Opt in per caller, the `mayChangeCatchupPicture` shape: every batch
      *  member now runs the cycle together (owner, 2026-09-27, "make everyone
      *  a keeper"). Membership and identity -- add, remove, hand off the hat,
-     *  rename, the rhythm, end -- do not opt in and stay refused outright,
+     *  rename, end -- do not opt in and stay refused outright,
      *  because the batch IS the roster. Omitted means refused. */
     allowBatch?: boolean;
   }
@@ -2686,7 +2432,7 @@ export async function nudgeGroup(editionId: string) {
 
     const scope = await loadKeeperEdition(editionId, session.user.id, {
       notKeeper: "Only the Keeper can nudge the group.",
-      pausedHint: "Resume it to pick the Edition back up.",
+      refuseEnded: true,
       allowBatch: true,
     });
     if ("error" in scope) return scope;

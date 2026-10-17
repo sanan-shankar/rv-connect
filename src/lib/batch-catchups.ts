@@ -44,12 +44,12 @@
  *  in catchups-core.ts is their sentence.
  *
  *  WHAT IT IS, since 2026-09-27: every member runs the cycle together --
- *  his word, "make everyone a keeper" -- choosing questions, opening
- *  answering, extending, nudging, closing and publishing, starting the
- *  next Edition, pausing and resuming. It starts `paused` (below), which
- *  is the other half of that instruction and the answer to the accident
- *  worry that used to keep every one of those controls Keeper-only (N30):
- *  nothing runs until somebody -- any of them -- says to start it.
+ *  his word, "make everyone a keeper" -- starting an Edition, choosing
+ *  questions, opening answering, extending, closing and publishing. It is
+ *  made IDLE (below) and nothing ever starts on its own: since 2026-10-17
+ *  there is no rhythm, so a batch nobody starts never hears a word from
+ *  Catch-ups. His: "if a batch is totally not concerned with it. They should
+ *  not be bothered by it."
  *
  *  No em dashes. User-facing copy says "Rishi Valley", never "Alumni".
  * ------------------------------------------------------------------ */
@@ -57,7 +57,7 @@ import { prisma } from "@/lib/prisma";
 import { reportSwallowed } from "@/lib/report-error";
 import { isUniqueViolation } from "@/lib/prisma-errors";
 import { pickCatchupPicture } from "@/lib/catchup-picture-pick";
-import { BATCH_CADENCE, BATCH_CATCHUP_FLOOR, isMissingCatchupTable } from "@/lib/catchups-core";
+import { BATCH_CATCHUP_FLOOR, isMissingCatchupTable } from "@/lib/catchups-core";
 import { clearCatchupNotifications } from "@/lib/catchup-notifications";
 
 /**
@@ -148,21 +148,19 @@ export async function joinBatchGroup(userId: string, batchYear: number) {
  *     runs its cycle together instead (architecture 6, revised 2026-09-27).
  *   - `inviteToken` null. There is nobody to invite: the membership is the
  *     batch, and `joinCatchupByToken` is the one door this closes.
- *   - the rhythm `BATCH_CADENCE`, every three months (owner, 2026-09-27).
- *   - `status: "paused"`, `pausedAt` now. His word, same day: "have all of
- *     them paused by default." Nothing runs -- no question can even be
- *     asked, `submitPrompt` refuses a paused Catch-up like every other write
- *     -- until a member resumes it, which any of them may.
+ *   - no rhythm and no hold. It used to be quarterly and made paused (owner,
+ *     2026-09-27); since 2026-10-17 neither exists, because nothing starts
+ *     on its own and so there is nothing to hold back.
  *   - a picture, from the shipped pool, the one the batch sees least on the
  *     Catch-ups its members already have, exactly as `createCatchupWithPeople`
  *     picks (spec 3.4). Every Catch-up has one from the day it is made.
- *   - Edition 1, open and `collecting`, with NO question deadline and NO
- *     notification. It appears at ten ("once there's ten it appears and the
- *     catch up would be created for that batch") but does not start: the
- *     window stays open until the batch has asked `BATCH_QUESTIONS_TO_START`
- *     questions, and the one that makes three starts the usual three days
- *     (`submitPrompt`) -- once the Catch-up itself has been resumed.
- *     Nobody had asked for it, so nobody is told.
+ *   - Edition 1, `collecting` with NO question deadline and NO
+ *     notification: idle, by `isEditionRunning`. It appears at ten ("once
+ *     there's ten it appears and the catch up would be created for that
+ *     batch") but does not start. The first member to press Start puts the
+ *     clock on this row (`openEdition`), and that is the first time anyone
+ *     in the batch is told anything. Nobody had asked for it, so nobody is
+ *     told until somebody does.
  */
 export async function ensureBatchCatchup(groupId: string): Promise<string | null> {
   const group = await prisma.group.findUnique({
@@ -179,7 +177,6 @@ export async function ensureBatchCatchup(groupId: string): Promise<string | null
   if (group._count.members < BATCH_CATCHUP_FLOOR) return null;
 
   const picture = await pickCatchupPicture(prisma, group.id);
-  const now = new Date();
 
   try {
     return await prisma.$transaction(async (tx) => {
@@ -188,13 +185,6 @@ export async function ensureBatchCatchup(groupId: string): Promise<string | null
           groupId: group.id,
           createdById: null,
           inviteToken: null,
-          cadence: BATCH_CADENCE,
-          // Paused from the moment it exists (owner, 2026-09-27: "have all of
-          // them paused by default"). Resuming is open to any member
-          // (`allowBatch` on `pauseCatchup`/`resumeCatchup`), so this is a
-          // deliberate first step rather than a lock nobody holds the key to.
-          status: "paused",
-          pausedAt: now,
           pictureSrc: picture.src,
           pictureFocus: picture.focus,
         },

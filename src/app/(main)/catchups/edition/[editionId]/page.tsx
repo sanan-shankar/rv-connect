@@ -56,10 +56,8 @@ const LIGHT_EDITION_SELECT = {
     select: {
       id: true,
       title: true,
-      cadence: true,
       status: true,
       createdById: true,
-      nextOpensAt: true,
       group: { select: { id: true, name: true } },
     },
   },

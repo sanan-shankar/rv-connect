@@ -15,7 +15,7 @@
  *  over the wire. `isOwn` lets the author see "You" regardless.
  * ------------------------------------------------------------------ */
 
-import type { Cadence, CatchupStatus, EditionStatus, ReminderMode } from "@/lib/catchups-types";
+import type { CatchupStatus, EditionStatus, ReminderMode } from "@/lib/catchups-types";
 import type { CatchupPromptSet } from "@/lib/catchups-core";
 import type { ListEdition } from "@/components/catchups/index/edition-cover-card";
 import type { AnswerPromptData } from "@/components/catchups/answer/types";
@@ -85,12 +85,12 @@ export type CatchupHomeData = {
   groupId: string;
   groupName: string;
   title: string;
-  cadence: Cadence;
-  /** When the rhythm opens the next Edition, ISO, or null when nothing is
-   *  scheduled (paused, ended, or an Edition already running). The rail's
-   *  "Start it now" prints it, because the date is what that button skips. */
-  nextOpensAt: string | null;
   catchupStatus: CatchupStatus;
+  /** Nothing is running and it has not ended: the newest Edition is out, or
+   *  was never started, or fizzled (`isEditionRunning`). The Edition region
+   *  draws Start then, and nothing else asks for anything. There is no
+   *  rhythm, so this is the state a Catch-up rests in (2026-10-17). */
+  idle: boolean;
   /** The Catch-up's photograph and the `object-position` its crop is taken at.
    *  Never null: every Catch-up has one from the day it is made (spec 3.4), so
    *  there is no no-picture layout to draw. Nothing on this page RENDERS it
@@ -101,8 +101,8 @@ export type CatchupHomeData = {
    *  (F6). Every member now runs its cycle together (owner, 2026-09-27:
    *  "make everyone a keeper"), so this screen shows the same cycle
    *  controls it would for a people Catch-up's Keeper -- open answering,
-   *  extend, nudge, close and publish, start the next Edition, hold and
-   *  resume. What it still shows NONE of is a way to leave (the batch is
+   *  extend, nudge, close and publish. What it still shows NONE of is a
+   *  way to leave (the batch is
    *  the roster) or an invite link (there is nobody to invite). Every one
    *  of those is refused server-side too; this decides what is OFFERED,
    *  never what is allowed. */
@@ -134,7 +134,8 @@ export type CatchupHomeData = {
   /** The published Editions that are not `latest`, newest first: the sidebar. */
   earlier: ListEdition[];
   /** One line under the Edition region, right-aligned, or null when the thing
-   *  above it already says everything (collecting, and anything on hold). */
+   *  above it already says everything (collecting, and anything idle, where
+   *  Start sits in its place). */
   stateLine: string | null;
   /** The questions to answer, loaded only while the Edition is `answering`.
    *  Empty otherwise, so the composer is never handed a stale set. */

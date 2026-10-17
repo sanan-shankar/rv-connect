@@ -1,7 +1,9 @@
 # Catch-ups
 
 What shipped, as of 2026-09-14: build phases 1 to 10 of the Catch-ups rework and the safe half of
-phase 11. Every fact here was read off the code and the schema, not the planning documents. Where
+phase 11. **Revised 2026-10-17: Editions start by hand.** There is no rhythm and no hold; an Edition
+begins when somebody in the Catch-up presses Start (`docs/planning/catchups-rework/editions-on-demand.md`
+has his words and the four answers that settled it). Every fact here was read off the code and the schema, not the planning documents. Where
 the two disagree, the code is what this file describes, and §15 lists every place they part.
 
 The reasoning (the owner's brief, his reviews, the options weighed and not taken) lives in
@@ -19,9 +21,11 @@ Edition numbers anywhere a member reads.
 
 ## 1. What it is
 
-A Catch-up is a newsletter a group writes to itself on a rhythm. The group asks questions for a few
-days, everybody answers for a week, and the answers come out together as one **Edition** that the
-whole group reads. Then the next one opens.
+A Catch-up is a newsletter a group writes to itself whenever one of them wants one. Somebody presses
+Start, the group asks questions for a few days, everybody answers for a week, and the answers come
+out together as one **Edition** that the whole group reads. Then nothing happens until somebody
+starts the next one. The owner, 2026-10-17: *"You should just be able to start it whenever you want.
+And then it ends when it ends. And then it just doesn't go until you start it again."*
 
 ---
 
@@ -29,7 +33,7 @@ whole group reads. Then the next one opens.
 
 | Word | Table | What it is |
 |---|---|---|
-| **Catch-up** | `CatchupSeries` (model `Catchup`) | One per `Group` (`groupId` is unique). Its rhythm, its state, its picture, who keeps it |
+| **Catch-up** | `CatchupSeries` (model `Catchup`) | One per `Group` (`groupId` is unique). Its state, its picture, who keeps it |
 | **Edition** | `CatchupEdition` | One cycle. Its status, its two deadlines, when it came out |
 | **Question** | `CatchupPrompt` | One thing asked in an Edition. Always stores its asker; `showAsker` false hides them |
 | **Answer** | `CatchupEntry` | One member's answer to one question. Unique on `(promptId, authorId)`. Never anonymous |
@@ -51,41 +55,37 @@ key and an unpublished Edition has no date.
 ### 2.1 Two kinds of Catch-up
 
 **A people Catch-up** is started by a member from `/catchups/new`: a name (1 to 80 characters), up to
-`MAX_CATCHUP_PEOPLE` = 100 people, and a rhythm. `createCatchupWithPeople` creates a private `Group`
+`MAX_CATCHUP_PEOPLE` = 100 people. `createCatchupWithPeople` creates a private `Group`
 silently as the membership container, the `Catchup` with an invite token and a picture, and Edition
-1 in `collecting` with no questions. The starter is `createdById` and holds the group role `admin`.
+1 in `collecting` with no questions: making a people Catch-up starts its first Edition, and everyone
+named is told. The starter is `createdById` and holds the group role `admin`.
 Teachers, blocked accounts and anyone inside their deletion window are dropped from the roster.
 
 **A batch Catch-up** belongs to a batch group (`Group.batchYear` set). `isBatchCatchup(batchYear)`
 is the whole test. One exists for every batch group at or over **`BATCH_CATCHUP_FLOOR` = 10**
 members; under ten there is none. On the live database, 2026-09-27, that is nine batches: 1989, 2016,
 2018, 2019, 2021, 2022, 2023, 2024 and 2026. Its `createdById` and `inviteToken` are NULL: there is no
-individual Keeper of record and nobody to invite, because the membership is the batch. It runs
-**every three months** (`BATCH_CADENCE`, written on the row by `ensureBatchCatchup`; owner, 2026-09-27:
-"if it's monthly now, make it quarterly"). Until then it got the column default, monthly, by omission;
-`prisma/migrations-manual/2026-09-27-batch-catchups-quarterly.sql` moved the nine. Everyone who signs
+individual Keeper of record and nobody to invite, because the membership is the batch. Everyone who signs
 up with that batch year is added (`joinBatchGroup` in `src/lib/batch-catchups.ts`), and a late joiner
 reads every earlier Edition. A member whose batch year changes afterwards, by their own profile or the
 admin's People edit, is moved: `syncBatchGroup` takes them out of the old batch's group, pref row and
 Catch-up bells, the same as leaving, and into the new one. Only alumni are in a batch. Their answers,
 if any, stay in the old batch's Editions.
 
-**It starts paused.** Owner, 2026-09-27, in the same breath as making everyone a Keeper: "have all of
-them paused by default." `ensureBatchCatchup` writes `status: "paused"`, `pausedAt` now, on every batch
-Catch-up it creates; `prisma/migrations-manual/2026-09-27-batch-catchups-paused.sql` (applied after
-that day's deploy, not before) paused the nine that already existed. Nothing runs -- not even
-`submitPrompt` -- until a member resumes it, and any member may (§2.2, §4).
+**It is made idle, and stays idle until somebody starts it.** It used to run every three months and
+was made paused (both 2026-09-27); both went on 2026-10-17. A batch nobody starts never hears a word
+from Catch-ups (his: *"if a batch is totally not concerned with it. They should not be bothered by
+it"*), and any member may press Start (§3.5).
 
 Three places make a batch Catch-up exist: `joinBatchGroup` at signup (so the tenth signup of a
 batch is the moment one appears), and the two nightly self-heals (§13).
 
-**It appears at ten but does not start.** Edition 1 opens `collecting` with `questionsCloseAt` null
-and nobody is told. `computeStatus` reads a null deadline as "still collecting", so the window stays
-open until the batch has asked **`BATCH_QUESTIONS_TO_START` = 3** questions; `submitPrompt` counts
-after each one and the third starts the ordinary 3-day window (owner, 2026-09-22: "don't let it send
-notifications. just have questions indefinitely open. when 3 questions have been asked, then start
-the 3 day window"). From there the clock is the usual one: answering opens and everyone is told.
-Later Editions open on the rhythm as any Catch-up's do. The original backfill was `prisma/migrations-manual/2026-09-08-batch-catchups.sql`.
+**It appears at ten but does not start.** Edition 1 is made `collecting` with `questionsCloseAt` null
+and nobody is told. That row is idle (`isEditionRunning`, §3.5): the home draws Start, not the ask
+box, and `submitPrompt` refuses it. The first Start puts the clock on that same row. Until
+2026-10-17 the batch's third question started it instead (owner, 2026-09-22); Batch of 2018 has two
+questions left in its first Edition from then, and they carry into it when somebody presses Start.
+The original backfill was `prisma/migrations-manual/2026-09-08-batch-catchups.sql`.
 
 ### 2.2 Keepers
 
@@ -96,11 +96,15 @@ cannot be demoted or removed. `isEffectiveKeeper` itself never returns true for 
 nobody there holds `createdById` or the role, and that does not change.
 
 **Every batch member holds the cycle instead** (owner, 2026-09-27: "make everyone a keeper"),
-reversing his earlier N30 worry about an accident nobody could undo -- answered now by starting
-paused (above), not by locking the controls to nobody. Both preambles (`loadKeeperScope`,
-`loadKeeperEdition`) take an `allowBatch` opt-in per caller, the `mayChangeCatchupPicture` shape: the
-seven cycle controls (§4) pass it and let any batch member through before `isEffectiveKeeper` is even
-asked; membership and identity do not, and are refused outright, the same as before.
+reversing his earlier N30 worry about an accident nobody could undo -- answered now by Start's
+confirmation saying how many people it tells, not by locking the controls to nobody. Both preambles
+(`loadKeeperScope`, `loadKeeperEdition`) take an `allowBatch` opt-in per caller, the
+`mayChangeCatchupPicture` shape: the cycle controls (§4) pass it and let any batch member through
+before `isEffectiveKeeper` is even asked; membership and identity do not, and are refused outright,
+the same as before.
+
+**Starting an Edition is wider than the cycle**: anyone in any Catch-up, batch or people, Keeper or
+not (his answer, 2026-10-17: "Anyone in it"). `startEdition` asks for membership and nothing else.
 
 ### 2.3 Sidebar
 
@@ -128,8 +132,8 @@ path opens straight into `collecting`.
 |---|---|---|
 | `collecting` | the ask box and the questions so far | remove or reorder a question, open answering, give everyone longer |
 | `answering` | the questions to answer, on the home | give everyone longer, nudge, close and publish now |
-| `sealed` | a time capsule waiting out its year: nothing in it, their own answer included (built, not yet drawn; §16) | start the next Edition now (server side) |
-| `published` | the Edition, readable forever by every member, whether they wrote or not | start the next Edition now |
+| `sealed` | a time capsule waiting out its year: nothing in it, their own answer included (built, not yet drawn; §16) | (anyone may start the next Edition, §3.5) |
+| `published` | the Edition, readable forever by every member, whether they wrote or not; on the home, Start under its cover | (anyone may start the next Edition) |
 
 **Nothing in an Edition is readable before it is published**, Keeper included, and that includes
 another member's answers. Only your own answers come back to you while answering. The owner closed
@@ -151,10 +155,8 @@ All in `src/lib/catchups-core.ts`.
 - **`publishedAt` is the real instant**, not the snapped deadline, because it is the Edition's name.
 - **A time capsule opens** on `capsuleOpensAt(sealedAt)`: the same calendar date next year in IST,
   at 07:00 IST. 29 February opens on 28 February. It is stored in `publishAt`.
-- **The next Edition opens** at `nextOpensAt = publishedAt + gap` (from `sealedAt` for a capsule): 14 days (`biweekly`), one calendar
-  month (`monthly`, the default for a people Catch-up), or three (`quarterly`, every batch Catch-up).
-  Months clamp to the end of a short month.
-  It only opens once the latest Edition is published.
+- **Nothing opens on its own.** `nextOpensAt`, `cadence` and the month arithmetic under them went on
+  2026-10-17; the columns leave the database with `2026-10-17-drop-rhythm-columns.sql`.
 
 ### 3.3 What the clock does on its own
 
@@ -164,17 +166,18 @@ nothing twice.
 
 - **Collecting closes with no questions**: the question window is extended 3 days, once
   (`REMINDER_QUESTIONS_EXTENDED`), and the group is told again. If it closes empty a second time the
-  Edition goes **dormant** and stays in `collecting`; the first question anyone submits revives it
-  with a fresh 3-day window.
+  Edition **fizzles**: the clock clears its question deadline, nobody is told, and it stays in
+  `collecting`, idle (§3.5). The next Start reuses the row with a fresh window. A question no longer
+  revives it; only Start does.
 - **Collecting closes with questions**: answering opens, everyone is told.
 - **Answering closes with no answers at all**: extended 3 days, once (`REMINDER_EXTENDED`), and the
   non-answerers are told again. After that it publishes whatever is there.
-- **Answering closes with answers**: published, everyone told, `nextOpensAt` stamped. A time
+- **Answering closes with answers**: published, everyone told, and the Catch-up is idle. A time
   capsule goes `sealed` instead, with `sealedAt` and `publishAt` written together, everyone told the
-  day it opens (`catchup_sealed`), and `nextOpensAt` stamped, so the rhythm carries on. The write
-  requires the flag, so a stale read can never publish a capsule.
-- **A sealed Edition reaches `publishAt`**: published, everyone told, nothing booked. This one step
-  runs even when the Catch-up is held or ended.
+  day it opens (`catchup_sealed`); the Catch-up is idle beside it and may start its next Edition. The
+  write requires the flag, so a stale read can never publish a capsule.
+- **A sealed Edition reaches `publishAt`**: published, everyone told. This one step runs even when
+  the Catch-up has ended.
 - **While answering**: one reminder a day to non-answerers (§11), guarded by a days-left bucket in the
   high bits of `remindersSent`, so a hundred page views produce one.
 
@@ -189,47 +192,57 @@ nothing twice.
 
 All three swallow their own errors and report them through `reportSwallowed`; none can break a page.
 
-### 3.5 Hold, resume, end
+### 3.5 Idle, Start, End
 
-- **Hold** (`pauseCatchup`, the settings row "Hold the next Edition"): status `paused`, `pausedAt`
-  stamped. The clock stops (`advanceEdition` returns early), and every hand-driven write into the
-  Edition is refused by `refuseIfFrozen`. On a people Catch-up, a Keeper; on a batch one, any member
-  (§2.2) -- including the pause every batch Catch-up starts in (2.1).
-- **Resume** ("Start it again"): every deadline still ahead of `pausedAt` moves forward by exactly the
-  time the hold lasted, **not** snapped to 07:00, so two days left stays two days left. If the latest
-  Edition was already published, `nextOpensAt` is re-armed or shifted the same way -- unchanged by
-  who is allowed to press it, which is why a batch Catch-up needed no new logic here, only the gate
-  in front of it opened.
-- **End** (`endCatchup`): status `ended`, `nextOpensAt` and `pausedAt` cleared. One-way. Published
-  Editions stay readable and still take hearts and comments. Nothing records when it ended, so the
-  list and the home say "Ended" with no date. Refused outright on a batch Catch-up: the roster is the
-  batch, so there is nobody to make that call for the rest of it.
-- **Changing the rhythm** re-computes a booked `nextOpensAt` from the last publish date under the new
-  gap (or now, if that has passed).
+- **Idle** is the state a Catch-up rests in: nothing running and not ended. `isEditionRunning` is the
+  one test, used by the home, the list, the admin room, `openEdition` and the refusals, and it reads
+  one field: running is `answering`, or `collecting` WITH a question deadline. So the newest Edition
+  is published or sealed, or is `collecting` with no deadline -- never started (every batch's first)
+  or fizzled (the clock clears it). A window that has just closed, with questions or without, still
+  runs: the clock is about to move it on. The page-view sweep leaves idle rows out in SQL, so a
+  Catch-up resting between Editions costs its members nothing however long it rests.
+- **Start** (`startEdition`, the home's one primary action when idle): anyone in the Catch-up,
+  verified, metered on the shared `catchups` bucket, refused once ended. `openEdition` (in
+  `lib/catchups.ts`) refuses if one is running, reuses an idle `collecting` row in place (keeping any
+  questions in it) or opens the next number, gives the questions 3 days to 07:00 IST, and tells every
+  member but the starter, by name, in the same transaction. Two simultaneous presses make one Edition:
+  the in-place path compare-and-swaps on the row it read, a new row has the unique `(catchupId,
+  number)` under it. It replaced "Start the next Edition now", which sat in Settings where a 2024
+  alumnus never found it (`2026-10-17-fold-2024-duplicate-into-batch.sql`).
+- **The refusals.** `submitPrompt`, `openAnswering` and `extendDeadline` refuse an idle Edition
+  (`refuseIfIdle`), so nothing but Start can put the clock on one with nobody told.
+- **End** (`endCatchup`): status `ended`. One-way. Published Editions stay readable and still take
+  hearts and comments. Nothing records when it ended, so the list and the home say "Ended" with no
+  date. Refused outright on a batch Catch-up: the roster is the batch, so there is nobody to make
+  that call for the rest of it. `refuseIfEnded` refuses every hand-driven write into an ended
+  Catch-up's Edition, and the clock stops for it.
+- **Hold and resume are gone** (2026-10-17). Between Editions there is nothing scheduled to hold, and
+  inside one "give everyone longer" is the same act with a date on it. A legacy `paused` row is read
+  as active everywhere; `2026-10-17-editions-start-by-hand.sql` makes the data say so.
 
 ---
 
 ## 4. Who may do what
 
 Every action is in `src/app/(main)/catchups/actions.ts`. "Verified" means `requireVerifiedMember`
-(a confirmed email address). "Frozen" means refused while the Catch-up is paused or ended.
+(a confirmed email address). "Ended" means refused once the Catch-up has ended; "idle" means refused
+while nothing is running (§3.5).
 
 | Action | People Catch-up | Batch Catch-up | Gates |
 |---|---|---|---|
 | `createCatchupWithPeople` | any alumnus | n/a | verified, rate-limited (`catchups`) |
 | `joinCatchupByToken` | anyone with the link, not a teacher; refuses an ended one | no link exists | verified |
-| `submitPrompt` (ask) | any member, while collecting | same | verified, frozen, 300 chars, 40 per Edition |
+| `startEdition` | **any member**, while idle | **any member**; same | verified, ended, rate-limited (`catchups`) |
+| `submitPrompt` (ask) | any member, while collecting | same | verified, ended, idle, 300 chars, 40 per Edition |
 | `curatePrompt` (remove, reorder) | Keeper, while collecting | **any member**, while collecting | |
-| `openAnswering` | Keeper; refuses an Edition with no questions | **any member**; same | frozen |
-| `extendDeadline` | Keeper, collecting or answering | **any member**; same | frozen |
-| `nudgeGroup` | Keeper, while answering | **any member**; same | frozen, rate-limited, off on the demo |
-| `closeAndPublish` | Keeper, while answering (zero answers extends instead) | **any member**; same | frozen |
-| `startNextEditionNow` | Keeper, when the latest is published or sealed and the Catch-up active | **any member**; same | verified |
-| `setEditionTimeCapsule` | Keeper, while collecting | any member, while collecting | verified, frozen; nothing calls it yet |
-| `submitEntry` (answer) | any member, while answering | same | verified, frozen |
+| `openAnswering` | Keeper; refuses an Edition with no questions | **any member**; same | ended, idle |
+| `extendDeadline` | Keeper, collecting or answering | **any member**; same | ended, idle |
+| `nudgeGroup` | Keeper, while answering | **any member**; same | ended, rate-limited, off on the demo |
+| `closeAndPublish` | Keeper, while answering (zero answers extends instead) | **any member**; same | ended |
+| `setEditionTimeCapsule` | Keeper, while collecting | any member, while collecting | verified, ended; nothing calls it yet |
+| `submitEntry` (answer) | any member, while answering | same | verified, ended |
 | `toggleEntryLove`, comments | any member, published only | same | verified; comments rate-limited |
-| `renameCatchup`, `updateCatchupCadence` | Keeper | refused | |
-| `pauseCatchup`, `resumeCatchup` | Keeper | **any member** | |
+| `renameCatchup` | Keeper | refused | |
 | `endCatchup` | Keeper | refused | off on the demo |
 | `setCatchupPicture` | Keeper | any member | pool or own upload only |
 | `addCatchupMembers` | Keeper, not ended, up to 100 at a time | refused | verified |
@@ -239,10 +252,11 @@ Every action is in `src/app/(main)/catchups/actions.ts`. "Verified" means `requi
 | `setCatchupArchived` | any member | same (the only exit) | off on the demo |
 | `setReminderPref` | any member | same | |
 
-Seven of these (bold above) opened to every batch member on 2026-09-27: choosing questions, opening
-answering, extending, nudging, closing and publishing, starting the next Edition, pausing and
-resuming -- the cycle. `loadKeeperScope` and `loadKeeperEdition` take an `allowBatch` opt-in per
-caller for exactly these; the rest do not, and a batch refusal there still says one sentence,
+The cycle (bold above) opened to every batch member on 2026-09-27: choosing questions, opening
+answering, extending, nudging, closing and publishing. Starting opened to everyone in any Catch-up on
+2026-10-17, and pausing, resuming and the rhythm were deleted the same day. `loadKeeperScope` and
+`loadKeeperEdition` take an `allowBatch` opt-in per caller for exactly the cycle; the rest do not,
+and a batch refusal there still says one sentence,
 `BATCH_CATCHUP_REFUSAL`, now scoped to membership and identity rather than the whole feature. Leaving
 a batch says `BATCH_LEAVE_REFUSAL`, which points at archiving.
 
@@ -303,10 +317,10 @@ Every Catch-up has a photograph, always. `Catchup.pictureSrc` is NOT NULL, with 
 `(index)/page.tsx`. A shelf of cards, 1096px wide at most, two up from 1180px. **A card is the
 photograph**, with the Catch-up's name (two lines at most) and one state line written on it over a
 scrim. No birds, counts, Edition numbers or buttons; the whole card is the door. The state line is
-`catchupStageLine`: Paused, Ended, Open for questions, "Answers close Thursday 20 August", "Out 15
-August 2026".
+`catchupStageLine`: Ended, Open for questions, "Answers close Thursday 20 August", "Out 15 August
+2026", and for an idle `collecting` row No Editions yet (never started) or Nothing running (fizzled).
 
-Order: answering first, then collecting, then published, then by name.
+Order: answering first, then collecting, then published and idle, then by name.
 
 **Spare slots**: the grid holds four things. With one Catch-up, the three latest published Editions
 fill the rest; with two, two; with three, one; with four or more, none (`editionSlots`). An Edition
@@ -321,8 +335,9 @@ The header carries **Start a Catch-up**, and for an admin a link to the admin ro
 
 ### 7.2 Starting one, `/catchups/new`
 
-One form: name, people, rhythm. The viewer's batch year seeds a suggested name and an "everyone
-from my batch" shortcut. Questions are not picked here.
+One form: name, people. The viewer's batch year seeds an "everyone from my batch" shortcut.
+Questions are not picked here, and there is no rhythm to pick (2026-10-17). Making it starts its
+first Edition.
 
 ### 7.3 The home, `/catchups/[catchupId]`
 
@@ -333,12 +348,14 @@ from my batch" shortcut. Questions are not picked here.
   a person's row, for Keepers of a people Catch-up) and **Settings** (§8).
 - **The Edition region** draws one thing per state. Collecting: the ask box (the question, a library
   button, and an eye in the box's corner that makes it anonymous), then the questions so far.
-  Answering: the answering surface itself, on the page (§7.5). Published: the latest Edition's cover.
-  Paused: an on-hold card. Ended: no region.
-- **The state line** under it: "Answers close Thursday 20 August" while answering, "The next one
-  opens 15 September 2026" once published, "Ended" when ended, nothing otherwise (`homeStateLine`).
+  Answering: the answering surface itself, on the page (§7.5). **Idle** (§3.5): Start, the page's
+  one primary action -- under the latest Edition's cover, right-aligned, once one is out; otherwise a
+  card with one serif line (No Editions yet, or Nothing running) and the pill. Start opens a
+  confirmation that says how many people it tells. Ended: no region.
+- **The state line** under it: "Answers close Thursday 20 August" while answering, "Ended" when
+  ended, nothing otherwise (`homeStateLine`). The slot under a published cover is Start's.
 - **The sidebar** holds the earlier Editions as the same cover cards the list draws. When the
-  Catch-up is paused or ended, every published Edition is there, the latest included.
+  Catch-up has ended, every published Edition is there, the latest included.
 
 A non-member gets `NotAvailableCard`. `/catchups/[catchupId]/answer` is a permanent redirect to the
 home (answering moved there in phase 7).
@@ -403,14 +420,15 @@ which rows exist.
 
 | Group | Rows | Shown to |
 |---|---|---|
-| **This Edition** | collecting: Open answering, Give everyone longer. answering: Give everyone longer, Nudge everyone, Close and send it out. published: Start the next Edition now | Keepers of an active people Catch-up only |
-| **This Catch-up** | Name, Picture, Rhythm, for everyone; then Hold the next Edition (or Start it again) and End this Catch-up | the first three to all, pressable by whoever may change them; the last two to Keepers, not once ended |
+| **This Edition** | collecting: Open answering, Give everyone longer. answering: Give everyone longer, Nudge everyone, Close and send it out | whoever runs the cycle (§2.2), while an Edition is running; never when idle |
+| **This Catch-up** | Name, Picture, for everyone; then End this Catch-up | the first two to all, pressable by whoever may change them; End to Keepers of a people Catch-up, not once ended |
 | **You** | Reminders; Leave, or on a batch Catch-up Put it away | everyone |
 
 Three dialog shapes only: a confirmation, a chooser that unfolds in the row, an editor. The words
-"Cannot be undone" in cinnamon mark a one-way row (Open answering, Nudge, Close and send it out, Start
-the next Edition now, End, Leave). Rhythm offers the three cadences the column holds: every two
-weeks, every month, every three months. Reminders: Daily, On the last day, Never.
+"Cannot be undone" in cinnamon mark a one-way row (Open answering, Nudge, Close and send it out, End,
+Leave). Reminders: Daily, On the last day, Never. Start's confirmation is drawn by this file too
+(`confirmCopy("start")`), but opened from the home; Rhythm, Hold and Start left the panel on
+2026-10-17.
 
 ---
 
@@ -472,7 +490,7 @@ Written by `src/lib/catchups-notify.ts` into `Notification`; `type` is a free st
 
 | Type | When | Who | Link |
 |---|---|---|---|
-| `catchup_questions_open` | an Edition opens (creation of a people Catch-up, the clock, a Keeper; never a batch reaching ten), or an empty question window is extended | every member but whoever did it | `/catchups/<id>` |
+| `catchup_questions_open` | an Edition starts (creation of a people Catch-up, or somebody pressing Start, named in the bell; never a batch reaching ten), or an empty question window is extended | every member but whoever did it | `/catchups/<id>` |
 | `catchup_answers_open` | answering opens; re-sent on the no-answers extension | every member but the Keeper who opened it; on the extension, non-answerers only | `/catchups/<id>` |
 | `catchup_reminder` | once a day while answering; or a Keeper's nudge | non-answerers by preference: Daily every day, On the last day on the last day, Never not at all. A nudge ignores Never. Today's replaces yesterday's | `/catchups/<id>` |
 | `catchup_published` | published, by the clock or a Keeper; or a time capsule opening | every member but the Keeper who closed it | `/catchups/edition/<editionId>` |
@@ -507,8 +525,8 @@ analytics counter, has no foreign key on `targetId`, and is written for unpublis
    of a batch group that is not theirs (a year changed by a path that skipped `syncBatchGroup`), then
    **`healBatchCatchups`** creates the Catch-up and its first Edition for any batch group at or over
    ten that has none. Both are idempotent, scan whole tables, and never run on a page view.
-2. The advance: every stale Edition in an active Catch-up, every sealed Edition whose `publishAt`
-   has come (in any Catch-up), then every Catch-up whose `nextOpensAt` has passed.
+2. The advance: every stale Edition in a Catch-up that has not ended, and every sealed Edition whose
+   `publishAt` has come (in any Catch-up). It opens nothing: an Edition starts when somebody starts it.
 
 ---
 
@@ -544,8 +562,6 @@ Each of these was checked in the code on 2026-09-14.
   accepts exactly 3, 7 and 14, pinned against the surface by `extend-days-rule.test.mjs`.
 - **`catchupSurfaceTitle` still appends " catch-up"** ("In the loop catch-up") on the reader's tab
   title and other surfaces. `spec.md` §6 lists the suffix as deleted (brief ¶25).
-- **Rhythm has three cadences**; the drawn settings room offered four. Adding the other two is a
-  column value, and it is the owner's call.
 - **`spec.md` §3.12 put time capsule on `Catchup.timeCapsule`.** The owner corrected it on 2026-09-14:
   a time capsule is one Edition. Corrected there, and built as a flag and a `sealed` status on
   `CatchupEdition`.

@@ -183,12 +183,9 @@ const out = {
       batchYear: c.batch_year ?? null,
       title: c.title,
       intro: c.intro,
-      cadence: c.cadence,
       status: c.status,
       createdById: c.createdById,
       // inviteToken is deliberately absent: it is a bearer token. See the type.
-      nextOpensAt: iso(c.nextOpensAt),
-      pausedAt: iso(c.pausedAt),
       createdAt: iso(c.createdAt),
       updatedAt: iso(c.updatedAt),
       members: (membersByGroup.get(c.groupId) ?? []).map((m) => ({

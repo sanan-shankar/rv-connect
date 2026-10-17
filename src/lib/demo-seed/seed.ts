@@ -376,13 +376,11 @@ export async function seedDemo(
         createdById: uid(CATCHUP_KEEPER),
         title: CATCHUP_META.title,
         intro: CATCHUP_META.intro,
-        cadence: CATCHUP_META.cadence,
         status: "active",
         // A bearer token in a database of invented people protecting a page
         // that shows a name and a member count. Named so nobody mistakes it
         // for a secret worth rotating.
         inviteToken: "demo-invite-token-not-a-secret",
-        nextOpensAt: daysAgo(-20),
         // Every Catch-up has a photograph from the day it is made (spec 3.4),
         // including this one -- the demo is where most people meet the
         // feature. Picked off the id so a re-seed lands on the same one.

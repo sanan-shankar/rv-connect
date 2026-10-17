@@ -1,3 +1,44 @@
+## 2026-10-17 (catchups) — Editions start by hand: no rhythm, no hold, Start on the home for anyone in it
+
+His, 2026-10-17, after the duplicate 2024 Catch-up: "you should be able to start one whenever you
+want ... And then it ends when it ends. And then it just doesn't go until you start it again." His
+answers the same day: no rhythm, and anyone in a Catch-up may start one. Plan and his words verbatim:
+`docs/planning/catchups-rework/editions-on-demand.md`.
+
+**Engine.** Nothing opens on its own: `openNextEditionIfDue`, `nextOpensAt`, `cadence`,
+`addCadenceGap` and the month clamp are gone, and the sweep only advances. Idle is ONE field: an
+Edition runs if it is answering or collecting with a question deadline. A batch's first is made with
+none, and an Edition that closes empty twice now FIZZLES, the clock clearing its deadline, so
+`isEditionRunning` needs no question count and the page-view sweep skips idle rows in SQL (the first
+cut inferred fizzled from three fields and a count; /simplify's reviewers caught the per-page-view
+cost). `openEdition` reuses an idle collecting row in place or opens the next number, and tells
+everyone but the starter, by name, in the same transaction. Only `ended` freezes; a legacy `paused`
+row runs.
+
+**Actions.** `startEdition`: any member, verified, metered, refused once ended. `pauseCatchup`,
+`resumeCatchup`, `updateCatchupCadence` and `startNextEditionNow` are deleted, with the hold credit
+arithmetic. `refuseIfFrozen` became `refuseIfEnded`; `refuseIfIdle` stops `submitPrompt`,
+`openAnswering` and `extendDeadline` starting an idle clock with nobody told, which is what a
+batch's third question used to do. A write-path review added `curatePrompt` to the ended refusal.
+
+**Screens.** The home's idle state is its one primary action: Start under the latest cover once one
+is out, otherwise the old on-hold card's shape with "No Editions yet" or "Nothing running". Its
+confirmation says how many people are told. Settings lost Rhythm, Hold and Start; the create form
+lost Rhythm; list cards and both admin pages say an idle row is not taking questions. The member
+guide stopped promising a rhythm and a hold.
+
+**Data.** `2026-10-17-editions-start-by-hand.sql` (paused to active, nothing booked, an empty closed
+Edition fizzled) runs after the push. Its third step already ran alone: the dev server reads
+this database with the working tree, and "in the loop" Edition 2 would have reopened and told 23
+people on their next page view. `2026-10-17-drop-rhythm-columns.sql` waits for both.
+
+Driven as Jerry on a throwaway one-member Catch-up, since deleted: Start on a published one opened
+Edition 2 to 07:00 IST three days out; a closed-empty one fizzled on the next page view and Start
+reused the row. No bells written. Meanwhile a 2024 alumnus opened answering on her folded-in round
+from production, which is the merge working. `npm run visual`:
+/catchups unchanged; /support and /birds red from another session's uncommitted birds work.
+
+
 ## 2026-10-17 (catchups) — the 🪇 Catch-up folds into the Batch of 2024's, its round and nine questions with it
 
 On 2026-10-15 a 2024 alumnus started a new Catch-up through /catchups/new, pressed "everyone from

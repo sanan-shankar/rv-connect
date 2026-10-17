@@ -21,14 +21,14 @@ import { prisma } from "@/lib/prisma";
 import * as notify from "@/lib/catchups-notify";
 import { reportSwallowed } from "@/lib/report-error";
 import { healBatchCatchupsAndMemberships } from "@/lib/batch-catchups";
+import { isUniqueViolation } from "@/lib/prisma-errors";
 import type {
-  Cadence,
   CatchupStatus,
   EditionStatus,
   EditionTiming,
 } from "@/lib/catchups-types";
 import {
-  addCadenceGap,
+  isEditionRunning,
   isMissingCatchupTable,
   nextEditionStatus,
   planNextAction,
@@ -57,7 +57,6 @@ type AdvanceMeta = {
   catchupId: string;
   groupId: string;
   groupName: string;
-  cadence: Cadence;
   catchupStatus: CatchupStatus;
 };
 
@@ -66,7 +65,6 @@ export type AdvanceEditionInput = EditionTiming & {
   catchupId: string;
   catchup?: {
     id?: string;
-    cadence?: string | null;
     status?: string | null;
     group?: { id: string; name: string } | null;
   } | null;
@@ -111,7 +109,6 @@ async function loadMeta(edition: AdvanceEditionInput): Promise<AdvanceMeta | nul
       catchupId: edition.catchupId,
       groupId: included.group.id,
       groupName: included.group.name,
-      cadence: (included.cadence as Cadence) ?? "monthly",
       catchupStatus: (included.status as CatchupStatus) ?? "active",
     };
   }
@@ -119,7 +116,6 @@ async function loadMeta(edition: AdvanceEditionInput): Promise<AdvanceMeta | nul
     where: { id: edition.catchupId },
     select: {
       id: true,
-      cadence: true,
       status: true,
       group: { select: { id: true, name: true } },
     },
@@ -129,7 +125,6 @@ async function loadMeta(edition: AdvanceEditionInput): Promise<AdvanceMeta | nul
     catchupId: c.id,
     groupId: c.group.id,
     groupName: c.group.name,
-    cadence: c.cadence as Cadence,
     catchupStatus: c.status as CatchupStatus,
   };
 }
@@ -146,8 +141,7 @@ async function applyEditionAction(
   editionId: string,
   before: EditionTiming,
   action: EditionAction,
-  meta: AdvanceMeta,
-  now: Date
+  meta: AdvanceMeta
 ): Promise<boolean> {
   if (action.kind === "none") return false;
 
@@ -162,12 +156,6 @@ async function applyEditionAction(
       });
       if (cas.count === 0) return false;
 
-      if (action.setsNextOpensAt && meta.catchupStatus === "active") {
-        await tx.catchup.update({
-          where: { id: meta.catchupId },
-          data: { nextOpensAt: addCadenceGap(now, meta.cadence) },
-        });
-      }
       if (action.notify === "catchup_answers_open") {
         await notify.notifyAnswersOpen(tx, { ...meta, editionId });
       } else if (action.notify === "catchup_published") {
@@ -186,6 +174,16 @@ async function applyEditionAction(
       if (cas.count === 0) return false;
       await notify.notifyAnswersOpen(tx, { ...meta, editionId, onlyNonAnswerers: true });
       return true;
+    }
+
+    if (action.kind === "fizzle") {
+      // Closed empty twice. Clearing the deadline makes it idle; nobody is
+      // told, because nothing happened that anybody needs to act on.
+      const cas = await tx.catchupEdition.updateMany({
+        where: { id: editionId, status: "collecting", remindersSent: before.remindersSent },
+        data: action.patch,
+      });
+      return cas.count > 0;
     }
 
     if (action.kind === "extend-questions") {
@@ -246,24 +244,23 @@ export async function advanceEdition(
     const meta = await loadMeta(edition);
     if (!meta) return;
   
-    // A paused or ended Catch-up's clock stops with it. Without this the Edition
-    // kept advancing, kept sending a daily reminder to answer, and published
-    // itself, all while the home page showed "This Catch-up is paused" and no
-    // way to answer (audit B-061).
+    // An ended Catch-up's clock stops with it. Without this an Edition left
+    // inside it kept advancing, kept sending a daily reminder to answer, and
+    // published itself under a home page saying it had ended (audit B-061).
+    // A legacy `paused` row is NOT frozen: there has been nothing to hold
+    // since Editions stopped running on a rhythm (2026-10-17), and reading it
+    // as active is what lets its cleanup migration land on either side of
+    // the deploy.
     //
     // This gate covers the whole AUTOMATIC half: the app-shell sweep, the cron
     // tick and every page's own freshen all advance through here. The
-    // hand-driven half -- the Keeper's early-trigger controls and the two
-    // member submissions, which write the edition directly -- is frozen by
-    // `refuseIfFrozen` in the actions. Both halves are needed; neither is
-    // reachable from the other.
+    // hand-driven half -- the cycle controls and the two member submissions,
+    // which write the edition directly -- is refused by `refuseIfEnded` in
+    // the actions. Both halves are needed; neither is reachable from the other.
     /* ONE EXCEPTION: a sealed time capsule opens on its date whatever the
-       Catch-up is doing (build phase 14). Holding a Catch-up holds its NEXT
-       Edition, and ending one ends its rhythm; neither was ever a promise to
-       keep last year's letters shut for longer than a year. Nothing else
-       moves: the plan for a sealed Edition has one step, and it books no
-       next Edition. */
-    if (meta.catchupStatus !== "active" && edition.status !== "sealed") return;
+       Catch-up is doing (build phase 14). Ending a Catch-up was never a
+       promise to keep last year's letters shut for longer than a year. */
+    if (meta.catchupStatus === "ended" && edition.status !== "sealed") return;
 
     let ed: EditionTiming = toTiming(edition);
     let entryCount: number | null = null;
@@ -302,7 +299,7 @@ export async function advanceEdition(
       );
       if (action.kind === "none") break;
 
-      const applied = await applyEditionAction(edition.id, ed, action, meta, now);
+      const applied = await applyEditionAction(edition.id, ed, action, meta);
       if (!applied) {
         // Lost the compare-and-swap to a concurrent visit: re-read and continue.
         const fresh = await prisma.catchupEdition.findUnique({
@@ -324,10 +321,10 @@ export async function advanceEdition(
     if (isMissingCatchupTable(err)) return;
     /* Reported, not just logged (bug-report-2 C-149). This function never
        re-throws -- an edition that cannot advance must not take the page it
-       was called from down -- so the reportSwallowed calls in
-       advanceDueCatchups and openNextEditionIfDue never see a per-edition
-       failure. Edition-OPENING failures reached Sentry and Edition-ADVANCING
-       failures did not, which is the M09 fix applied to half the clock. A
+       was called from down -- so the reportSwallowed call in
+       advanceDueCatchups never sees a per-edition failure. Edition-OPENING
+       failures reached Sentry and Edition-ADVANCING failures did not, which
+       was the M09 fix applied to half the clock. A
        console line on Vercel reaches nobody: the Edition quietly stops moving,
        the countdown keeps counting down, and the first anybody hears of it is
        a member asking why the Edition never closed. */
@@ -336,94 +333,87 @@ export async function advanceEdition(
 }
 
 /**
- * Mint the next Edition of a Catch-up: one transaction, the questions open,
- * everyone told.
+ * Start an Edition: the questions open for three days and everyone is told.
  *
- * Shared by the CLOCK (`openNextEditionIfDue`, below) and by the KEEPER'S OWN
- * HAND (`startNextEditionNow` in the actions), because until 2026-09-08 only
- * the first of those existed. The owner found the hole himself: *"literally
- * after publishing I can't start a new round?!?! I have to wait for two weeks
- * minimum ... there's no control for that?? I have to create ANOTHER test
- * catch up."* One function, so a hand-started Edition is the same object as a
- * scheduled one in every respect, down to the notification.
+ * THE ONLY WAY ONE BEGINS. There is no rhythm (owner, 2026-10-17: "You should
+ * just be able to start it whenever you want. And then it ends when it ends.
+ * And then it just doesn't go until you start it again."), so the clock that
+ * used to open Editions on `nextOpensAt` is gone and this is what is left of
+ * it. The Catch-up's own creation opens its first Edition in the same breath
+ * (`createCatchupWithPeople`); every later one, and a batch's first, is here.
  *
- * Idempotent, and it is `expectedNextOpensAt` that makes it so: the
- * compare-and-swap clears `nextOpensAt` only if it still holds the value the
- * caller read, so two visits (or two Keepers on two stale tabs) produce one
- * Edition and the loser is told nothing happened. The unique
- * [catchupId, number] index is the backstop under that. Returns the new
- * Edition's id, or null when somebody else got there first.
+ * In place, when it can be. If the newest Edition is an idle `collecting` row
+ * -- a batch's first, made with no deadline, or one that fizzled -- that row
+ * gets the clock, keeping whatever questions are already in it, rather than
+ * being left behind empty under a new number. Otherwise a new Edition opens.
+ *
+ * One transaction, the bell inside it, so nobody is told about an Edition that
+ * did not start. Two members pressing Start together produce one Edition: the
+ * in-place path compare-and-swaps on the row it read, and the new-row path has
+ * the unique (catchupId, number) under it. The loser gets "moved".
  */
-export async function openNextEdition(
-  catchup: {
-    id: string;
-    nextOpensAt: Date | null;
-    group: { id: string; name: string };
-  },
-  latest: { number: number },
-  expectedNextOpensAt: Date | null,
-  now: Date,
-  excludeUserId?: string
-): Promise<string | null> {
-  return prisma.$transaction(async (tx) => {
-    const cas = await tx.catchup.updateMany({
-      where: { id: catchup.id, nextOpensAt: expectedNextOpensAt },
-      data: { nextOpensAt: null },
-    });
-    if (cas.count === 0) return null;
-
-    const edition = await tx.catchupEdition.create({
-      data: {
-        catchupId: catchup.id,
-        number: latest.number + 1,
-        status: "collecting",
-        questionsCloseAt: deadlineIn(now, QUESTION_WINDOW_DAYS),
-      },
-    });
-    await notify.notifyQuestionsOpen(tx, {
-      catchupId: catchup.id,
-      editionId: edition.id,
-      groupId: catchup.group.id,
-      groupName: catchup.group.name,
-      excludeUserId,
-    });
-    return edition.id;
-  });
-}
-
-/**
- * Open the next Edition for a recurring Catch-up once its nextOpensAt has passed.
- * The clock's half: it decides WHETHER, `openNextEdition` does the opening.
- */
-async function openNextEditionIfDue(
-  catchup: {
-    id: string;
-    status: string;
-    cadence: string;
-    nextOpensAt: Date | null;
-    group: { id: string; name: string };
-    editions: Array<{ number: number; status: string }>;
-  },
+export async function openEdition(
+  catchup: { id: string; group: { id: string; name: string } },
+  starter: { id: string; name: string },
   now: Date
-): Promise<void> {
-  if (catchup.status !== "active") return;
-  const opensAt = catchup.nextOpensAt;
-  if (!opensAt || now.getTime() < opensAt.getTime()) return;
+): Promise<{ editionId: string } | { refused: "running" | "moved" }> {
+  try {
+    return await prisma.$transaction(async (tx) => {
+      const newest = await tx.catchupEdition.findFirst({
+        where: { catchupId: catchup.id },
+        orderBy: { number: "desc" },
+        select: { id: true, number: true, status: true, questionsCloseAt: true },
+      });
+      if (newest && isEditionRunning(newest)) return { refused: "running" as const };
 
-  const latest = catchup.editions[0];
-  // Only open a fresh Edition when the previous one has actually closed:
-  // published, or sealed as a time capsule, whose rhythm carries on while it
-  // waits out its year (his 33: a capsule is one Edition, not the Catch-up).
-  if (!latest || (latest.status !== "published" && latest.status !== "sealed")) return;
+      const questionsCloseAt = deadlineIn(now, QUESTION_WINDOW_DAYS);
+      let editionId: string;
+      // Idle and collecting means no deadline (`isEditionRunning`), and the
+      // compare-and-swap is on exactly that.
+      if (newest && newest.status === "collecting") {
+        const cas = await tx.catchupEdition.updateMany({
+          where: { id: newest.id, status: "collecting", questionsCloseAt: null },
+          // Zero, which also clears the spent-extension bit: this is a fresh
+          // window, and it gets its own one silent extension.
+          data: { questionsCloseAt, remindersSent: 0 },
+        });
+        if (cas.count === 0) return { refused: "moved" as const };
+        editionId = newest.id;
+      } else {
+        const created = await tx.catchupEdition.create({
+          data: {
+            catchupId: catchup.id,
+            number: (newest?.number ?? 0) + 1,
+            status: "collecting",
+            questionsCloseAt,
+          },
+          select: { id: true },
+        });
+        editionId = created.id;
+      }
 
-  await openNextEdition(catchup, latest, opensAt, now);
+      await notify.notifyQuestionsOpen(tx, {
+        catchupId: catchup.id,
+        editionId,
+        groupId: catchup.group.id,
+        groupName: catchup.group.name,
+        excludeUserId: starter.id,
+        starterName: starter.name,
+      });
+      return { editionId };
+    });
+  } catch (err) {
+    // Somebody else's Start minted this number first.
+    if (isUniqueViolation(err)) return { refused: "moved" };
+    throw err;
+  }
 }
 
 /**
  * The lazy, read-time, no-cron advance (spec section 2.4). Finds every stale
  * Edition in the viewer's groups (or across all groups when unscoped, so
- * /api/catchups/tick is a thin wrapper) and advances each, then opens
- * any next Editions whose nextOpensAt has passed. Wrapped so it can NEVER throw:
+ * /api/catchups/tick is a thin wrapper) and advances each. It opens nothing:
+ * an Edition starts only when somebody starts it. Wrapped so it can NEVER throw:
  * it is piggy-backed on the app-shell notification-count query that runs on
  * essentially every authenticated page view, and a missing table (pre-migration)
  * or any error must degrade to a no-op, never a 500.
@@ -445,27 +435,24 @@ export async function advanceDueCatchups(userId?: string): Promise<void> {
   try {
       const scope = userId ? { group: { members: { some: { userId } } } } : {};
 
-    /* ONE read for both halves of the advance, because both are questions
-       about the same Catch-up rows and this runs on essentially every
-       authenticated page view. It used to be two joins against
-       `group.members.some`, and for a member in no Catch-up -- the majority --
-       both returned nothing.
+    /* ONE read, because this runs on essentially every authenticated page
+       view. It used to serve two halves -- advancing stale Editions and
+       opening the next one when `nextOpensAt` came round -- and the second
+       half went with the rhythm (2026-10-17). Nothing opens here now.
 
-       Paused/ended Catch-ups are frozen. advanceEdition re-checks this and is
-       the actual guarantee (it is reachable from every page's own freshen
-       too); the `status: "active"` clause just avoids loading rows we would
-       skip.
-
-       The two reads were sequential, and it is worth saying why one is safe.
-       The only thing the advance loop below writes to `nextOpensAt` is
-       `now + cadence gap` -- always in the future -- so a Catch-up it
-       publishes cannot also become due to OPEN in the same pass, which is
-       exactly what the second read was positioned after to see. And in the
-       other direction `openNextEditionIfDue` compare-and-swaps on the
-       `nextOpensAt` it was handed, so a value that moved under it is a no-op
-       rather than a double open. */
-    const STALE = ["collecting", "answering"];
-    /* A time capsule due to open, in ANY Catch-up the scope reaches, active or
+       Ended Catch-ups are frozen. advanceEdition re-checks this and is the
+       actual guarantee (it is reachable from every page's own freshen too);
+       the clause here just avoids loading rows it would skip. A legacy
+       `paused` row is not ended, so it runs. */
+    /* What the clock can move: an Edition that is RUNNING. An idle one --
+       a batch nobody has started, or one that fizzled -- has no question
+       deadline (`isEditionRunning`), and is left out here in SQL, so a
+       Catch-up resting between Editions costs its members nothing on a page
+       view, however long it rests. */
+    const running = {
+      OR: [{ status: "answering" }, { status: "collecting", questionsCloseAt: { not: null } }],
+    };
+    /* A time capsule due to open, in ANY Catch-up the scope reaches, ended or
        not (see advanceEdition). Inside the same read rather than a second
        query, because this runs on every authenticated page and a round trip
        to Mumbai for a table that is almost always empty of these is not free.
@@ -478,22 +465,16 @@ export async function advanceDueCatchups(userId?: string): Promise<void> {
       where: {
         ...scope,
         OR: [
-          {
-            status: "active",
-            OR: [{ nextOpensAt: { lte: now } }, { editions: { some: { status: { in: STALE } } } }],
-          },
+          { status: { not: "ended" }, editions: { some: running } },
           { editions: { some: sealedDue } },
         ],
       },
       include: {
         group: { select: { id: true, name: true } },
-        /* Every edition, newest first: the stale ones feed advanceEdition and
-           the newest feeds openNextEditionIfDue, and Prisma cannot include the
-           same relation twice under two filters. A Catch-up has one edition
-           per cadence period, so this is tens of small rows at most, and only
-           for the Catch-ups the `where` already narrowed to. */
+        /* Only the Editions there is anything to do with: the running one,
+           and a capsule whose day has come. */
         editions: {
-          orderBy: { number: "desc" },
+          where: { OR: [running, sealedDue] },
           select: { ...EDITION_TIMING_SELECT, id: true, catchupId: true, number: true },
         },
       },
@@ -501,26 +482,13 @@ export async function advanceDueCatchups(userId?: string): Promise<void> {
 
     for (const c of catchups) {
       for (const ed of c.editions) {
-        if (!STALE.includes(ed.status) && ed.status !== "sealed") continue;
         await advanceEdition(
           {
             ...ed,
-            catchup: { id: c.id, cadence: c.cadence, status: c.status, group: c.group },
+            catchup: { id: c.id, status: c.status, group: c.group },
           } as AdvanceEditionInput,
           now
         );
-      }
-    }
-
-    for (const c of catchups) {
-      try {
-        await openNextEditionIfDue(c, now);
-      } catch (err) {
-        if (!isMissingCatchupTable(err)) {
-          // Reported, not just logged: this is the engine, and nobody notices
-          // it stop -- the symptom is Editions that never open (audit M09).
-          reportSwallowed("catchups", err, { step: "openNextEditionIfDue", catchupId: c.id });
-        }
       }
     }
   } catch (err) {
