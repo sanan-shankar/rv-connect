@@ -76,12 +76,23 @@
  *  over the file's stamp, which on a scan is the day it was scanned. The
  *  stamp still goes to exifYear/exifMonth, as what the file said.
  *
+ *  UNDATED ON PURPOSE, AND SOMEONE ELSE'S NAME ON IT. `--undated` files a
+ *  photograph with no date at all as undated (era and precision "unknown",
+ *  as the contribute form does for "Not sure") instead of refusing it: for
+ *  a batch whose sender has no dates and says so, where refusing would just
+ *  lose the photographs. They wait on the review room's Undated pile for
+ *  anyone who can date them. `--approved-by <admin>` publishes a member's
+ *  photographs straight away with that admin as the approver, so an
+ *  approved row never names a non-admin as the one who let it in
+ *  (Santharam's flowers, 2026-10-18).
+ *
  *  Run: node scripts/dev/import-album.mjs [--apply] [--quality 90]
  *                                         [--album <dir>] [--as <email>]
  *                                         [--limit N] [--env .env]
  *                                         [--scope class|valley]
  *                                         [--folder <name>] [--captions <tsv>]
  *                                         [--buckets a,b] [--review]
+ *                                         [--undated] [--approved-by <email>]
  *       node scripts/dev/import-album.mjs --undo scripts/dev/.album-import/….jsonl --apply
  * ------------------------------------------------------------------ */
 
@@ -106,6 +117,8 @@ const { flag, value } = argv();
 
 const APPLY = flag("--apply");
 const REVIEW = flag("--review");
+const UNDATED = flag("--undated");
+const APPROVED_BY = value("--approved-by", null);
 const UNDO = value("--undo", null);
 /* The app's own setting by default, so an imported photograph and a
    contributed one are the same photograph. `--quality` is for measuring, not
@@ -192,11 +205,17 @@ const classYear = /^\d{4}$/.test(String(who.batchYear)) ? String(who.batchYear) 
 if (SCOPE === "class" && (who.verifyState !== "verified" || !classYear)) {
   fail(`${AS} is ${who.verifyState} with batchYear ${who.batchYear}: cannot contribute to a Class Collection.`);
 }
-/* Under `--review` nothing skips review, so the uploader may be the member
-   who actually sent the photographs: his name on them, his folder in the
-   bucket, exactly as if he had contributed them himself. */
-if (SCOPE === "valley" && !REVIEW && who.role !== "admin") {
-  fail(`${AS} is ${who.role}: only an admin's valley photographs skip review, and these rows land approved. Add --review.`);
+/* Who lets these rows in when they land approved: the uploader, or the admin
+   `--approved-by` names. Under `--review` nothing skips review, so the
+   uploader may be the member who actually sent the photographs: his name on
+   them, his folder in the bucket, exactly as if he had contributed them. */
+const approver = APPROVED_BY
+  ? (await client.query(`select id, role from "User" where email = $1`, [APPROVED_BY])).rows[0]
+  : who;
+if (!approver) fail(`No account for ${APPROVED_BY}`);
+if (APPROVED_BY && approver.role !== "admin") fail(`--approved-by ${APPROVED_BY} is ${approver.role}, not an admin.`);
+if (SCOPE === "valley" && !REVIEW && approver.role !== "admin") {
+  fail(`${AS} is ${who.role}: only an admin's valley photographs skip review, and these rows land approved. Add --review, or --approved-by an admin.`);
 }
 
 function fail(message) {
@@ -323,7 +342,15 @@ for (const folder of folders) {
        silent. */
     const foldered = !given && !date && /(\d{4})/.exec(folder);
     if (!given && !date && !foldered) {
-      refused.push(rel);
+      if (UNDATED) {
+        planned.push({
+          rel, file, caption: captions?.get(name)?.caption ?? null, stamp: null, viaFolder: false,
+          photoYear: null, photoMonth: null, datePrecision: "unknown",
+          exifYear: null, exifMonth: null, era: "unknown",
+        });
+      } else {
+        refused.push(rel);
+      }
       continue;
     }
 
@@ -377,7 +404,7 @@ const fresh = planned.filter((p) => !already.has(p.rel));
 const todo = LIMIT > 0 ? fresh.slice(0, LIMIT) : fresh;
 
 const byYear = new Map();
-for (const p of todo) byYear.set(p.photoYear, (byYear.get(p.photoYear) ?? 0) + 1);
+for (const p of todo) byYear.set(p.photoYear ?? "undated", (byYear.get(p.photoYear ?? "undated") ?? 0) + 1);
 
 console.log(`album      ${ALBUM}`);
 console.log(`uploader   ${who.name} <${AS}>, class of ${classYear}, ${who.role}`);
@@ -385,7 +412,7 @@ console.log(`into       ${SCOPE === "valley" ? "the Valley Collection" : `the Cl
 console.log(`quality    WebP q${QUALITY}, full resolution (storedResizeBox)`);
 console.log(`planned    ${todo.length} photographs${LIMIT ? ` (--limit ${LIMIT} of ${fresh.length})` : ""}`);
 if (already.size) console.log(`already in ${already.size} skipped without re-encoding`);
-console.log(`  by year  ${[...byYear].sort((a, b) => a[0] - b[0]).map(([y, n]) => `${y}:${n}`).join("  ")}`);
+console.log(`  by year  ${[...byYear].sort((a, b) => String(a[0]).localeCompare(String(b[0]))).map(([y, n]) => `${y}:${n}`).join("  ")}`);
 console.log(`  year-only precision: ${todo.filter((p) => p.datePrecision === "year").length}`);
 const fellBackToFolder = todo.filter((p) => p.viaFolder);
 if (fellBackToFolder.length) {
@@ -400,7 +427,7 @@ if (refused.length) {
 
 if (captions) {
   for (const p of todo) {
-    console.log(`  ${String(p.photoYear)}-${String(p.photoMonth ?? "--").padStart(2, "0")}  ${path.basename(p.rel).padEnd(24)} ${p.caption}`);
+    console.log(`  ${String(p.photoYear ?? "----")}-${String(p.photoMonth ?? "--").padStart(2, "0")}  ${path.basename(p.rel).padEnd(24)} ${p.caption}`);
   }
 }
 
@@ -503,7 +530,7 @@ async function importOne(p) {
        $1,$2,$3,$4,$5,$6,$15,$7,
        $16,$8,$9,$10,$11,
        $12,$13,$17,$14,$19,false,
-       CASE WHEN $19 THEN now() END,CASE WHEN $19 THEN $2 END,now(),now(),$18
+       CASE WHEN $19 THEN now() END,CASE WHEN $19 THEN $20 END,now(),now(),$18
      ) ON CONFLICT ("sourceKey") DO NOTHING
      RETURNING "id"`,
     [
@@ -517,6 +544,7 @@ async function importOne(p) {
       /* Unapproved, with no approver, is the whole of what "waiting" means:
          AWAITING_REVIEW in src/lib/admin-review.ts, heldAt left null. */
       !REVIEW,
+      approver.id,
     ]
   );
 

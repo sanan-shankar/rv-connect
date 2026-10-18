@@ -50,6 +50,17 @@ const PINNED: { id: string; since: Date; label: string } | null = {
 };
 
 /**
+ * Photographs that never take this card, by the import folder they came in
+ * through (scripts/dev/import-album.mjs keys each row `album:<folder>/<file>`).
+ * Santharam's wildflowers (owner, 2026-10-18): "I don't want a from the
+ * collection photo of one of these flowers with the description just saying
+ * flower. Because that would look bad ... just skip these ones". Most carry
+ * no name and no date, and thirty of them landing at once would otherwise
+ * hold this card, and fill the whole CANDIDATES window, for weeks.
+ */
+const OFF_THE_CARD = ["album:santharam-flowers/"];
+
+/**
  * "From the Collection": the most recently approved, visible landscape photo
  * from the Valley Collection archive whose caption fits on one line. Hides
  * entirely while the archive has no approved photo yet (it currently has
@@ -82,7 +93,13 @@ export async function CollectionModule() {
        a square is cropped just as hard here and is excluded too. If the
        archive holds no landscape photograph yet the card hides, which is the
        same thing it already does when it holds none at all. */
-    where: { scope: "valley", approved: true, isHidden: false, width: { gt: prisma.photo.fields.height } },
+    /* OFF_THE_CARD is in the query, not filtered after it: excluded rows must
+       not use up the CANDIDATES window. The explicit null arm is load-bearing
+       -- a bare NOT on a nullable column also drops every row whose sourceKey
+       is null, which is nearly the whole archive. */
+    where: { scope: "valley", approved: true, isHidden: false, width: { gt: prisma.photo.fields.height },
+      OR: [{ sourceKey: null }, { NOT: { OR: OFF_THE_CARD.map((k) => ({ sourceKey: { startsWith: k } })) } }],
+    },
     orderBy: { createdAt: "desc" },
     take: CANDIDATES,
     select: PHOTO_SELECT,

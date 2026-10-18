@@ -1,3 +1,18 @@
+## 2026-10-18 (collection) — thirty of Santharam's wildflowers, undated and named where sure, kept off From the Collection
+
+Three zips of Santharam Venkap's flower photographs, 35 files edited in Shotwell with every date
+stripped. Five were left out: two out of focus at full size, one washed-out distant tree, one
+repeat of the same yellow flower, one soft macro. The other thirty go into the Valley Collection
+under his account, approved by the owner, all Nature, all undated. Eighteen carry a name where the
+picture leaves no doubt (Flame of the forest, Indian laburnum, Glory lily, Datura, Coat buttons
+and so on); the rest read "Flower", his word.
+
+From the Collection skips them, his ask: `OFF_THE_CARD` in collection-module.tsx names the import
+folder, in the query so thirty excluded rows cannot fill the 24-photo candidate window. The
+explicit `sourceKey: null` arm is load-bearing; a bare NOT on a nullable column drops nearly the
+whole archive. `import-album.mjs` gained `--undated` (file with no date instead of refusing) and
+`--approved-by` (a member's photographs published with an admin as approver).
+
 ## 2026-10-17 (catchups) — Start a Catch-up sends you to your batch's own instead of copying it
 
 His answer, 2026-10-17: when "everyone from my batch" is pressed and the batch already has a
