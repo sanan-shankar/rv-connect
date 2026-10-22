@@ -1,3 +1,14 @@
+## 2026-10-22 (birds) — U4e closed: four reserve birds, the Ibis held back, and his note on contrast
+
+The Little Grebe, the Scaly-breasted Munia, the Spot-breasted Fantail and the Common Iora join at
+index 72, 73, 75 and 76. The owner, seeing the new birds on the birds page, said too many are grey,
+white and cool and wash out on the paper, and that the old birds held their pale colours inside a
+saturated outside; the Eagle-Owl was his "instant 10 on 10". His words are brief ¶43; the reserve
+was finished with that applied, the Black-headed Ibis (white by nature) is held back as a
+candidate for his yes or no, and the next unit takes the same note to the new birds already in.
+One review, one darker cream on the Munia. The dependency advisory gate is red on six new
+advisories outside this work (three critical: Next.js and Sentry); he was notified.
+
 ## 2026-10-18 (collection) — thirty of Santharam's wildflowers, undated and named where sure, kept off From the Collection
 
 Three zips of Santharam Venkap's flower photographs, 35 files edited in Shotwell with every date

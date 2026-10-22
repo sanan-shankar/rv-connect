@@ -258,3 +258,23 @@ But I just didn't like that super thick blunt one. And saying that this is good 
 the only way and you should only use this. There might be multiple correct answers. I'm just
 saying that this is one. That does it unique, but it's still cute, and it's not like this ultra
 sharp thing.
+
+**2026-10-22, on seeing the new birds on the birds page, his words verbatim:**
+
+**[43]** continue but just for the birds that you've uploaded to the website, I've noticed that
+this new set that we've been working on has a lot of grays and whites and that kind of thing. I
+think it's fine to have some grays and whites, but I'm noticing that a lot of these have it, and
+it's quite different from the ones that we had before. And there is a distinct lack of contrast.
+Against the background. So the way that we tackle that earlier was having a more significant
+color around and then the lighter colors that wouldn't have good contrast are kind of set inside
+that. I understand that doesn't work all the time, but maybe we could make a slight effort to do
+that a little bit more maybe. Because right now a lot of these birds are not, again, getting
+washed out on the background. And honestly, it's kind of weird looking on the website that we
+have all of these birds and then just towards the bottom, there's just a whole bunch of gray and
+white and kind of similar cool colors over there. Of course, this is only for like maybe 5 of
+them, but it's still a significant percentage of the ones you made. But you made like an owl, for
+instance, that one is just instant 10 on 10 great job. But the others, Still work to do. I do like
+a lot of the ideas many of the colors that you've picked are nice. A lot of the shapes that you've
+picked are nice. This is just a tiny note to keep in mind. And I can give you more directions when
+you're done at the end. But yeah, get to the end.
+

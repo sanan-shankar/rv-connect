@@ -33,33 +33,32 @@ flag is his call alone (¶39), and the Hoopoe and the Indian Roller are never de
 
 ## Resume here (kept current; read before the board)
 
-**State on 2026-10-17.** Units DONE: set-up, tooling, U5 (9ef4c6f9), U2a (9101e61d), U2b
-(17a5c8e0), U3a, U3b, U4a to U4d (the six commits after 17a5c8e0). Fourteen new species are in
-(57 to 70) and seven candidates wait for gate 2 (51 to 56, 71). **Next is U4e, the reserve** (Q1
-(a): built because the twelve cleared): from `selection.md` section 3, the Spot-breasted Fantail,
-the Scaly-breasted Munia, the Black-headed Ibis, the Little Grebe, and the Common Iora only if the
-reviewer can hold it apart from the two orioles at 40px; appended as real species at 72 and up
-(the Blue-capped Rock-Thrush, the Yellow-footed Green-Pigeon and the Red-wattled Lapwing in that
-section are already candidates). Brief one hand the way U4d was briefed (the reviewer's lessons so
-far: a belly patch with vertical sides is an apron; three marks at most; a white too near the
-paper loses its edge, use about #DADFE5 or darker; a thin brow over the eye reads as a raised
-eyebrow and a long one as a headband; a crest's back must curve). The loop as U4b to U4d ran it:
-the drawer draws and looks; the runner re-centres, renders and looks; ONE Opus reviewer (resume
-the last one with SendMessage) writes `reviews/u4e-review-1.md`; exact fixes the runner applies,
-re-audits with `bird-edges.mjs` and looks at; faults that need drawing go back to the drawer once
-and to the reviewer once more; a bird that fails review 3 is PARKED; then commit by pathspec.
-**Then U6** (see its section): the copy that says fifty takes its number from `GALLERY_SPECIES`
-(the birds page description, the guide's birds chapter, the Support page's "See all" button);
-`generate-bird-photos.mjs` and a test pinning the image count to twice the names; `npm run visual`
-and a looked-at `visual:update`; the spec banner; the gate-2 sheets (before-and-after pairs from
-`git show bcec4cdc:public/images/birds/<i>-0.png` beside the new renders, the candidate pairs, the
-new species); then gate 2. If a drawer or reviewer is mid-flight when you resume, `ListAgents`
-shows it; uncommitted edits in `bird-avatar-v2.tsx` are the round in progress. A usage limit (HTTP
-429) has cut an agent off four times; a resumed agent carries on from its own transcript with
+**State on 2026-10-22, later.** Units DONE: set-up, tooling, U5, U2a, U2b, U3a, U3b, U4a to U4e (U4e:
+four reserve species at 72, 73, 75, 76; the Black-headed Ibis 74 held back as a candidate). **Next
+is U4f**, the contrast pass. **The dependency advisory gate is red** since 2026-10-22 on six new
+advisories outside this campaign (Next.js, Sentry, DOMPurify via PostHog; three critical); the
+owner was notified; every other gate is green, so birds commits carry on and say so. **The owner's
+note of 2026-10-22 (brief ¶43, ledger A8) binds every bird from here**: the new set has too many
+greys, whites and cool colours that wash out on the paper; the saturated colour goes outside and
+the pale colours sit inside it, the way the Eagle-Owl (his "instant 10 on 10") does. Then **U4f**,
+the contrast pass on the fourteen already in (the board row names the nine). Uncommitted in the
+tree beside the reserve, by the runner: the U6 copy change (the birds page description, the
+guide's birds chapter and the Support page's "See all" button read `GALLERY_SPECIES.length`; two
+comments that said fifty), typechecked, to be committed with U6's baselines. **Then U6** (see its
+section): `generate-bird-photos.mjs` and a test pinning the image count to twice the names; `npm
+run visual` and a looked-at `visual:update`; the spec banner; the gate-2 sheets (before-and-after
+pairs from `git show bcec4cdc:public/images/birds/<i>-0.png`, which frame the bird the same way,
+beside the new renders; the candidate pairs; the new species); then gate 2, where he has said he
+will give more directions. The loop: the drawer draws and looks; the runner re-centres
+(`centroid.mjs --only ...` until "0 need attention"), renders and looks; ONE Opus reviewer
+(resume the last one with SendMessage) writes the unit's review; exact fixes the runner applies,
+re-audits with `bird-edges.mjs` and looks at; faults that need drawing go back to the drawer once;
+a bird that fails review 3 is PARKED; commit by pathspec. If a drawer or reviewer is mid-flight
+when you resume, `ListAgents` shows it. A resumed agent carries on from its own transcript with
 nothing lost, so resume it rather than re-brief, unless the limit is the model's own (then
 re-brief on the next model).
 
-**Then, in order:** U4e, U6 (see the board and "The units").
+**Then, in order:** U4f, U6 (see the board and "The units").
 Owner answers are all in; nothing is owner-gated until gate 2, which is rendered sheets and
 before/after pairs, not prose (he decides by seeing, Q5).
 
@@ -110,7 +109,8 @@ before/after pairs, not prose (he decides by seeing, Q5).
 | U4b New birds 5 to 8 | DONE | 2026-10-16. Indian Eagle-Owl 61, Common Tailorbird 62, Common Kestrel 63, Black-crowned Night Heron 64 appended as real species, drawn on Opus (Fable's allowance out). Review 1 (`reviews/u4b-review-1.md`): Tailorbird and Night Heron pass; the Owl's belly sides and the Kestrel's fourth mark failed with exact fixes, which the runner applied with the review's two colour notes and looked at; no second review |
 | U4c New birds 9 to 12 | DONE | 2026-10-16. Pied Kingfisher 65 (Q5: he decides on seeing it), Wire-tailed Swallow 66, Grey Wagtail 67, Rock Pigeon 68 appended as real species, drawn on Opus. Review 1 (`reviews/u4c-review-1.md`): the Pigeon passes; three fail on one fault each with exact fixes (the two whites too near the paper, the Wagtail's brow read as a raised eyebrow), which the runner applied with the Swallow's optional cap path and looked at; no second review |
 | U4d New birds 13 and 14, and a candidate | DONE | 2026-10-16. Red-vented Bulbul 69 (crested black hood and scaly breast over buff, crimson vent) and White-browed Bulbul 70 (olive over butter-yellow, golden vent, white brow) appended from their colours (Q6); "Red-wattled Lapwing (candidate)" 71 beside the untouched 24 (Q2). Review 1 (`reviews/u4d-review-1.md`): the Lapwing passes; four exact fixes on the bulbuls (a vertical crest back, a rump that read as a bite, scales under 3 thick, a brow that read as a headband) applied by the runner and looked at. Reviewer's pair line: 71 reads more as a lapwing, 24 is the cuter avatar |
-| U4e The reserve | OPEN | only if every bird of U4a to U4d passed (Q1) |
+| U4e The reserve | DONE | 2026-10-22. Little Grebe 72, Scaly-breasted Munia 73, Spot-breasted Fantail 75, Common Iora 76 appended as real species; the Black-headed Ibis 74 drawn to the bar but held back as a candidate (one more grey-and-white bird, ¶43) for him to say yes or no at gate 2. Review 1 (`reviews/u4e-review-1.md`): four pass; the Munia's cream belly sat on the paper, fixed with the review's darker cream. ¶43 applied throughout |
+| U4f Contrast pass | OPEN | his note of 2026-10-22 (¶43, A8): the five that wash out on the paper, Spot-billed Duck 58, Black-winged Kite 60, Tailorbird 62, Night Heron 64, Rock Pigeon 68, get the saturated colour outside and the pale inside; the four with one pale patch on the edge, Kestrel 63, Wire-tailed Swallow 66 and the two bulbuls 69 and 70, get that patch set inside a rim. The Eagle-Owl is the reference |
 | U6 Close-out | OPEN | centroid for every changed bird, contact photos, the "fifty" copy, visual baselines, `docs/spec/avatars.md`, history, the gate-2 sheets |
 | Gate 2, the owner looks | OPEN | the whole point of the run on a design campaign |
 
@@ -126,13 +126,14 @@ the order of `/birds`.
 
 | ID | ¶ | Ask, in his words | What it means here | Status |
 |---|---|---|---|---|
-| A1 | 1, 2, 3 | "expand our catalog of 50 birds into more" from the PDF; "somewhat colorful, separate from the background... thorough sense of color science"; "obviously different from each other and different to the ones that are already there" | `selection.md` | DONE (selection); build: the twelve DONE (U4a to U4c, 2026-10-16); the two bulbuls DONE (U4d, Q6); the reserve in U4e (Q1) |
+| A1 | 1, 2, 3 | "expand our catalog of 50 birds into more" from the PDF; "somewhat colorful, separate from the background... thorough sense of color science"; "obviously different from each other and different to the ones that are already there" | `selection.md` | DONE (selection); build: the twelve DONE (U4a to U4c, 2026-10-16); the two bulbuls DONE (U4d, Q6); the reserve DONE (U4e, 2026-10-22: four in, the Ibis held back) |
 | A2 | 4 | "when you build it, it's just one criteria, cuteness" | reviewer line 7 | applies to every unit |
 | A3 | 39 | "if there's one [species] that you wanted to remove slash replace... Just run it by me. Obviously, don't replace any of the ones I like" | questions 2, 3, 4, 6 | OWNER-GATED |
 | A4 | 19, 40 | "an independent reviewing agent... some kind of a loop"; "Make sure you have an independent reviewer. Make sure you review everything" | `reviewer.md`, U1 | DONE (protocol), applies to every unit |
 | A5 | 39, 40 | "I'm not giving you... you have to add these many... Just keep the quality really high"; "we're not shipping anything off big" | twelve, then a reserve; three strikes parks a bird | LOCKED |
 | A6 | 10, 11 | "not a sign for you to make only circular ones because some of the more unique ones like the hornbill, like the lapwing [the Pond Heron and the Cormorant]... the Brahminy Kite... I really love it... It is harder to make those look cute" | a broken silhouette is welcome when it is the bird's own; it just has to be cute | LOCKED |
 | A7 | 14 | "we have to balance cuteness with the trueness to the bird... the Coucal and the Koel... red eyes... that is how they are. So you might have to keep that" | the red eyes stay | LOCKED |
+| A8 | 43 | "a lot of grays and whites... a distinct lack of contrast. Against the background. So the way that we tackle that earlier was having a more significant color around and then the lighter colors that wouldn't have good contrast are kind of set inside that"; the owl "instant 10 on 10" | every new bird: the saturated colour is the outside of the silhouette and the pale colours sit inside it, the Eagle-Owl's way; U4f is the pass on the fourteen already in | U4e, U4f | OPEN |
 
 ### The fixes, bird by bird
 
@@ -666,3 +667,16 @@ review: the candidate passed; the bulbuls failed on four faults with exact fixes
 a vertical line, a rump that read as a bite, scale cups under 3 thick, a brow long enough to read
 as a headband), which the runner applied, audited and looked at. Watch at gate 2: the
 White-browed's brow is the bird's name and still the boldest mark on it.
+
+### 2026-10-22, U4e closed, and the owner's contrast note (one Opus hand, one Opus reviewer)
+
+The reserve drawer was cut off by a usage limit after appending all five; resumed five days later,
+it finished with the owner's new note applied. His note (brief ¶43, ledger A8), on seeing the new
+birds on the birds page: too many greys, whites and cool colours, washed out on the paper and
+clumped at the bottom of the gallery; the old birds held their pale colours inside a saturated
+outside; the Eagle-Owl was "instant 10 on 10". The Grebe, Munia, Fantail and Iora are warm or
+saturated outside; the Ibis is white by nature, so it was drawn to the bar and held back as a
+candidate rather than added to the cluster he named. One review: four pass, the Munia's belly
+darkened from the review's value. U4f takes the same note to the fourteen already in. Separately,
+the dependency advisory gate went red on six new advisories (three critical, Next.js and Sentry);
+the owner was sent one notification; no Renovate pull request covers them.

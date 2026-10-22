@@ -358,5 +358,30 @@
     "x": 1.85,
     "y": 0.35,
     "s": 1.146
+  },
+  "Little Grebe": {
+    "x": 2.91,
+    "y": -7.52,
+    "s": 1.29
+  },
+  "Scaly-breasted Munia": {
+    "x": 2.76,
+    "y": -9.2,
+    "s": 1.335
+  },
+  "Black-headed Ibis (candidate)": {
+    "x": -0.63,
+    "y": -5.68,
+    "s": 1.174
+  },
+  "Spot-breasted Fantail": {
+    "x": 2.26,
+    "y": -5.81,
+    "s": 1.179
+  },
+  "Common Iora": {
+    "x": 2.41,
+    "y": -8.03,
+    "s": 1.285
   }
 }
