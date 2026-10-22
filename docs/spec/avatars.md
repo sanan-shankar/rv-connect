@@ -9,7 +9,7 @@
 > that was never once flipped after 2026-06-29, and was deleted in the 2026-08-25 refactor audit.
 >
 > Current system:
-> - **50 species**, each a real bird recorded at/around Rishi Valley, drawn in its **real colours**
+> - **50 species at launch, more since the 2026-10 expansion** (below), each a real bird recorded at/around Rishi Valley, drawn in its **real colours**
 >   from big soft rounded shapes (no thin spikes). Curated so no two read alike at 28-40px.
 > - **No background** (`BG_MODE="none"` in bird-avatar-v2.tsx): the bird floats, no disc. `BG_MODE`
 >   can switch to `"outline"` (sticker halo) or `"inset"` (bird in a coloured disc) in one line.
@@ -21,7 +21,7 @@
 >   MASS (area-equivalent radius), not their farthest tip, so a long bill/tail/crest never shrinks
 >   the body. Converged: every bird centroid = (50,50), consistent body size.
 > - **Contact-card photos** are the same birds, pre-rendered: `scripts/dev/generate-bird-photos.mjs`
->   writes all 51 species x 2 poses to `public/images/birds/{species}-{0|1}.png`, on `--card` with
+>   writes every species x 2 poses to `public/images/birds/{species}-{0|1}.png`, on `--card` with
 >   room around the box so a phone's circle crop never cuts a tip. `contactPhotoSrc` in
 >   `bird-avatar.tsx` picks the file with the same precedence BirdAvatar uses. **Re-run it whenever a
 >   bird's drawing or `bird-adjust.json` changes**, or saved contacts keep the old bird.
@@ -74,6 +74,16 @@
 > the FNV-1a hashing, precedence, accessibility, lightweight goals, edge cases). Where the draft and
 > the shipped system disagree, the banner above and the code (`src/lib/avatar.ts`,
 > `bird-avatar-v2.tsx`) are authoritative. The main differences to hold in mind while reading:
+> - **The 2026-10 expansion** (`docs/planning/birds-expansion/handover.md`): new species are
+>   appended after the Roller, at index 51 and up, and join the gallery, the paid picker and the
+>   signup deal at once; the hash still covers only 0..49 (`BIRD_SPECIES_COUNT` is never raised, or
+>   every member's bird would move). A second drawing waiting for the owner's choice is appended
+>   with a name ending " (candidate)"; `isCandidate()` keeps it out of `GALLERY_SPECIES`, so it is
+>   never listed, picked or dealt, and the loser is deleted once he picks. The count any copy
+>   quotes is `GALLERY_SPECIES.length`. Two drawing rules from the campaign, both his: a bill is
+>   slim and tapers to a soft round tip, never a club and never a needle (brief ¶41, ¶42); the
+>   saturated colour is the outside of the bird and pale colours sit inside it, the Eagle-Owl's
+>   way, so nothing washes out on the paper (¶43).
 > - **50 species, not 12.** Every "12" below, the species table in 1.1, and the `768` math are the
 >   original plan.
 > - The bird is drawn in its **real colours and floats with no disc** (`BG_MODE="none"`). The

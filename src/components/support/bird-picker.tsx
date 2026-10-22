@@ -104,7 +104,7 @@ export function BirdPicker({ currentSlug }: { currentSlug: string | null }) {
                   // reading colour, which together say "clickable" without
                   // touching the rest of the grid. The twelve-bird plate on
                   // /support keeps its spotlight; that page is a preview, not
-                  // a choice among fifty. Selection stays the canopy wash.
+                  // a choice among the whole set. Selection stays the canopy wash.
                   isSelected ? "bg-canopy/10" : "state-layer"
                 )}
               >

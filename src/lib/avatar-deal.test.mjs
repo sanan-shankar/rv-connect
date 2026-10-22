@@ -223,6 +223,23 @@ test("a candidate drawing is never dealt, picked or listed until the owner keeps
   assert.match(src, /function isCandidate[^{]*\{\s*return name\.endsWith\(" \(candidate\)"\)/, "isCandidate must test the \" (candidate)\" suffix");
 });
 
+/* A member dealt a new species downloads its contact card from
+ * public/images/birds/{index}-{pose}.png (contactPhotoSrc in bird-avatar.tsx).
+ * The images are generated, not drawn on request, so a species appended
+ * without re-running scripts/dev/generate-bird-photos.mjs would hand that
+ * member a broken photo. Two per name, no more and no fewer. */
+test("every species has its two contact-card photos", async () => {
+  const { readdirSync } = await import("node:fs");
+  const src = read("src/components/common/bird-avatar-v2.tsx");
+  const namesAt = src.indexOf("export const SPECIES_FULL_NAMES: string[] = [");
+  const names = src.slice(namesAt, src.indexOf("];", namesAt)).match(/^\s*"[^"\n]+",?/gm) ?? [];
+  const pngs = readdirSync("public/images/birds").filter((f) => /^\d+-[01]\.png$/.test(f));
+  assert.equal(pngs.length, names.length * 2, `${pngs.length} photos for ${names.length} names; run scripts/dev/generate-bird-photos.mjs`);
+  for (let i = 0; i < names.length; i++) {
+    for (const pose of [0, 1]) assert.ok(pngs.includes(`${i}-${pose}.png`), `missing ${i}-${pose}.png`);
+  }
+});
+
 test("signup deals the new member a bird and spends no supporter's pick", () => {
   const signup = decomment(read("src/components/auth/actions.ts"));
   assert.match(signup, /dealNewMemberBird\(\)/, "registerUser no longer deals a bird");

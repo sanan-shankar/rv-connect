@@ -1,7 +1,7 @@
 "use client";
 
 /* The reward preview on /support, for members who have not contributed yet:
- * twelve of the fifty, arranged and faced by plate-data.ts so the row shows
+ * twelve of the set, arranged and faced by plate-data.ts so the row shows
  * the collection's variety rather than its first N indices. Four columns and
  * three rows under `sm`, six columns and two rows from `sm` up -- one
  * ordering, two reflows, both lookalike-safe (see plate-data.ts for how that

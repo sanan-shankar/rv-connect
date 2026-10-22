@@ -33,32 +33,20 @@ flag is his call alone (¶39), and the Hoopoe and the Indian Roller are never de
 
 ## Resume here (kept current; read before the board)
 
-**State on 2026-10-23.** Units DONE: set-up, tooling, U5, U2a, U2b, U3a, U3b, U4a to U4f (U4e: four
-reserve species at 72, 73, 75, 76, the Black-headed Ibis 74 held back as a candidate; U4f: the
-contrast pass on nine new birds). **Next is U6**, then gate 2. **The dependency advisory gate is red** since 2026-10-22 on six new
-advisories outside this campaign (Next.js, Sentry, DOMPurify via PostHog; three critical); the
-owner was notified; every other gate is green, so birds commits carry on and say so. **The owner's
-note of 2026-10-22 (brief ¶43, ledger A8) binds every bird from here**: the new set has too many
-greys, whites and cool colours that wash out on the paper; the saturated colour goes outside and
-the pale colours sit inside it, the way the Eagle-Owl (his "instant 10 on 10") does. Then **U4f**,
-the contrast pass on the fourteen already in (the board row names the nine). Uncommitted in the
-tree beside the reserve, by the runner: the U6 copy change (the birds page description, the
-guide's birds chapter and the Support page's "See all" button read `GALLERY_SPECIES.length`; two
-comments that said fifty), typechecked, to be committed with U6's baselines. **Then U6** (see its
-section): `generate-bird-photos.mjs` and a test pinning the image count to twice the names; `npm
-run visual` and a looked-at `visual:update`; the spec banner; the gate-2 sheets (before-and-after
-pairs from `git show bcec4cdc:public/images/birds/<i>-0.png`, which frame the bird the same way,
-beside the new renders; the candidate pairs; the new species); then gate 2, where he has said he
-will give more directions. The loop: the drawer draws and looks; the runner re-centres
-(`centroid.mjs --only ...` until "0 need attention"), renders and looks; ONE Opus reviewer
-(resume the last one with SendMessage) writes the unit's review; exact fixes the runner applies,
-re-audits with `bird-edges.mjs` and looks at; faults that need drawing go back to the drawer once;
-a bird that fails review 3 is PARKED; commit by pathspec. If a drawer or reviewer is mid-flight
-when you resume, `ListAgents` shows it. A resumed agent carries on from its own transcript with
-nothing lost, so resume it rather than re-brief, unless the limit is the model's own (then
-re-brief on the next model).
+**State on 2026-10-23, gate 2.** Every unit is DONE. The run is waiting on the owner's answers to
+the gate-2 questions below (A or B on seven birds, yes or no on two, and the "more directions" he
+said he would give at the end). **When he replies:** write his words verbatim under "Owner answers"
+with your reading; for each pair, move the winner's `draw()` body into the slot it competes for
+(a candidate that wins takes the old bird's index, name and slug, so members wearing it keep their
+slot and see the new drawing), delete every losing or chosen candidate's ARCHES entry, name and
+`bird-adjust.json` row (indices after it shift down; overrides store slugs, so nothing breaks;
+the Pied Kingfisher and the Ibis follow his yes or no); then `centroid.mjs --only` the touched
+slots, `generate-bird-photos.mjs` (the count test fails until you do), `npm run visual` and a
+looked-at `visual:update` for /birds and /support on both viewports once the desktop scrollbar
+note below is settled, `npm run check`, and commit by pathspec. Nothing is pushed until he says
+so. His further directions become a new unit on the board.
 
-**Then, in order:** U6 (see the board and "The units").
+**Then:** gate 2 (see the board and "The units").
 Owner answers are all in; nothing is owner-gated until gate 2, which is rendered sheets and
 before/after pairs, not prose (he decides by seeing, Q5).
 
@@ -111,8 +99,8 @@ before/after pairs, not prose (he decides by seeing, Q5).
 | U4d New birds 13 and 14, and a candidate | DONE | 2026-10-16. Red-vented Bulbul 69 (crested black hood and scaly breast over buff, crimson vent) and White-browed Bulbul 70 (olive over butter-yellow, golden vent, white brow) appended from their colours (Q6); "Red-wattled Lapwing (candidate)" 71 beside the untouched 24 (Q2). Review 1 (`reviews/u4d-review-1.md`): the Lapwing passes; four exact fixes on the bulbuls (a vertical crest back, a rump that read as a bite, scales under 3 thick, a brow that read as a headband) applied by the runner and looked at. Reviewer's pair line: 71 reads more as a lapwing, 24 is the cuter avatar |
 | U4e The reserve | DONE | 2026-10-22. Little Grebe 72, Scaly-breasted Munia 73, Spot-breasted Fantail 75, Common Iora 76 appended as real species; the Black-headed Ibis 74 drawn to the bar but held back as a candidate (one more grey-and-white bird, ¶43) for him to say yes or no at gate 2. Review 1 (`reviews/u4e-review-1.md`): four pass; the Munia's cream belly sat on the paper, fixed with the review's darker cream. ¶43 applied throughout |
 | U4f Contrast pass | DONE | 2026-10-23. The nine recoloured by one Opus hand: Duck 58 dark grey-brown with the pale head inside its cap and neck; Kite 60, Night Heron 64 and Pigeon 68 a stronger grey outside with the white or pale wing inside; Tailorbird 62 olive outside with a cream belly; Kestrel 63, Swallow 66 and both bulbuls (69, 70) with their pale fronts set inside a rim. No shape changed beyond one inner panel each; edges audited; the runner looked at the page-bottom sheet and the two the drawer doubted at full size, and spent no review on colour placement |
-| U6 Close-out | OPEN | centroid for every changed bird, contact photos, the "fifty" copy, visual baselines, `docs/spec/avatars.md`, history, the gate-2 sheets |
-| Gate 2, the owner looks | OPEN | the whole point of the run on a design campaign |
+| U6 Close-out | DONE | 2026-10-23. The copy that said fifty reads `GALLERY_SPECIES.length` (the birds page description, the guide's birds chapter, the Support page's "See all" button); 154 contact photos regenerated (77 drawings x 2) and pinned by a test to twice the names; mobile baselines for /birds and /support updated after looking at both diffs; desktop baselines NOT updated (see the gate-2 report: every desktop route is red on this Mac's scrollbar); spec banner; the gate-2 sheets in `e2e/.shots/birds/gate2/` |
+| Gate 2, the owner looks | OWNER-GATED | 2026-10-23: the sheets are made and the questions are under "Gate 2" below, each with a default |
 
 ---
 
@@ -298,6 +286,73 @@ PNGs in `public/images/birds/`, two per species), the copy that says fifty (guid
 `/birds` metadata, the Support page's "See all" button), `npm run visual` and a looked-at
 `visual:update` for `/birds`, `/support`, `/pick-bird`, the spec banner, the history entry,
 this file's board and log.
+
+---
+
+---
+
+## Gate 2 (2026-10-23): the closing report
+
+**What shipped, all committed, nothing pushed.**
+- Thirty-two of the old birds redrawn or fixed: every one you named in the brief except those you
+  said to leave. Before-and-now pairs: `e2e/.shots/birds/gate2/1-before-and-now-a.png` and `-b.png`.
+- Seventeen new birds live on the birds page (index 57 to 70, 72, 73, 75, 76), each its own
+  shape, then recoloured on 2026-10-22 so the strong colour sits outside and the pale inside, after
+  your note. Sheet: `3-new-birds.png`.
+- New members are dealt the least-worn bird (U5, 2026-10-09).
+- The "fifty" in the app's copy now counts the birds itself, so it cannot go stale again.
+
+**What was parked.** The first hand's Paradise Flycatcher (26) and Peregrine (32) failed their
+third review; they stay on the pick sheet as option A against a second hand's take.
+
+**What to look at first.**
+1. `2-pick-one.png`: seven A-or-B choices.
+2. `3-new-birds.png`: the new birds after your contrast note.
+3. `4-yes-or-no.png`: the Pied Kingfisher (live) and the Black-headed Ibis (held back, another
+   grey-and-white bird).
+
+**The questions, each with a default.**
+
+**1. Paradise Flycatcher: A (first hand) or B (second hand)?**
+- **What I'd change:** keep one drawing as the Paradise Flycatcher; the other is deleted.
+- **What you'd notice:** the birds page and everyone wearing it shows the one you pick.
+- **If I guess wrong:** a weaker drawing of the school's most iconic bird.
+- **If you don't reply I'll do:** B. The reviewer: "the Flycatcher to show".
+
+**2. Peregrine Falcon: A or B?** Same as above. **Default:** B, "plainly a perched falcon".
+
+**3. Green-Pigeon: A (the fixed Orange-breasted) or B (Yellow-footed)?** **Default:** A; the
+reviewer read B as "a yellow duckling in front of a green egg".
+
+**4. Tickell's Blue Flycatcher: A (redrawn) or B (Blue-capped Rock-Thrush)?** **Default:** B; no
+other bird has a blue head on an orange body, and A sits close to the Verditer.
+
+**5. Small Minivet: A (as it is) or B (rounder)?** **Default:** A; you called it "still okay"
+and it reads more as a minivet.
+
+**6. Sirkeer Malkoha: A (as it is) or B (with a tail)?** **Default:** B; A is a ball with a bill.
+
+**7. Yellow-wattled Lapwing: A (yours, as it is) or B (Red-wattled)?** **Default:** A; it is on
+your list of birds you like, and the reviewer called it the cuter avatar.
+
+**8. Pied Kingfisher, keep or drop?** It is live now. **Default:** keep.
+
+**9. Black-headed Ibis, yes or no?** Held back, not on the page. **Default:** no; it is one more
+grey-and-white bird.
+
+**10. Anything on the before-and-now sheets you still dislike?** Name it and it becomes the next
+unit. **Default:** nothing changes.
+
+**Two things outside the birds you should know.**
+- **Security:** six new advisories since 2026-10-22, three critical (two remote code execution
+  flaws in Next.js, one in Sentry). Fixing them is a package upgrade and a push; no session is on
+  it and no Renovate pull request covers them.
+- **Desktop screenshots:** every desktop page now renders 15 pixels narrower in the visual suite,
+  because this Mac shows scrollbars (macOS does that when a mouse is connected). The desktop
+  baselines were left alone so that is not baked in.
+
+**The one line you can reply with:** "defaults", or "defaults except 4 A, 9 yes", plus anything
+you want changed.
 
 ---
 
@@ -691,3 +746,13 @@ placement plus one inner panel per bird, the edge audit found nothing new, and t
 at the bottom of the gallery at 96px (no longer a grey-and-white block) and at the two the drawer
 doubted at full size (the Kite reads as a grey bird with a white front, not the earlier snowman;
 the Swallow's white sits inside navy). He said he will give more directions at the end.
+
+### 2026-10-23, U6 and gate 2 (Opus)
+
+The close-out. The copy that said fifty now reads the gallery's own count. 154 contact photos
+were regenerated and a test pins them to twice the names, so a new bird cannot ship without its
+photo. The visual suite showed the two bird pages moving as expected on mobile, which were looked
+at and rebaselined, and every desktop route red by 15 pixels of column width plus text drift: this
+Mac now shows scrollbars, so the desktop baselines were left for after gate 2. The gate-2 sheets
+are composed from the old and new contact photos, which the same script draws, so the pairs
+compare like with like. The report above is the gate.

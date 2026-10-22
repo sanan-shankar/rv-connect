@@ -1,3 +1,13 @@
+## 2026-10-23 (birds) — U6 and gate 2: the close-out, and the sheets for him to choose from
+
+The copy that said fifty birds now reads the gallery's own count (the birds page description,
+the guide's birds chapter, the Support page's "See all" button). Every bird's two contact photos
+were regenerated, 154 in all, and a test now fails if a species ships without them. The two bird
+pages' mobile baselines moved and were rebaselined after looking; every desktop route is red on
+this Mac's scrollbar, 15 pixels of width, so the desktop baselines wait. The gate-2 sheets show the
+32 redrawn birds before and now, seven A-or-B choices, the new birds, and two yes-or-no birds; the
+questions and defaults are in the handover's gate-2 report. Nothing is pushed.
+
 ## 2026-10-23 (birds) — U4f: the new birds hold their colour against the paper
 
 His note of 2026-10-22 applied to the new birds already in. The Spot-billed Duck, Black-winged

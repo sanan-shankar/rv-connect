@@ -2,12 +2,13 @@ import type { ReactNode } from "react";
 import Link from "@/components/common/link";
 import { Tree } from "@phosphor-icons/react/dist/ssr";
 import { Button } from "@/components/ui/button";
+import { GALLERY_SPECIES } from "@/components/common/bird-avatar-v2";
 
 /**
  * /support, everything but what it fetches.
  *
  * The page is nearly all words that never change -- the pledge, the three
- * headings, "See all 50", the thanks -- around three live parts: the costs
+ * headings, "See all", the thanks -- around three live parts: the costs
  * card (its recovery bar reads a sum over every contribution), the bird plate
  * and the contribute form (which carries the member's admission number). So
  * the page and its loading screen are the SAME component with different
@@ -95,7 +96,7 @@ export function SupportShell({
               a control at a glance without competing with the canopy CTA
               below it. */}
           <Button variant="secondary" nativeButton={false} render={<Link href="/birds" />}>
-            See all 50
+            See all {GALLERY_SPECIES.length}
           </Button>
         </div>
         <div className="glass card-elevated rounded-[var(--radius-lg)] border border-border p-[var(--space-l)]">

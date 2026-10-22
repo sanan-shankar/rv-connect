@@ -4,7 +4,9 @@ import { BirdGlyphV2, GALLERY_SPECIES } from "@/components/common/bird-avatar-v2
 
 export const metadata: Metadata = {
   title: "Birds",
-  description: "The fifty bird species of Rishi Valley, and the avatars everyone wears.",
+  // The number comes from the list the grid renders, so the two can never disagree (it said
+  // "fifty" for a year and stopped being true in the 2026-10 birds expansion).
+  description: `The ${GALLERY_SPECIES.length} bird species of Rishi Valley, and the avatars everyone wears.`,
 };
 
 /**

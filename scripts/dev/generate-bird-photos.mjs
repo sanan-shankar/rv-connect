@@ -1,5 +1,7 @@
-// Rasterizes every bird glyph BirdAvatar can hand a member -- both poses of all 51 archetypes
-// (50 hashable + the reserved Indian Roller) -- to public/images/birds/{species}-{flip}.png.
+// Rasterizes every bird glyph BirdAvatar can hand a member -- both poses of every archetype the
+// probe page counts (the 50 hashable, the reserved Indian Roller, and every species and candidate
+// appended since) -- to public/images/birds/{species}-{flip}.png. avatar-deal.test.mjs fails if
+// the folder holds a different number than twice the names, so a new bird cannot ship without them.
 //
 // Why precomputed rather than rendered per request: BirdGlyphV2 is JSX, and this stack's app/
 // directory refuses to compile a manual `react-dom/server` call inside it (see the note in
