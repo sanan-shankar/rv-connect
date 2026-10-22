@@ -33,9 +33,9 @@ flag is his call alone (¶39), and the Hoopoe and the Indian Roller are never de
 
 ## Resume here (kept current; read before the board)
 
-**State on 2026-10-22, later.** Units DONE: set-up, tooling, U5, U2a, U2b, U3a, U3b, U4a to U4e (U4e:
-four reserve species at 72, 73, 75, 76; the Black-headed Ibis 74 held back as a candidate). **Next
-is U4f**, the contrast pass. **The dependency advisory gate is red** since 2026-10-22 on six new
+**State on 2026-10-23.** Units DONE: set-up, tooling, U5, U2a, U2b, U3a, U3b, U4a to U4f (U4e: four
+reserve species at 72, 73, 75, 76, the Black-headed Ibis 74 held back as a candidate; U4f: the
+contrast pass on nine new birds). **Next is U6**, then gate 2. **The dependency advisory gate is red** since 2026-10-22 on six new
 advisories outside this campaign (Next.js, Sentry, DOMPurify via PostHog; three critical); the
 owner was notified; every other gate is green, so birds commits carry on and say so. **The owner's
 note of 2026-10-22 (brief ¶43, ledger A8) binds every bird from here**: the new set has too many
@@ -58,7 +58,7 @@ when you resume, `ListAgents` shows it. A resumed agent carries on from its own 
 nothing lost, so resume it rather than re-brief, unless the limit is the model's own (then
 re-brief on the next model).
 
-**Then, in order:** U4f, U6 (see the board and "The units").
+**Then, in order:** U6 (see the board and "The units").
 Owner answers are all in; nothing is owner-gated until gate 2, which is rendered sheets and
 before/after pairs, not prose (he decides by seeing, Q5).
 
@@ -110,7 +110,7 @@ before/after pairs, not prose (he decides by seeing, Q5).
 | U4c New birds 9 to 12 | DONE | 2026-10-16. Pied Kingfisher 65 (Q5: he decides on seeing it), Wire-tailed Swallow 66, Grey Wagtail 67, Rock Pigeon 68 appended as real species, drawn on Opus. Review 1 (`reviews/u4c-review-1.md`): the Pigeon passes; three fail on one fault each with exact fixes (the two whites too near the paper, the Wagtail's brow read as a raised eyebrow), which the runner applied with the Swallow's optional cap path and looked at; no second review |
 | U4d New birds 13 and 14, and a candidate | DONE | 2026-10-16. Red-vented Bulbul 69 (crested black hood and scaly breast over buff, crimson vent) and White-browed Bulbul 70 (olive over butter-yellow, golden vent, white brow) appended from their colours (Q6); "Red-wattled Lapwing (candidate)" 71 beside the untouched 24 (Q2). Review 1 (`reviews/u4d-review-1.md`): the Lapwing passes; four exact fixes on the bulbuls (a vertical crest back, a rump that read as a bite, scales under 3 thick, a brow that read as a headband) applied by the runner and looked at. Reviewer's pair line: 71 reads more as a lapwing, 24 is the cuter avatar |
 | U4e The reserve | DONE | 2026-10-22. Little Grebe 72, Scaly-breasted Munia 73, Spot-breasted Fantail 75, Common Iora 76 appended as real species; the Black-headed Ibis 74 drawn to the bar but held back as a candidate (one more grey-and-white bird, ¶43) for him to say yes or no at gate 2. Review 1 (`reviews/u4e-review-1.md`): four pass; the Munia's cream belly sat on the paper, fixed with the review's darker cream. ¶43 applied throughout |
-| U4f Contrast pass | OPEN | his note of 2026-10-22 (¶43, A8): the five that wash out on the paper, Spot-billed Duck 58, Black-winged Kite 60, Tailorbird 62, Night Heron 64, Rock Pigeon 68, get the saturated colour outside and the pale inside; the four with one pale patch on the edge, Kestrel 63, Wire-tailed Swallow 66 and the two bulbuls 69 and 70, get that patch set inside a rim. The Eagle-Owl is the reference |
+| U4f Contrast pass | DONE | 2026-10-23. The nine recoloured by one Opus hand: Duck 58 dark grey-brown with the pale head inside its cap and neck; Kite 60, Night Heron 64 and Pigeon 68 a stronger grey outside with the white or pale wing inside; Tailorbird 62 olive outside with a cream belly; Kestrel 63, Swallow 66 and both bulbuls (69, 70) with their pale fronts set inside a rim. No shape changed beyond one inner panel each; edges audited; the runner looked at the page-bottom sheet and the two the drawer doubted at full size, and spent no review on colour placement |
 | U6 Close-out | OPEN | centroid for every changed bird, contact photos, the "fifty" copy, visual baselines, `docs/spec/avatars.md`, history, the gate-2 sheets |
 | Gate 2, the owner looks | OPEN | the whole point of the run on a design campaign |
 
@@ -133,7 +133,7 @@ the order of `/birds`.
 | A5 | 39, 40 | "I'm not giving you... you have to add these many... Just keep the quality really high"; "we're not shipping anything off big" | twelve, then a reserve; three strikes parks a bird | LOCKED |
 | A6 | 10, 11 | "not a sign for you to make only circular ones because some of the more unique ones like the hornbill, like the lapwing [the Pond Heron and the Cormorant]... the Brahminy Kite... I really love it... It is harder to make those look cute" | a broken silhouette is welcome when it is the bird's own; it just has to be cute | LOCKED |
 | A7 | 14 | "we have to balance cuteness with the trueness to the bird... the Coucal and the Koel... red eyes... that is how they are. So you might have to keep that" | the red eyes stay | LOCKED |
-| A8 | 43 | "a lot of grays and whites... a distinct lack of contrast. Against the background. So the way that we tackle that earlier was having a more significant color around and then the lighter colors that wouldn't have good contrast are kind of set inside that"; the owl "instant 10 on 10" | every new bird: the saturated colour is the outside of the silhouette and the pale colours sit inside it, the Eagle-Owl's way; U4f is the pass on the fourteen already in | U4e, U4f | OPEN |
+| A8 | 43 | "a lot of grays and whites... a distinct lack of contrast. Against the background. So the way that we tackle that earlier was having a more significant color around and then the lighter colors that wouldn't have good contrast are kind of set inside that"; the owl "instant 10 on 10" | every new bird: the saturated colour is the outside of the silhouette and the pale colours sit inside it, the Eagle-Owl's way; U4f is the pass on the fourteen already in | U4e, U4f | DONE (U4e, U4f, 2026-10-23); he gives more directions at gate 2 |
 
 ### The fixes, bird by bird
 
@@ -680,3 +680,14 @@ candidate rather than added to the cluster he named. One review: four pass, the 
 darkened from the review's value. U4f takes the same note to the fourteen already in. Separately,
 the dependency advisory gate went red on six new advisories (three critical, Next.js and Sentry);
 the owner was sent one notification; no Renovate pull request covers them.
+
+### 2026-10-23, U4f closed (one Opus hand; no review)
+
+His note applied to the new birds already in. The five that washed out (Duck, Kite, Tailorbird,
+Night Heron, Pigeon) now carry their saturated or darker colour on the outside, with the pale
+parts inside it; the four with one pale patch on the edge (Kestrel, Swallow, both bulbuls) have
+that patch set inside a rim. The shapes he liked are unchanged. No review was spent: it is colour
+placement plus one inner panel per bird, the edge audit found nothing new, and the runner looked
+at the bottom of the gallery at 96px (no longer a grey-and-white block) and at the two the drawer
+doubted at full size (the Kite reads as a grey bird with a white front, not the earlier snowman;
+the Swallow's white sits inside navy). He said he will give more directions at the end.

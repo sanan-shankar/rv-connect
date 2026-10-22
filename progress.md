@@ -15,6 +15,7 @@ if the month is new), and add one line here, at the top of that month's list.
 
 ## October 2026 — [full entries](docs/history/progress-2026-10.md)
 
+- 2026-10-23 (birds) — U4f: the new birds hold their colour against the paper
 - 2026-10-22 (birds) — U4e closed: four reserve birds, the Ibis held back, and his note on contrast
 - 2026-10-18 (collection) — thirty of Santharam's wildflowers, undated and named where sure, kept off From the Collection
 - 2026-10-17 (catchups) — Start a Catch-up sends you to your batch's own instead of copying it

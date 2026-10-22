@@ -1,3 +1,11 @@
+## 2026-10-23 (birds) — U4f: the new birds hold their colour against the paper
+
+His note of 2026-10-22 applied to the new birds already in. The Spot-billed Duck, Black-winged
+Kite, Tailorbird, Night Heron and Rock Pigeon, which washed out on the page, now carry their
+stronger colour on the outside with the pale parts inside it, the way the Eagle-Owl does; the
+Kestrel, the Wire-tailed Swallow and both bulbuls have their pale fronts set inside a rim. Shapes
+unchanged. The bottom of the birds page no longer reads as a grey-and-white block.
+
 ## 2026-10-22 (birds) — U4e closed: four reserve birds, the Ibis held back, and his note on contrast
 
 The Little Grebe, the Scaly-breasted Munia, the Spot-breasted Fantail and the Common Iora join at
