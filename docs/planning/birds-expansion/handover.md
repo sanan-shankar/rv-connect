@@ -33,20 +33,15 @@ flag is his call alone (¶39), and the Hoopoe and the Indian Roller are never de
 
 ## Resume here (kept current; read before the board)
 
-**State on 2026-10-23, gate 2.** Every unit is DONE. The run is waiting on the owner's answers to
-the gate-2 questions below (A or B on seven birds, yes or no on two, and the "more directions" he
-said he would give at the end). **When he replies:** write his words verbatim under "Owner answers"
-with your reading; for each pair, move the winner's `draw()` body into the slot it competes for
-(a candidate that wins takes the old bird's index, name and slug, so members wearing it keep their
-slot and see the new drawing), delete every losing or chosen candidate's ARCHES entry, name and
-`bird-adjust.json` row (indices after it shift down; overrides store slugs, so nothing breaks;
-the Pied Kingfisher and the Ibis follow his yes or no); then `centroid.mjs --only` the touched
-slots, `generate-bird-photos.mjs` (the count test fails until you do), `npm run visual` and a
-looked-at `visual:update` for /birds and /support on both viewports once the desktop scrollbar
-note below is settled, `npm run check`, and commit by pathspec. Nothing is pushed until he says
-so. His further directions become a new unit on the board.
+**State on 2026-10-23, closed.** Every unit is DONE and committed; he answered gate 2 and the round
+that followed is in. The campaign is finished unless he sends more directions; any he sends become a
+new unit on the board, read against brief ¶43 and ¶44. Left for him, not for a session: whether the
+recoloured Pied Kingfisher stays (one member wears it; dropping it needs a slug alias so that member
+keeps a bird); the Yellow-wattled Lapwing's legs run past the avatar's box and are cut at the bottom,
+left alone because fitting them means shrinking the bird he loves or cutting its legs; the desktop
+visual baselines, red on this Mac's scrollbar; the six dependency advisories; and the push.
 
-**Then:** gate 2 (see the board and "The units").
+**Then:** nothing, until he writes (see the board and "The units").
 Owner answers are all in; nothing is owner-gated until gate 2, which is rendered sheets and
 before/after pairs, not prose (he decides by seeing, Q5).
 
@@ -100,7 +95,8 @@ before/after pairs, not prose (he decides by seeing, Q5).
 | U4e The reserve | DONE | 2026-10-22. Little Grebe 72, Scaly-breasted Munia 73, Spot-breasted Fantail 75, Common Iora 76 appended as real species; the Black-headed Ibis 74 drawn to the bar but held back as a candidate (one more grey-and-white bird, ¶43) for him to say yes or no at gate 2. Review 1 (`reviews/u4e-review-1.md`): four pass; the Munia's cream belly sat on the paper, fixed with the review's darker cream. ¶43 applied throughout |
 | U4f Contrast pass | DONE | 2026-10-23. The nine recoloured by one Opus hand: Duck 58 dark grey-brown with the pale head inside its cap and neck; Kite 60, Night Heron 64 and Pigeon 68 a stronger grey outside with the white or pale wing inside; Tailorbird 62 olive outside with a cream belly; Kestrel 63, Swallow 66 and both bulbuls (69, 70) with their pale fronts set inside a rim. No shape changed beyond one inner panel each; edges audited; the runner looked at the page-bottom sheet and the two the drawer doubted at full size, and spent no review on colour placement |
 | U6 Close-out | DONE | 2026-10-23. The copy that said fifty reads `GALLERY_SPECIES.length` (the birds page description, the guide's birds chapter, the Support page's "See all" button); 154 contact photos regenerated (77 drawings x 2) and pinned by a test to twice the names; mobile baselines for /birds and /support updated after looking at both diffs; desktop baselines NOT updated (see the gate-2 report: every desktop route is red on this Mac's scrollbar); spec banner; the gate-2 sheets in `e2e/.shots/birds/gate2/` |
-| Gate 2, the owner looks | OWNER-GATED | 2026-10-23: the sheets are made and the questions are under "Gate 2" below, each with a default |
+| Gate 2, the owner looks | DONE | 2026-10-23: he answered every question after looking at the sheets (brief ¶44, verbatim; the reading under "Owner answers") |
+| U7 Gate-2 round | DONE | 2026-10-23. His picks resolved (Paradise A, made bigger; Peregrine B with A's bill; Yellow-footed Green-Pigeon at 48; Tickell's A; Minivet A; Malkoha B; Yellow-wattled kept and the Red-wattled kept beside it in its shape; Ibis kept with warmer colours; Pied Kingfisher recoloured navy and ivory and kept for him to judge); his fixes on 13, 14, 15, 23, 33, 35, 36, 54, 58, 64, 69; the Brahminy Kite restored. 71 drawings, 142 photos, mobile /birds rebaselined, everything re-centred |
 
 ---
 
@@ -522,6 +518,37 @@ round 3 on bills before its review.
 
 ---
 
+**2026-10-23, gate 2, his answers** are brief ¶44, verbatim, too long to repeat here. The reading
+taken, item by item:
+- **Paradise Flycatcher:** the first hand's (A) stays at 26; it is too small, so its tail is brought
+  in until the body seats like its neighbours. The second take is deleted.
+- **Peregrine:** the second take (B) moves into 32 with the first hand's slimmer bill shape.
+- **Green-Pigeon:** B, the Yellow-footed, takes slot 48 and its name; the Orange-breasted's slug is
+  aliased to the slot (nobody holds it today).
+- **Tickell's:** A stays ("the blue flycatcher should be blue"). **Small Minivet:** "is good", read
+  as the default, A, as it is (he said "new" for the Malkoha and not for this one).
+- **Sirkeer Malkoha:** the new one (B) takes slot 11.
+- **Lapwings:** the Yellow-wattled (24) stays untouched; "make a change that makes both of them good"
+  is read as keeping the Red-wattled too, as a real species redrawn in the Yellow-wattled's shape
+  with its own colours.
+- **Grey:** "use it only when needed": the Pigeon, Junglefowl and Swamphen stay grey; the Kite and
+  the Night Heron carry less of it; the light grey on the Thrush's wing goes.
+- **Pied Kingfisher:** one honest attempt at nicer colours, dropped if not clearly better (one
+  member was dealt it on the live site; a dropped slug is aliased so that member keeps a bird).
+- **Black-headed Ibis:** kept as a real species, with nicer colours.
+- **Fixes on birds already in:** the Fantail seats bigger; the White-browed Bulbul's colour happier;
+  the Red-whiskered Bulbul's face less like "abstract art", with a visible eye; both robins' wings
+  shorter and less pointy; the Brahminy Starling a colour he can like; the Orange-headed Thrush's
+  layers of orange back; the Jacobin's wing readable on its black body (it cannot be dropped: index
+  35 is in the hash range, so members wear it); the Black Eagle's curved lines under it back; the
+  Brahminy Kite restored to its drawing from before the campaign.
+- **Sizes:** "if there's a method to the madness, then it's fine". The method is the centring
+  script's reach cap, which keeps every tip inside the avatar's box (the cause of his cut-offs);
+  a bird with a long tail or crest seats smaller. Explained to him in plain words at the close.
+- **Discovered the same day:** the campaign's commits up to U4d had been pushed around 2026-10-17,
+  so the dealing rule and the new birds are live and about twenty members wear new birds. The
+  contact photos for new birds are missing on the live site until the U6 commit is pushed.
+
 ## Session log
 
 ### 2026-10-08, set-up (Fable, max, one session, /campaign)
@@ -756,3 +783,20 @@ at and rebaselined, and every desktop route red by 15 pixels of column width plu
 Mac now shows scrollbars, so the desktop baselines were left for after gate 2. The gate-2 sheets
 are composed from the old and new contact photos, which the same script draws, so the pairs
 compare like with like. The report above is the gate.
+
+### 2026-10-23, U7, the gate-2 round (two Opus hands in sequence; no review)
+
+He looked at every sheet and answered bird by bird (brief ¶44). The runner resolved his picks by
+script: the winning second takes moved into their slots, the losing ones and every remaining
+candidate were deleted, the Red-wattled Lapwing and the Ibis became real species, slot 48 took the
+Yellow-footed's name with the Orange-breasted's slug aliased to it, and the Brahminy Kite went back
+to its pre-campaign drawing. Drawer A did the new and replaced birds (the Flycatcher and Fantail
+brought their tails in and now seat at the size of their neighbours; the Peregrine took the first
+hand's bill; the Red-wattled took the Yellow-wattled's shape; the Ibis and the Pied Kingfisher
+warmer colours; the Kite and the Night Heron less grey; the White-browed Bulbul a happier olive).
+Drawer B did the older birds he named (the Red-whiskered Bulbul's face, both robins' wings and
+cocked tails, the Starling a rose-salmon, the Thrush's layers back with a real blue wing, the
+Jacobin's wing readable, the Black Eagle's curved lines back). No review: he was the review, and the
+runner looked at every bird and the whole set. Found the same day: the campaign up to U4d had been
+pushed around 2026-10-17, so about twenty members wear new birds on the live site. Another session's
+new trivia page fails the loading-boundary test; not this campaign's, left alone.

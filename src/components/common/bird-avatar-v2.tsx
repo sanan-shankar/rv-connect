@@ -424,21 +424,37 @@ const ARCHES: Arche[] = [
       );
     },
   },
-  // 11 - SIRKEER MALKOHA. Olive-brown plump body, candy red-and-yellow stout down-bill.
+  // 11 - SIRKEER MALKOHA (candidate, U3b, Q10: "redraw and pick the best"). Beside 11, which stays as
+  // it was. The old one is an olive ball with a stout candy bill; the real bird is a long-tailed
+  // ground cuckoo. Nine shapes: an olive-brown body with a long graduated tail down and back, one
+  // darker folded wing lobe, the buff throat-and-belly as one lobe inside an olive rim, the head up
+  // and forward, and the signature bill: 8 deep where it leaves the head, cherry-red with a yellow
+  // tip, arched and tapering to a 3.4-unit round end (the old one was 13 deep and did not taper; the
+  // first redraw's tip was a 7-unit club with a step at the yellow).
+  // Kept at gate 2 (brief ¶44): this second take took the slot from the first drawing.
   {
     name: "Malkoha",
     skip: WARMS,
     draw: () => {
-      const OLV = "#8A7E5C", RED = "#D2483E", YGRN = "#C7C24A";
+      const OLV = "#8C7E5A", OLVD = "#6E6246", BUFF = "#D9C69A", RED = "#D9413A", YEL = "#E8C53E";
       return (
         <g>
-          <circle cx="44" cy="56" r="31" fill={OLV} />
-          <ellipse cx="48" cy="64" rx="16" ry="12" fill={mix(OLV, "#fff", 0.14)} />
-          <circle cx="56" cy="44" r="15" fill={mix(OLV, "#fff", 0.06)} />
-          {/* stout slightly-curved bill: red base, yellow-green tip */}
-          <path d="M62 39 Q84 39 82 52 Q76 56 66 54 Q62 47 62 39 Z" fill={RED} />
-          <path d="M75 43 Q83.4 43.4 81.4 49.6 Q81 51.6 78.8 51.8 Q76 51.4 73 51 Z" fill={YGRN} />
-          <Eye cx={58} cy={43} />
+          {/* graduated tail down and back: about 8 wide where it leaves the body, 9 at its round end, its root under the body */}
+          <path d="M34.1 71.05 Q28.6 83.2 18.7 91.2 Q12 91.55 12.3 84.9 Q20.7 75.5 31.9 68.95 Z" fill={OLVD} />
+          {/* olive-brown body */}
+          <circle cx="48" cy="60" r="28" fill={OLV} />
+          {/* darker folded wing lobe */}
+          <path d="M48 46 Q35 47 29 58 Q28 69 32.5 77 Q35.5 80 37.5 75 Q38 64 43 54 Q45.5 48 48 46 Z" fill={OLVD} />
+          {/* buff throat and belly: one lobe down the front, olive round it */}
+          <path d="M60 56 Q70 61 68 71 Q65 80 54 80 Q46 79 46 70 Q47 61 53 57 Q56.5 55 60 56 Z" fill={BUFF} />
+          {/* the bill, under the head: red, arched and tapering from 8 deep at the head to a 3.4 round tip;
+              the yellow is the outer third cut from the SAME two edges (its curves are sub-curves of the
+              red's), so there is no step where the colours change */}
+          <path d="M65 34.5 Q77 32.5 84.5 39.5 Q86.3 41.6 83.5 42.8 Q76 40.5 65 42.5 Z" fill={RED} />
+          <path d="M78.7 35.7 Q81.9 37.05 84.5 39.5 Q86.3 41.6 83.5 42.8 Q81.6 42.2 79.6 42 Q77.2 39 78.7 35.7 Z" fill={YEL} />
+          {/* head up and forward */}
+          <circle cx="59" cy="41" r="13.5" fill={OLV} />
+          <Eye cx={62.5} cy={39.5} r={4.2} />
         </g>
       );
     },
@@ -513,20 +529,27 @@ const ARCHES: Arche[] = [
           <circle cx="47" cy="61" r="30" fill={BRN} />
           {/* folded wing: one darker lobe from the shoulder back and down the flank */}
           <path d="M44 40 Q29 43 20.5 54 Q18.5 64 24 73 Q27 76.5 30.5 70.5 Q32 58 38.5 49.5 Q40 45 44 40 Z" fill={WING} />
-          {/* white throat and belly: one lobe from under the chin down the front, brown round it */}
-          <path d="M60 54 Q71 59 69.5 70 Q67 79 56 80 Q48 79.5 47.5 71 Q47.5 61 53 55.5 Q56.5 53 60 54 Z" fill={WHITE} />
-          {/* red vent: one lobe at the lower rear, under the tail */}
-          <path d="M31.5 74.5 Q28 80 32.5 84.5 Q39 88 44 82.5 Q46 77.5 41.5 74.5 Q36.5 72 31.5 74.5 Z" fill={RED} />
+          {/* red vent, drawn first so the white belly's rear end lies over it: the underside is ONE run,
+              white throat to belly ending in red under the tail, not a white hole and a red dot apart */}
+          <ellipse cx="42" cy="79.5" rx="7" ry="4.4" fill={RED} transform="rotate(28 42 79.5)" />
+          {/* white throat and belly: one lobe coming out from under the black head and running down the
+              front, a brown rim round its outer edge so it never sits on the paper */}
+          <path d="M57 50 Q69 49 72.5 57 Q74.5 67 68 75 Q60 83 50 82.5 Q44.5 81 45.5 75 Q47.5 64 52 56 Q54 51.5 57 50 Z" fill={WHITE} />
           {/* the crest: one soft tuft rising from the crown, drawn under the head so its base is the head's own curve */}
           <path d="M53 31 Q51 23.5 60 19 Q62.5 16 65 19 Q68 23 65.5 33 Z" fill={BLK} />
           {/* slim dark-grey bill under the head: 4 deep at the head's edge, tapering to a soft round tip */}
           <path d="M70 39 Q77.5 38.6 83 41.3 Q84.6 42.3 83.4 43.4 Q77.5 44.8 70 43.6 Z" fill={BILL} />
           {/* black head, up and forward */}
           <circle cx="60" cy="41" r="14" fill={BLK} />
-          {/* white cheek under the eye; the red whisker behind the eye, black between it and both */}
-          <circle cx="63" cy="47" r="5.5" fill={WHITE} />
-          <circle cx="55.5" cy="39.5" r="2.6" fill={RED} />
-          <Eye cx={64} cy={36.5} r={4.2} disc="#120F10" />
+          {/* the face patch as one arrangement (gate 2: "two red dots, two white dots"): the white cheek
+              low on the head, the red whisker lying on its upper-rear end the way the real bird wears it,
+              a black moustache between the cheek and the white throat */}
+          <ellipse cx="60" cy="46.5" rx="5.8" ry="4" fill={WHITE} />
+          <ellipse cx="55" cy="42.5" rx="3.4" ry="3" fill={RED} />
+          {/* the eye: a brown iris ring so the dark eye reads on the black head (gate 2: "the eye just
+              looks like a white dot"); the real bird's iris is brown */}
+          <circle cx="65" cy="35.5" r="5.3" fill="#8A6A50" />
+          <Eye cx={65} cy={35.5} r={4} disc="#120F10" />
         </g>
       );
     },
@@ -544,13 +567,15 @@ const ARCHES: Arche[] = [
       return (
         <g>
           {/* cocked tail: a broad black paddle swept UP and back, the magpie-robin signature */}
-          <path d="M41 50 Q27 44 20 31 Q18 25 24 25 Q31 28 36 36 Q45.5 44.5 49 56 Q46 53 41 50 Z" fill={BLK} />
+          {/* gate 2 (brief ¶44, the "long and pointy" thing he read as a wing): a quarter shorter, its end a round cap 9 wide, a short perky tail */}
+          <path d="M41 50 Q29.5 46 24 36 Q21.8 31.2 25.2 28.3 Q28.2 26 31 29.5 Q38 35.5 41.5 41 Q46 47.5 49 56 Q46 53 41 50 Z" fill={BLK} />
           {/* compact body leaning slightly back so it reads as a perched bird (ry 24, was 28: he found it long) */}
           <g transform="rotate(9 49 58)">
             <ellipse cx="49" cy="58" rx="23" ry="24" fill={BLK} />
           </g>
           {/* folded wing: one darker lobe from the shoulder (under the head) back and down the flank, a 3-unit rim of body black round it */}
-          <path d="M49 44 Q35 45 29.5 58 Q29.5 69 34 74.5 Q37 77.5 39 73 Q39.5 63 44 54 Q45.5 47 49 44 Z" fill={WING} />
+          {/* gate 2 (brief ¶44, "shorten the wing a little bit... really long and pointy"): it ends at 70.5, not 77, in a round end 8 wide */}
+          <path d="M49 44 Q35 45 30 57 Q28.8 63 30.8 66.8 Q32.6 70.6 35.4 70.4 Q38.2 70 39 66 Q40 60.5 44 54 Q46 47.5 49 44 Z" fill={WING} />
           {/* the long white wing-bar: one lozenge lying along the wing from the shoulder back towards the tail */}
           <ellipse cx="37" cy="57" rx="6" ry="3" fill={WHITE} transform="rotate(-35 37 57)" />
           {/* the real bird's white belly: one lobe on the lower front; black breast above, a black rim below so it never merges with the page */}
@@ -579,13 +604,15 @@ const ARCHES: Arche[] = [
       return (
         <g>
           {/* cocked tail: a fan, narrow where it leaves the body and widening to a round end, its root under the body */}
-          <path d="M31.1 52 Q21.35 45.8 15.4 36.4 Q16 29.4 23 30 Q33.5 36 35.7 48.2 Z" fill={BLK} />
+          {/* gate 2 (brief ¶44, the "long and pointy" thing he read as a wing): a quarter shorter, its end a round cap 11 wide */}
+          <path d="M31.1 52 Q24.5 48.5 20.5 42.5 Q18.1 37.6 21.5 34.4 Q24.7 31.6 28.7 35 Q33.6 39 35.7 48.2 Z" fill={BLK} />
           {/* round body leaning a touch back so it reads as perched */}
           <g transform="rotate(9 50 58)">
             <ellipse cx="50" cy="58" rx="24" ry="25" fill={BLK} />
           </g>
           {/* folded wing: the one lit region on a dark bird, a blue-black lobe from the shoulder down the flank */}
-          <path d="M50 43 Q37 45 32 55 Q32 60 35 63 Q37.5 66 40.5 62 Q42 56 46.5 51 Q47.5 45.5 50 43 Z" fill={SHEEN} />
+          {/* gate 2 (brief ¶44, "shorten the wing a little bit... really long and pointy"): two units shorter, the point now a round end */}
+          <path d="M50 43 Q37 45 32.5 53.5 Q30.7 57.8 32.9 60.6 Q36 63.5 39.8 61.6 Q42.6 59.8 43.6 56.6 Q44.6 51 50 43 Z" fill={SHEEN} />
           {/* the white shoulder patch, on the wing */}
           <ellipse cx="37.8" cy="55" rx="3.3" ry="5" fill={WHITE} transform="rotate(-25 37.8 55)" />
           {/* chestnut vent: one lobe lying along the body's lower-rear curve, below the wing and clear of it */}
@@ -802,31 +829,35 @@ const ARCHES: Arche[] = [
     },
   },
   // 23 - BRAHMINY STARLING. U3b (F12, paragraph 15: "I don't like the color... that super thin black
-  // line... should be redone"). From nothing, eight shapes: a pale apricot body (paler and yellower
-  // than the Orange-headed Thrush's orange, so the two part at 40px), one dove-grey folded wing lobe
-  // and a short grey tail, the head up and forward (review 1: it barely broke the outline) wearing
+  // line... should be redone"). From nothing, eight shapes: one round body in a colour that parts
+  // from the Orange-headed Thrush's orange at 40px, one grey folded wing lobe and a short grey tail, the head up and forward (review 1: it barely broke the outline) wearing
   // its black as plumage, not a hat: ONE cap inside the head's own outline from the bill base over
   // the crown, its lower edge dipping to just above the eye, the loose crest hanging down the nape as
   // a soft tuft (the old cap was a crescent one unit thick, the first redraw a beret with a brim);
   // and the yellow bill with its blue base, slim and drawn under the head.
+  // Gate 2 (brief ¶44, "I hate that whatever orange brownish color"): the shapes stay; the body is
+  // now the rosy end of the real bird's range (its underparts run rufous-buff to pinkish cinnamon),
+  // a clean salmon-rose with no orange-brown in it and pinker and brighter than the Laughing Dove's
+  // fawn (3); the wing and tail a deeper slate so the grey sings against the rose, the bill a
+  // cleaner yellow on a stronger blue.
   {
     name: "Starling",
-    skip: WARMS,
+    skip: [2, 3, 9],
     draw: () => {
-      const BUFF = "#EFB46C", GREY = "#A9AEAD", GREYD = "#737A7E", YEL = "#E3B33A", BLU = "#5E7FA6", BLK = "#2A2628";
+      const ROSE = "#E4887C", SLATE = "#7C8899", SLATED = "#5E6672", YEL = "#EDBE3A", BLU = "#4F7DB8", BLK = "#2A2628";
       return (
         <g>
-          {/* short grey tail down and back */}
-          <path d="M32 74 Q24 79 18 86 Q15.5 88.5 14.5 86 Q14.5 83 17.5 79.5 Q24 73 31 70 Z" fill={GREYD} />
-          {/* apricot body */}
-          <circle cx="48" cy="60" r="29" fill={BUFF} />
-          {/* dove-grey folded wing: one lobe from the shoulder back and down the flank */}
-          <path d="M50 46 Q36 47 29 59 Q28 70 33 78 Q36 81 38.5 76 Q39 65 44 55 Q46.5 49 50 46 Z" fill={GREY} />
+          {/* short slate tail down and back */}
+          <path d="M32 74 Q24 79 18 86 Q15.5 88.5 14.5 86 Q14.5 83 17.5 79.5 Q24 73 31 70 Z" fill={SLATED} />
+          {/* rose body */}
+          <circle cx="48" cy="60" r="29" fill={ROSE} />
+          {/* slate-grey folded wing: one lobe from the shoulder back and down the flank */}
+          <path d="M50 46 Q36 47 29 59 Q28 70 33 78 Q36 81 38.5 76 Q39 65 44 55 Q46.5 49 50 46 Z" fill={SLATE} />
           {/* yellow bill with a blue base, under the head: 4.4 deep at the head's edge, soft round tip */}
           <path d="M68 36.3 Q75 35.9 80 38.5 Q81.6 39.5 80.4 40.5 Q75 41.9 68 40.7 Z" fill={YEL} />
           <path d="M68 36.3 Q71.5 36 74.5 37.2 Q76 38.5 74.5 39.8 Q71.5 41 68 40.7 Z" fill={BLU} />
           {/* head up and forward, breaking the body's outline by 7 */}
-          <circle cx="60" cy="37.5" r="13.5" fill={BUFF} />
+          <circle cx="60" cy="37.5" r="13.5" fill={ROSE} />
           {/* ONE black cap, the head's own crown: from the bill base up the forehead, over the crown on the
               head's outline, down the back of the head as a tuft lying on the nape, then forward along a
               lower edge that dips to just above the eye */}
@@ -906,8 +937,10 @@ const ARCHES: Arche[] = [
   // short crest swept back off the nape, blue bill and eye-ring, white body, and the signature: one
   // ribbon tail that leaves from under the folded wing's tip and hangs down and BACK in a loose S to
   // a round cap near the lower-left corner, never crossing in front of the body (review 1: under the
-  // bird it read as a saucer). Body and head are drawn small (r 17.5 and 11.5) so the ribbon gets its
-  // length inside the box; the centroid script scales the whole bird up. The white sits on a grey
+  // bird it read as a saucer). Gate 2 (paragraph 44, "significantly smaller than the other birds... this
+  // is really tiny"): the centroid script caps a bird's reach at 47, so a tail running to the corner
+  // shrank the whole bird. The S now ends a third sooner and the body is 10% bigger (r 19.25 under a
+  // head of 11.5), which seats the bird at 1.39 instead of 1.10. The white sits on a grey
   // shade disc offset to the lower back (review 2: the upper back was white on the paper), so no white
   // meets the paper anywhere; the folded wing is a grey teardrop from the shoulder to a round tip at
   // the vent, the tail one step darker than the shade so it reads at 40px. Nine shapes.
@@ -919,12 +952,12 @@ const ARCHES: Arche[] = [
       return (
         <g>
           {/* SIGNATURE: the ribbon tail, rooted under the wing's tip, 6 wide tapering to 3.6, round cap */}
-          <path d="M33.5 55.3 Q30.5 59.2 29.7 63.0 Q27.7 67.4 27.9 71.8 Q27.5 77.1 25.8 80.7 Q23.8 85.0 20.9 87.2 Q18.0 89.5 15.1 89.8 Q13.4 90.0 12.4 88.9 A1.8 1.8 0 0 0 9.6 91.1 Q11.7 93.9 15.4 93.7 Q19.3 93.4 23.1 90.8 Q27.2 88.0 30.0 82.8 Q32.2 78.5 33.1 72.2 Q33.6 68.5 35.0 65.0 Q36.3 61.7 38.5 58.7 Z" fill={SHD2} />
+          <path d="M35.5 59.8 Q33.8 69.2 31.9 72.2 Q30 75.1 28.2 76.4 Q26.3 77.6 24.2 78.4 Q22.1 79.1 20.8 79.2 Q19.5 79.3 18.1 78.4 A1.9 1.9 0 0 0 15.1 80.8 Q18.5 83.1 20.7 83.2 Q22.9 83.3 25.6 82.5 Q28.3 81.7 30.6 80.3 Q33 78.9 35.9 75.1 Q38.7 71.3 41.5 60.2 Z" fill={SHD2} />
           {/* the shade: a grey disc under the white, so the body's rim is grey on the paper all round (0.6 at the lit upper front under the head, 3.4 at the lower back) */}
-          <circle cx="47" cy="52" r="19.5" fill={SHD} />
-          <circle cx="48" cy="51" r="17.5" fill={WHT} />
+          <circle cx="46.5" cy="53.15" r="21.45" fill={SHD} />
+          <circle cx="47.6" cy="52.05" r="19.25" fill={WHT} />
           {/* folded wing: one grey teardrop from the shoulder (under the head) down the back to a round tip at the vent, its outer edge on the white's rim; every join turns 14 degrees or less */}
-          <path d="M52 40.5 Q39 40.5 32.5 50 Q29 59.5 33.5 67 A2 2 0 0 0 36.9 65 Q35.4 62.4 44 50.5 Q46.5 44.5 52 40.5 Z" fill={SHD2} />
+          <path d="M52 40.5 Q37.7 40.5 30.55 51.45 Q26.7 61.4 31.65 69.65 A2.2 2.2 0 0 0 35.39 67.45 Q33.74 64.69 43.2 51.5 Q45.95 44.9 52 40.5 Z" fill={SHD2} />
           {/* crest: one short tuft swept back off the nape, 6.5 wide at the base, round end */}
           <path d="M53.5 33 Q46.5 30.5 45 25.5 Q45 22 49 22.5 Q54.5 23.5 58.5 27 Z" fill={BLK} />
           {/* slim blue bill drawn UNDER the head so it emerges from the head's own curve: 4 deep at the edge, tapering to a soft 2.1 tip */}
@@ -1075,41 +1108,54 @@ const ARCHES: Arche[] = [
       );
     },
   },
-  // 32 - PEREGRINE FALCON (U3a, F11, paragraph 22: "balance the killer nature with the cuteness and
-  // at the same time keeping it just simple"). Redrawn from nothing, eleven shapes. What keeps it
-  // from a penguin (review 2): the cream is a bib only (cheek, throat, upper breast, round lower
-  // corners) over ONE grey-barred mid-tone belly, both inside the body so there is no pot belly and a
-  // slate rim bounds them; and the rear is one long taper, a narrow slate tail projecting down and
-  // back with the dark wing's tip lying on it. A dark helmet with the moustache hanging from under the
-  // eye and cream on both sides of it, yellow cere and eye-ring with helmet all round the ring, and a
-  // small hooked bill that ends in a round nail. Every join turns 16 degrees or less.
+  // 32 - PEREGRINE FALCON, SECOND TAKE (candidate, U3a, F11, paragraph 22: "balance the killer nature
+  // with the cuteness and at the same time keeping it just simple"). He sees this beside 32 on one
+  // sheet and keeps one. Eleven shapes. Review 2 read the first draft's upright egg and flipper as a
+  // penguin, so the body is now ONE leaning teardrop: a broad chest, the belly curving in, and the
+  // rear one long taper to a narrow round-ended tail at (25,89). The wing is a sickle laid on the back
+  // whose outer edge is the silhouette from the wrist at (28,42) to its tip, and the tip lies ON the
+  // tail with the tail's end showing past it. Cream only on cheek, throat and upper breast; the lower
+  // breast and belly are one barred mid-tone (slate and cream mixed), the way the barring reads from
+  // across a field. The head is cream (cheek, chin, throat) and the hood is one shape laid over it:
+  // cap, nape, the mask through the eye, and the moustache hanging under the eye as a rounded teardrop
+  // with cream behind it and in front. Drawn to a reach of 40 so the runner seats it near s 1.17.
+  // Kept at gate 2 (brief ¶44): this second take took the slot from the first drawing.
   {
     name: "Peregrine Falcon",
     skip: BLUES,
     draw: () => {
-      const SLATE = "#5F7284", WING = "#3F4F62", HOOD = "#2A3340", PALE = "#EFE9DB", BELLY = mix(SLATE, PALE, 0.45), CERE = "#E6B83F", BILL = "#363B44";
+      const SLATE = "#4D5E72", WING = "#3A4757", HOOD = "#23272F", CREAM = "#F0E4CC", YEL = "#E9B83C", BILL = "#6E7D90";
       return (
         <g>
-          {/* narrow slate tail projecting down and back past the rim, 7 wide at the root tapering to a 4.5 round cap; the wing's tip lies on it and ends about seven units short of the cap */}
-          <path d="M36.1 67.1 Q28.4 79.7 17.1 89.2 A2.2 2.2 0 0 0 19.9 92.8 Q32.6 83.7 41.9 70.9 Z" fill={SLATE} />
-          {/* slate body */}
-          <circle cx="47" cy="57" r="30" fill={SLATE} />
-          {/* long folded wing: one darker sickle from the shoulder (under the head) down the back, its 4.5-unit round tip lying on the tail, the way a perched falcon's wingtips reach its tail */}
-          <path d="M49 41 Q33 41 24.5 54 Q19 67 24 82 Q25.5 86.5 28.3 85.3 Q30.5 84 30 76 Q31 64 40 56 Q47.5 50 49 41 Z" fill={WING} />
-          {/* dark helmet, set up and forward */}
-          <circle cx="59" cy="39" r="16" fill={HOOD} />
-          {/* the grey-barred underparts as one mid-tone: the whole front oval, about 2.9 inside the body's rim; the cream bib covers its upper half */}
-          <path d="M49 46 Q58 42 67.5 45.5 Q71 48 73.9 52 Q77 65.9 66.4 76.4 Q56.3 86.6 44.5 84 Q40 83 39.8 74 Q40.5 64 46 58 Q49.2 53.2 49 46 Z" fill={BELLY} />
-          {/* cream bib: cheek, throat and upper breast only. Its top edge bows 1.8 under the eye-ring, its sides share the belly's outline, and its lower corners round into a shallow bottom at about y 66 */}
-          <path d="M49 46 Q58 42 67.5 45.5 Q71 48 73.9 52 Q75 55 74.5 58.5 Q74.3 64 69 66 Q58 67.5 49 63 Q44.5 60 46.5 54 Q49.5 49 49 46 Z" fill={PALE} />
-          {/* the moustache: one tongue starting in the band of helmet under the eye and hanging into the cheek, 5.5 wide tapering to a 3.5 round end */}
-          <path d="M60.5 43.5 Q66 43 66 48 Q65.5 54 62 55 Q59 54.5 59.5 49 Q59.5 45 60.5 43.5 Z" fill={HOOD} />
-          {/* yellow cere at the bill's base, then the small hooked bill over it ending in a round nail */}
-          <ellipse cx="74" cy="39.4" rx="2.8" ry="2.4" fill={CERE} />
-          <path d="M72.5 37.3 Q81 38.3 81.5 42.8 Q81.5 44.6 80.2 44 Q77 42.4 73.3 43.2 Q71.5 40.8 72.5 37.3 Z" fill={BILL} />
-          {/* thin yellow eye-ring, two units of helmet between it and the cere so the two never blur; eye disc darker than the helmet */}
-          <circle cx="64" cy="37" r="5" fill={CERE} />
-          <Eye cx={64} cy={37} r={3.9} disc="#161A21" />
+          {/* body: a teardrop leaning forward, 49 wide at the chest (y 60), 22 at y 80, a 9-unit tail at
+              y 88 ending in a two-arc round cap; the back is one gentle convex curve and so is the
+              underside from the belly round to the tail (review 3: it was a ruler line with an elbow) */}
+          <path d="M52 30 Q73 31 77 48 Q79 64 62 75 Q50 86 32 89 Q27.5 90.5 25.8 89.5 Q23.8 87.8 24.2 85 Q22 60 34 38 Q38 29 52 30 Z" fill={SLATE} />
+          {/* barred lower breast and belly: one mid-tone shape, at least 2.6 units inside the slate */}
+          <path d="M52 53 Q69 54 67.5 63 Q65 71 56 74 Q47 77.5 45 70 Q43.5 60 52 53 Z" fill={mix(SLATE, CREAM, 0.55)} />
+          {/* cream throat and upper breast, laid over the top of the barred belly */}
+          <path d="M57 42 Q74 45 72.5 56 Q71.5 64 61 65.5 Q51 66 50.5 57 Q50.5 47 57 42 Z" fill={CREAM} />
+          {/* the folded wing: its top edge leaves the shoulder under the head and meets the back
+              horizontally, a rounded wrist bulges 3 units past the back at y 42, the outer edge runs 1 to
+              3 units outside the back all the way down, the tip (two-arc cap, apex 26.7,86.4) lies on
+              the tail, and the inner edge is a sickle bowed back so the wing tapers from 15 to 8 wide */}
+          <path d="M48 36 Q40 41.5 31.5 41 Q27 41.5 25.5 46.5 Q20.5 65 23.5 84 Q23.9 86.8 26.7 86.4 Q29.5 86 29.1 83.2 Q31 58 48 36 Z" fill={WING} />
+          {/* cream head, then the hood over it as one shape: 45-degree arcs round the cap (r 15.3 so no
+              cream halo), the mask line under the eye, the moustache teardrop ending in a 3.5-unit round
+              tip with a 3-unit cream chin in front, and the cheek's top rounded at (61,38) so it ends
+              blunt under the ring (review 2); the mask line ends 1.2 units inside the cream with a
+              rounded nape corner, so cream parts the hood from the wing (review 3) */}
+          <circle cx="60" cy="34" r="15" fill={CREAM} />
+          <path d="M45.4 36.6 Q44.2 31.5 46.8 26.4 Q49.9 20.9 56 19.2 Q62.2 17.6 67.7 20.8 Q73.1 23.9 74.8 30 Q76.5 33.3 75.1 36.7 Q69.5 41 67 45 Q65 47.5 63.5 45.5 Q61 42 61 39.5 Q61 37.5 58.5 37.8 Q52 40 47 38.6 Q45.6 38.3 45.4 36.6 Z" fill={HOOD} />
+          {/* yellow cere at the base of the bill, drawn under the bill */}
+          <ellipse cx="73.5" cy="34.5" rx="2.8" ry="2.4" fill={YEL} />
+          {/* hooked bill, the first hand's shape fitted to this head (gate 2, brief ¶44: "the beak is just
+              a bit too thick... maybe the beak of the first hand"): 4.6 deep at the face, 4.5 at mid-length
+              where the underside bows up, curling down to a 1.6-unit round nail */}
+          <path d="M73.2 32.4 Q80.6 32.4 81.7 37.6 Q82 39.6 80.6 39.2 Q78.6 36.9 74.6 37 Q72.4 35.4 73.2 32.4 Z" fill={BILL} />
+          {/* yellow eye-ring, then the eye, darker than the hood */}
+          <circle cx="63" cy="29.5" r="5.5" fill={YEL} />
+          <Eye cx={63} cy={29.5} r={4.2} disc="#0E1116" />
         </g>
       );
     },
@@ -1118,26 +1164,36 @@ const ARCHES: Arche[] = [
   // working for me"). Seven shapes and round: one orange body with the head up and forward in the
   // same orange (the real bird's head and underparts are one colour), one blue-grey folded wing lobe
   // down the back with the white wing-bar on it, a short blue-grey tail, a slim horn bill under the
-  // head. The leg stub, the two-step glow and the tall body are gone.
+  // head. The leg stub and the tall body are gone.
+  // Gate 2 (brief ¶44): "I did like the layers of orange on the previous one, and you've made it
+  // fatter, which is good, but you've removed those layers... not the greatest fan of the color of
+  // the wing because it is that light gray color". The round body stays; the pre-campaign drawing's
+  // layers come back fitted to it (a two-step glow on the breast, a lit patch on the crown, its own
+  // three oranges); the wing and tail are the male's real slaty blue, deeper and bluer than the grey.
   {
     name: "Orange-headed Thrush",
     skip: WARMS,
     draw: () => {
-      const ORG = "#E8902E", GREY = "#6B7A88", BILL = "#8A6A3A";
+      const ORG = "#E8902E", GLOW = "#F5A94A", GLOWH = "#FCC46A", BLUE = "#4C6890", BILL = "#8A6A3A";
       return (
         <g>
-          {/* short blue-grey tail down and back */}
-          <path d="M35 72 Q29.5 74.5 22.5 81.5 Q20.5 83.5 19.5 81.5 Q19.5 79 22 76.5 Q28 71 34 68.5 Z" fill={GREY} />
+          {/* short slaty-blue tail down and back */}
+          <path d="M35 72 Q29.5 74.5 22.5 81.5 Q20.5 83.5 19.5 81.5 Q19.5 79 22 76.5 Q28 71 34 68.5 Z" fill={BLUE} />
           {/* orange body */}
           <circle cx="50" cy="59" r="24.5" fill={ORG} />
-          {/* blue-grey folded wing: one lobe from the shoulder back and down the flank, an orange rim round it */}
-          <path d="M50 37.5 Q37 37.5 30.5 50 Q28.5 62 34 73 Q36.5 77 38.5 72.5 Q38.5 61 44 50 Q46.5 42 50 37.5 Z" fill={GREY} />
+          {/* the layers of orange: a two-step glow on the breast, its top under the head, an orange rim round it */}
+          <ellipse cx="59.5" cy="61" rx="10.5" ry="15" fill={GLOW} />
+          <ellipse cx="60.5" cy="58.5" rx="5.8" ry="9" fill={GLOWH} />
+          {/* slaty-blue folded wing: one lobe from the shoulder back and down the flank, an orange rim round it */}
+          <path d="M50 37.5 Q37 37.5 30.5 50 Q28.5 62 34 73 Q36.5 77 38.5 72.5 Q38.5 61 44 50 Q46.5 42 50 37.5 Z" fill={BLUE} />
           {/* the white wing-bar */}
           <ellipse cx="38.5" cy="52" rx="3.2" ry="2" fill={WHITE} transform="rotate(-35 38.5 52)" />
           {/* slim horn bill under the head */}
           <path d="M67 39.4 Q73.5 39 77.5 41.3 Q78.8 42.2 77.7 43.1 Q73.5 44.2 67 43.2 Z" fill={BILL} />
           {/* head up and forward */}
           <circle cx="59" cy="41" r="12" fill={ORG} />
+          {/* the lit patch on the crown, behind and above the eye */}
+          <ellipse cx="55.5" cy="36" rx="4.6" ry="3.2" fill={GLOW} transform="rotate(-28 55.5 36)" />
           <Eye cx={62.5} cy={39.5} r={3.9} />
         </g>
       );
@@ -1174,11 +1230,15 @@ const ARCHES: Arche[] = [
   // it never bleeds into the paper, the white wing flash is one short bar low on a darker folded
   // wing, the crest one soft tuft leaning back off the crown, the tail one long black paddle. Nine
   // shapes; every join on the belly turns 15 degrees or less.
+  // Gate 2 (brief ¶44): "the wing is kind of black against a black background, so you can't really
+  // tell. You can just make out a white spot." The wing is now the bird's blue-black gloss, a clear
+  // step LIGHTER than the body (it was a step darker, and invisible), its lower half a little broader,
+  // and the white flash a bar laid across the wing where it is widest, not a spot.
   {
     name: "Jacobin Cuckoo",
     skip: [],
     draw: () => {
-      const BLK = "#2A2628", WING = "#1A1718", WHT = "#F4F1E6", BILL = "#5A544E";
+      const BLK = "#2A2628", WING = "#4A5068", WHT = "#F4F1E6", BILL = "#5A544E";
       return (
         <g>
           {/* long tail paddle sweeping down and back, 10 wide at the rim, both edges bowed, round-ended */}
@@ -1187,10 +1247,11 @@ const ARCHES: Arche[] = [
           <circle cx="47" cy="57" r="29" fill={BLK} />
           {/* white underparts: throat to vent, bounded by black on every side */}
           <path d="M60 46 Q69 46 72 53 Q75.5 65 66.5 73.4 Q58 83.6 47 82.6 Q42 82 41.8 74 Q42 67 47 60 Q50 52 60 46 Z" fill={WHT} />
-          {/* folded wing: one darker lobe from the shoulder back and down the flank */}
-          <path d="M50 45 Q36 46 29.5 58 Q29 68 33.5 75 Q36.5 78 38.5 73 Q39.5 62 44.5 53 Q46.5 47.5 50 45 Z" fill={WING} />
-          {/* the white wing flash: one short bar across the base of the primaries, low on the wing (review 1: higher up it was the Magpie-Robin's own bar) */}
-          <ellipse cx="35" cy="68" rx="3.2" ry="2.1" fill={WHT} transform="rotate(-15 35 68)" />
+          {/* folded wing: one glossy blue-black lobe from the shoulder back and down the flank, lighter than the body so it reads */}
+          <path d="M50 45 Q36 46 29.5 58 Q29 68 33.5 75 Q37 78.3 39.2 73.5 Q40.6 62.5 45.5 53 Q47 47.5 50 45 Z" fill={WING} />
+          {/* the white wing flash: a bar across the wing at the base of the primaries, 3.6 deep and 8.6 long, 1.2 of wing at each end, low on
+              the wing and near level (review 1: higher up and steeper it was the Magpie-Robin's own bar) */}
+          <ellipse cx="35.4" cy="65" rx="4.4" ry="1.8" fill={WHT} transform="rotate(-12 35.4 65)" />
           {/* crest: one soft tuft leaning well back off the crown, 9 wide at the base narrowing to a 4.5 round top */}
           <path d="M49.5 33.5 Q44 29.5 44 24 Q45 20.5 48 21.5 Q53.5 24 58.5 32 Z" fill={BLK} />
           {/* slim dark-grey bill drawn UNDER the head: 4.3 deep at the head's edge tapering to a soft 2.2 tip */}
@@ -1207,18 +1268,27 @@ const ARCHES: Arche[] = [
   // round tip trailing over the tail (the perched eagle's outline, and the lit region so the dark is
   // not a void), a broad round tail paddle, a dark-grey hooked bill with the yellow cere as its own
   // base, and the adult's dark-brown eye (review 1: a yellow iris was a second yellow dot on the face;
-  // the real bird's iris is brown at every age). No brow, no spot on the bill, no scallops, no foot.
+  // the real bird's iris is brown at every age). No brow, no spot on the bill, no foot.
+  // Gate 2 (brief ¶44): "I liked the lines, those curved lines under it. You've kind of removed
+  // those... Now it's a bit drab." The pre-campaign drawing's scallops come back on this body: soft
+  // feather arcs in staggered rows down the breast and belly, round-capped, lighter than the soot so
+  // they show (the old ones were darker at half opacity, on a lit underside this body does not have).
   {
     name: "Black Eagle",
     skip: [],
     draw: () => {
-      const SOOT = "#3A332C", LIT = "#5C4E40", CERE = "#E7B833", BILL = "#5B5753", IRIS = "#5E4430";
+      const SOOT = "#3A332C", LIT = "#5C4E40", SCALLOP = "#6E5D4B", CERE = "#E7B833", BILL = "#5B5753", IRIS = "#5E4430";
       return (
         <g>
           {/* broad tail paddle down and back, 9 wide at the rim, 11 at its round end, both edges bowed */}
           <path d="M40 70 Q29 76 22 85 Q18 90 23 91 Q29 91 34 85.5 Q36 81 45 72 Z" fill={SOOT} />
           {/* body */}
           <circle cx="47" cy="58" r="29" fill={SOOT} />
+          {/* the curved lines under it: feather scallops in staggered rows on the breast and belly, every
+              arc 3.5 or more inside the rim, clear of the wing's front edge and below the head */}
+          {[[50, 57], [62, 57], [41, 65], [52, 65], [63, 65], [47, 73], [58, 73], [52.5, 80]].map(([x, y], k) => (
+            <path key={k} d={`M${x - 4} ${y} Q${x} ${y + 4.4} ${x + 4} ${y}`} stroke={SCALLOP} strokeWidth="2.1" fill="none" strokeLinecap="round" />
+          ))}
           {/* long folded wing: the one lit region, from the shoulder (under the head) down the back, its round tip trailing past the rim over the tail; every join turns under 20 degrees */}
           <path d="M52 44 Q35 43 26 56 Q19.5 69 21.5 84 Q22.5 88.5 25.5 87.3 Q28.5 85.5 30 77 Q32 63 52 44 Z" fill={LIT} />
           {/* head, set up and forward of the body */}
@@ -1332,6 +1402,8 @@ const ARCHES: Arche[] = [
     },
   },
   // 40 - BRAHMINY KITE. White hood + breast against a rich chestnut body; pale hooked beak.
+  // Restored to the drawing from before the 2026-10 expansion at gate 2: he preferred its character
+  // (brief ¶44, "This one is a bit too rounded. The other one had this like nice character to it").
   {
     name: "Brahminy Kite",
     skip: WARMS,
@@ -1341,12 +1413,12 @@ const ARCHES: Arche[] = [
         <g>
           <circle cx="49" cy="56" r="32" fill={CHES} />
           {/* black wingtip */}
-          <path d="M23 61 Q20 79 40 83 Q42.6 83.3 41.2 81 Q34 70 32.4 61 Q31 59 28 59 Q24 59 23 61 Z" fill="#1A1A1A" />
-          {/* white head + breast: the bib's side bows out about a unit and rounds into its lower edge */}
-          <path d="M50 26 Q75 32 71.5 51 Q70.5 61 62 65.5 Q55.5 68 49.5 65 Q46 64.5 45.3 61 Q42.5 54 47 48 Q46 38 50 26 Z" fill={WHT} />
+          <path d="M23 61 Q20 79 41 83 Q34 70 32.4 61 Q31 59 28 59 Q24 59 23 61 Z" fill="#1A1A1A" />
+          {/* white head + breast */}
+          <path d="M50 26 Q72 30 70 56 Q60 68 48 64 Q42 44 50 26 Z" fill={WHT} />
           <circle cx="55" cy="40" r="15" fill={WHT} />
-          {/* pale-yellow hooked beak: keeps its curl but ends in a small round nail, not a point */}
-          <path d="M68 38 Q80.6 38.4 80.4 44 Q80.1 45.6 78.8 44.8 Q75.5 43 70 44 Q67 41 68 38 Z" fill="#E0C24A" />
+          {/* pale-yellow hooked beak */}
+          <path d="M68 38 Q80 38 80 45 Q76 43 70 44 Q67 41 68 38 Z" fill="#E0C24A" />
           <Eye cx={58} cy={39} />
         </g>
       );
@@ -1589,27 +1661,35 @@ const ARCHES: Arche[] = [
             );
     },
   },
-  // 48 - ORANGE-BREASTED GREEN-PIGEON. Fat green barrel, grey crown, orange breast. U2b (F25,
-  // paragraph 31): the breast is ONE bounded orange lobe on the front (the field mark; the lilac band
-  // read as lips on a lobe and as a pill in a stack, so it is gone), the head sits up and forward and
-  // breaks the outline, and the crown is ONE grey cap on the dome, clear of the eye.
+  // 48 - YELLOW-FOOTED GREEN-PIGEON (candidate, Q3 of the 2026-10 expansion: he keeps whichever of
+  // this and the Orange-breasted looks better, from one sheet). The same fat barrel as 48, told from it
+  // by colour: olive-green back and wing, a yellow-olive head-and-breast drawn as ONE pear with soft
+  // concave necks (review 1: two crossing circles left V notches), a grey crown on the dome clear of the
+  // eye, one mauve patch at the bend of the wing, and the field mark, bright yellow legs and feet.
+  // Appended past the Roller so no member can land on it by chance while it is a candidate.
+  // Kept at gate 2 (brief ¶44): this second take took the slot from the first drawing.
   {
-    name: "Green-Pigeon",
+    name: "Yellow-footed Green-Pigeon",
     skip: GREENS,
     draw: () => {
-      const GRN = "#8FB84A", GREY = "#9AA38C", ORG = "#E0913A";
+      const OLV = "#7A9A3A", YEL = "#D2C44C", GREY = "#9CA4A2", MAUVE = "#B48AB6", LEG = "#F2C230", BILL = "#C9C8B8";
       return (
         <g>
-          <ellipse cx="48" cy="56" rx="31" ry="29" fill={GRN} />
-          {/* the orange breast: one rounded lobe on the front, green all round it, 2.7 units under the chin */}
-          <ellipse cx="58" cy="61" rx="11.5" ry="9.5" fill={ORG} />
-          {/* head up and forward (its dome is about 5 units above the body's outline), one grey cap on top */}
-          <circle cx="60" cy="37" r="12.5" fill={GRN} />
-          <path d="M49.5 31.5 Q52 24.5 60 24.5 Q68 24.5 70.5 31.5 Q60 34 49.5 31.5 Z" fill={GREY} />
-          {beak(70, 42.5, 8, 2.6, "#C9C2B4")}
-          {/* stubby red legs */}
-          <rect x="44" y="82" width="3" height="6" rx="1.5" fill="#C24A3A" />
-          <rect x="54" y="82" width="3" height="6" rx="1.5" fill="#C24A3A" />
+          {/* bright yellow legs and feet: the field mark; rounded stubs, each with a soft toe pad */}
+          <rect x="43.5" y="81" width="3.4" height="7" rx="1.7" fill={LEG} />
+          <rect x="53.5" y="81" width="3.4" height="7" rx="1.7" fill={LEG} />
+          <ellipse cx="45.5" cy="88" rx="3.6" ry="1.6" fill={LEG} />
+          <ellipse cx="55.5" cy="88" rx="3.6" ry="1.6" fill={LEG} />
+          {/* olive-green barrel body */}
+          <ellipse cx="48" cy="56" rx="31" ry="29" fill={OLV} />
+          {/* one mauve patch at the bend of the folded wing, behind the yellow front */}
+          <ellipse cx="35.5" cy="52" rx="5.5" ry="6.5" fill={MAUVE} transform="rotate(-12 35.5 52)" />
+          {/* yellow-olive head and breast as ONE pear: a dome breaking the outline, soft concave necks,
+              a round breast with at least 4 units of olive round it */}
+          <path d="M60 25 Q72 25 72 37 Q71.5 43 67.5 46.5 Q66 48.5 67 51 Q67.8 52.6 69 53.5 Q72.5 58 72 66 Q71 80 56 80 Q40 80 40 64 Q40.5 57 43.5 53.5 Q50 50 49.8 46.5 Q49.6 41.3 48 37 Q48 25 60 25 Z" fill={YEL} />
+          {/* grey crown on the dome, clear of the eye */}
+          <path d="M49.1 30.9 Q51.6 25 60 25 Q68.4 25 70.9 30.9 Q60 33.5 49.1 30.9 Z" fill={GREY} />
+          {beak(70, 42.5, 8, 2.6, BILL)}
           <Eye cx={63.5} cy={40.5} />
         </g>
       );
@@ -1664,232 +1744,7 @@ const ARCHES: Arche[] = [
       );
     },
   },
-  // 51 - YELLOW-FOOTED GREEN-PIGEON (candidate, Q3 of the 2026-10 expansion: he keeps whichever of
-  // this and the Orange-breasted looks better, from one sheet). The same fat barrel as 48, told from it
-  // by colour: olive-green back and wing, a yellow-olive head-and-breast drawn as ONE pear with soft
-  // concave necks (review 1: two crossing circles left V notches), a grey crown on the dome clear of the
-  // eye, one mauve patch at the bend of the wing, and the field mark, bright yellow legs and feet.
-  // Appended past the Roller so no member can land on it by chance while it is a candidate.
-  {
-    name: "Yellow-footed Green-Pigeon",
-    skip: GREENS,
-    draw: () => {
-      const OLV = "#7A9A3A", YEL = "#D2C44C", GREY = "#9CA4A2", MAUVE = "#B48AB6", LEG = "#F2C230", BILL = "#C9C8B8";
-      return (
-        <g>
-          {/* bright yellow legs and feet: the field mark; rounded stubs, each with a soft toe pad */}
-          <rect x="43.5" y="81" width="3.4" height="7" rx="1.7" fill={LEG} />
-          <rect x="53.5" y="81" width="3.4" height="7" rx="1.7" fill={LEG} />
-          <ellipse cx="45.5" cy="88" rx="3.6" ry="1.6" fill={LEG} />
-          <ellipse cx="55.5" cy="88" rx="3.6" ry="1.6" fill={LEG} />
-          {/* olive-green barrel body */}
-          <ellipse cx="48" cy="56" rx="31" ry="29" fill={OLV} />
-          {/* one mauve patch at the bend of the folded wing, behind the yellow front */}
-          <ellipse cx="35.5" cy="52" rx="5.5" ry="6.5" fill={MAUVE} transform="rotate(-12 35.5 52)" />
-          {/* yellow-olive head and breast as ONE pear: a dome breaking the outline, soft concave necks,
-              a round breast with at least 4 units of olive round it */}
-          <path d="M60 25 Q72 25 72 37 Q71.5 43 67.5 46.5 Q66 48.5 67 51 Q67.8 52.6 69 53.5 Q72.5 58 72 66 Q71 80 56 80 Q40 80 40 64 Q40.5 57 43.5 53.5 Q50 50 49.8 46.5 Q49.6 41.3 48 37 Q48 25 60 25 Z" fill={YEL} />
-          {/* grey crown on the dome, clear of the eye */}
-          <path d="M49.1 30.9 Q51.6 25 60 25 Q68.4 25 70.9 30.9 Q60 33.5 49.1 30.9 Z" fill={GREY} />
-          {beak(70, 42.5, 8, 2.6, BILL)}
-          <Eye cx={63.5} cy={40.5} />
-        </g>
-      );
-    },
-  },
-  // 52 - ASIAN PARADISE FLYCATCHER, the white male, SECOND TAKE (candidate, U3a, F13, paragraph 16:
-  // "insanely long tail, is white, magnificent, tiny, cute"). He sees this beside 26 on one sheet and
-  // keeps one. Ten shapes. A small body leaning up and forward; the hood is ONE shape (head, a soft
-  // crest tuft on the crown, and the real male's black throat as a lobe into the breast); a cobalt
-  // eye-ring and bill; and the tail as one white ribbon in a long S, trailing behind and down to the
-  // lower-left corner with a flick at the end, never under the bird. White against the paper is held
-  // the Egret's way: a grey shade under the body shows as a rim along the belly and breast, a grey
-  // wing lobe sits on the back, and the ribbon is grey along its shadow side with white on the lit one.
-  {
-    name: "Paradise Flycatcher (candidate)",
-    skip: [],
-    draw: () => {
-      const HOOD = "#1E222C", BLUE = "#3E78CF", WHT = "#EEF0ED", SHADE = "#D3D7D7";
-      return (
-        <g>
-          {/* the tail: the grey ribbon is the whole feather, the white lies along its lit upper edge
-              (centreline shifted 1.4 units, 0.66 of the width), so grey shows down the shadow side;
-              both roots hide under the body. The S ends at (11,86), its tip a two-arc cap, so after
-              re-centring it sits six units clear of the box (review 2) */}
-          <path d="M47.2 50.8 Q38 50.4 29.3 54.7 Q20.5 60 18 69.2 Q15.4 77.1 11 83.1 Q9.7 84.6 11.1 86 Q12.6 87.3 14 85.9 Q19.8 79.1 23 71.3 Q26.1 63.7 32.5 60.9 Q39 58.3 46.8 59.2 Z" fill={SHADE} />
-          <path d="M47.2 50.8 Q38 50.3 29.2 54.5 Q20.3 59.8 17.5 69 Q14.8 76.8 10.5 82.6 Q9.6 83.6 10.6 84.5 Q11.5 85.4 12.4 84.4 Q17.7 78.2 20.9 70.4 Q23.9 62.2 31.3 58.6 Q38.6 55.5 46.9 56.4 Z" fill={WHT} />
-          {/* body: a grey shade ellipse, then the white one 1.8 units up-left and a little smaller, so the
-              grey is a rim of about 3.5 along the belly, 2 at breast and rear, nothing on the back */}
-          <ellipse cx="58" cy="46" rx="21" ry="18" fill={SHADE} transform="rotate(-20 58 46)" />
-          <ellipse cx="57.4" cy="44.3" rx="19" ry="16.2" fill={WHT} transform="rotate(-20 57.4 44.3)" />
-          {/* grey folded wing on the back, its lower end clear of the belly rim; its front edge tucks
-              under the hood at (58,41), crossing the hood's edge at a steep angle instead of running
-              beside it (review 2: a white needle between wing and nape) */}
-          <path d="M55 31 Q45 32.5 41.5 41 Q39.5 47.5 42.5 52.5 Q44.5 55 46.5 52 Q49 45 58 41 Q60.5 35.5 55 31 Z" fill={SHADE} />
-          {/* cobalt bill, drawn UNDER the hood so it emerges from the throat's own curve: about 5 deep
-              where it leaves the black, tapering to a 2.2-unit round tip at x 88.6 */}
-          <path d="M74 28.6 Q84 28.7 88 31.8 Q89.2 33 87.8 34 Q81.5 35.7 74 33.8 Z" fill={BLUE} />
-          {/* the hood as one shape: the head (centre 67,29 r 12.5 in 45-degree arcs), the crest tuft rising
-              from the crown's back to a round top at y 11, and the black throat, which IS the front
-              silhouette from the chin down to y 46 (it bulges to x 80.7, two units past the body), then
-              turns in across the shade rim at about 45 degrees and rounds off inside the white through
-              (72,48.5) and (60,46), no join over 20 degrees (review 2: a point and a white sliver) */}
-          <path d="M56.2 35.3 Q53.6 30.8 54.9 25.8 Q56.3 20.8 60.8 18.2 Q56.5 15.5 58.5 12.5 Q62 9.8 66.5 12.2 Q69.2 13.8 70.2 16.9 Q75.2 18.3 77.8 22.8 Q79.5 25.7 79.5 29 Q81.5 35 80.2 41 Q78.5 47.5 72 48.5 Q65 49.5 60 46 Q54.8 42.5 56.2 35.3 Z" fill={HOOD} />
-          {/* cobalt eye-ring, the species' bare blue skin; the eye disc darker than the hood */}
-          <circle cx="70.5" cy="27.5" r="5.9" fill={BLUE} />
-          <Eye cx={70.5} cy={27.5} r={4.2} disc="#0B0D12" />
-        </g>
-      );
-    },
-  },
-  // 53 - PEREGRINE FALCON, SECOND TAKE (candidate, U3a, F11, paragraph 22: "balance the killer nature
-  // with the cuteness and at the same time keeping it just simple"). He sees this beside 32 on one
-  // sheet and keeps one. Eleven shapes. Review 2 read the first draft's upright egg and flipper as a
-  // penguin, so the body is now ONE leaning teardrop: a broad chest, the belly curving in, and the
-  // rear one long taper to a narrow round-ended tail at (25,89). The wing is a sickle laid on the back
-  // whose outer edge is the silhouette from the wrist at (28,42) to its tip, and the tip lies ON the
-  // tail with the tail's end showing past it. Cream only on cheek, throat and upper breast; the lower
-  // breast and belly are one barred mid-tone (slate and cream mixed), the way the barring reads from
-  // across a field. The head is cream (cheek, chin, throat) and the hood is one shape laid over it:
-  // cap, nape, the mask through the eye, and the moustache hanging under the eye as a rounded teardrop
-  // with cream behind it and in front. Drawn to a reach of 40 so the runner seats it near s 1.17.
-  {
-    name: "Peregrine Falcon (candidate)",
-    skip: BLUES,
-    draw: () => {
-      const SLATE = "#4D5E72", WING = "#3A4757", HOOD = "#23272F", CREAM = "#F0E4CC", YEL = "#E9B83C", BILL = "#6E7D90";
-      return (
-        <g>
-          {/* body: a teardrop leaning forward, 49 wide at the chest (y 60), 22 at y 80, a 9-unit tail at
-              y 88 ending in a two-arc round cap; the back is one gentle convex curve and so is the
-              underside from the belly round to the tail (review 3: it was a ruler line with an elbow) */}
-          <path d="M52 30 Q73 31 77 48 Q79 64 62 75 Q50 86 32 89 Q27.5 90.5 25.8 89.5 Q23.8 87.8 24.2 85 Q22 60 34 38 Q38 29 52 30 Z" fill={SLATE} />
-          {/* barred lower breast and belly: one mid-tone shape, at least 2.6 units inside the slate */}
-          <path d="M52 53 Q69 54 67.5 63 Q65 71 56 74 Q47 77.5 45 70 Q43.5 60 52 53 Z" fill={mix(SLATE, CREAM, 0.55)} />
-          {/* cream throat and upper breast, laid over the top of the barred belly */}
-          <path d="M57 42 Q74 45 72.5 56 Q71.5 64 61 65.5 Q51 66 50.5 57 Q50.5 47 57 42 Z" fill={CREAM} />
-          {/* the folded wing: its top edge leaves the shoulder under the head and meets the back
-              horizontally, a rounded wrist bulges 3 units past the back at y 42, the outer edge runs 1 to
-              3 units outside the back all the way down, the tip (two-arc cap, apex 26.7,86.4) lies on
-              the tail, and the inner edge is a sickle bowed back so the wing tapers from 15 to 8 wide */}
-          <path d="M48 36 Q40 41.5 31.5 41 Q27 41.5 25.5 46.5 Q20.5 65 23.5 84 Q23.9 86.8 26.7 86.4 Q29.5 86 29.1 83.2 Q31 58 48 36 Z" fill={WING} />
-          {/* cream head, then the hood over it as one shape: 45-degree arcs round the cap (r 15.3 so no
-              cream halo), the mask line under the eye, the moustache teardrop ending in a 3.5-unit round
-              tip with a 3-unit cream chin in front, and the cheek's top rounded at (61,38) so it ends
-              blunt under the ring (review 2); the mask line ends 1.2 units inside the cream with a
-              rounded nape corner, so cream parts the hood from the wing (review 3) */}
-          <circle cx="60" cy="34" r="15" fill={CREAM} />
-          <path d="M45.4 36.6 Q44.2 31.5 46.8 26.4 Q49.9 20.9 56 19.2 Q62.2 17.6 67.7 20.8 Q73.1 23.9 74.8 30 Q76.5 33.3 75.1 36.7 Q69.5 41 67 45 Q65 47.5 63.5 45.5 Q61 42 61 39.5 Q61 37.5 58.5 37.8 Q52 40 47 38.6 Q45.6 38.3 45.4 36.6 Z" fill={HOOD} />
-          {/* yellow cere at the base of the bill, drawn under the bill */}
-          <ellipse cx="73.5" cy="34.5" rx="2.8" ry="2.4" fill={YEL} />
-          {/* hooked bill: slim, curling down to a small round nail, never a point */}
-          <path d="M73 31.5 Q82 31.8 82.5 37.5 Q82.3 40.4 80.6 39.6 Q78.5 37.5 74.5 37.5 Q72 35 73 31.5 Z" fill={BILL} />
-          {/* yellow eye-ring, then the eye, darker than the hood */}
-          <circle cx="63" cy="29.5" r="5.5" fill={YEL} />
-          <Eye cx={63} cy={29.5} r={4.2} disc="#0E1116" />
-        </g>
-      );
-    },
-  },
-  // 54 - BLUE-CAPPED ROCK-THRUSH (candidate, U3b, Q4): drawn beside the redrawn Tickell's (44) so he
-  // keeps whichever looks better. The male: a cobalt crown and throat, black cheeks and a black
-  // mantle, a white flash on the wing, chestnut-orange underparts. Eight shapes: chestnut body, black
-  // tail and black folded wing lobe with the white flash, the blue hood (head up and forward, the
-  // throat one lobe under it), a slim grey bill. A black cheek was tried twice: under the eye it was a
-  // panda's patch, behind it a second eye; the black wing carries the species' black instead.
-  {
-    name: "Blue-capped Rock-Thrush (candidate)",
-    skip: WARMS,
-    draw: () => {
-      const BLUE = "#2E7BD6", BLK = "#26232A", CHES = "#C9632A", WHT = "#F4F1E6", BILL = "#4A4650";
-      return (
-        <g>
-          {/* short black tail down and back */}
-          <path d="M33 75 Q25 80 20 86 Q18 88.5 16.5 86.5 Q16 84 18.5 80.5 Q25 73.5 32 71 Z" fill={BLK} />
-          {/* chestnut body */}
-          <circle cx="48" cy="60" r="29" fill={CHES} />
-          {/* black folded wing lobe, the white flash lying along it */}
-          <path d="M48 46 Q34 47 28 59 Q27 70 32 78 Q35 81 37.5 76 Q38 65 43 54 Q45.5 48 48 46 Z" fill={BLK} />
-          <ellipse cx="35.5" cy="61" rx="4.4" ry="2.6" fill={WHT} transform="rotate(-65 35.5 61)" />
-          {/* slim grey bill under the head */}
-          <path d="M67 38 Q74 37.6 79 40 Q80.5 41 79.4 42 Q74 43.4 67 42.4 Z" fill={BILL} />
-          {/* the blue hood: the throat lobe is drawn under the head as wide as the head is there and
-              both its sides leave the head circle on a curve (review 1: the left was a ruler, the right a
-              pinch), so head and throat are one pear (the Oriole's hood construction) */}
-          <path d="M70.5 47 Q66.4 51.4 64 56.9 Q61.5 61 59 61 Q56.5 61 54 56.9 Q51.6 51.4 47.5 47 Z" fill={BLUE} />
-          <circle cx="59" cy="39" r="14" fill={BLUE} />
-          <Eye cx={63} cy={38.5} r={4.3} />
-        </g>
-      );
-    },
-  },
-  // 55 - SMALL MINIVET (candidate, U3b, Q10: "redraw and pick the best"; F9, "a little bit long").
-  // Beside 47, which stays as it was. Rounder: a slate body instead of the tilted ovoid, the tail
-  // shorter than the old one and still a slim graduated tail, the flame as ONE lobe from breast to
-  // vent inside a slate rim (the whole underside, as the real male and 47 have it), the darker wing
-  // lobe with the flame bar set on it, the head up and forward in one slate (the old cap and cheek
-  // are gone), a slim dark bill. Eight shapes.
-  {
-    name: "Small Minivet (candidate)",
-    skip: [],
-    draw: () => {
-      const SLATE = "#5C646C", SLATED = "#41474E", FLAME = "#EA6628", FIRE = "#F5A63A", BILL = "#2A2730";
-      return (
-        <g>
-          {/* graduated tail down and back, slim, round-ended */}
-          <path d="M36 74 Q30 84 17 88 Q13.5 90 12.5 87 Q12.5 84 16 80.5 Q21 79 34 69 Z" fill={SLATED} />
-          {/* slate body */}
-          <circle cx="48" cy="60" r="27" fill={SLATE} />
-          {/* darker folded wing lobe, the flame bar on it */}
-          <path d="M48 46 Q35 47 29.5 58 Q28.5 68 33 76 Q36 79 38 74 Q38.5 63 43.5 54 Q46 48 48 46 Z" fill={SLATED} />
-          <ellipse cx="35.5" cy="62" rx="2.7" ry="5.2" fill={FIRE} transform="rotate(-15 35.5 62)" />
-          {/* flame underside: ONE lobe from the breast down to the vent, the real male's whole front, inside
-              a slate rim; its top tucked under the head (review 1: a chest patch over grey was a grey robin) */}
-          <path d="M61 51 Q70.5 55 69.5 67 Q68 80 56 83.5 Q49.5 85 44.5 81 Q41 76 44 68 Q46.5 57 56 51 Q58.5 50 61 51 Z" fill={FLAME} />
-          {/* slim dark bill under the head */}
-          <path d="M66.5 38.4 Q73 38 77.5 40.3 Q78.8 41.2 77.7 42.1 Q73 43.4 66.5 42.6 Z" fill={BILL} />
-          {/* head up and forward */}
-          <circle cx="59" cy="40" r="12.5" fill={SLATE} />
-          <Eye cx={62.5} cy={38.5} r={4} />
-        </g>
-      );
-    },
-  },
-  // 56 - SIRKEER MALKOHA (candidate, U3b, Q10: "redraw and pick the best"). Beside 11, which stays as
-  // it was. The old one is an olive ball with a stout candy bill; the real bird is a long-tailed
-  // ground cuckoo. Nine shapes: an olive-brown body with a long graduated tail down and back, one
-  // darker folded wing lobe, the buff throat-and-belly as one lobe inside an olive rim, the head up
-  // and forward, and the signature bill: 8 deep where it leaves the head, cherry-red with a yellow
-  // tip, arched and tapering to a 3.4-unit round end (the old one was 13 deep and did not taper; the
-  // first redraw's tip was a 7-unit club with a step at the yellow).
-  {
-    name: "Sirkeer Malkoha (candidate)",
-    skip: WARMS,
-    draw: () => {
-      const OLV = "#8C7E5A", OLVD = "#6E6246", BUFF = "#D9C69A", RED = "#D9413A", YEL = "#E8C53E";
-      return (
-        <g>
-          {/* graduated tail down and back: about 8 wide where it leaves the body, 9 at its round end, its root under the body */}
-          <path d="M34.1 71.05 Q28.6 83.2 18.7 91.2 Q12 91.55 12.3 84.9 Q20.7 75.5 31.9 68.95 Z" fill={OLVD} />
-          {/* olive-brown body */}
-          <circle cx="48" cy="60" r="28" fill={OLV} />
-          {/* darker folded wing lobe */}
-          <path d="M48 46 Q35 47 29 58 Q28 69 32.5 77 Q35.5 80 37.5 75 Q38 64 43 54 Q45.5 48 48 46 Z" fill={OLVD} />
-          {/* buff throat and belly: one lobe down the front, olive round it */}
-          <path d="M60 56 Q70 61 68 71 Q65 80 54 80 Q46 79 46 70 Q47 61 53 57 Q56.5 55 60 56 Z" fill={BUFF} />
-          {/* the bill, under the head: red, arched and tapering from 8 deep at the head to a 3.4 round tip;
-              the yellow is the outer third cut from the SAME two edges (its curves are sub-curves of the
-              red's), so there is no step where the colours change */}
-          <path d="M65 34.5 Q77 32.5 84.5 39.5 Q86.3 41.6 83.5 42.8 Q76 40.5 65 42.5 Z" fill={RED} />
-          <path d="M78.7 35.7 Q81.9 37.05 84.5 39.5 Q86.3 41.6 83.5 42.8 Q81.6 42.2 79.6 42 Q77.2 39 78.7 35.7 Z" fill={YEL} />
-          {/* head up and forward */}
-          <circle cx="59" cy="41" r="13.5" fill={OLV} />
-          <Eye cx={62.5} cy={39.5} r={4.2} />
-        </g>
-      );
-    },
-  },
-  // 57 - GREY JUNGLEFOWL (U4a, selection.md 2.1: the valley's wild rooster). A hen-shaped grey body
+  // 51 - GREY JUNGLEFOWL (U4a, selection.md 2.1: the valley's wild rooster). A hen-shaped grey body
   // (an ellipse wider than tall, not the set's disc), a darker folded wing, and the two signatures a
   // child draws on a rooster: a red comb of three soft scallops drawn UNDER the head so only the
   // lobes above the crown show, and a sickle tail that leaves the rump, arches up the back and
@@ -1926,7 +1781,7 @@ const ARCHES: Arche[] = [
       );
     },
   },
-  // 58 - INDIAN SPOT-BILLED DUCK (U4a, selection.md 2.2). A boat: one low wide body path with a
+  // 52 - INDIAN SPOT-BILLED DUCK (U4a, selection.md 2.2). A boat: one low wide body path with a
   // soft upturned tail nub at the rear, the head on a short neck at the front (a neck ellipse in the
   // body's colour fills the throat), and the one broad bill in the set: a black spatula 7.5 deep
   // where it leaves the head, drooping a little, its tip a 4.5-unit round end, the yellow tip cut
@@ -1964,7 +1819,7 @@ const ARCHES: Arche[] = [
       );
     },
   },
-  // 59 - GREY-HEADED SWAMPHEN (U4a, selection.md 2.3: "a chunky hen with a comically big red nose").
+  // 53 - GREY-HEADED SWAMPHEN (U4a, selection.md 2.3: "a chunky hen with a comically big red nose").
   // A big purple-blue ball with a turquoise folded-wing lobe, a short dark tail cocked up at the
   // rear, a pale grey-blue head up and forward, and the signature drawn as ONE red shape over the
   // head: the frontal shield, a plate standing 4 units off the forehead from the crown down, running
@@ -1999,7 +1854,7 @@ const ARCHES: Arche[] = [
       );
     },
   },
-  // 60 - BLACK-WINGED KITE (U4a, selection.md 2.4: "a soft, dove-shaped ghost with ruby eyes"). Grey
+  // 54 - BLACK-WINGED KITE (U4a, selection.md 2.4: "a soft, dove-shaped ghost with ruby eyes"). Grey
   // above, white below. U4f (brief paragraph 43): the pale-pearl bird washed out on the paper, so the
   // body and head are blue-grey and the white breast and belly sit inside them, on an arc set up and
   // forward of the body's so the grey is 3.5 at the breast and 7.5 under the belly, the white's rear
@@ -2007,26 +1862,35 @@ const ARCHES: Arche[] = [
   // snowman). One darker grey folded wing from the shoulder back and down past the body's rear to a
   // round tip (a long-winged bird; both edges bowed), the jet-black shoulder a cap on the wing's upper
   // end sharing the wing's own two edges. A small black hooked bill under the head, and the ruby eye:
-  // iris, dark pupil, catchlight. No brow (it would be a scowl), no legs. Seven shapes and the eye.
+  // iris, dark pupil, catchlight. No brow (it would be a scowl), no legs. Gate 2 (brief ¶44: "Gray is
+  // one of the less interesting colors, so we should use it only when needed"): the grey is now the
+  // species' own blue-grey and only where the bird is grey (crown, nape, back, the rim that holds the
+  // white off the paper, now 2.9 at the breast and 4.9 under the belly); the black shoulder covers the
+  // wing's upper half, the way the bird earns its name; the face is white round the ruby eye; and a
+  // yellow cere sits at the base of the black bill. Eight shapes and the eye.
   {
     name: "Black-winged Kite",
     skip: [],
     draw: () => {
-      const GREY = "#97A1AD", WING = "#78838F", WHT = "#E9ECEE", BLK = "#26232A", RUBY = "#C22E3C";
+      const GREY = "#8C9DB2", WING = "#6E8098", WHT = "#EDEFEE", BLK = "#26232A", RUBY = "#C22E3C", CERE = "#E6B83C";
       return (
         <g>
           {/* blue-grey body */}
           <circle cx="46" cy="58" r="28" fill={GREY} />
-          {/* white breast and belly: an arc set up and forward of the body's, so the grey is 3.5 at the breast and 7.5 under the belly, its rear and top tucked under the wing, the shoulder and the head */}
-          <path d="M68.35 45.78 A23 23 0 0 1 34.31 74.34 Q30 64 36 56 Q38 51 45 47 Q47 42 52 42 Q60 41 68.35 45.78 Z" fill={WHT} />
+          {/* white breast and belly: an arc set up and forward of the body's, so the grey is 2.9 at the breast and 4.9 under the belly, its rear and top tucked under the wing, the shoulder and the head */}
+          <path d="M68.6 45.82 A24.5 24.5 0 0 1 32.63 76.74 Q29.5 65 36 56 Q38 51 45 47 Q47 42 52 42 Q60 41 68.6 45.82 Z" fill={WHT} />
           {/* long folded wing: shoulder (under the head) back and down to a round tip past the body's rear */}
           <path d="M52 38 Q36 40 27 54 Q17 65 16 80 Q14.5 85 19 85 Q24 83 28 76 Q31 60 44 50 Q50 45 52 38 Z" fill={WING} />
-          {/* jet-black shoulder: the wing's upper end, its lower edge one sag */}
-          <path d="M52 38 Q36 40 27 54 Q33 60 44 50 Q50 45 52 38 Z" fill={BLK} />
+          {/* jet-black shoulder over the wing's upper half, sharing the wing's own two edges, its lower edge one sag */}
+          <path d="M52 38 Q36 40 27 54 Q23 58.4 20.38 63.44 Q27 66.5 33.5 61.5 Q37.5 55 44 50 Q50 45 52 38 Z" fill={BLK} />
           {/* small black hooked bill under the head: 5.8 deep at the head's edge, curling to a 2.5 nail */}
           <path d="M71 35.5 Q80 35.5 81.5 40.8 Q81.8 43.2 79.6 42.8 Q76.5 41 72.5 41.8 Z" fill={BLK} />
           {/* head up and forward, breaking the outline by 8 */}
           <circle cx="61" cy="38" r="13.5" fill={GREY} />
+          {/* white face: cheek, lores and throat, the blue-grey crown arching over the eye; its front edge is a circle sitting inside the head's own, touching it at the chin and 2.2 in at the bill, so the grey rim tapers in with no corner; its foot on the white breast */}
+          <path d="M70.08 33.34 Q66 28.6 59.5 32.4 Q53.2 37 54.2 44 Q54.8 48.5 56.4 50.7 A13.5 13.5 0 0 0 64.49 51.04 A11 11 0 0 0 70.08 33.34 Z" fill={WHT} />
+          {/* yellow cere at the base of the bill, on the face's edge */}
+          <ellipse cx="74.8" cy="38" rx="1.9" ry="2.3" fill={CERE} />
           {/* ruby eye: iris, dark pupil, catchlight */}
           <circle cx="65" cy="39" r="4.6" fill={RUBY} />
           <circle cx="65" cy="39" r="2.5" fill={BLK} />
@@ -2035,7 +1899,7 @@ const ARCHES: Arche[] = [
       );
     },
   },
-  // 61 - INDIAN EAGLE-OWL (U4b, selection.md 2.5: "tufts and orange eyes"). Face-on, the way a child
+  // 55 - INDIAN EAGLE-OWL (U4b, selection.md 2.5: "tufts and orange eyes"). Face-on, the way a child
   // draws an owl, and kept apart from the Owlet (2) by silhouette and colour rather than detail: two
   // soft ear tufts stand up off the crown and break the outline, the body is a warm tawny egg where
   // the Owlet is a cool grey-brown disc, and the eyes are orange. The facial disc is two round buff
@@ -2071,7 +1935,7 @@ const ARCHES: Arche[] = [
       );
     },
   },
-  // 62 - COMMON TAILORBIRD (U4b, selection.md 2.6: "the cocked-up tail and the rust cap"). Olive above
+  // 56 - COMMON TAILORBIRD (U4b, selection.md 2.6: "the cocked-up tail and the rust cap"). Olive above
   // and cream below, the real bird's way round. U4f (brief paragraph 43): the first pass, a cream ball,
   // washed out on the paper, so the body and head are olive and the cream is a belly held 3.5 inside the
   // body's arc; the rust cap and the cocked tail keep it apart from the White-eye's olive ball (49). A
@@ -2107,7 +1971,7 @@ const ARCHES: Arche[] = [
       );
     },
   },
-  // 63 - COMMON KESTREL, the male (U4b, selection.md 2.7: "a blue-grey head on a chestnut back, black
+  // 57 - COMMON KESTREL, the male (U4b, selection.md 2.7: "a blue-grey head on a chestnut back, black
   // band on the tail"). Kept apart from both Peregrines (32, 53) by colour and silhouette: warm where
   // they are slate, a mid-grey head where they wear a dark hood, and upright with the tail hanging
   // straight down where theirs angles away. One tawny teardrop body with the cream breast and belly
@@ -2148,7 +2012,7 @@ const ARCHES: Arche[] = [
       );
     },
   },
-  // 64 - BLACK-CROWNED NIGHT HERON (U4b, selection.md 2.8: "red eye under a black cap, hunched"). A
+  // 58 - BLACK-CROWNED NIGHT HERON (U4b, selection.md 2.8: "red eye under a black cap, hunched"). A
   // stocky grey loaf on two short yellow legs, the big round head sunk into the shoulders but still
   // breaking the back's line. U4f (brief paragraph 43): the pale-grey first pass washed out on the
   // paper, so the body and head are a mid grey and the pale breast and belly sit inside it, 3.4 at the
@@ -2161,11 +2025,16 @@ const ARCHES: Arche[] = [
   // back. Nine shapes and the eye. Kept apart from the
   // Black-winged Kite (60), which shares grey, black and a red eye, by silhouette: a horizontal
   // heron on legs with a long bill and black ON TOP, against a round disc with a black wing slash.
+  // Gate 2 (brief ¶44, grey "only when needed"): the black-crowned heron's own blue-green black now
+  // carries the top of the bird, the cap running from the forehead down the back of the head into a
+  // mantle that covers the back to the rump; the face, throat, breast and belly are one pale run; the
+  // grey is the species' blue-grey and only on the folded wing and the rim that holds the pale off the
+  // paper.
   {
     name: "Night Heron",
     skip: [],
     draw: () => {
-      const PALE = "#DCDFE2", GREY = "#9AA4AE", WING = "#7B8692", BLK = "#1F3436", RED = "#CF2B39", LEG = "#E2BE48", BILL = "#202429";
+      const PALE = "#E3E6E7", GREY = "#8D9BAB", WING = "#77879A", BLK = "#1F3436", RED = "#CF2B39", LEG = "#E2BE48", BILL = "#202429";
       return (
         <g>
           {/* short yellow legs, tops under the body, round-ended */}
@@ -2176,13 +2045,14 @@ const ARCHES: Arche[] = [
           <path d="M67.28 49.5 A24 16 0 0 1 42.33 73.26 Q35 70 36 64 Q48 50 60 47 Q64 47.2 67.28 49.5 Z" fill={PALE} />
           {/* grey folded wing: the body's arc from the shoulder to the rump, a round tail tip past it, the lower edge rising under the head */}
           <path d="M55.58 39.27 A28 21 0 0 0 18.43 62.65 Q12.5 66.5 14.5 71.5 Q16.5 75.5 23.5 72.5 Q42 66 56 51 Q60 47 55.58 39.27 Z" fill={WING} />
-          {/* black saddle: the same arc from the shoulder to mid-back, its lower edge one sag */}
-          <path d="M55.58 39.27 A28 21 0 0 0 26.2 44.15 Q40 56 55.58 39.27 Z" fill={BLK} />
+          {/* black mantle: the same arc from the shoulder back to the rump, its lower edge one sag across the wing's upper half */}
+          <path d="M55.58 39.27 A28 21 0 0 0 20.5 50.3 Q36 62 55.58 39.27 Z" fill={BLK} />
           {/* stout dagger bill under the head, both edges bowed, a round tip */}
           <path d="M72 41.5 Q80 41.6 86.4 45.3 Q88 46.5 86.4 47.4 Q79.5 49.8 72.5 48.6 Z" fill={BILL} />
-          <circle cx="63" cy="43" r="13" fill={GREY} />
-          {/* black cap: the head's outline from forehead to nape, its lower edge 2 above the eye */}
-          <path d="M75.2 38.55 A13 13 0 0 0 50.2 45.26 Q62 33 75.2 38.55 Z" fill={BLK} />
+          {/* pale head: face, cheek and throat run on into the pale breast */}
+          <circle cx="63" cy="43" r="13" fill={PALE} />
+          {/* black cap: the head's outline from the forehead over the crown and down the back of the head into the mantle, its lower edge 4 behind the eye and 2 above it */}
+          <path d="M75.2 38.55 A13 13 0 1 0 51.2 48.3 Q55.6 45.6 58.4 40.2 Q62 34.6 75.2 38.55 Z" fill={BLK} />
           <circle cx="66.5" cy="43.5" r="4.6" fill={RED} />
           <circle cx="66.5" cy="43.5" r="2.5" fill="#15181C" />
           <circle cx="65" cy="42" r="1.5" fill="#FFFFFF" />
@@ -2190,7 +2060,7 @@ const ARCHES: Arche[] = [
       );
     },
   },
-  // 65 - PIED KINGFISHER (U4c, selection.md 2.9: "crest, dagger, breast band"; Q5, he decides on
+  // 59 - PIED KINGFISHER (U4c, selection.md 2.9: "crest, dagger, breast band"; Q5, he decides on
   // seeing it). Kept apart from the Magpie-Robin (14) and the Jacobin (35), both black balls with a white
   // belly, by being a WHITE bird with black on it: the white head with the eye on it, the crest, the long
   // dagger. The white is a cool #E3E6E9, so the throat, face and belly hold an edge on the paper without
@@ -2199,17 +2069,22 @@ const ARCHES: Arche[] = [
   // cap ends above the nape so a white collar parts it from the black back. A black folded wing whose top
   // edge is the back's own arc, six white spots in two rows for the pied back, one breast band whose
   // front end is the body's own outline and whose rear end tucks under the wing, a short black tail, and
-  // the chisel bill: two straight edges, a round tip, the base under the head. Nine shapes and the spots.
+  // the chisel bill: two straight edges, a round tip, the base under the head. Ten shapes and the spots.
+  // Gate 2 (brief ¶44, "I think we could do without the pied kingfisher if you can't improve the
+  // colors"): one attempt by the Ibis's means. The white is a warm ivory, the black a blue-black, and a
+  // warm buff shade on the body's own lower arc holds the ivory belly off the paper (¶43).
   {
     name: "Pied Kingfisher",
     skip: [],
     draw: () => {
-      const WHT = "#DADFE5", BLK = "#24252A", BILL = "#1D1E22";
+      const WHT = "#EFE6D3", SHADE = "#D6C4A6", BLK = "#1D2431", BILL = "#191D26";
       return (
         <g>
           {/* short black tail down and back, root inside the body, round end, both edges bowed */}
           <path d="M39 75 Q33 82 31 90.5 Q30 94.8 34 94.6 Q37.5 94 40.5 89 Q42.4 85.2 47 81 Z" fill={BLK} />
           <circle cx="46" cy="62" r="24" fill={WHT} />
+          {/* warm buff shade on the body's own lower arc, from the breast round to under the wing, 4 deep at the bottom */}
+          <path d="M69.3 68.2 A24 24 0 0 1 30.6 80.4 Q50 84 64 74 Q67.6 71.4 69.3 68.2 Z" fill={SHADE} />
           {/* breast band, sagging a little: front end the body's own arc, rear end under the wing */}
           <path d="M48 52 Q60 61 69.18 55.79 A24 24 0 0 1 70 62 Q60 66.5 46 59 Z" fill={BLK} />
           {/* black folded wing: the back's own arc from the shoulder (under the head) to a round tip on the tail, the lower edge bowed toward the breast */}
@@ -2228,7 +2103,7 @@ const ARCHES: Arche[] = [
       );
     },
   },
-  // 66 - WIRE-TAILED SWALLOW (U4c, selection.md 2.10: "blue over white with a rust cap, swept"). Perched,
+  // 60 - WIRE-TAILED SWALLOW (U4c, selection.md 2.10: "blue over white with a rust cap, swept"). Perched,
   // leaning back a little the way a swallow sits on a wire, so its long axis runs toward the frame's
   // lower-left corner and the wires fit without shrinking the body (laid level they set the frame cap and
   // left the bird a quarter smaller than its neighbours). Steel-blue above: the head and one long folded
@@ -2268,7 +2143,7 @@ const ARCHES: Arche[] = [
       );
     },
   },
-  // 67 - GREY WAGTAIL (U4c, selection.md 2.11: "lemon under slate, a long tail"). The winter bird, the one
+  // 61 - GREY WAGTAIL (U4c, selection.md 2.11: "lemon under slate, a long tail"). The winter bird, the one
   // the valley actually sees: no black throat. Kept apart from the Yellow-throated Bulbul (12), grey with
   // a yellow HEAD, by putting the lemon low: a lemon body under one slate folded wing whose top edge is
   // the back's own arc, so slate runs from the crown down the back and lemon from the breast to the vent.
@@ -2298,7 +2173,7 @@ const ARCHES: Arche[] = [
       );
     },
   },
-  // 68 - ROCK PIGEON (U4c, selection.md 2.12: "the shimmer collar, the two bars, the puffed chest"). The
+  // 62 - ROCK PIGEON (U4c, selection.md 2.12: "the shimmer collar, the two bars, the puffed chest"). The
   // campus pigeon: a plump body in the real bird's stronger blue-grey (U4f, brief paragraph 43: the paler
   // first pass washed out on the paper) with the breast puffed forward under a small round darker head,
   // so it parts from the Hornbill (10), a warm-grey ball with a banana bill, by colour and by the collar.
@@ -2342,7 +2217,7 @@ const ARCHES: Arche[] = [
       );
     },
   },
-  // 69 - RED-VENTED BULBUL (U4d, Q6: "use the more interesting colours they have instead of just making
+  // 63 - RED-VENTED BULBUL (U4d, Q6: "use the more interesting colours they have instead of just making
   // them brown"). The commonest bird in the school. Kept apart from the Red-whiskered Bulbul (13), a brown
   // ball with a white face and bib, and the Indian Robin (15), black all over with its tail cocked, by
   // where its dark and pale sit: ONE black hood (the head, a short crest peaked at the back of the crown,
@@ -2384,7 +2259,7 @@ const ARCHES: Arche[] = [
       );
     },
   },
-  // 70 - WHITE-BROWED BULBUL, the PDF's "Murukku bird" (U4d, Q6: drawn from "the more interesting colours
+  // 64 - WHITE-BROWED BULBUL, the PDF's "Murukku bird" (U4d, Q6: drawn from "the more interesting colours
   // they have"). Kept apart from the Yellow-throated Bulbul (12), grey with a yellow HEAD, and the
   // Tailorbird (62), olive too but with a rust cap and an upright tail, by colour and silhouette: an olive
   // head and body, a darker olive back and folded wing (its outer edge the back's own arc), butter-yellow
@@ -2394,12 +2269,14 @@ const ARCHES: Arche[] = [
   // brow is its name: a long, low, level stripe from the forehead above the bill back over the eye, 0.7
   // above it, to well behind it, 3.5 to 4.8 thick with round ends. Level, because the Wagtail's short arch
   // read as a raised eyebrow and a front end dipped toward the bill reads as a frown. The eye sits low in
-  // the head, under it. Round-headed, no crest, so it never reads as the Red-vented. Nine shapes.
+  // the head, under it. Round-headed, no crest, so it never reads as the Red-vented. Nine shapes. Gate 2
+  // (brief ¶44, "a bit too swampy and dirty... a slightly happier color"): the olives are cleaner and a
+  // step yellower (more chroma, less grey), the butter a touch brighter; brow, butter and vent as before.
   {
     name: "W-B Bulbul",
     skip: [0, 5, 7, 8],
     draw: () => {
-      const HEAD = "#9C9D50", WING = "#7F803E", TAIL = "#6B6A35", BODY = "#E8DCA2", VENT = "#EDB526", BROW = "#F6F3EA", BILL = "#3E3A33";
+      const HEAD = "#A6AD4B", WING = "#868E36", TAIL = "#6E752F", BODY = "#EFE3A2", VENT = "#EDB526", BROW = "#F6F3EA", BILL = "#3E3A33";
       return (
         <g>
           {/* tail down and back, root under the body, both edges bowed, round end */}
@@ -2421,43 +2298,49 @@ const ARCHES: Arche[] = [
       );
     },
   },
-  // 71 - RED-WATTLED LAPWING (candidate, Q2 of the 2026-10 expansion: he keeps whichever of this and the
-  // Yellow-wattled (24) looks better, from one sheet; 24 is on his LOCKED list and is not touched). The
-  // school's own lapwing, the "did-he-do-it" bird. A plump white body on two long yellow legs, each ending
-  // in a soft foot; a bronze-brown back and folded wing whose outer edge is the back's own arc; and ONE
-  // black hood shaped like a C round the eye: the cap over the crown, the forehead and lores, the throat
-  // (filling the neck's notch) and the breast down to a hem. The white between its two arms is the cheek
-  // patch, running down the side of the neck into the white belly. The red is one shape: the bare ring
-  // round the eye and the wattle in front of it, ending 2.4 short of the red bill, whose dark tip is cut
-  // from the bill's own two edges. Ten shapes.
+  // 65 - RED-WATTLED LAPWING, the school's own lapwing, the "did-he-do-it" bird. Gate 2 (brief ¶44): "I
+  // like the shape of the yellow one more than the red one, but I like the colors of the red one. So maybe
+  // make a change that makes both of them good." So this is drawn on 24's own frame (the plump 29 x 25
+  // body, the head of 13 sunk into its top-right, the pale belly set inside the body, the folded wing on
+  // the left) in the Red-wattled's colours: a bronze-brown body and darker wing, a black head and breast,
+  // the white band from behind the eye down the side of the neck into the white belly, a red ring and
+  // wattle with black between it and the red bill, the bill's dark tip cut from its own two edges, and
+  // short yellow legs that stay inside the frame. Every pale shape sits inside bronze or black (¶43).
   {
-    name: "Red-wattled Lapwing (candidate)",
+    name: "Red-wattled Lapwing",
     skip: WARMS,
     draw: () => {
-      const WHT = "#DCDAD2", WING = "#9A7B58", BLK = "#232022", RED = "#D63A3C", TIP = "#262225", LEG = "#E6BF3C", LEGD = "#C9A230";
+      const BRZ = "#9A7B58", WING = "#7D6043", WHT = "#F1ECE0", BLK = "#232022", RED = "#D63A3C", TIP = "#262225", LEG = "#E6BF3C", LEGD = "#C9A230";
       return (
         <g>
-          {/* two long yellow legs, tops under the body, each turning forward into a soft round foot */}
-          <path d="M39 68 Q38.6 79 38.7 86.6 Q38.5 90.6 42 90.8 Q45.8 91 46 89.3 Q45.8 87.8 42.6 87.6 Q42.4 79 42.6 68 Z" fill={LEGD} />
-          <path d="M49.4 68 Q49.7 79 50 86.6 Q49.8 90.6 53.3 90.8 Q57.1 91 57.3 89.3 Q57.1 87.8 53.9 87.6 Q53.3 79 53 68 Z" fill={LEG} />
-          <ellipse cx="45" cy="52" rx="27" ry="22" fill={WHT} />
-          {/* bronze-brown back and folded wing: the back's own arc from under the head to the rear, the lower edge bowed up to a round wrist, then up under the head */}
-          <path d="M56.41 32.06 A27 22 0 0 0 21.62 63 Q36 64.5 47.5 53.5 Q50.5 50.5 50.3 46.5 Q50.4 41.5 53.5 38 Q55 34 56.41 32.06 Z" fill={WING} />
-          {/* red bill under the head, 4.7 deep at the face, a round tip */}
-          <path d="M71 30 Q78.5 30.2 84 32.6 Q85.5 33.5 84 34.4 Q78.5 35.6 71 34.6 Z" fill={RED} />
+          {/* two short yellow legs, tops under the body, each turning forward into a soft round foot */}
+          <path d="M42 71 Q41.7 78 41.8 82 Q41.6 85.6 45 85.8 Q48.6 86 48.8 84.4 Q48.6 83 45.6 82.8 Q45.4 78 45.6 71 Z" fill={LEGD} />
+          <path d="M52.5 71 Q52.4 78 52.5 82 Q52.3 85.6 55.7 85.8 Q59.3 86 59.5 84.4 Q59.3 83 56.3 82.8 Q56 78 56.1 71 Z" fill={LEG} />
+          {/* plump bronze-brown body, 24's own ellipse */}
+          <ellipse cx="48" cy="52" rx="29" ry="25" fill={BRZ} />
+          {/* white belly set inside the bronze, 24's pale ellipse */}
+          <ellipse cx="51" cy="60" rx="19" ry="15" fill={WHT} />
+          {/* black throat and breast: its top hidden under the head, its back edge under the cheek's front edge, its front the body's own outline, a rounded hem at y 60 */}
+          <path d="M54.2 40 Q63 35.5 70.85 36.4 A29 25 0 0 1 76.41 57 Q68 63.5 62 60 Q60.3 58.8 60.4 56 Q60.2 53 59 50 Q54.8 45.6 54.2 40 Z" fill={BLK} />
+          {/* red bill, over the throat and under the head so it leaves the face's own curve: 4.6 deep there, a round tip */}
+          <path d="M67.5 36 Q74 36.2 78.5 38.6 Q80 39.5 78.5 40.4 Q74 41.6 67.5 40.6 Z" fill={RED} />
           {/* its dark tip, cut from the bill's own two edges, the boundary bowed toward the base */}
-          <path d="M80.3 31.3 Q82.25 31.84 84 32.6 Q85.5 33.5 84 34.4 Q82.25 34.78 80.3 34.94 Q79.5 33.1 80.3 31.3 Z" fill={TIP} />
-          <circle cx="61.5" cy="30" r="12.5" fill={WHT} />
-          {/* the black hood as one C: cap from the nape over the crown, down the face, the throat over the neck's notch, the body's front to the hem, then up the bib's rear edge to the eye and back along the cap's lower edge */}
-          <path d="M49.91 25.32 A12.5 12.5 0 0 1 61.5 17.5 A12.5 12.5 0 0 1 73.25 34.28 Q69.9 41.62 71.41 47.43 A27 22 0 0 1 70.68 58.8 Q61 62.2 54 55.2 Q55 42.5 62.5 32.5 Q63.5 29 61 27.2 Q55 28 49.91 25.32 Z" fill={BLK} />
-          {/* the red: the bare ring round the eye and the wattle in front of it, one shape, ending 2.4 short of the bill */}
-          <path d="M64.5 22.9 Q69.4 22.9 70.9 27.6 Q72.2 31.8 70.4 34.1 Q68 36.2 64.5 34.4 Q58.9 34.4 58.9 28.6 Q58.9 22.9 64.5 22.9 Z" fill={RED} />
-          <Eye cx={64.5} cy={28.5} r={4.2} disc="#0D0B0C" />
+          <path d="M75 37.16 Q76.88 37.73 78.5 38.6 Q80 39.5 78.5 40.4 Q76.93 40.82 75.1 40.97 Q74.2 39.1 75 37.16 Z" fill={TIP} />
+          {/* black head, 24's circle sunk into the body's top-right */}
+          <circle cx="58" cy="35" r="13" fill={BLK} />
+          {/* the white cheek: the head's lower-back quarter under the cap, its back edge the head's own rim, its
+              front edge the black throat, running down the side of the neck into the belly */}
+          <path d="M45 37.29 Q49.5 35.6 52.6 36.2 Q54.6 36.8 54.7 40 Q55.2 45.5 59 50 Q53 52 46.5 49 Q45.5 45 47.21 42.6 A13.2 13.2 0 0 1 45 37.29 Z" fill={WHT} />
+          {/* folded wing, one shade darker, 24's soft panel, laid over the cheek's foot so the white meets it cleanly */}
+          <ellipse cx="36" cy="52" rx="14" ry="17" fill={WING} transform="rotate(-12 36 52)" />
+          {/* the red: the bare ring round the eye and the wattle in front of it, one shape, black between it and the bill */}
+          <path d="M61.5 28.9 Q66.4 28.9 67.9 33.6 Q69.2 37.8 67.4 40.1 Q65 42.2 61.5 40.4 Q55.9 40.4 55.9 34.6 Q55.9 28.9 61.5 28.9 Z" fill={RED} />
+          <Eye cx={61.5} cy={34.5} r={4.2} disc="#0D0B0C" />
         </g>
       );
     },
   },
-  // 72 - LITTLE GREBE (U4e, selection.md section 3: "a dark brown fluff ball with chestnut cheeks and a
+  // 66 - LITTLE GREBE (U4e, selection.md section 3: "a dark brown fluff ball with chestnut cheeks and a
   // pale spot at the gape, no tail to speak of; the roundest bird on the list"). The dabchick: one round
   // warm-brown ball, a darker back on the back's own arc, the round head up and forward, and a warm buff
   // powder-puff at the raised rear in place of a tail. The chestnut is one shape: the cheeks and throat,
@@ -2488,7 +2371,7 @@ const ARCHES: Arche[] = [
       );
     },
   },
-  // 73 - SCALY-BREASTED MUNIA (U4e, selection.md section 3: "chocolate head and back; cream belly
+  // 67 - SCALY-BREASTED MUNIA (U4e, selection.md section 3: "chocolate head and back; cream belly
   // scalloped in dark scales; a stout dark bill. Spots on cream, the inverse of the Spurfowl"). A plump
   // cream ball under a warm-brown back and folded wing whose outer edge is the back's own arc, a big
   // chocolate head with the throat and upper breast in the same chocolate (the bib fills the neck's notch
@@ -2523,7 +2406,7 @@ const ARCHES: Arche[] = [
       );
     },
   },
-  // 74 - BLACK-HEADED IBIS (U4e, selection.md section 3: "white body; bare black head and neck; a long
+  // 68 - BLACK-HEADED IBIS (U4e, selection.md section 3: "white body; bare black head and neck; a long
   // down-curved black bill"). Drawn the way paragraph 43 asks for a pale bird: the white held INSIDE the
   // species' own darker colours rather than laid on the paper. In front, the bare black head and neck as
   // one shape (the round head and a thick neck whose edges leave the head on its own tangents and bow in
@@ -2532,16 +2415,22 @@ const ARCHES: Arche[] = [
   // the jet-black ornamental plumes the adult carries over its tail in the breeding season, drooping past
   // the rump with the wing's tip lying on them. Below, a slate shade along the belly's own arc and two
   // black legs. No black on the wing tips: that is the Sacred Ibis. The bill is the sickle, 6.3 deep at
-  // the face curving down to a 2.4 round tip. Nine shapes.
+  // the face curving down to a 2.4 round tip. Gate 2 (brief ¶44): "these colors are so boring. It's just
+  // black and white corporate stuff... I would really try to make the colors nicer." Same shape and bill,
+  // the bird's own warmer colours: a warm ivory body, the head and neck a black with a blue-green gloss
+  // laid as one sheen over the crown, the scarlet bare skin the adult shows under the wing as one band
+  // along the wing's lower edge, warm grey scapulars and darker drooping plumes, and the warm buff shade
+  // now wrapping the breast as well as the belly so the ivory is held inside colour all round (¶43).
+  // Eleven shapes.
   {
-    name: "Black-headed Ibis (candidate)",
+    name: "Black-headed Ibis",
     skip: [],
     draw: () => {
-      const WHT = "#DADFE5", SHADE = "#AEB6C1", WING = "#939DA9", BLK = "#262326", HOOD = "#302C2F";
+      const IVORY = "#F2E9D7", SHADE = "#D6C4A6", WING = "#A6998A", PLUME = "#776A5E", BLK = "#262326", HOOD = "#1F272B", SHEEN = "#2E5251", SKIN = "#D2433A";
       return (
         <g>
-          {/* the black breeding plumes over the tail, root under the body, drooping past the rump to a soft round end */}
-          <path d="M33 63 Q22 64 16.5 72 Q14 77.5 18.5 78.3 Q25 77.5 34 70 Z" fill={BLK} />
+          {/* the breeding plumes over the tail, a warm dark grey, root under the body, drooping past the rump to a soft round end */}
+          <path d="M33 63 Q22 64 16.5 72 Q14 77.5 18.5 78.3 Q25 77.5 34 70 Z" fill={PLUME} />
           {/* two black legs, tops under the body, round-ended */}
           <path d="M40 76 Q39 83 40 88.3 Q40.5 90.6 42.6 90.4 Q44.4 90 44 88 Q43 83 44 76 Z" fill={BLK} />
           <path d="M50 76 Q49 83 50 88.3 Q50.5 90.6 52.6 90.4 Q54.4 90 54 88 Q53 83 54 76 Z" fill={BLK} />
@@ -2549,17 +2438,21 @@ const ARCHES: Arche[] = [
           <path d="M72 29.6 Q85 30.5 90.6 47.6 Q91.2 50.2 89 49.4 Q83 36.5 72.5 36.2 Z" fill={BLK} />
           {/* bare black head and neck, one shape: the throat leaving the head on its tangent and bowing in, the base under the body, the nape bowing in back up to the head, then round over the crown */}
           <path d="M73.96 40.36 Q67.53 48.02 68.5 57.5 Q60 60.5 51.5 53 Q55.6 44.74 52.22 37.49 A13 13 0 1 1 73.96 40.36 Z" fill={HOOD} />
-          <ellipse cx="45" cy="62" rx="25" ry="19" fill={WHT} />
-          {/* slate shade under the belly: the body's own arc from the breast round to the rump, its inner edge one shallower curve, 6 deep at the bottom */}
-          <path d="M67.66 70.03 A25 19 0 0 1 21.51 68.5 Q45.42 80.74 67.66 70.03 Z" fill={SHADE} />
-          {/* slaty folded wing: the back's own arc from the neck's base to the rump, a round tip lying on the plumes, the lower edge one sag crossing above the body's middle so the white leads */}
+          {/* the gloss: one blue-green sheen on the head's own rim from the nape over the crown, its inner edge one bow */}
+          <path d="M51.2 29.74 A13 13 0 0 1 66.26 19.2 Q56 22.5 51.2 29.74 Z" fill={SHEEN} />
+          <ellipse cx="45" cy="62" rx="25" ry="19" fill={IVORY} />
+          {/* warm buff shade: the body's own arc from the neck's base round the breast and belly to the rump, its inner edge 3 in at the breast and 5 at the bottom */}
+          <path d="M68.49 55.5 A25 19 0 0 1 21.51 68.5 Q32 75.8 44 76.2 Q56 76.4 63 71.2 Q67.3 67 67 60 Q66.9 57.2 68.49 55.5 Z" fill={SHADE} />
+          {/* the scarlet bare skin under the wing: one band showing below the wing's lower edge, 2.4 at its widest, tapering to nothing at both ends */}
+          <path d="M22.8 72.4 Q38 73.6 55.4 51.2 Q36 58 22.8 72.4 Z" fill={SKIN} />
+          {/* warm grey folded wing (the scapular plumes): the back's own arc from the neck's base to the rump, a round tip lying on the plumes, the lower edge one sag crossing above the body's middle so the white leads */}
           <path d="M57 45.33 A25 19 0 0 0 20.38 65.3 Q17.5 71 22.5 72.5 Q36 70 56 50 Q58.5 47.5 57 45.33 Z" fill={WING} />
           <Eye cx={68} cy={30.5} r={4.6} disc="#0B0A0B" />
         </g>
       );
     },
   },
-  // 75 - SPOT-BREASTED FANTAIL (U4e, selection.md section 3: "dark grey-brown; white brow; white-spotted
+  // 69 - SPOT-BREASTED FANTAIL (U4e, selection.md section 3: "dark grey-brown; white brow; white-spotted
   // breast; a tail fanned wide. A silhouette nothing else has"). The fan is the bird: a near-black fan
   // spread up and back from the rump, four round feather tips round its rim, its lower side sagging out
   // into the first tip, the last tip dipping behind the back (a dome lying along the back read as a
@@ -2569,7 +2462,10 @@ const ARCHES: Arche[] = [
   // own arc, seven white spots on the breast (one mark), and the white brow as a short level stripe from
   // over the eye's front to just behind it: the whites held inside the dark so none touches the paper
   // (paragraphs 25 and 43). Kept apart from the Magpie-Robin (14) and the Indian Robin (15) by the fan
-  // and by grey-brown over buff, not black over white. Eight shapes and the spots.
+  // and by grey-brown over buff, not black over white. Eight shapes and the spots. Gate 2 (brief ¶44,
+  // "It's a bit small. I don't know why"): the fan set the bird's reach, so it is now folded in toward
+  // the body (0.585 across, 0.9 up, about the rump) and cocked more upright, its four tips kept, which
+  // seats the bird at 1.44 instead of 1.18.
   {
     name: "Spot-breasted Fantail",
     skip: [],
@@ -2578,7 +2474,7 @@ const ARCHES: Arche[] = [
       return (
         <g>
           {/* the fanned tail, spread up and back from the rump: the lower side sagging out into the first round feather tip, three more tips round the rim, the last dipping behind the back; root inside the body */}
-          <path d="M33 66 Q12 69 8.5 60 Q6.93 55.95 13.73 54.87 Q10.03 46.44 19.14 47.68 Q19.51 38.49 27.16 43.59 Q31.34 34.16 38.16 46.09 Q40 58 33 66 Z" fill={FAN} />
+          <path d="M34.24 65.40 Q21.96 68.10 19.91 60.00 Q18.99 56.36 22.97 55.38 Q20.81 47.80 26.14 48.91 Q26.35 40.64 30.83 45.23 Q33.27 36.74 37.26 47.48 Q38.34 58.20 34.24 65.40 Z" fill={FAN} />
           <ellipse cx="51" cy="61" rx="22" ry="20" fill={BELLY} />
           {/* dark breast: from under the bill down the throat (the neck's notch, on both outlines' tangents), the body's front, a hem sagging 3, its rear under the wing */}
           <path d="M74.65 46.46 Q70.78 51.98 71.61 54 A22 20 0 0 1 72.75 64 Q63 71 53 61.5 Q57 52 62 48 Q68 46 74.65 46.46 Z" fill={DARK} />
@@ -2598,7 +2494,7 @@ const ARCHES: Arche[] = [
       );
     },
   },
-  // 76 - COMMON IORA, the breeding male of the valley's race (U4e, selection.md section 3: "yellow with
+  // 70 - COMMON IORA, the breeding male of the valley's race (U4e, selection.md section 3: "yellow with
   // black wings and two white wing bars. Only if the reviewer can hold it apart from the two orioles at
   // 40px"). Held apart by where the black sits: ON TOP, a black cap on the head's own outline from above
   // the bill to the nape that meets a black back and folded wing on the back's own arc, over a lemon face
@@ -2694,35 +2590,29 @@ export const SPECIES_FULL_NAMES: string[] = [
   "Chestnut-headed Bee-eater",
   "Tricolored Munia",
   "Small Minivet",
-  "Orange-breasted Green-Pigeon",
+  "Yellow-footed Green-Pigeon", // index 48: the Orange-breasted's slot, taken by the Yellow-footed at gate 2 (brief ¶44); its old slug still resolves
   "Indian White-eye",
   "Indian Roller", // index 50, reserved; see the ARCHES entry and GALLERY_SPECIES below
-  "Yellow-footed Green-Pigeon (candidate)", // index 51, a Q3 candidate beside the Orange-breasted (48) until he picks
-  "Asian Paradise Flycatcher (candidate)", // index 52, U3a's second take on 26; he keeps one
-  "Peregrine Falcon (candidate)", // index 53, U3a's second take on 32; he keeps one
-  "Blue-capped Rock-Thrush (candidate)", // index 54, U3b's Q4 candidate beside Tickell's (44); he keeps one
-  "Small Minivet (candidate)", // index 55, U3b's Q10 second take on 47; he keeps one
-  "Sirkeer Malkoha (candidate)", // index 56, U3b's Q10 second take on 11; he keeps one
-  "Grey Junglefowl", // index 57, U4a, a new species
-  "Indian Spot-billed Duck", // index 58, U4a, a new species
-  "Grey-headed Swamphen", // index 59, U4a, a new species
-  "Black-winged Kite", // index 60, U4a, a new species
-  "Indian Eagle-Owl", // index 61, U4b, a new species
-  "Common Tailorbird", // index 62, U4b, a new species
-  "Common Kestrel", // index 63, U4b, a new species
-  "Black-crowned Night Heron", // index 64, U4b, a new species
-  "Pied Kingfisher", // index 65, U4c, a new species
-  "Wire-tailed Swallow", // index 66, U4c, a new species
-  "Grey Wagtail", // index 67, U4c, a new species
-  "Rock Pigeon", // index 68, U4c, a new species
-  "Red-vented Bulbul", // index 69, U4d, a new species (Q6)
-  "White-browed Bulbul", // index 70, U4d, a new species (Q6), the PDF's "Murukku bird"
-  "Red-wattled Lapwing (candidate)", // index 71, U4d's Q2 candidate beside the Yellow-wattled (24); he keeps one
-  "Little Grebe", // index 72, U4e, a new species from the reserve
-  "Scaly-breasted Munia", // index 73, U4e, a new species from the reserve
-  "Black-headed Ibis (candidate)", // index 74, U4e, from the reserve; held back until he says yes (one more grey-and-white bird, brief ¶43)
-  "Spot-breasted Fantail", // index 75, U4e, a new species from the reserve
-  "Common Iora", // index 76, U4e, a new species from the reserve
+  "Grey Junglefowl", // index 51, U4a, a new species
+  "Indian Spot-billed Duck", // index 52, U4a, a new species
+  "Grey-headed Swamphen", // index 53, U4a, a new species
+  "Black-winged Kite", // index 54, U4a, a new species
+  "Indian Eagle-Owl", // index 55, U4b, a new species
+  "Common Tailorbird", // index 56, U4b, a new species
+  "Common Kestrel", // index 57, U4b, a new species
+  "Black-crowned Night Heron", // index 58, U4b, a new species
+  "Pied Kingfisher", // index 59, U4c, a new species
+  "Wire-tailed Swallow", // index 60, U4c, a new species
+  "Grey Wagtail", // index 61, U4c, a new species
+  "Rock Pigeon", // index 62, U4c, a new species
+  "Red-vented Bulbul", // index 63, U4d, a new species (Q6)
+  "White-browed Bulbul", // index 64, U4d, a new species (Q6), the PDF's "Murukku bird"
+  "Red-wattled Lapwing", // index 65, kept as a real species at gate 2 (brief ¶44)
+  "Little Grebe", // index 66, U4e, a new species from the reserve
+  "Scaly-breasted Munia", // index 67, U4e, a new species from the reserve
+  "Black-headed Ibis", // index 68, U4e, kept as a real species at gate 2 (brief ¶44)
+  "Spot-breasted Fantail", // index 69, U4e, a new species from the reserve
+  "Common Iora", // index 70, U4e, a new species from the reserve
 ];
 
 /**
@@ -2781,6 +2671,16 @@ const SLUG_TO_SPECIES_INDEX: Record<string, number> = SPECIES_SLUGS.reduce(
   },
   {} as Record<string, number>
 );
+
+/**
+ * A slug a member may still hold for a slot whose species was replaced. Gate 2 of the 2026-10
+ * birds expansion gave slot 48 to the Yellow-footed Green-Pigeon (brief ¶44); anyone stored as the
+ * Orange-breasted keeps that slot rather than falling through to their hash bird.
+ */
+const RENAMED_SLUGS: Record<string, string> = {
+  "orange-breasted-green-pigeon": "yellow-footed-green-pigeon",
+};
+for (const [old, now] of Object.entries(RENAMED_SLUGS)) SLUG_TO_SPECIES_INDEX[old] = SLUG_TO_SPECIES_INDEX[now];
 
 /**
  * Which ids may wear each reserved species. A slug naming one of these resolves for the listed

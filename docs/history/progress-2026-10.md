@@ -1,3 +1,15 @@
+## 2026-10-23 (birds) — the gate-2 round: his picks resolved and his notes drawn in
+
+He looked at every sheet and answered bird by bird. The Paradise Flycatcher keeps the first drawing,
+now seated as big as its neighbours; the Peregrine takes the second drawing with the first one's
+slimmer bill; the Yellow-footed Green-Pigeon takes the Orange-breasted's slot; the new Sirkeer
+Malkoha takes its slot; Tickell's and the Small Minivet stay; the Red-wattled Lapwing joins beside
+the Yellow-wattled in its shape; the Black-headed Ibis joins in warmer colours. The birds he named
+were fixed: less grey on the Kite and Night Heron, a happier White-browed Bulbul, a clearer
+Red-whiskered face, shorter robin wings and tails, a rose Starling, the Thrush's orange layers, a
+readable Jacobin, the Black Eagle's curved lines, the old Brahminy Kite back. 71 birds, 142 contact
+photos. Nothing pushed by this session; the work up to U4d was already live.
+
 ## 2026-10-23 (trivia) — the gate writes down what happens at it: every question shown, skipped and answered
 
 His, 2026-10-23: "I want to know what people are typing in, which questions people don't like,
