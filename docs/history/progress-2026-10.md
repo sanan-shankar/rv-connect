@@ -1,14 +1,12 @@
-## 2026-10-23 (birds) — the gate-2 round: his picks resolved and his notes drawn in
+## 2026-10-23 (trivia) — the gate's two reads run side by side, and a swap's two rows keep their order
 
-He looked at every sheet and answered bird by bird. The Paradise Flycatcher keeps the first drawing,
-now seated as big as its neighbours; the Peregrine takes the second drawing with the first one's
-slimmer bill; the Yellow-footed Green-Pigeon takes the Orange-breasted's slot; the new Sirkeer
-Malkoha takes its slot; Tickell's and the Small Minivet stay; the Red-wattled Lapwing joins beside
-the Yellow-wattled in its shape; the Black-headed Ibis joins in warmer colours. The birds he named
-were fixed: less grey on the Kite and Night Heron, a happier White-browed Bulbul, a clearer
-Red-whiskered face, shorter robin wings and tails, a rose Starling, the Thrush's orange layers, a
-readable Jacobin, the Black Eagle's curved lines, the old Brahminy Kite back. 71 birds, 142 contact
-photos. Nothing pushed by this session; the work up to U4d was already live.
+From the room's review pass. `checkTrivia` fetched the attempt limit and the room-accepted answers
+one after the other; they are independent, so they now share one round trip to Mumbai on the path
+every Centenary signup takes. `recordTrivia` stamps each row a millisecond apart in the order
+given, because one insert had given a swap's skip and the next question the same instant and left
+the report to untangle them. `questionById` is a map. The phone privacy baseline moves with the
+entry-question bullet the recording commit added; the desktop one is held back, see the room's
+entry.
 
 ## 2026-10-23 (trivia) — the gate writes down what happens at it: every question shown, skipped and answered
 

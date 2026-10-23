@@ -279,6 +279,8 @@ export function judge(q: Question, answer: string, added: readonly string[] = []
   return { ok: false, how: null, matched: null };
 }
 
+const BY_ID = new Map(TRIVIA_QUESTIONS.map((q) => [q.id, q]));
+
 export function questionById(id: string): Question | undefined {
-  return TRIVIA_QUESTIONS.find((q) => q.id === id);
+  return BY_ID.get(id);
 }

@@ -94,7 +94,14 @@ export async function checkTrivia(
 
   // Attempts are metered per IP in the shared store (see the note above).
   // The refusal is the shared sentence, not a hand-typed cousin of it.
-  const limited = await rateLimit("trivia", await clientIp());
+  // The answers accepted from the admin room are fetched alongside rather
+  // than after: two independent round trips to Mumbai on the one path
+  // every Centenary signup takes. Wasted on a refusal, which is rare.
+  const ip = await clientIp();
+  const [limited, added] = await Promise.all([
+    rateLimit("trivia", ip),
+    q ? addedAnswers(q.id) : Promise.resolve([]),
+  ]);
   if (!limited.ok) {
     if (q) await recordTrivia(browserId, [{ kind: "limited", questionId: q.id, answer: typed }]);
     return { ok: false, error: limited.error };
@@ -104,7 +111,7 @@ export async function checkTrivia(
     return { ok: false, error: "That question expired. Please try again." };
   }
 
-  const verdict = judge(q, typed, await addedAnswers(q.id));
+  const verdict = judge(q, typed, added);
   await recordTrivia(browserId, [
     {
       kind: verdict.ok ? "right" : "wrong",

@@ -107,7 +107,12 @@ export async function recordTrivia(browserId: string, events: TriviaEventInput[]
      anybody, and "is somebody abroad poking at the gate" needs no more. */
   const country = h.get("x-vercel-ip-country");
 
-  const rows = events.map((e) => ({
+  /* Stamped here, a millisecond apart in the order given, rather than left
+     to the column default: one insert would give a swap's skip and the next
+     question the same instant, and the order is known now and lost after. */
+  const at = Date.now();
+  const rows = events.map((e, i) => ({
+    createdAt: new Date(at + i),
     browserId,
     questionId: e.questionId.slice(0, 40),
     kind: e.kind,
