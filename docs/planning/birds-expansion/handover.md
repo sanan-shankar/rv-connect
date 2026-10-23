@@ -33,13 +33,12 @@ flag is his call alone (¶39), and the Hoopoe and the Indian Roller are never de
 
 ## Resume here (kept current; read before the board)
 
-**State on 2026-10-23, closed.** Every unit is DONE and committed; he answered gate 2 and the round
-that followed is in. The campaign is finished unless he sends more directions; any he sends become a
-new unit on the board, read against brief ¶43 and ¶44. Left for him, not for a session: whether the
-recoloured Pied Kingfisher stays (one member wears it; dropping it needs a slug alias so that member
-keeps a bird); the Yellow-wattled Lapwing's legs run past the avatar's box and are cut at the bottom,
-left alone because fitting them means shrinking the bird he loves or cutting its legs; the desktop
-visual baselines, red on this Mac's scrollbar; the six dependency advisories; and the push.
+**State on 2026-10-23, closed.** Every unit is DONE and committed, including U8: his last touches and
+the curated order of the birds page (`ordering.md`). The campaign is finished unless he sends more
+directions; any he sends become a new unit on the board, read against brief ¶43 and ¶44. Left for
+him, not for a session: the desktop visual baselines, red on this Mac's scrollbar; the dependency
+advisories (seven on 2026-10-23); and the push, which also ships the missing contact photos for
+the new birds already worn on the live site.
 
 **Then:** nothing, until he writes (see the board and "The units").
 Owner answers are all in; nothing is owner-gated until gate 2, which is rendered sheets and
@@ -97,6 +96,7 @@ before/after pairs, not prose (he decides by seeing, Q5).
 | U6 Close-out | DONE | 2026-10-23. The copy that said fifty reads `GALLERY_SPECIES.length` (the birds page description, the guide's birds chapter, the Support page's "See all" button); 154 contact photos regenerated (77 drawings x 2) and pinned by a test to twice the names; mobile baselines for /birds and /support updated after looking at both diffs; desktop baselines NOT updated (see the gate-2 report: every desktop route is red on this Mac's scrollbar); spec banner; the gate-2 sheets in `e2e/.shots/birds/gate2/` |
 | Gate 2, the owner looks | DONE | 2026-10-23: he answered every question after looking at the sheets (brief ¶44, verbatim; the reading under "Owner answers") |
 | U7 Gate-2 round | DONE | 2026-10-23. His picks resolved (Paradise A, made bigger; Peregrine B with A's bill; Yellow-footed Green-Pigeon at 48; Tickell's A; Minivet A; Malkoha B; Yellow-wattled kept and the Red-wattled kept beside it in its shape; Ibis kept with warmer colours; Pied Kingfisher recoloured navy and ivory and kept for him to judge); his fixes on 13, 14, 15, 23, 33, 35, 36, 54, 58, 64, 69; the Brahminy Kite restored. 71 drawings, 142 photos, mobile /birds rebaselined, everything re-centred |
+| U8 Last touches and the order | DONE | 2026-10-23, his words in the session (not in the brief; quoted in the session log below). The Yellow-wattled Lapwing's legs end inside the box (the Red-wattled's legs, drawn on the same body; size unchanged); the rounder Small Minivet he meant restored to slot 47; the Yellow-throated Bulbul redrawn simpler and as big as the Treepie; the Brahminy Starling a natural layered cinnamon; the Ibis rounder; and the birds page and picker in a curated order (`bird-gallery-order.ts`, reasoning in `ordering.md`), pinned by a test |
 
 ---
 
@@ -800,3 +800,18 @@ Jacobin's wing readable, the Black Eagle's curved lines back). No review: he was
 runner looked at every bird and the whole set. Found the same day: the campaign up to U4d had been
 pushed around 2026-10-17, so about twenty members wear new birds on the live site. Another session's
 new trivia page fails the loading-boundary test; not this campaign's, left alone.
+
+### 2026-10-23, U8, last touches and the order (one Opus hand; the runner on the order)
+
+His words in the session, verbatim: *"Obviously, the cutoff legs of the lapwing are not acceptable.
+I don't know how you just left that. Pied Kingfisher, yeah, sure, just keep it. This list of birds
+is fine. The only last task remaining is ordering them in a nice way on the list of birds page on
+the website."* Then: *"also the minivet hasn't changed to the bigger one?brahminy starling colour
+doesn't look natural. looks lik ice cream. yellow throated bulbul is noticeable smaller than say
+treepie. that doesn't make sense. also the ytb can be better I think it's a bit overcomplicated and
+not that beautiful. it is an iconic bird of the school. also black headed ibis just make it a bit
+more circular."* The lesson from the Lapwing: a cut-off is never left for him to judge, even on a
+bird he loves; it is fixed in a way that keeps what he loves (here, its size). The "Small Minivet is
+good" reading at gate 2 was wrong; he meant the new one. The order: measured every bird, wrote the
+seven aims down, searched five structures by annealing, rendered each as the real grid, and took
+the overture plus a journey with rests; full account in `ordering.md`.

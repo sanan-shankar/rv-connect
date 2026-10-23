@@ -1,3 +1,14 @@
+## 2026-10-23 (birds) — the birds page in a designed order, and his last touches
+
+The birds page and the supporters' picker now show the birds in a curated order. The brightest
+twelve open as one compressed rainbow, so the first screen at any width shows the whole palette;
+the other vivid birds then travel the colour wheel again, with the black, grey and brown birds
+spread evenly between them as rests; no look-alikes touch at 2, 3, 4 or 5 columns, and the last row
+is all stars. Five orders were tried and judged as the real grid; the reasoning is in
+`docs/planning/birds-expansion/ordering.md` and a test keeps every bird in the order. Also: the
+Yellow-wattled Lapwing's legs no longer run off its circle, the rounder Small Minivet he meant is
+in, and the Yellow-throated Bulbul, Brahminy Starling and Black-headed Ibis were redrawn to his notes.
+
 ## 2026-10-23 (trivia) — /admin/trivia: the door, the answers worth a look, the questions best first
 
 The room the recording was for (`docs/spec/admin.md` §9.11), under The place in the admin rail. Top
