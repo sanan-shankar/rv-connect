@@ -72,6 +72,11 @@ export async function statsFilter() {
     search: {
       OR: [{ userId: null }, { userId: { notIn: ids } }],
     } satisfies Prisma.SearchLogWhereInput,
+    /* The trivia gate's rows have no account until the browser joins, so the
+       same NULL care as a search: an unlinked row is anybody's and stays. */
+    trivia: {
+      OR: [{ userId: null }, { userId: { notIn: ids } }],
+    } satisfies Prisma.TriviaEventWhereInput,
     /** `<column> NOT IN (...)` for raw SQL. The column is always a literal
      *  written in admin-analytics.ts, never input. */
     user: (column: string) => Prisma.sql`${Prisma.raw(column)} NOT IN (${Prisma.join(ids)})`,

@@ -1,3 +1,43 @@
+## 2026-10-23 (trivia) — /admin/trivia: the door, the answers worth a look, the questions best first
+
+The room the recording was for (`docs/spec/admin.md` §9.11), under The place in the admin rail. Top
+to bottom in the order he would act on it: the door (came, had a go, got through, joined, then
+what those numbers mean in sentences, and a live pill when someone is at the question now);
+answers worth a look, each with **Accept**; the ten questions ranked on one axis of ribbons
+(right first go, after a miss, moved on, missed, left), because only a shared baseline answers
+"which"; who could not get in, as trails of what they typed; every answer typed; the gate by day;
+and which generations know which question. Each question opens its own page, with what it accepts
+and how often each spelling is the one people use.
+
+All the arithmetic is `src/lib/trivia-report.ts`, pure and unit-tested. `/lab/trivia-gate` draws
+the same room from an invented month (`trivia-sample.ts`) so it could be judged before a real row
+existed, and that month caught a flaw: "worth accepting" first kept any answer two people typed,
+and at Centenary volumes a common misconception topped the list. It now wants nearness to an
+accepted answer, or three people who got in elsewhere. The ribbon colours went through the
+dataviz validator in both themes. Accept was driven end to end against the dev server: row,
+toast, question page, undo, audit lines both ways, and the live gate letting the accepted
+answer in; the probe rows were deleted, the two audit lines are real and stay. `PillNav` now
+serves the analytics tabs and the ranges alike, with a press state both lacked.
+
+**`npm run visual` is red on eleven desktop routes that are not this work's**: landing, login,
+feed, directory, letters, catch-ups, both Collection views, support, birds and about. Every one
+has its content column about 7px left of the baseline, and /birds is 579px taller, which is the
+birds gate-2 round (f42e4eb4) landing on top of this session; mobile passes throughout. The
+desktop privacy baseline is held back with them, because rebaselining it alone would bake that
+shift in. Whoever rebaselines the birds takes privacy too, after looking.
+
+## 2026-10-23 (birds) — the gate-2 round: his picks resolved and his notes drawn in
+
+He looked at every sheet and answered bird by bird. The Paradise Flycatcher keeps the first drawing,
+now seated as big as its neighbours; the Peregrine takes the second drawing with the first one's
+slimmer bill; the Yellow-footed Green-Pigeon takes the Orange-breasted's slot; the new Sirkeer
+Malkoha takes its slot; Tickell's and the Small Minivet stay; the Red-wattled Lapwing joins beside
+the Yellow-wattled in its shape; the Black-headed Ibis joins in warmer colours. The birds he named
+were fixed: less grey on the Kite and Night Heron, a happier White-browed Bulbul, a clearer
+Red-whiskered face, shorter robin wings and tails, a rose Starling, the Thrush's orange layers, a
+readable Jacobin, the Black Eagle's curved lines, the old Brahminy Kite back. 71 birds, 142 contact
+photos. Nothing pushed by this session; the work up to U4d was already live.
+
 ## 2026-10-23 (trivia) — the gate's two reads run side by side, and a swap's two rows keep their order
 
 From the room's review pass. `checkTrivia` fetched the attempt limit and the room-accepted answers

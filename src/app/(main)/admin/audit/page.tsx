@@ -32,6 +32,8 @@ const ACTION_LABEL: Record<string, string> = {
   "admin.verify": "Verified",
   "admin.unverify": "Removed verification",
   "admin.merge": "Merged accounts",
+  "admin.trivia_accept": "Accepted a trivia answer",
+  "admin.trivia_unaccept": "Stopped accepting a trivia answer",
   "account.delete": "Deleted own account",
   "account.delete_request": "Asked to delete their account",
   "account.delete_cancel": "Cancelled their deletion",

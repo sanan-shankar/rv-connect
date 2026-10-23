@@ -703,11 +703,17 @@ named on the privacy page. Pinned by `src/lib/trivia-log-rule.test.mjs`.
 **What the room shows**, top to bottom, in the order the owner would act on it:
 
 1. **The door.** Came to the gate, had a go, got through, made an account, with the share kept at
-   each step and how many got through on their first answer.
-2. **Answers worth accepting.** Wrong answers re-judged against today's rules (so an answer
-   accepted since stops being listed), grouped by what they normalise to, and kept only when the
-   evidence says a real alumnus typed them: two or more different people, someone who got in
-   another way anyway, or a spelling within two letters of an accepted one. Each has **Accept**.
+   each step, then what those numbers mean in sentences: how many got in on their first answer,
+   how long it took, how many gave up, phones against computers, and what the one-letter
+   allowance let in. A live pill says when somebody is at the question right now.
+2. **Answers worth a look.** Wrong answers re-judged against today's rules (so an answer
+   accepted since stops being listed), grouped by what they normalise to, and kept only on
+   evidence: near an accepted answer (within two letters, containing one, or part of one), or
+   typed by three or more people who got in on another question. Near ones list first. Each has
+   **Accept**. *The first cut also kept anything two people typed, or anyone who got in elsewhere;
+   the lab's invented month showed that at Centenary volumes nearly everyone gets in somewhere, so
+   a common misconception ("Banyan" for Golden, Silver, Neem) topped the list. Everything turned
+   away is still on its question's own page.*
 3. **The questions, best first.** One card per question, the question set in the heading face,
    with a ribbon of how its showings ended (right first go, right after a miss, moved on, missed,
    left without answering), its median time to answer and a plain verdict. Each card opens the
@@ -717,6 +723,10 @@ named on the privacy page. Pinned by `src/lib/trivia-log-rule.test.mjs`.
    of what they typed. Some of these will be alumni the gate failed.
 5. **What people typed**, newest first, with the member's bird and name once they have joined.
 6. **The rhythm**: the gate's traffic by day, which is what the Centenary week will look like.
+
+**`/lab/trivia-gate`** draws the same room from an invented month (`src/lib/trivia-sample.ts`,
+seeded, ~220 visitors with a Centenary spike), so the design could be judged before a real row
+existed. Accept is switched off there.
 
 **Accept is the one write.** `TriviaAnswer` holds answers accepted from this room, matched exactly
 (after `normalize()`) and never widened by the one-letter allowance, because a panel entry is a

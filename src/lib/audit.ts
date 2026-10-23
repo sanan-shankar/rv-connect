@@ -29,6 +29,10 @@ export type AuditAction =
   | "admin.verify"
   | "admin.unverify"
   | "admin.merge"
+  // An answer the trivia gate turned away, accepted from /admin/trivia, and
+  // the undo. They change who can get into the site.
+  | "admin.trivia_accept"
+  | "admin.trivia_unaccept"
   | "account.delete_request"
   | "account.delete_cancel"
   | "account.purge"

@@ -51,6 +51,23 @@ test("nothing outside the known files touches the gate's tables", () => {
   assert.deepEqual(strays, [], "read the gate's tables through src/lib/admin-trivia.ts");
 });
 
+test("the room's read leaves the owner's and the test account's rows out", () => {
+  const room = decomment(read("src/lib/admin-trivia.ts"));
+  const call = room.slice(room.indexOf("prisma.triviaEvent.findMany"));
+  assert.match(call.slice(0, call.indexOf("}),")), /\.\.\.counted\.trivia/, "statsFilter().trivia, as every activity read does");
+  assert.match(decomment(read("src/lib/stats-exclusion.ts")), /trivia: \{\s*OR: \[\{ userId: null \}/, "an unlinked row is anybody's and must stay");
+});
+
+test("the room's one write is an admin's, and is audited both ways", () => {
+  const actions = decomment(read("src/app/(main)/admin/trivia/actions.ts"));
+  for (const fn of ["acceptTriviaAnswer", "unacceptTriviaAnswer"]) {
+    const body = actions.slice(actions.indexOf(`export async function ${fn}`));
+    const own = body.slice(0, body.indexOf("\n}\n"));
+    assert.match(own, /await requireAdminActor\(\)/, `${fn} must check the caller is an admin`);
+    assert.match(own, /writeAudit\(/, `${fn} changes who can get in, so it is audited`);
+  }
+});
+
 test("the gate log is swept after a year, and the privacy page says so", () => {
   const sweep = decomment(read("src/lib/retention.ts"));
   assert.match(sweep, /gateLog: 365/);

@@ -10,6 +10,7 @@ import {
   Mail,
   ChartLine,
   ScrollText,
+  DoorOpen,
   type LucideIcon,
 } from "lucide-react";
 
@@ -128,6 +129,12 @@ export const ADMIN_NAV: AdminNavGroup[] = [
         label: "Analytics",
         icon: ChartLine,
         blurb: "Who is here, what they open, and where they come from.",
+      },
+      {
+        href: "/admin/trivia",
+        label: "Trivia gate",
+        icon: DoorOpen,
+        blurb: "What newcomers type at the question, and which questions work.",
       },
     ],
   },

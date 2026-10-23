@@ -464,6 +464,14 @@ export const REGISTRY: LabEntry[] = [
     note: "Six early non-bird mark directions (wordmark only, monogram, valley + hills, feather, leaf, outline monogram) to choose from. Valley + hills won and is now PeaksMark, documented live at /lab/logo.",
   },
 
+  {
+    href: "/lab/trivia-gate",
+    title: "Trivia gate, a busy month",
+    group: "Second look",
+    status: "active",
+    note: "The admin Trivia gate room drawn from an invented month, Centenary included, so it can be judged before real answers arrive.",
+  },
+
   /* ---------------------------------------------------------------- *
    *  Tools: dev-only utilities, not design rooms
    * ---------------------------------------------------------------- */

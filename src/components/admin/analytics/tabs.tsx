@@ -40,33 +40,49 @@ export function isViewKey(v: string | undefined): v is ViewKey {
   return !!v && VIEWS.some((x) => x.key === v);
 }
 
-export function AnalyticsTabs({ active }: { active: ViewKey }) {
+/**
+ * A row of pill links, one of them the page you are on. The analytics views
+ * and the trivia gate's time ranges are both this, so the look -- and the
+ * hover, press and focus the protocol audit polices -- lives once.
+ */
+export function PillNav({
+  items,
+  active,
+  href,
+  label,
+}: {
+  items: readonly { key: string; label: string; blurb?: string }[];
+  active: string;
+  href: (key: string) => string;
+  label: string;
+}) {
   return (
     <nav
       /* Scrolls rather than wraps: six tabs wrap to two ragged lines at 390px,
          and a second row of navigation above the content reads as chrome. */
       className="-mx-1 flex gap-1 overflow-x-auto px-1 pb-0.5"
-      aria-label="Analytics views"
+      aria-label={label}
     >
-      {VIEWS.map((v) => {
+      {items.map((v) => {
         const current = v.key === active;
         return (
           <Link
             key={v.key}
-            href={`/admin/analytics?view=${v.key}`}
+            href={href(v.key)}
             aria-current={current ? "page" : undefined}
             title={v.blurb}
             className={cn(
               VIEW_PILL,
-              "transition-colors",
+              "transition-[background-color,color,transform] duration-150",
               "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
               current
                 ? "bg-canopy text-white"
                 : /* Lifts to the card surface on hover rather than sinking into
                      muted. The protocol audit catches the sink, and it is right
                      to: a control that darkens under the cursor reads as pressed
-                     before it has been. */
-                  "bg-secondary text-muted-foreground hover:bg-card hover:text-foreground",
+                     before it has been. The press is the house sink, a scale
+                     on :active, never on hover. */
+                  "bg-secondary text-muted-foreground hover:bg-card hover:text-foreground active:scale-[0.96]",
             )}
           >
             {v.label}
@@ -74,5 +90,16 @@ export function AnalyticsTabs({ active }: { active: ViewKey }) {
         );
       })}
     </nav>
+  );
+}
+
+export function AnalyticsTabs({ active }: { active: ViewKey }) {
+  return (
+    <PillNav
+      items={VIEWS}
+      active={active}
+      href={(key) => `/admin/analytics?view=${key}`}
+      label="Analytics views"
+    />
   );
 }
