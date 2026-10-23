@@ -75,6 +75,12 @@ const KEEP_DAYS = {
    *  30 -- so the rows this now removes are precisely the ones no query can
    *  reach. Keep this number and that lookback equal; the test says so too. */
   presence: 90,
+  /** TriviaEvent: 1 year, the same as the sign-in log it is modelled on.
+   *  Both are a record of strangers trying a door, and a question's numbers
+   *  need a season of showings before they say anything, which 90 days of
+   *  Centenary traffic and then a quiet spell would not give. Added
+   *  2026-10-23 (docs/spec/admin.md §9.11); the owner's to change. */
+  gateLog: 365,
 } as const;
 
 /**
@@ -131,6 +137,8 @@ const CUTOFF_STEPS = [
     run: (lt: Date) => prisma.visit.deleteMany({ where: { endedAt: { lt } } }) },
   { key: "searches", days: KEEP_DAYS.presence,
     run: (lt: Date) => prisma.searchLog.deleteMany({ where: { createdAt: { lt } } }) },
+  { key: "triviaEvents", days: KEEP_DAYS.gateLog,
+    run: (lt: Date) => prisma.triviaEvent.deleteMany({ where: { createdAt: { lt } } }) },
 ] as const;
 
 export type SweepResult = {
@@ -145,6 +153,7 @@ export type SweepResult = {
   outboundEmails: number;
   visits: number;
   searches: number;
+  triviaEvents: number;
   accountsPurged: number;
   /** Accounts that were due tonight and are still here, because the member
    *  signed in (which cancels the request) before their turn came round. */
@@ -222,7 +231,7 @@ export async function runRetentionSweep(): Promise<SweepResult> {
       return removed + emptied.count;
     }),
   );
-  // The eight plain cutoffs, from CUTOFF_STEPS above. Sequential like every
+  // The plain cutoffs, from CUTOFF_STEPS above. Sequential like every
   // other step: they share one serverless invocation's duration budget.
   const cut = {} as Record<(typeof CUTOFF_STEPS)[number]["key"], number>;
   for (const s of CUTOFF_STEPS) {

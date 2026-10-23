@@ -189,6 +189,8 @@ model User {
   // which is every row that existed when the tour shipped.
   guideSeenAt   DateTime?
   visits        Visit[]
+  // Their answers at the trivia gate, stamped when they joined (trivia-log.ts).
+  triviaEvents  TriviaEvent[]
   searches      SearchLog[]
   contentViews  ContentView[] @relation("ContentViewer")
   createdAt     DateTime  @default(now())
@@ -1637,6 +1639,70 @@ model LoginAttempt {
   // `userId` only a join key onto User.id. 8 and 24 lifetime scans, 0 across
   // /admin/analytics?view=journey on 2026-09-07. Written every sign-in, so
   // they cost on the busiest write in the app.
+}
+
+// ─── The trivia gate ─────────────────────────────────────────────────────────
+//
+// Owner, 2026-10-23: "I want to know what people are typing in, which
+// questions people don't like, which questions people like." The gate kept
+// nothing until this table. One row per thing that happened there, written by
+// src/lib/trivia-log.ts (production only, never the demo, capped per hour)
+// and read by /admin/trivia. docs/spec/admin.md §9.11 is the design.
+//
+// The typed text is kept as typed (trimmed, capped at 200), because what a
+// real alumnus types for a right answer the gate refused is the whole point.
+// Never a password: the gate comes before the signup form.
+model TriviaEvent {
+  id String @id @default(cuid())
+
+  // The browser's rv_trivia_id cookie: the thread that ties one person's
+  // tries together before they have an account.
+  browserId  String
+  // A TRIVIA_QUESTIONS id in src/lib/trivia-bank.ts, e.g. "banyan".
+  questionId String
+  // "shown" | "skipped" | "dontknow" | "wrong" | "right" | "limited"
+  kind       String
+  // What they typed. Null on "shown" and "skipped", which have no words.
+  answer     String?
+  // How the judge decided: "exact" | "typo" | "mention" | "added" on a right
+  // answer, "refused" on a wrong one that handed back the question's own word.
+  how        String?
+  // The accepted entry a right answer matched, normalised.
+  matched    String?
+  // "phone" | "tablet" | "desktop", and Vercel's country code. Coarse on
+  // purpose: these are people who have not joined anything yet.
+  device     String?
+  country    String?
+
+  // Set when this browser went on to make an account (linkTriviaToMember).
+  // SetNull, not Cascade: a deleted member's answers stop being theirs and
+  // stay in the counts as anybody's.
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  // The signup link's updateMany, once per new member.
+  @@index([browserId])
+}
+
+// Answers accepted from /admin/trivia, on top of the bank in trivia-bank.ts.
+// Matched exactly after normalize(), never widened by the one-letter rule:
+// each is one specific thing somebody typed and the owner looked at.
+model TriviaAnswer {
+  id         String   @id @default(cuid())
+  questionId String
+  // Normalised, the form the judge compares.
+  answer     String
+  // What was actually typed, for the room to show. Not used to judge.
+  typed      String
+  // The admin who accepted it. No foreign key, like AuditLog: the record of
+  // who changed the gate outlives the account.
+  addedById  String?
+  createdAt  DateTime @default(now())
+
+  @@unique([questionId, answer])
 }
 
 // ─── The office roster ───────────────────────────────────────────────────────

@@ -1,3 +1,21 @@
+## 2026-10-23 (trivia) — the gate writes down what happens at it: every question shown, skipped and answered
+
+His, 2026-10-23: "I want to know what people are typing in, which questions people don't like,
+which questions people like." Nothing was kept: the answer was judged and dropped, a swap left no
+trace, and an "I don't know" never reached the server at all. Now `TriviaEvent` holds one row per
+thing that happens at the gate, with what was typed and which rule let a right answer in
+(`src/lib/trivia-log.ts`; design in `docs/spec/admin.md` §9.11). When the browser goes on to make an
+account, its last three days of rows are stamped with the new member.
+
+The bank and its judge moved to `src/lib/trivia-bank.ts`, since a "use server" file can only export
+actions and the coming admin room re-judges every turned-away answer against today's rules.
+`trivia-log-rule.test.mjs` walks every client file's imports to keep the bank off the browser, and
+proved it fails on a planted transitive import. `rv_trivia_id` now arrives with the first question
+and lives 30 days; the pass keeps its 30-minute life, and the write-path review agreed the M7
+binding is unweakened. Production only, never the demo, behind `after()`, 600 rows an hour
+site-wide, a year in the retention sweep, named on the privacy page and in SECURITY.md. The
+migration is applied to both databases. `TriviaAnswer` exists for the room's Accept button.
+
 ## 2026-10-23 (birds) — U6 and gate 2: the close-out, and the sheets for him to choose from
 
 The copy that said fifty birds now reads the gallery's own count (the birds page description,

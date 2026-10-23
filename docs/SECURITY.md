@@ -86,6 +86,7 @@ gate or a written public-by-design reason.
 | Login + audit logs | 1 year |
 | Sent-email log | 180 days |
 | Presence + search telemetry (`Visit`, `SearchLog`) | 90 days |
+| Trivia gate log (`TriviaEvent`) | 1 year |
 | Deleted accounts | purged 60 days after the request |
 
 *Notifications cut from 1 year to 30 days on 2026-09-04 (refactor audit 2, ORCH-04). They had
@@ -100,6 +101,12 @@ and neither had any expiry at all. Cut from 180 to 90 on 2026-08-25 (bug-report-
 one ~750-byte row per session, and at this project's own stated scale -- 2,000 members, 30 views a
 day -- 180 days of it is over half a gigabyte against a 500MB plan. 90 days is exactly the deepest
 lookback any analytics view uses, so nothing the owner can currently see gets shorter.*
+
+*Trivia gate log added 2026-10-23 (docs/spec/admin.md §9.11): what strangers type at the entry
+question, so the owner can see which questions work. A year, like the sign-in log, because both
+record people trying a door and a question needs a season of showings before its numbers mean
+anything. Written only by production, never the demo, capped at 600 rows an hour site-wide
+(`TRIVIA_ROWS_PER_HOUR`) because the gate answers anyone.*
 
 **Accountability** — `AuditLog` (no foreign keys ON PURPOSE: rows outlive the accounts they name)
 via `writeAudit()` (never throws; IS_DEMO short-circuits), covering every admin action, deletion

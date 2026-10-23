@@ -172,8 +172,11 @@ const MAX_VISITS_PER_DAY = 40;
  * older alumni struggling on phones", and no version of that question needs
  * the handset model. Hand-rolled rather than pulling a UA-parsing dependency
  * for six lines that will never need to be more precise than this.
+ *
+ * Exported for the trivia gate's log (src/lib/trivia-log.ts), which asks the
+ * same question of people who have not joined yet.
  */
-function parseAgent(ua: string) {
+export function parseAgent(ua: string) {
   const s = ua.toLowerCase();
 
   const device = /ipad|tablet|playbook|silk/.test(s)

@@ -13,6 +13,7 @@ import { MIN_PASSWORD, passwordProblem } from "@/lib/password-rule";
 import { yearClashMessage } from "@/lib/batch-year";
 import { mintHumanPass } from "@/lib/human-pass";
 import { hasPassedTrivia } from "./trivia-actions";
+import { linkTriviaToMember } from "@/lib/trivia-log";
 import { reportSwallowed } from "@/lib/report-error";
 import { isUniqueViolation } from "@/lib/prisma-errors";
 import { joinBatchGroup } from "@/lib/batch-catchups";
@@ -199,6 +200,11 @@ export async function registerUser(formData: FormData) {
     }
     throw err;
   }
+
+  /* Their answers at the trivia gate become theirs: the rows this browser
+     wrote there are stamped with the new id, behind the response, and a
+     failure is swallowed (trivia-log.ts). */
+  await linkTriviaToMember(user.id);
 
   /* Every alumnus is auto-added to their batch group ("Batch of {year}"),
      created on demand by the first person from that batch to join. No manual

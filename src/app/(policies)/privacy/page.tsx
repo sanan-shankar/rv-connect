@@ -60,6 +60,12 @@ export default function PrivacyPage() {
               the payment provider (Razorpay) and never touch this site.
             </>,
             <>
+              <strong>The entry question:</strong> what you typed at the question every new
+              account starts with, right or wrong, whether you asked for a different one,
+              the kind of device you used and your country. We read these to make the
+              questions fairer. Once you join, they are linked to your account.
+            </>,
+            <>
               <strong>Security and usage records:</strong> sign-in attempts, the network
               address requests come from (used for rate limiting and abuse prevention),
               and basic, first-party usage analytics that help us understand which parts
@@ -149,6 +155,7 @@ export default function PrivacyPage() {
             ["Contribution records", "10 years, in line with tax record keeping"],
             ["Notifications", "30 days"],
             ["Sign-in and security logs", "1 year"],
+            ["Answers at the entry question", "1 year"],
             ["Email delivery records", "180 days"],
             ["A deleted account", "Fully erased 60 days after you ask (see below)"],
           ]}

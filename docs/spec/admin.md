@@ -108,6 +108,7 @@ THE PLACE            the health of the thing
   Mail       /admin/mail
   Audit log  /admin/audit         (§9.10 -- not in the original plan at all)
   Analytics  /admin/analytics
+  Trivia gate /admin/trivia       + /admin/trivia/[questionId]  (§9.11, 2026-10-23)
 ```
 
 **`src/components/admin/admin-nav.ts` is the one source for that list**, read by the sidebar (which
@@ -665,6 +666,77 @@ Read-only, and deliberately so: an audit log an admin can edit is not one. The d
 (`admin.block`, `account.purge`) get human labels on the page; actor and target ids resolve to names
 where the account still exists and stay as ids where it does not, which is the point of keeping the
 record after the row is gone.
+
+### 9.11 Trivia gate (`/admin/trivia`, `/admin/trivia/[questionId]`)
+
+*(Added 2026-10-23.)* The owner: *"I want to know what people are typing in, which questions people
+don't like, which questions people like"*, and then *"think about everything that we'd want to
+collect over there to improve that part of the experience... make it actionable and insightful and
+useful and interesting."* Until this section the gate kept nothing: the answer was judged and
+dropped, a swap left no trace, and "I don't know" never even reached the server.
+
+**What is recorded** (`TriviaEvent`, one row per thing that happened at the gate, written by
+`src/lib/trivia-log.ts`):
+
+| Kind | When | Text kept |
+|---|---|---|
+| `shown` | a question is put in front of someone, first or after a swap | no |
+| `skipped` | the swap arrow | no |
+| `dontknow` | an "I don't know" in any of its forms (`trivia-dont-know.ts`) | yes |
+| `wrong` | judged wrong; `how = "refused"` when the question's own word was handed back | yes |
+| `right` | judged right; `how` says which rule let it in (`exact`, `typo`, `mention`, `added`) and `matched` which accepted entry | yes |
+| `limited` | turned away by the eight-in-ten-minutes limit | yes |
+
+Every row carries the browser's gate id (`rv_trivia_id`, now issued with the first question rather
+than the first answer, and kept 30 days so a person who comes back tomorrow is the same person),
+the question, a coarse device and the country from Vercel's edge header. **When that browser goes
+on to make an account, its rows are stamped with the new member's id** (`linkTriviaToMember`, from
+`registerUser`), which is what turns "somebody typed kaveri" into "Ramesh, batch of '84, typed
+kaveri" and lets the room split every number by generation.
+
+The guard rails are the analytics room's, unchanged: written only by the production deployment
+(`statsWritesEnabled`), never on the demo, behind `after()` so a statistics row can never slow or
+fail the gate, capped site-wide at `TRIVIA_ROWS_PER_HOUR` so a bot cannot fill the database
+(the LoginAttempt lesson, bug audit 3 L5-02), deleted after a year by the retention sweep, and
+named on the privacy page. Pinned by `src/lib/trivia-log-rule.test.mjs`.
+
+**What the room shows**, top to bottom, in the order the owner would act on it:
+
+1. **The door.** Came to the gate, had a go, got through, made an account, with the share kept at
+   each step and how many got through on their first answer.
+2. **Answers worth accepting.** Wrong answers re-judged against today's rules (so an answer
+   accepted since stops being listed), grouped by what they normalise to, and kept only when the
+   evidence says a real alumnus typed them: two or more different people, someone who got in
+   another way anyway, or a spelling within two letters of an accepted one. Each has **Accept**.
+3. **The questions, best first.** One card per question, the question set in the heading face,
+   with a ribbon of how its showings ended (right first go, right after a miss, moved on, missed,
+   left without answering), its median time to answer and a plain verdict. Each card opens the
+   question's own page: what is accepted and how often each entry is actually what people typed,
+   everything typed that was turned away, every answer ever given, and how each generation does.
+4. **People who could not get in.** Browsers that tried and never got through, each as the trail
+   of what they typed. Some of these will be alumni the gate failed.
+5. **What people typed**, newest first, with the member's bird and name once they have joined.
+6. **The rhythm**: the gate's traffic by day, which is what the Centenary week will look like.
+
+**Accept is the one write.** `TriviaAnswer` holds answers accepted from this room, matched exactly
+(after `normalize()`) and never widened by the one-letter allowance, because a panel entry is a
+specific thing somebody typed rather than a spelling family. Accepting and undoing both write the
+audit log. The bank in `src/lib/trivia-bank.ts` stays the reviewed source of truth; an entry that
+earns a permanent place belongs there, with its reason in a comment.
+
+Considered and not taken:
+
+- **Retiring a question from the panel.** The obvious action for a disliked question, held back
+  because every retirement makes the gate easier for a stranger and there is no data yet to say
+  which question deserves it. Revisit once a few hundred showings exist.
+- **A free "did you like this question?" tap.** A thumbs row under each question is one more thing
+  on a screen whose job is to be short, and skip rate already says it without asking.
+- **Where people arrived from** (a WhatsApp link, an email, a typed address). PostHog already holds
+  the page's referrer; WhatsApp's in-app browser sends none anyway.
+- **Keystroke timing or edits inside the box.** Watching someone type is a different act from
+  reading what they submitted, and the owner turned session replay off for that reason.
+- **Storing it in PostHog instead.** Events there cannot be joined to the member who later signs up,
+  and the generation split is the most interesting thing this room has.
 
 ---
 

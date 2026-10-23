@@ -90,7 +90,9 @@ export function TriviaGate({
   // an accumulating angle means it always turns the same way, never snaps back.
   const [swaps, setSwaps] = useState(0);
 
-  async function swapQuestion() {
+  // `said` is the "I don't know" that asked for the swap, if one did. It rides
+  // along so the admin room can read it (trivia-log.ts); the arrow sends none.
+  async function swapQuestion(said?: string) {
     if (!question || checking || passed) return;
     setError("");
     setAnswer("");
@@ -98,7 +100,7 @@ export function TriviaGate({
     // The bird tilts its head at the new question rather than reacting as if
     // something went wrong: asking for another question is a normal move.
     hoopoe.express("curious");
-    const q = await callAction(() => getTriviaQuestion(question.id));
+    const q = await callAction(() => getTriviaQuestion(question.id, said));
     if ("error" in q) {
       toast.error(q.error);
       return;
@@ -113,7 +115,7 @@ export function TriviaGate({
     // gives rather than a head shake (see trivia-dont-know.ts). Focus goes
     // back to the box, which a press on Check took it away from.
     if (saysDontKnow(answer)) {
-      void swapQuestion();
+      void swapQuestion(answer);
       answerFocusRef.current?.focus({ preventScroll: true });
       return;
     }
@@ -203,7 +205,7 @@ export function TriviaGate({
                     {"\u00a0"}
                     <button
                       type="button"
-                      onClick={swapQuestion}
+                      onClick={() => swapQuestion()}
                       disabled={checking || passed}
                       aria-label="Try a different question"
                       title="Try a different question"
