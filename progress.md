@@ -15,6 +15,7 @@ if the month is new), and add one line here, at the top of that month's list.
 
 ## October 2026 — [full entries](docs/history/progress-2026-10.md)
 
+- 2026-10-24 (audit) — bug audit 3 closed: 410 findings, 359 open, a fix-prompt for the campaign
 - 2026-10-23 (birds) — the birds page in a designed order, and his last touches
 - 2026-10-23 (birds) — the gate-2 round: his picks resolved and his notes drawn in
 - 2026-10-23 (trivia) — /admin/trivia: the door, the answers worth a look, the questions best first

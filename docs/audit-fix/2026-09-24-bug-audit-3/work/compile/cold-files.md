@@ -1,0 +1,154 @@
+# Cold files for C7 (computed 2026-10-24 by the orchestrator)
+
+## A. Glasswing top-250 files mentioned at most once across every report and verdict
+- `src/components/directory/alumni-map.tsx` (0)
+- `src/components/collection/photo-river.tsx` (1)
+- `src/components/support/costs-card.tsx` (1)
+- `src/components/settings/dark-gauntlet.tsx` (1)
+- `src/components/mascot/sidebar-hoopoe.tsx` (1)
+- `src/app/(auth)/verify-email/verify-client.tsx` (1)
+- `src/components/mascot/moments/not-found-stage.tsx` (0)
+- `src/components/common/pinch-zoom.ts` (0)
+- `src/components/landing/ambient-leaves.tsx` (0)
+- `src/components/posts/use-composer-uploads.ts` (1)
+- `src/app/(main)/catchups/(index)/page.tsx` (1)
+- `src/components/landing/footer-hoopoe.tsx` (1)
+- `src/components/common/location-picker.tsx` (0)
+- `src/components/auth/trivia-gate.tsx` (0)
+- `src/components/collection/photo-scrubber.tsx` (1)
+- `src/components/guide/guide-door.tsx` (1)
+- `src/components/collection/year-rail.tsx` (0)
+- `src/components/common/photo-aim.tsx` (0)
+- `src/components/profile/pen.tsx` (1)
+- `src/components/mascot/moments/logo-peek.tsx` (0)
+- `src/lib/image-record.ts` (1)
+- `src/components/mascot/moments/logo-easter-egg-hoopoe.tsx` (0)
+- `src/components/ui/sheet.tsx` (1)
+- `scripts/dev/sweep-stranded-originals.mjs` (1)
+- `src/app/(main)/collection/[id]/page.tsx` (0)
+- `src/components/admin/people/people-list.tsx` (1)
+- `src/components/landing/perching-birds.tsx` (1)
+- `src/components/onboarding/onboarding-flow.tsx` (0)
+- `src/components/settings/avatar-crop-dialog.tsx` (1)
+- `src/app/(main)/admin/content/page.tsx` (1)
+- `src/components/common/photo-carousel.tsx` (0)
+- `src/components/catchups/edition/navigator.tsx` (0)
+- `src/components/common/bird-avatar-v2.tsx` (1)
+- `src/components/mascot/hoopoe-playground.tsx` (1)
+- `src/components/mascot/moments/moment-hoopoe.tsx` (1)
+- `src/components/profile/profile-author-feed.tsx` (0)
+- `src/components/analytics/posthog-provider.tsx` (1)
+- `src/components/common/attach-image-dialog.tsx` (1)
+- `src/components/letters/letter-menu.tsx` (1)
+- `src/app/(main)/welcome/page.tsx` (1)
+- `scripts/qa/_shoot.mjs` (1)
+- `scripts/qa/map-cluster-verify.mjs` (0)
+- `src/app/(main)/admin/people/(index)/page.tsx` (1)
+- `src/app/(main)/admin/review/page.tsx` (0)
+- `src/components/catchups/index/archived-row.tsx` (0)
+- `src/components/common/use-user-search.ts` (1)
+- `src/components/feed/rail/letters-module.tsx` (0)
+- `src/components/mascot/hoopoe-warmup.tsx` (0)
+- `src/components/mascot/use-hoopoe-life.ts` (0)
+- `src/components/profile/houses-chain.tsx` (1)
+- `src/components/profile/saved-posts-feed.tsx` (0)
+- `src/components/support/bird-plate.tsx` (0)
+- `scripts/qa/lab-audit.mjs` (0)
+- `src/app/(auth)/verify-email/page.tsx` (1)
+- `src/components/admin/analytics/stat.tsx` (1)
+- `src/components/collection/photo-questions.tsx` (0)
+- `src/components/common/use-deferred-autofocus.ts` (0)
+- `src/components/directory/directory-grid.tsx` (0)
+- `src/components/guide/guide-overlay.tsx` (1)
+- `src/components/mascot/moments/celebration-detector.tsx` (1)
+- `src/components/mascot/moments/celebration-signals.tsx` (1)
+- `src/lib/geocode.ts` (1)
+- `scripts/dev/import-places.mjs` (1)
+- `scripts/dev/tag-photos-pick.mjs` (1)
+- `src/app/(main)/admin/audit/page.tsx` (1)
+- `src/app/lab/catchups/sketches/_reader.tsx` (0)
+- `src/components/catchups/index/catchup-shelf-view.tsx` (1)
+- `src/components/common/use-closing-dialog.ts` (0)
+- `src/components/guide/chapters/catchups.tsx` (0)
+- `src/components/mascot/moments/fly-away-hoopoe.tsx` (0)
+- `src/lib/place-input.ts` (0)
+- `scripts/dev/.anon-cleanup/redate.mjs` (1)
+
+## B. src files changed since 495ecdd2 that no report or verdict names (lab, birds and loading.tsx excluded)
+- `src/app/(main)/admin/trivia/(index)/page.tsx`
+- `src/app/(main)/admin/trivia/[questionId]/page.tsx`
+- `src/app/(main)/catchups/new/page.tsx`
+- `src/app/(policies)/guidelines/page.tsx`
+- `src/components/admin/admin-chrome.tsx`
+- `src/components/admin/admin-nav.ts`
+- `src/components/admin/admin-person-row.tsx`
+- `src/components/admin/analytics/tabs.tsx`
+- `src/components/admin/trivia/candidates.tsx`
+- `src/components/admin/trivia/door.tsx`
+- `src/components/admin/trivia/generations.tsx`
+- `src/components/admin/trivia/grow.tsx`
+- `src/components/admin/trivia/parts.tsx`
+- `src/components/admin/trivia/question-page.tsx`
+- `src/components/admin/trivia/question-table.tsx`
+- `src/components/admin/trivia/rhythm.tsx`
+- `src/components/admin/trivia/room.tsx`
+- `src/components/admin/trivia/trails.tsx`
+- `src/components/auth/auth-panel.tsx`
+- `src/components/auth/trivia-dont-know.ts`
+- `src/components/auth/trivia-gate.tsx`
+- `src/components/catchups/answer/types.ts`
+- `src/components/catchups/create/create-catchup-form.tsx`
+- `src/components/catchups/edition/not-yet-published.tsx`
+- `src/components/catchups/edition/voice-tape.tsx`
+- `src/components/catchups/index/archived-row.tsx`
+- `src/components/catchups/index/picture-door.tsx`
+- `src/components/catchups/not-available.tsx`
+- `src/components/catchups/settings/types.ts`
+- `src/components/catchups/voice-clip.ts`
+- `src/components/collection/collection-skeleton.tsx`
+- `src/components/collection/river-controls.tsx`
+- `src/components/common/control-geometry.ts`
+- `src/components/common/identity-row.tsx`
+- `src/components/common/link-card.tsx`
+- `src/components/common/motion.tsx`
+- `src/components/common/person-name.tsx`
+- `src/components/common/step-dots.tsx`
+- `src/components/directory/alumni-map.tsx`
+- `src/components/directory/directory-grid.tsx`
+- `src/components/directory/profile-card.tsx`
+- `src/components/feed/feed-rail.tsx`
+- `src/components/feed/rail/letters-module.tsx`
+- `src/components/feed/rail/rail-skeleton.tsx`
+- `src/components/guide/chapters/catchups.tsx`
+- `src/components/guide/chapters/collection.tsx`
+- `src/components/guide/chapters/directory.tsx`
+- `src/components/guide/chapters/feed.tsx`
+- `src/components/guide/chapters/index.tsx`
+- `src/components/guide/chapters/letters.tsx`
+- `src/components/guide/door-coach.tsx`
+- `src/components/guide/guide-body.tsx`
+- `src/components/guide/guide-cover.tsx`
+- `src/components/guide/guide-photos.ts`
+- `src/components/guide/guide-tour-start.tsx`
+- `src/components/guide/tap.tsx`
+- `src/components/landing/landing-nav.tsx`
+- `src/components/layout/rail-grid.ts`
+- `src/components/onboarding/onboarding-flow.tsx`
+- `src/components/onboarding/step-kit.tsx`
+- `src/components/onboarding/steps/done-step.tsx`
+- `src/components/onboarding/steps/houses-step.tsx`
+- `src/components/onboarding/steps/photo-step.tsx`
+- `src/components/onboarding/steps/welcome-step.tsx`
+- `src/components/onboarding/types.ts`
+- `src/components/profile/house-chain-editor.tsx`
+- `src/components/profile/stray-hair-ids.ts`
+- `src/components/support/support-shell.tsx`
+- `src/lib/caption-tidy.ts`
+- `src/lib/city-coords.ts`
+- `src/lib/guide-areas.ts`
+- `src/lib/guide-open.ts`
+- `src/lib/guide-tour.ts`
+- `src/lib/house-spans.ts`
+- `src/lib/map-cluster.ts`
+- `src/lib/profession-tags.ts`
+- `src/lib/trivia-sample.ts`

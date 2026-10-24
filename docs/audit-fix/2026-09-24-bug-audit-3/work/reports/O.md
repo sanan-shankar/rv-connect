@@ -67,6 +67,32 @@ source; T5-17 later confirmed O-03 from the auth side and proposed the fix.
 - Gate: `db-text.test.mjs` case: `escapeLike("a\u0000b")` contains no U+0000.
 - Known-related: none.
 
+
+### O-08 — A stranger with any working mailbox who types a real classmate's name and batch year is verified as that classmate, even if the classmate already has an account
+- Severity: Medium (the trust model's top stage, reached by impersonation from public facts; 119 of 575 members were verified this way, so the path is live; owner decision on the remedy)
+- Confidence: certain on the mechanism (source); the reach of "public" (name and batch year) is argued: the directory shows both to members, and the school's own lists exist outside the site
+- Where: `src/lib/roster.ts:48-56` (the confirmed-address requirement; its comment names the waiting-account version of this attack and closes only that one), `:58-78` (an email match first; then a name + batch-year match against every roster row for the account's two years, with no check that the roster person is not already a member), `:84-93` (sets `verifyState: "verified"`, `verifyMethod: "office_list"`); `src/lib/roster-rule.ts:46-60` (first and last name tokens compared after normalising)
+- Taxonomy: 6e (authorisation from attacker-controlled facts), 6k
+- Expected: auto-verification proves the account belongs to the alumnus on the office list.
+- Actual: an email match proves it; a name match proves only that the person typing knows a name and a year. A stranger confirms their own throwaway mailbox, signs up as "<a real name>, batch <their year>", and is verified at once as that person: Stage 2, posting under that name and reading every member's contact details. Nothing refuses when the same roster person already has a verified account, so two accounts can both be "the" classmate.
+- Proof: source. Live: `SELECT "verifyMethod", count(*) FROM "User" GROUP BY 1` → `office_list` 119, `admin_manual` 454 (2026-10-24, read-only). Surfaced by C6's lead (`work/reports/C6.md`), verified by the orchestrator at source.
+- Fix direction (owner decision first, Q19): verify automatically only on an email match; send a name match to the admin's verify queue with the roster row shown beside it; in either case refuse when another account already holds that roster person, and show the admin the clash.
+- Gate: `src/lib/roster-rule.test.mjs` (or a new `roster.test.mjs`): a name-only match does not set `verified`; a second account matching an already-claimed roster row is refused.
+- Known-related: T7a-06 (an admin's unverify is undone by this same auto-verify), V-O-A (what an unconfirmed account can learn from the directory).
+
+
+### O-09 — CLASS: nothing bounds what one account, or one script, may spend of what every member shares
+- Severity: Medium (each instance is a deliberate abuser's; together they mean one bad actor can stop mail, fill the database, ring everyone's bell or pause the site, and every bound in the code is per hour where the shared budget is per day or per month)
+- Confidence: certain on the class (each instance proved at source by its finder and checked by a validator or the orchestrator)
+- Where: the instances, each with its own entry: C4-01 (trivia log), C5-01 (image optimizer query strings → the $50 cap), C5-02 (reset mail), C6-01 (resend and deletion-request mail), C6-02 (mention bells; rename re-rings), C6-03 (Stage 0 drafts), C6-04 (SearchLog), C6-05 (unmetered reads → Supabase egress), L5-02 (sign-in rows and Upstash), L8-04 (no firewall, one budget), T2a-03 (Catch-up roster), T2b-02 (link previews), C3-02 (only Start is metered).
+- Taxonomy: 6c (unmetered writes), 6j (unbounded tables), 6k
+- Expected: a shared budget (the day's 95 emails, the database's size, Supabase's monthly egress, Upstash's monthly commands, Vercel's $50 cap, every member's bell) is protected by a bound on what one source may spend of it in the same period.
+- Actual: the meters that exist are per IP or per account and per minute or hour; none is per recipient, per account per day, or a share of the shared budget; several doors have no meter at all (`getTriviaQuestion`, `editPost`, `publishDraft`, `toggleLike`, every read action); and several logs keep a year what their hourly cap admits.
+- Why: each door was metered against a person double-clicking, not against a script; the shared budgets were each sized against organic use.
+- Fix direction: one design, not thirteen patches: (1) a per-account daily budget helper beside `rateLimit` (writes that fan out to other members, rows that persist, mail to the account's own address); (2) per-recipient daily caps in `enqueueMail` for every kind, and a share of the day reserved for confirmations and resets; (3) a per-member read meter on the cross-user reads, and caching for the ones every member gets the same answer to (the valley river, the directory pins, first names); (4) retention sized to each log's cap; (5) the firewall rule of check D in front of all of it. Then each instance is closed by applying the helper, and its own entry says where.
+- Gate: a shape test that every server action and route either calls the budget helper or is on a reviewed exemption list (the `gate-coverage.test.mjs` pattern).
+- Rule for the rest of the audit (orchestrator, 2026-10-24): a later round's new instance of this class is filed as an extension of O-09, not as a new finding, because the class fix covers it.
+
 ## Suspected, downgraded
 - O-02 — dev log, one occurrence during the crawl's aborted `/profile/<id>` load: "Route /profile/[id] used `cookies()` inside `after()` while rendering". `profile/[id]/page.tsx:403` awaits `getThemeCookie()` DURING render and no `after()` body on the route reads a cookie (`recordView` reads only env and Prisma; ContentView is live in production with profile views recorded last night). Most likely Next attributing a still-running render's cookie read to the route's after-scope once the client aborted at the crawl's 25 s timeout. To be re-checked in the live phase with one clean load; L2 asked to say whether the after-scope can misattribute. Not a member-facing defect on the evidence.
 

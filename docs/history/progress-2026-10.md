@@ -1,3 +1,25 @@
+## 2026-10-24 (audit) — bug audit 3 closed: 410 findings, 359 open, a fix-prompt for the campaign
+
+The third bug audit, paused on 2026-09-27, was finished. The code had moved 113 commits, so every
+finding was re-checked against today's code: a drift checker re-ruled the 77 confirmed before the
+pause, and twelve validators finished the zones the usage limit had cut off. Four completeness
+rounds (nine critics) followed; each still found new Mediums, and the owner closed the audit after
+the fourth ("close now. i'll run the huge fix session separately"). The report says plainly that the
+two-dry-rounds rule was not met, and which seams a fourth audit should sweep.
+
+Result: 410 findings, 51 closed during the audit (16 fixed by other work since, 9 made obsolete, 12
+refuted, 10 duplicates, 3 known, 1 declined), 359 open: 12 High, 92 Medium, 255 Low, no Critical.
+The Highs: a stranger can become verified as a real classmate from the office list (O-08); unconfirmed
+accounts can run a batch Catch-up (L10-01); login cookies go to Sentry (T8b-14); the Collection loses
+work three ways; a published letter's Save is off screen and Back on a refusing dialog leaves the
+page; and, with production back on Vercel Hobby since 2026-10-23, Hobby's CPU and image allowances
+plus Supabase egress are the first ceilings, which a script reaches far sooner than members (L5-01,
+C5-01, L8-04, L5-07). Thirteen findings are one class, filed as O-09: nothing bounds what one account
+or script may spend of what everyone shares. `bug-report-3.md` replaces the interim; `fix-prompt.md`
+carries the board (15 phases, run order A B O E F D C G H J I K L M N), 19 owner questions in the
+five-line form, and checks A–K only the owner can do. The owner ruled the repository stays public
+(C1-06). Audit-only: no application code changed.
+
 ## 2026-10-23 (birds) — the birds page in a designed order, and his last touches
 
 The birds page and the supporters' picker now show the birds in a curated order. The brightest

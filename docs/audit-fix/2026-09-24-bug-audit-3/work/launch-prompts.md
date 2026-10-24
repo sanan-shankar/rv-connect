@@ -65,3 +65,20 @@ Lens-specific notes:
 > You are adversarial validator **<zone>** ... (as launched for V-T1: brief-validator.md, brief-common
 > §1–§3, dedup-baseline, validation-zones.md row, the zone's reports, findings.md; verdicts to
 > `work/verdicts/<zone>.md`, stub first; SHORT summary on return).
+
+## Fourth session (2026-10-23) additions
+
+Every prompt this session carries the **re-baseline paragraph**: the audit read `495ecdd2`; HEAD is `88642426`;
+`work/rebaseline.md` lists the 113 commits and every changed file; check citations at HEAD; add verdicts
+FIXED-SINCE <sha> / MOOT-SINCE <sha>; the top of `task_plan.md` lists fixes made outside the audit. Validators may
+use read-only `git log/show/diff/blame` and `gh run list/view`. Every file ends "STATUS: COMPLETE at HEAD 88642426".
+
+**V-DRIFT** (new): re-rules every finding V-T1, V-T5 and V-T8 left standing, at HEAD: one table row each,
+"unchanged — stands" when no cited file changed, else STANDS (moved) / FIXED-SINCE / MOOT-SINCE / CHANGED.
+
+**Completeness rounds** (fresh, opus, report to `work/reports/C<n>.md`, finder format from brief-common, new
+defects only — grep `candidates.md` and every verdict file before writing one up):
+- C1 — scripts against the one database + the cold files (task_plan "Completeness rounds").
+- C2 — taxonomy critic + repo bloat (needs every report's Coverage; run after L7/L8 land).
+- C3 — fresh eyes on the four hottest files at HEAD: `catchups/actions.ts`, `admin-analytics.ts`,
+  `feed/actions.ts`, `collection/actions.ts` — plus everything the Catch-up editions-on-demand rework added.

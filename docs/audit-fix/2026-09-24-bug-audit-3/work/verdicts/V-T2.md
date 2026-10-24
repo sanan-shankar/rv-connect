@@ -1,10 +1,10 @@
 # V-T2 — adversarial validation of T2a (Catch-ups engine) + T2b (answers, prompts, link previews, edition view)
-Validator: V-T2 · Started: 2026-09-27 · Model: claude-opus-5-5
+Validator: V-T2 · Started: 2026-09-27 · Resumed and re-baselined at HEAD 88642426: 2026-10-23 · Model: claude-opus-5-5
 Assigned: T2a-01..T2a-14, T2b-01..T2b-13 (27). Cross-reference: T6-02 (fold into T2a-01), L10-01 (door 1b), L4-01, T7b-15, T3, L3.
 
 ## Verdicts
 
-### T2a-01 — CONFIRMED-CORRECTED (High stands; T6-02 folded in)
+### T2a-01 — CONFIRMED-CORRECTED (High stands; T6-02 folded in) · at HEAD: FIXED-SINCE e49e6265
 Verdict: CONFIRMED-CORRECTED
 Confidence in verdict: certain
 Citations re-derived: `batch-catchups.ts:83-118` → `joinBatchGroup` is **83-115** (upsert-only, :106-110); `:218-250` → `healBatchGroupMemberships` is **218-253** (the add-only `NOT EXISTS` query :224-234); `:158` floor count correct (`_count` selected at :153); `profile-actions.ts:228-240` correct (batchType re-derive :228-238, the only write `prisma.user.update` :240; the year writer itself is the `default:` branch **:160-202**); `admin/people/actions.ts:114-174` correct (year parse :114-122, the write :158-172); `auth/actions.ts:199-205` correct (:199-205 try/catch around `joinBatchGroup`); `catchups/actions.ts:2613-2615` correct; `:2409-2413` → the refusal is **:2410-2412**; `catchups-core.ts:533-534` correct.
@@ -13,8 +13,9 @@ Why it stands / falls: the mechanism is exactly as stated and is live. Consequen
 Live check run: `run-sql.mjs --inline` over `User ⋈ GroupMember ⋈ Group(batchYear not null) ⋈ CatchupSeries` where `g.batchYear <> u.batchYear OR u.batchYear IS NULL`, with entries/prompts/bells per stale Catch-up → **8 rows**: the 7 named + **Jerry Maguire** (the owner's test account, `batchYear` NULL, still in Batch of 2023's group since 2026-08-04 — the cleared-year variant of the same class, which the `<>` comparison in T2a's and the orchestrator's queries silently excludes). Second query (signup time vs join times) as quoted above.
 Corrections to the finding: (1) line ranges above; (2) "7 live cases" → 7 members + the test account (8 memberships), 4 of them inside an active Catch-up; (3) the "Why" should add the NULL case: clearing a batch year (the teacher path the admin editor's blank-year branch exists for, `admin/people/actions.ts:112-113`) also leaves the membership — the fix's mirror query must match `u."batchYear" IS DISTINCT FROM g."batchYear"`, not `<>`; (4) comment lie to fix in the same change: `batch-catchups.ts:195-202` attributes the one observed "stranded" member (Rukmini Rau, 2026-09-08) to a failed best-effort join at signup, but the live rows show she joined Batch of 2016 at signup (2026-08-05 18:09:49.717) and was stranded by a year correction — the heal was built for a T2a-01 case and misdiagnosed it; (5) "Archiving is the only relief" → archive plus `reminderMode: off` silence the reminders only; the three phase bells cannot be silenced. Fold **T6-02** here as the writer half (its profile-action line cites :160-202, :228-238, :240 are all correct); T6-02's `users-by-batch` missing `accountType` filter (`src/app/api/users-by-batch/route.ts:35-41`) stays a separate Low.
 Orchestrator action: none needed for existence. If the owner wants the repair scoped: the 8-row SELECT above is the before-count; after the fix it must return 0 (and the owner decides whether Jerry's 2023 membership is intended).
+At HEAD: **FIXED-SINCE e49e6265** — `syncBatchGroup` (`batch-catchups.ts:230-253`) moves a member out of every batch group their row does not name (membership, pref row and Catch-up bells, the leave cleanup) and then joins the right one; the profile edit (`profile-actions.ts:253`) and the admin edit (`admin/people/actions.ts:193`) call it at once, and the heal (`batch-catchups.ts:301-342`) gained the mirror arm with exactly my correction (3) — `g."batchYear" IS DISTINCT FROM u."batchYear"` OR `accountType <> 'alumnus'` (`:317-323`), so the cleared-year (Jerry) case is covered. Live re-run of the stale-membership query (with `IS DISTINCT FROM` and the account-type arm): **0 rows** (was 8; the commit says the heal repaired eight). T6-02's writer half is fixed with it; T6-02's `users-by-batch` `accountType` gap (`api/users-by-batch/route.ts:35-41`) is unchanged and stays V-T6's Low. Not fixed: my correction (4), the Rukmini comment, still at `batch-catchups.ts:273-280` (carried in T2a-11). Side effect for L10-01 door 1b: the year edit now moves the member IMMEDIATELY, so the door no longer accumulates batches but lets one account hop between them instantly (see Cross-zone notes).
 
-### T2a-02 — DOWNGRADED to Medium
+### T2a-02 — DOWNGRADED to Medium · at HEAD: still stands
 Verdict: DOWNGRADED to Medium
 Confidence in verdict: likely (the mechanism is certain; the severity is the judgment)
 Citations re-derived: `actions.ts:690-693` correct (`prisma.catchup.update({ data: { title } })` at :690-693, nothing else written); `catchups.ts:107-137` correct (`groupName: included.group.name` :113, `c.group.name` :131); `:380-388` correct (:387); action call sites correct as ranges (the `groupName:` lines are :1297, :1353, :1391, :1431, :2813) — ADD :2037 (`notifyLove`) and :2172 (`notifyComment`), which the "Actual" names ("hearts and comments") but "Where" omits; `catchups-notify.ts` builders: the sentences are at :110, :125, :202-203, :218-219, :242, :281, :329-330; `catchups-core.ts:1137-1146` correct (:1143-1145); `:420-430` correct. The grep claim holds: the only `group.update*` in `src` is the merge's `creatorId` rewrite (`admin/people/actions.ts:378`); no migration rewrites `Group.name` either.
@@ -23,8 +24,9 @@ Why it stands / falls: the mechanism is exactly right. The consequence is overst
 Live check run: `SELECT g.name, c.title, batch, c.status FROM CatchupSeries c JOIN Group g` → 8 rows, `title` NULL on all 8; people Catch-ups: "in the loop" (paused), "test" (ended); six batch Catch-ups active.
 Corrections to the finding: severity High → Medium (reason above); add :2037 and :2172 to Where; fix direction — prefer threading `catchupDisplayName(title, group.name)` into every notify context over rewriting `Group.name`: `renameCatchup`'s contract (:665-668) is that clearing the title "puts the Catch-up back to being called after its group", which a rewrite of `Group.name` would destroy (the original name would be gone), and the twin guard in `createCatchupWithPeople` matches on `group: { name }`. Same root as **T3-09** (the join page and its toast print `group.name`); fix the two together, T2a-02 canonical for the root, T3-09 its page instance.
 Orchestrator action: none (argue-only is sufficient; a live proof needs a renamed people Catch-up with a phase transition).
+At HEAD: **still stands**, lines moved — `renameCatchup` `actions.ts:656-678` (write `:670-673`, the "reaches nobody" premise `:650-651`); `loadMeta` `catchups.ts:105-130` (`:111`, `:127`); `openEdition`'s bell `catchups.ts:394-401`; action notify sites `:1062-1068`, `:1120-1126`, `:1152-1159`, `:1186-1192`, `:1249-1253` (startEdition → openEdition), `:1707-1716` (love), `:1842-1850` (comment), `:2152-2157` (the new `notifyAdded`, 077eaacf, also `group.name` via `loadCatchupContext :317`); builders `catchups-notify.ts:146-147`, `:168`, `:244`, `:259-260`, `:283`, `:322`, `:370-371`, `:409`; `catchupDisplayName` `catchups-core.ts:391-393`. Live: 0 of 22 Catch-ups carry a `title`. Medium stands; since eb855c71 any member of a people Catch-up can fire the stale name ("X started a new Edition of <old name>").
 
-### T2a-03 — CONFIRMED-CORRECTED (Medium stands)
+### T2a-03 — CONFIRMED-CORRECTED (Medium stands) · at HEAD: partly FIXED-SINCE 077eaacf
 Verdict: CONFIRMED-CORRECTED
 Confidence in verdict: certain
 Citations re-derived: `actions.ts:2443-2449` → the per-call Zod bound is **:2442-2449** (`.max(MAX_CATCHUP_PEOPLE)` at :2445); `catchup-caps.ts:17-27` → the docblock is **:15-24** (the "reach limit as much as the roster limit" sentence :21-22, the constant :24); `actions.ts:2436-2437` correct; `createCatchupWithPeople`'s `notifyQuestionsOpen` at :575 correct; `catchups-notify.ts:58-61` correct; `:187-205` correct for `notifyReminder`'s delete-then-create; `rate-limit.ts:162` correct (`catchups: 5 / 1 h`, used only at :482 creation and :2806 nudge).
@@ -33,8 +35,9 @@ Why it stands / falls: mechanism certain. Severity Medium is right: harm needs a
 Live check run: none needed (the code is unambiguous; no Catch-up is near 100 today — the largest batch group holds 39).
 Corrections to the finding: line ranges above; strengthen "Actual" — the cap is exceeded through the UI one person at a time, not only by "twenty calls of 100"; cross-refs: **T3-22** (the same door re-offers existing members and the Keeper, toasting "X is in." for `added: 0`), **L10-01 door 2** (the picker enrols unconfirmed/unvouched accounts), T3's lead that the `anonymous` system row can be enrolled — one fix unit for `addCatchupMembers` covers all four (roster cap inside the tx, `rateLimit("catchups")`, drop `anonymous`/unproven ids, correct or honour the notify comment).
 Orchestrator action: none.
+At HEAD: **notify half FIXED-SINCE 077eaacf** (`notifyAdded` to exactly `newlyAdded`, `actions.ts:2141-2158`; the docblock at `:2070-2071` is now true). **Roster cap and meter still stand**: per-call Zod `:2076-2083`, no roster count before `createMany` `:2119-2122`, no `rateLimit` (the file's only calls are `:464`, `:1246`, `:1819`); `people-door.tsx:195` still adds one id per call; `catchup-caps.ts:15-24` unchanged. The nudge in "Actual" is MOOT-SINCE 6fb896bd (deleted). Medium stands on the cap; the fix unit shrinks to roster cap + meter (+ T3-22, L10-01 door 2, the `anonymous` row).
 
-### T2a-04 — CONFIRMED-CORRECTED (Medium stands)
+### T2a-04 — CONFIRMED-CORRECTED (Medium stands) · at HEAD: still stands
 Verdict: CONFIRMED-CORRECTED
 Confidence in verdict: certain
 Citations re-derived: `actions.ts:229-239` correct (`runAction` :229-239, `console.error` :236, the sentence :237); `report-error.ts:1-45` → the file is **1-46** (the "log nobody reads" prose :13-19); the concrete paths: `catchups.ts:357-396` correct, `curatePrompt` P2025 at `:1213-1217` (the updates :1216, the batch `$transaction` :1217) and `:1242` (the bare `delete`) correct.
@@ -43,8 +46,9 @@ Why it stands / falls: 26 of the file's 27 exported actions return through `runA
 Live check run: survey of `console.error` / `reportSwallowed` across all server-action files (read-only grep, results above).
 Corrections to the finding: "twenty-two Catch-up actions" → **26**; "the only file in the app that swallows into a log nobody reads" → "the widest such swallow (a whole file); `adminMergeUsers` and the avatar processor are smaller siblings"; fold **L4-01**'s `runAction` half into the same fix — the function's FIRST branch (`isMissingCatchupTable`, :233-234) is the other silent swallow and must report too (one edit to `runAction` covers both); note L4's routed lead that `toggleEntryLove` reports the whole gesture failed when only `notifyLove` threw (the primary write committed) — the same wrapper is why the member sees "Something went wrong" for a heart that was saved.
 Orchestrator action: none.
+At HEAD: **still stands**, lines moved — `runAction` `actions.ts:201-211` (`console.error` `:208`, the sentence `:209`, the P2021 branch `:205-206` = L4-01's half); **22 of 23** exported actions use it (all but `loadEntryComments`). Of the concrete loser paths: `openNextEdition`'s P2002 is MOOT-SINCE eb855c71 (`openEdition` catches the unique and returns "moved", `catchups.ts:404-407`); `curatePrompt`'s bare `delete` `:1007` and reorder `update`s `:979-980` (P2025) and the `notifyLove` throw inside `toggleEntryLove` `:1706-1717` remain. "26" in my correction → **22**.
 
-### T2a-05 — DOWNGRADED to Low
+### T2a-05 — DOWNGRADED to Low · at HEAD: MOOT-SINCE eb855c71
 Verdict: DOWNGRADED to Low
 Confidence in verdict: likely
 Citations re-derived: `catchups.ts:166-170` → the unsnapped write is **:165-169** (`addCadenceGap(now, …)` at :168); `:411` correct; `:473-487` correct (`sealedDue` WITH grace :473-476, the ungraced `nextOpensAt: { lte: now }` :483); `catchups-core.ts:628-651` correct; `:1272-1274` correct (:1273); `actions.ts:1382-1386` / `:1422-1426` correct (:1384, :1424); the other unsnapped writers: `resumeCatchup` re-arm :933, `updateCatchupCadence` :760.
@@ -53,8 +57,9 @@ Why it stands / falls: the mechanism is right and there is a live instance, but 
 Live check run: `SELECT … "nextOpensAt"::text, "publishedAt"::text …` → Batch of 2024: `publishedAt` **2026-09-06 02:53:35.048**, publish bell 02:53:35.593, `nextOpensAt` **2026-10-06 02:53:35.048** — the tick's own second (L3 fact 3). T2a's report prints `01:53:35.048Z` (the one-hour BST display shift) and concludes "published by a page view, not the cron … will be caught by the 02:00 cron"; both halves are wrong: it WAS the cron, and its Edition 2 is the live sub-second coin flip on 2026-10-06.
 Corrections to the finding: severity Medium → Low; Proof: replace the Batch of 2024 sentence with the corrected reading above (argue-only → a live instance falls due 2026-10-06); Where: add :933 and :760 as the other two unsnapped writers the fix must cover (L3 row 11's `addMonths` UTC-calendar edge folds into the same one-helper fix).
 Orchestrator action: after 2026-10-06 03:00 UTC, `SELECT number, "createdAt"::text FROM "CatchupEdition" WHERE "catchupId" = (SELECT c.id FROM "CatchupSeries" c JOIN "Group" g ON g.id=c."groupId" WHERE g."batchYear"=2024) ORDER BY number` — an Edition 2 created at 02:53:3x UTC means the cron won the flip; any later stamp (a member's page view) or none means it lost.
+At HEAD: **MOOT-SINCE eb855c71** — there is no rhythm: `nextOpensAt`, `addCadenceGap`, `openNextEditionIfDue`, `updateCatchupCadence`, `resumeCatchup` are deleted from the code (tombstones `catchups-core.ts:372`, `catchups.ts:334-353`, `actions.ts:680-684`, `:771-777`), the sweep opens nothing (`catchups.ts:437-441`), and every Edition begins only by `startEdition`. The columns survive only until `2026-10-17-drop-rhythm-columns.sql` runs (live: `cadence`, `nextOpensAt`, `pausedAt` still present). The 2026-10-06 orchestrator check is void; L3 row 11 (`addMonths`) is moot with it.
 
-### T2a-06 — CONFIRMED (Medium stands; confidence raised to certain)
+### T2a-06 — CONFIRMED (Medium stands; confidence raised to certain) · at HEAD: MOOT-SINCE eb855c71
 Verdict: CONFIRMED
 Confidence in verdict: certain
 Citations re-derived: `catchups.ts:250-266` correct (the early return is :266, inside `advanceEdition` :241-336); `actions.ts:373-388` → `refuseIfFrozen` is **:373-384**; its callers :1039 (`submitPrompt`), :1650 (`setEditionTimeCapsule`), :1726 (`submitEntry`, sentence "Answering opens again when the Keeper resumes it.") and :443 via `loadKeeperEdition`; `settings-surface.tsx:302-307` correct ("Hold the next Edition" / "Nothing goes out until you say"); `:745-750` correct; architecture §9 O3 is at `architecture.md:476`; spec §3.5 at `catchups.md:173-178`; `catchup-lifecycle.test.mjs` B-061 pins at :17, :48, :62.
@@ -63,8 +68,9 @@ Why it stands / falls: the owner's decision is unambiguous and recorded three ti
 Live check run: "in the loop" (the owner's own 23-member Catch-up, the handover's worked example): `paused` since **2026-09-05 11:59:02 UTC**, Edition 2 `collecting`, `questionsCloseAt` 2026-09-08 11:57 (passed), 0 questions — frozen for three weeks. (Under the owner's rule it would have gone dormant by now, 0 questions; it is not a lost Edition, but it is the live frozen state.)
 Corrections to the finding: confidence likely → certain; add the handover citations above to Where; the drafted owner question for T2a-06 is probably unnecessary — he already chose (a) — so the fix session can implement O3 (clock and answering keep running for the live Edition; `pauseCatchup` stops only `openNextEditionIfDue` and the `nextOpensAt` booking; resume stops shifting the live Edition's deadlines), rewrite the B-061 pins to that rule, and correct `catchups.md` §3.5. If the orchestrator still wants the question, it should quote Q13 and say the B-061 incident was a published Edition UNDER a "paused" home with no way to answer — under O3 the home must keep the answer surface, which is what removes B-061's harm.
 Orchestrator action: none.
+At HEAD: **MOOT-SINCE eb855c71** — Hold and resume are deleted (tombstone `actions.ts:771-777`; `refuseIfFrozen` became `refuseIfEnded` `:345-347`; `advanceEdition` freezes only an `ended` Catch-up and reads a legacy `paused` row as active, `catchups.ts:246-262`; spec §3.5 `catchups.md:219-221`). Live: "in the loop" is now `active`, Edition 2 idle. **Drop owner question 2** from the owner list.
 
-### T2a-07 — CONFIRMED (Medium stands)
+### T2a-07 — CONFIRMED (Medium stands) · at HEAD: still stands
 Verdict: CONFIRMED
 Confidence in verdict: certain
 Citations re-derived: `actions.ts:963-985` → `endCatchup` is **:962-985** (the whole write is `data: { status: "ended", nextOpensAt: null, pausedAt: null }` at :981; no edition is read or touched); `catchups.ts:266` correct; `catchups-edition-view.ts:98-100` correct (`where: { id, status: "published" }` :98); `catchups-core.ts:1250-1275` correct (`homeStateLine`, "Ended" at :1265) and `:1295` correct; `settings-surface.tsx:760-765` correct; `overdueEditionWhere` (`catchups-core.ts:741-756`) requires `catchup: { status: "active" }` on both live arms, so an ended Catch-up's stuck Edition is never flagged.
@@ -73,8 +79,9 @@ Why it stands / falls: exactly as described. A one-way Keeper action, available 
 Live check run: none possible (the only ended Catch-up, "test", ended after its Edition 1 published: `published` 2026-08-15 21:44 UTC).
 Corrections to the finding: line range only; the fix should also cover the paused → End path (a Keeper who held mid-answering under T2a-06's freeze and then Ends strands the Edition the same way — T2a-06's fix does not remove this).
 Orchestrator action: none.
+At HEAD: **still stands**, lines moved — `endCatchup` `actions.ts:779-800` (the whole write `:793-796`, `status: "ended"` only); the freeze `catchups.ts:262`; the reader `catchups-edition-view.ts:98`; "Ended" `catchups-core.ts:1223` and `:1246`; `overdueEditionWhere` `:720-735` (both live arms exclude ended); the End row is offered in any Edition state, `settings-surface.tsx:247-258` ("Nothing new starts. It stays readable"), confirm `:694`. The paused→End variant in my correction is moot (no hold). Batch Catch-ups cannot be ended, so people Catch-ups only; no live instance ("in the loop" idle, "test" ended after publishing). **Keep owner question 3**; its default (publish first) matches his 2026-10-17 "it ends when it ends".
 
-### T2a-08 — CONFIRMED (Low stands)
+### T2a-08 — CONFIRMED (Low stands) · at HEAD: still stands
 Verdict: CONFIRMED
 Confidence in verdict: likely (mechanism certain; reachability narrow)
 Citations re-derived: `actions.ts:523-535` correct (the twin read :523-533, outside the transaction that begins at :537); `double-submit.ts:1-17` correct (`DOUBLE_SUBMIT_MS` :17).
@@ -83,8 +90,9 @@ Why it stands / falls: the residual is exactly what the finding says — two tab
 Live check run: none needed.
 Corrections to the finding: none of substance. Note for the fix: the suggested `SELECT … FOR UPDATE` on the creator's `User` row works through the transaction pooler (a row lock is transaction-scoped, unlike an advisory lock), but needs `tx.$queryRaw` since Prisma cannot express it; documenting the residual on the Low 29 ledger row is an acceptable alternative.
 Orchestrator action: none.
+At HEAD: **still stands**, lines moved — twin read `actions.ts:505-512`, the transaction `:519-564`; client guard `create-catchup-form.tsx:66`, `:78-79`, `:164`.
 
-### T2a-09 — CONFIRMED-CORRECTED (Low stands)
+### T2a-09 — CONFIRMED-CORRECTED (Low stands) · at HEAD: still stands
 Verdict: CONFIRMED-CORRECTED
 Confidence in verdict: certain (mechanism); the scenario is latent (0 blocked, 0 deletion-pending today)
 Citations re-derived: `group-succession.ts:16-31` correct; `:66-85` correct (`role: "keeper"` :82); `account-purge.ts:46-82` correct (`role: "admin"` at :78); `catchups-core.ts:447-455` correct; `actions.ts:2690-2702` (the `setCatchupKeeper` docblock) correct; the teacher gate is `catchups/layout.tsx:17-19`.
@@ -93,8 +101,9 @@ Why it stands / falls: the residual C-023 state is real and Low. But the finding
 Live check run: none needed (0 blocked, 0 deletion-pending; the roles in use are admin/keeper/member).
 Corrections to the finding: the two points above; consequence of the role split → T3-15 (fold the role-string half of T2a-09 and T3-15 into one fix: write "keeper" in the purge and merge, and let the revoke demote "admin" on a Catch-up group, since the group role grants nothing else now); cross-ref **L10-01 door 3** (succession should also skip unconfirmed/unvouched accounts), and the L9 lead on the stale `isEffectiveKeeper` docblock.
 Orchestrator action: none.
+At HEAD: **still stands**, files unchanged — `group-succession.ts` and `account-purge.ts` not touched since the baseline; `account-purge.ts:78` writes "admin", `group-succession.ts:82` "keeper", creation `actions.ts:493` "admin", the merge `admin/people/actions.ts:391` "admin", the revoke scoped to "keeper" `actions.ts:2378-2381`; stale docblocks `catchups-core.ts:404-417`, `actions.ts:2337-2343`. Batch groups are not reached (no admin/keeper rows, `creatorId` null).
 
-### T2a-10 — CONFIRMED (Low stands)
+### T2a-10 — CONFIRMED (Low stands) · at HEAD: still stands
 Verdict: CONFIRMED
 Confidence in verdict: certain
 Citations re-derived: `actions.ts:2549-2560` correct (the tx :2549-2555, `clearCatchupNotifications` :2560, no `catchupPref.deleteMany`); `:2638-2644` correct (`leaveCatchup`'s pref delete :2641); `:638-642` correct (the join `upsert`, `update: {}`); `:2507-2511` correct (only `newlyAdded` get `archivedAt` cleared); spec `catchups.md:238` "**Removing** someone … does the same to them" correct.
@@ -103,8 +112,9 @@ Why it stands / falls: the removal and leave exits disagree about the pref row e
 Live check run: orphan pref rows (pref with no membership) = **0**; Catch-ups holding an `inviteToken` = 2 of 8.
 Corrections to the finding: add the T3-17 reachability note; the leftover `reminderMode` survives removal too (harmless, but the same "start clean" rule `leaveCatchup` states at :2638-2640 applies).
 Orchestrator action: none.
+At HEAD: **still stands**, lines moved — `removeCatchupMember` `actions.ts:2179-2213` (tx `:2195-2201`, bells `:2207`, no pref delete); `leaveCatchup` pref delete `:2287`; join upsert `:618-622`; add's archive clear `:2140-2145`; spec `catchups.md:280`. New contrast: `syncBatchGroup` deletes the pref like leaving (`batch-catchups.ts:247`), so two exits clear it and one does not. Live: 0 orphan prefs; 2 of 22 Catch-ups hold an `inviteToken`, which the home serializes (`[catchupId]/(home)/page.tsx:426`) but no component renders (T3-17 still stands).
 
-### T2a-11 — CONFIRMED-CORRECTED (Low stands)
+### T2a-11 — CONFIRMED-CORRECTED (Low stands) · at HEAD: mixed
 Verdict: CONFIRMED-CORRECTED
 Confidence in verdict: certain
 Citations re-derived: bullet 1 `catchups-core.ts:38-51` → the stale block is **:37-50** (and it never closes: its `/*` at :37 runs on into the next docblock and ends at that docblock's `*/`, so the two read as one comment — harmless to the parser, worse for the reader), contradicted by the header :11-21 and by `catchups.ts:10-16`; bullet 2 `schema.prisma:557` correct; bullet 3 `actions.ts:2436-2437` correct; bullet 4 `:1492-1495` correct (the `findFirst` :1496-1500 has no advance); bullet 5 `:1532-1534` correct vs `extendDaysSchema` at **:146** (3 | 7 | 14); bullet 6 `catchups.ts:357-396` correct (the CAS :368-371). The routed-lead additions hold: `catchups-core.ts:329` "within thirty minutes" and `catchups-core.test.mjs:314` (L3 measured the tick at 08:23 IST, 83 minutes after the 07:00 deadline).
@@ -113,8 +123,9 @@ Why it stands / falls: every bullet is a real drift between a comment and its co
 Live check run: none needed.
 Corrections to the finding: line numbers above; ADD two comment lies in the same files: (7) `batch-catchups.ts:195-202` blames the one observed stranded member (Rukmini Rau, 2026-09-08) on a failed best-effort join at signup, but her live rows show she joined Batch of 2016 at signup and was stranded by a year correction (see T2a-01) — the self-heal's own rationale misreads the case that prompted it; (8) `catchups-core.ts:432-445` (`isEffectiveKeeper`) justifies the "admin"/"keeper" split by "`deletePost` in `feed/actions.ts` lets a group admin delete anyone's post in that group", but `Post` has no `groupId` any more (T2a-09; L9's routed lead) — the same rationale is repeated in `setCatchupKeeper`'s docblock (`actions.ts:2692-2696`). Cross-ref T3-06 for `extendDeadline`'s CAS docblock (`:1536-1545`), which is the same kind of lie.
 Orchestrator action: none.
+At HEAD: bullet (1) `catchups-core.ts:37-50` **stands**; (2) `schema.prisma:562` **stands**; (3) `addCatchupMembers` "notifies each of them" **FIXED-SINCE 077eaacf** (now true); (4) `startNextEditionNow` **MOOT-SINCE eb855c71** (deleted; `openEdition` reads the newest inside its transaction); (5) `extendDeadline` "1, 2, 4 or 7 days" **stands** at `actions.ts:1266-1269` vs `:133`; (6) `openNextEdition` null-CAS backstop **MOOT-SINCE eb855c71** (`openEdition` catches the unique, `catchups.ts:404-407`); (7) Rukmini comment **stands** at `batch-catchups.ts:273-280` (e49e6265's own docblock at `:215-220` names the real mechanism two screens above it); (8) `isEffectiveKeeper` docblock **stands** at `catchups-core.ts:404-417`, `setCatchupKeeper` docblock at `actions.ts:2337-2343`; "within thirty minutes" stands at `catchups-core.ts:309` and `catchups-core.test.mjs:313`. **New lies at HEAD for the same row**: (9) `actions.ts:1936-1939` "A second Keeper is a `GroupMember.role` of \"admin\"" vs `setCatchupKeeper` writing "keeper" (`:2376`); (10) `actions.ts:177-182` "NOTHING SENDS THIS YET -- the recorder is in the lab" — false since 9e6721df (`answer-experience.tsx:131-139`, `:171-173` send `audio`); (11) `actions.ts:1941-1950` `DEMO_SHARED_COPY_REFUSAL` says `GroupMember` is not on `ALLOWED_WRITE_MODELS` (routed lead, unchanged); (12) `catchups-edition-view.ts:214-216` "A null author is a member who has since left" — leaving keeps `authorId` (L9 lead, unchanged); (13) `docs/spec/catchups.md:227-228` defines "Verified" as "a confirmed email address" while `requireVerifiedMember` is Stage 2 (`member-gate.ts`, confirmed AND vouched) — the spec's §4 Gates column reads wrong because of it (see V-T2-01).
 
-### T2a-12 — CONFIRMED-CORRECTED (Low stands)
+### T2a-12 — CONFIRMED-CORRECTED (Low stands) · at HEAD: MOOT-SINCE eb855c71
 Verdict: CONFIRMED-CORRECTED
 Confidence in verdict: certain
 Citations re-derived: `actions.ts:1139-1151` correct (`wasDormant` :1139-1143, the revive :1144-1149); `catchups-core.ts:659-690` correct (`computeStatus`, grace at :663); the planner's zero-question branch `catchups-core.ts:995-1005` (extend once, then `{ kind: "none" }` "dormant; revived by the first question").
@@ -123,8 +134,9 @@ Why it stands / falls: the seam is real and the fix (one definition of "closed")
 Live check run: none needed (no Edition is currently dormant with a deadline: the five waiting batch Editions have `questionsCloseAt` NULL).
 Corrections to the finding: "twice" → "once"; drop the missing-bell clause.
 Orchestrator action: none.
+At HEAD: **MOOT-SINCE eb855c71** — the dormant-revive branch (`wasDormant`) is deleted (tombstone `actions.ts:918-922`): a twice-empty Edition fizzles to idle (`catchups-core.ts:935-939`, `fizzlePatch :856-858`) and `refuseIfIdle` (`actions.ts:358-361`, used at `:844-845`) refuses questions into it, so "answering opens with one question and no window" cannot happen. Residual seam, cosmetic and not filed: in the five minutes before a spent-extension deadline the advance fizzles the Edition early (`TICK_GRACE_MS`) and the member's question is refused with "Nothing is running here yet. Start an Edition first." under a home that still showed the ask box.
 
-### T2a-13 — CONFIRMED (Low stands); reader half overlaps T2b-05
+### T2a-13 — CONFIRMED (Low stands); reader half overlaps T2b-05 · at HEAD: still stands
 Verdict: CONFIRMED
 Confidence in verdict: certain
 Citations re-derived: `batch-catchups.ts:146-160` correct (floor :158); `:218-250` → **:218-253**, the heal's query :224-234 has no `isBlocked`/`deletionRequestedAt` clause; `2026-09-08-batch-catchups.sql` §1 backfill `INSERT … SELECT … FROM "User" u JOIN "Group" g … WHERE u."batchYear" IS NOT NULL AND u."accountType" = 'alumnus'` (its :53-59) has no standing filter; `catchups-notify.ts:58-61`, `:73-83` correct; `[catchupId]/(home)/page.tsx:70-78` correct (members with `IDENTITY_SELECT`, no filter); `catchups-edition-view.ts:118-150` vs `:146` correct; `schema.prisma:129-145` → the blocking docblock is **:129-144**; the profile that "404s for everyone else" is `profile/[id]/page.tsx:145` (`notFound()` unless admin).
@@ -133,8 +145,9 @@ Why it stands / falls: the rule holds at the door and nowhere after. Latent toda
 Live check run: none needed (0/0 today, per the orchestrator's live fact sheet).
 Corrections to the finding: the half about a blocked member's ANSWERS staying on the published page while their comments vanish is **T2b-05**'s subject — keep it there as canonical for the reader and cross-reference; T2a-13 is canonical for membership (floor, heal, backfill, bells, roster). Fix together with **L10-01** (the stage half of "membership is never re-checked") so one predicate defines who is "in" a Catch-up.
 Orchestrator action: none.
+At HEAD: **still stands**, lines moved — `groupMemberIds` `catchups-notify.ts:67-70`, `takingPartIds` `:80-101`, reminder audience `:205-224`; floor `batch-catchups.ts:166-177`; heal `:307-324` (no standing clause in either arm) and the new `syncBatchGroup` `:230-253` (none); roster `[catchupId]/(home)/page.tsx:71-77`; reader `catchups-edition-view.ts:118-151` vs `:149`; schema `:133-144`. "Reminded daily" is now only for members who opted in (6fb896bd, `DEFAULT_REMINDER_MODE = "off"` `catchups-core.ts:107`); the start and publish bells still reach them. Live: 0 blocked, **1 deletion-pending** (in Batch of 1987, 7 members, no Catch-up yet, counted toward its floor). Keep owner question 10, reworded without "reminded daily".
 
-### T2a-14 — DOWNGRADED to Low
+### T2a-14 — DOWNGRADED to Low · at HEAD: still stands
 Verdict: DOWNGRADED to Low
 Confidence in verdict: likely
 Citations re-derived: `tick/route.ts:33-39` correct; `catchups.ts:436-534` correct (`advanceDueCatchups`, void, never throws); `batch-catchups.ts:305-316` → **:305-313** (the heal counts are returned by the two passes at :252/:282 and discarded by the wrapper); `admin/catchups/(index)/page.tsx:47-50` correct (the unscoped `advanceDueCatchups()` at :49 before the reads); `schema.prisma:1744-1750` (`QueueLease`) correct; the grep for a run stamp (`lastRunAt|lastTickAt|ranAt|JobRun`) is empty.
@@ -143,26 +156,183 @@ Why it stands / falls: the mechanism (nothing records a run; `{ok:true}` always)
 Live check run: none possible (no run record exists to query — which is the finding).
 Corrections to the finding: severity Medium → Low; replace the secret-rotation example; L11 names T2a-14 canonical for the tick and carries the job table for the retention sweep and the snapshot — the fix (one run row per job with counts; "Nightly run: N hours ago" on the admin room) is worth doing for all three at once, and there the retention sweep (whose silence DOES cost purges) is the stronger reason.
 Orchestrator action: none.
+At HEAD: **still stands** — `tick/route.ts` unchanged since before the baseline (`:31-39`); `/admin/catchups` still sweeps first (`(index)/page.tsx:49`); the heal counts are still discarded (`batch-catchups.ts:341`, `:371` returned, `:394-402` returns void). With the rhythm gone the tick's exclusive work shrank again (heals, and running Editions in groups nobody opens), so Low is if anything generous.
 
-### T2b-01 — (pending)
-### T2b-02 — (pending)
-### T2b-03 — (pending)
-### T2b-04 — (pending)
-### T2b-05 — (pending)
-### T2b-06 — (pending)
-### T2b-07 — (pending)
-### T2b-08 — (pending)
-### T2b-09 — (pending)
-### T2b-10 — (pending)
-### T2b-11 — (pending)
-### T2b-12 — (pending)
-### T2b-13 — (pending)
+### T2b-01 — FIXED-SINCE b6cbdfc0 (High at the audit's baseline, confirmed then)
+Verdict: FIXED-SINCE b6cbdfc0 (the mechanism and the High were right at `495ecdd2`; the orchestrator's own timing stands as the record)
+Confidence in verdict: certain
+Citations re-derived: at HEAD the three patterns are bounded constants, `link-preview-core.ts:383-395` (`META_TAG_MAX` 2048, `ATTR_NAME_MAX` 64, `TITLE_MAX` 1024; `META_TAG` stops at the next `<` as well as `>`), used by `parsePageMeta` `:397-416` (`:402`, `:404`, `:414`); the pin is `link-preview-core.test.mjs:252-271` (four 512 KB hostile pages, each under 500 ms). The finder's other cites are unchanged: `link-preview.ts:84` (`CAP`), `:340-357` (`resolveAndStore` writes only after `resolve()`), `needsResolve` now `link-preview-core.ts:460-463`.
+What I tried to refute it with: whether the fix is linear for shapes the new test does not try. Timed the exact HEAD patterns at 512 KB: 256 closed 2 KB letter-only `<meta>` tags **116 ms** (the worst; `META_ATTR` does at most 64 steps per start inside a tag of at most 2,048 characters), letter-space runs 4 ms, 2 KB `<title>` openers with bodies 2 ms, quote floods 1 ms. The suite passes (16/16). The parser is shared, so cd1ec452's new callers (posts and letters, `feed/actions.ts:299`, `:417`, `:774`) are covered by the same fix.
+Why it stands / falls: the quadratic is gone; the worst page now costs about a tenth of a second, so a resolve cannot outlive its function and the "re-spawn on every view" loop has nothing left to feed it. The finder's second fix half (claim the url before resolving) was not done and is not needed for this finding; it survives as hardening under T2b-07.
+Live check run: `node --test src/lib/link-preview-core.test.mjs` → 16 pass; the four-shape timing above (scratch `node -e`, nothing written).
+Corrections to the finding: none to the finding as of its baseline; ledger it as fixed by b6cbdfc0.
+Orchestrator action: none.
+
+### T2b-02 — CONFIRMED-CORRECTED (Medium stands; wider since cd1ec452)
+Verdict: CONFIRMED-CORRECTED
+Confidence in verdict: certain
+Citations re-derived (HEAD): `submitEntry` is `actions.ts:1433-1652` with no `rateLimit` (the file's three calls are `:464`, `:1246`, `:1819`; `LIMITS` has no entry for it, `rate-limit.ts:162` `catchups` covers creation and Start); the schedule `:1641`; `link-preview.ts:90-91` (`MAX_PER_CALL` 16, `CONCURRENCY` 4), `:286-300` (`rehost`), `:356` (the upsert); normalisation keeps non-tracking query params `link-preview-core.ts:136-145`; `link-previews/` outside `KNOWN_ROOTS` `storage.ts:70-72`; no `LinkPreview` in `retention.ts` or `account-purge.ts`; the model is `schema.prisma:1275-1283` (was `:1313-1321`).
+What I tried to refute it with: a meter somewhere upstream (none on `submitEntry`; the `uploads` bucket covers bytes the member sends, not fetches the server makes); a reaper (grep: the only `link-previews` writer is `rehost`, the only reader the two loaders). Then looked for what changed: cd1ec452 (2026-09-27) added **three more schedulers** of the same unmetered resolve, `createPost` `feed/actions.ts:299` (metered by `posts`, `:157`), `publishDraft` `:417` and `editPost` `:774`, neither metered, and `editPost` is the letters desk's autosave (`use-letter-persistence.ts:331`, `:430`), so every idle pause in a letter now schedules up to 16 fetches.
+Why it stands / falls: per link the cost is bounded; per member it still is not, and the member now has a fourth door that fires on its own while they type. Storage and rows are permanent. Medium stands: a member acting at scale, not a member's ordinary use, but nothing in the code is the limit.
+Live check run: `SELECT count(*) …"LinkPreview"` → 8 rows (7 at the audit), 0 failed, 0 titled-without-thumbnail.
+Corrections to the finding: Where adds `feed/actions.ts:417` and `:774` (and `:299`, metered); the meter in the fix direction belongs in `scheduleLinkPreviews` or `ensureLinkPreviews` keyed on the member (so all four doors share it), not in `submitEntry` alone; the retention row is unchanged advice. Known-related adds T1's link-card work (cd1ec452) as the widening.
+Orchestrator action: none.
+
+### T2b-03 — DOWNGRADED to Low
+Verdict: DOWNGRADED to Low
+Confidence in verdict: certain (mechanism); likely (severity)
+Citations re-derived (HEAD): header `export-catchups.mjs:40`; the audio entry `:256-262` (`wantPhoto(e.audioUrl, "audio", e.id)` `:261`); `mkdir` for `photos` and `avatars` only `:309-313`; the copy loop `:325-344` (ENOENT lands in `failed`); the null-out loop `:346-364` covers `photoFile` and `img.file` only; and `:371` prints "recorded as file: null", which is false for the audio entries.
+What I tried to refute it with: whether `writeFile` creates parents (it does not); whether a later loop nulls `audio.file` (none); whether recordings can exist (yes: 9e6721df shipped the recorder on 2026-10-11, so the first real recording makes the next `--write` lie). Then the consequence: the failure is printed at the console in the same run, the recording's bytes are untouched in R2 under `audio/`, and the export is an owner-run dev tool.
+Why it stands / falls: the bug is real and now reachable, but the harm needs the owner to ignore the printed failure, then restore from that folder, then also lack the R2 object. That is a lying artefact on a disaster path, not wrong behaviour a member meets, so Low.
+Live check run: `SELECT count(*) … WHERE "audioUrl" IS NOT NULL` → 0 recordings today.
+Corrections to the finding: severity Medium → Low; add `:371` (the console sentence is wrong for audio too); line numbers above.
+Orchestrator action: none.
+
+### T2b-04 — DOWNGRADED to Low
+Verdict: DOWNGRADED to Low
+Confidence in verdict: certain (arithmetic); likely (severity)
+Citations re-derived: `voice-answer-rule.ts`, `voice-answer.ts` and both audio routes are unchanged since the baseline, so `:34`, `:43-55`, `:59`, `audio/route.ts:56-68`, `finalize/route.ts:61-66` stand; `submitEntry`'s recording check is now `actions.ts:1492-1502`.
+What I tried to refute it with: the shipping recorder (9e6721df). It asks for 64 kbps (`voice-recorder.tsx:309`) and clamps its own claim to the cap (`:341`), so an honest client never exceeds two minutes. A crafted client still can: 4,864,000 bytes holds about ten minutes at the recorder's own 64 kbps and twenty at 32 kbps, and the player trusts the file's real duration (`voice-clip.ts:66`), so readers hear all of it. The upload routes are behind `vetUploadRequest` (verified member, 40/hour).
+Why it stands / falls: the cap is a byte cap, as stated, and the docblock still tells half of it. But the only way past it is a verified member hand-crafting requests, the bytes are bounded, and the cost is an optional long recording in their own answer. Low.
+Live check run: none needed (0 recordings).
+Corrections to the finding: severity Medium → Low; note the recorder now ships (so the docblock at `voice-answer-rule.ts:43-52` is read by people tuning a live feature); the cheaper fix (ceiling near twice the requested bitrate) should allow for Safari's AAC, which may not honour 64 kbps.
+Orchestrator action: none.
+
+### T2b-05 — DOWNGRADED to Low (vote half MOOT-SINCE 5d5c6898)
+Verdict: DOWNGRADED to Low
+Confidence in verdict: certain (mechanism); the severity is the same trigger T2a-13 is ruled on
+Citations re-derived (HEAD): `schema.prisma:133-144` (the `isBlocked` promise); `posts.ts:72` (`AUTHOR_IN_GOOD_STANDING`), `:89-93` (`VISIBLE_COMMENT`, was `:80-84`); the reader's entries `catchups-edition-view.ts:118-151` with no standing filter, `:149` (hearts unfiltered, comments `VISIBLE_COMMENT`), `:150`; `loadCommentableEntry` `actions.ts:1762-1779`. The `vote-question-rule.ts:158-175` cite is gone: votes were deleted (5d5c6898).
+What I tried to refute it with: a standing filter added since (none; the loader's only change is that it now selects `audioUrl`/`audioSeconds`/`audioIsAuto`, 9e6721df, so a blocked member's **recording** is now drawn and playable too); whether blocked members exist (0 live).
+Why it stands / falls: the contradiction with the schema's promise is exact and slightly wider (voice). It is latent exactly as T2a-13 is: nobody is blocked, and it becomes visible the first time the owner blocks someone who answered. Ruling it Medium while T2a-13 (same trigger, same owner question 10) is Low was inconsistent, so Low, Medium the day a blocked member has an answer in a published Edition.
+Live check run: `SELECT count(*) … "isBlocked"` → 0 blocked (1 deletion-pending, whose writing L10-02 covers).
+Corrections to the finding: severity Medium → Low; drop the vote clause (MOOT-SINCE 5d5c6898); add the recording; line numbers above. Fix together with T2a-13 and L10-02 under owner question 10.
+Orchestrator action: none.
+
+### T2b-06 — CONFIRMED (Low stands)
+Verdict: CONFIRMED
+Confidence in verdict: certain
+Citations re-derived (HEAD): the delete `actions.ts:1630-1631` (`if (!entry.body && !entry.images && !entry.audioUrl) deleteMany({ where: { id: entry.id } })`); the write transaction `:1552-1591`; `base` `:1523`; the versionless upsert `:1575-1589`; client `answer-experience.tsx:124-126` (`versions` from `entryUpdatedAt`, null with no row) and `:139` (`baseUpdatedAt: … ?? undefined`).
+What I tried to refute it with: a predicate on the delete (none); the per-prompt save queue (`:118`, `:155-157`) only orders one device's saves; a second device with no version still takes the upsert path.
+Why it stands / falls: unchanged in shape. "Empty" is now three columns, since `songUrl` and `pollOptionId` left `submitEntry` (3c6ee660, 5d5c6898); both columns still exist in the database (drops pending), so a legacy row holding only a vote (0 live) would now be deleted on its author's next save. Low: one member, two devices, one round trip.
+Live check run: none needed.
+Corrections to the finding: the five-column predicate in the fix becomes `{ id, body: null, images: null, audioUrl: null }` (add `pollOptionId: null` until its column is dropped, if the owner wants legacy votes kept); line numbers above.
+Orchestrator action: none.
+
+### T2b-07 — CONFIRMED (Low stands)
+Verdict: CONFIRMED
+Confidence in verdict: certain
+Citations re-derived: `link-preview.ts` is unchanged since the baseline: `rehost` `:286-300` (`catch { return null; }` `:297-299`, no report; `if (!directUploadAvailable()) return null;` `:287`), `putImage(…, "link-previews", key)` `:296`, `failedAt: row.title ? null : now` `:349-355`; `needsResolve` moved to `link-preview-core.ts:460-463`.
+What I tried to refute it with: a retry for titled rows (none: `needsResolve` looks only at `failedAt`); a report in the catch (none). The routed lead (leads-routed :384) adds a second permanent cause: a process without R2 writes a titled, thumbless row into the ONE shared table that production then never re-resolves; that depends on the local env having R2 (I cannot read `.env`), so it stays conditional.
+Why it stands / falls: unchanged, and its reach grew with cd1ec452: the same row now draws link cards on posts and letters, so a lost thumbnail shows on the feed too.
+Live check run: `… WHERE "thumbUrl" IS NULL AND title IS NOT NULL` → 0 of 8.
+Corrections to the finding: `needsResolve` line; add the feed and letters as surfaces; fold the "claim before resolve" hardening left over from T2b-01 here.
+Orchestrator action: none.
+
+### T2b-08 — CONFIRMED (Low stands)
+Verdict: CONFIRMED
+Confidence in verdict: certain
+Citations re-derived: `_cli.mjs:37-42` (`bytesFor`, bare `fetch(u)`, no signal) unchanged; the call is now `export-catchups.mjs:327`; the TRAPS rule moved to `docs/TRAPS.md:339-340`.
+What I tried to refute it with: a timeout or S3 read added since (none).
+Why it stands / falls: unchanged; the recorder now adds audio files to what it fetches this way.
+Live check run: none needed.
+Corrections to the finding: line numbers above.
+Orchestrator action: none.
+
+### T2b-09 — CONFIRMED (Low stands)
+Verdict: CONFIRMED
+Confidence in verdict: certain
+Citations re-derived (HEAD): `MAX_ACCEPTED_PROMPTS_PER_EDITION = 40` `actions.ts:113`; the reorder schema `:167-171` (`.max(…)` `:170`); the tolerated race docblock `:864-878`; the insert cap `:894`; "Invalid request." `:955`.
+What I tried to refute it with: whether the reorder surface sends only a slice (it sends every accepted id); whether the batch opening of `curatePrompt` (daec81ec) changes anything (it adds more possible reorderers, not a fix).
+Why it stands / falls: unchanged.
+Live check run: none needed (no Edition near 40).
+Corrections to the finding: line numbers above.
+Orchestrator action: none.
+
+### T2b-10 — CONFIRMED (Low stands)
+Verdict: CONFIRMED
+Confidence in verdict: certain
+Citations re-derived (HEAD): the count `actions.ts:1626`; the model's indexes `schema.prisma` CatchupEntry block (`@@unique([promptId, authorId])`, `@@index([editionId])`; the `(pollOptionId, promptId)` index left the schema with votes but is still live, pending its drop).
+What I tried to refute it with: a new index (none: live `pg_indexes` = pkey, `(promptId, authorId)`, `editionId`, `(pollOptionId, promptId)`).
+Why it stands / falls: unchanged, and now reachable through the shipping recorder (9e6721df) on every "Record again" or removal.
+Live check run: `EXPLAIN (ANALYZE, BUFFERS) SELECT count(*) FROM "CatchupEntry" WHERE "audioUrl" = '…'` → `Seq Scan on "CatchupEntry"`, Rows Removed by Filter 193, 0.09 ms.
+Corrections to the finding: line numbers; the "delete the count" option is the better one (finalize mints a fresh key per recording, and the comment at `:1617-1624` already argues it).
+Orchestrator action: none.
+
+### T2b-11 — CONFIRMED (Low stands)
+Verdict: CONFIRMED
+Confidence in verdict: certain
+Citations re-derived: `loadEntryComments` `actions.ts:1782-1801` (outside `runAction`, `opts` passed through `:1796-1800`); `comment-thread.ts:124` unchanged (`Math.min(Math.max(opts?.take ?? 10, 1), 50)`), `take: take + 1` `:142`; the sibling `notifications/actions.ts:23` (leads-routed :337).
+What I tried to refute it with: coercion anywhere upstream (none). `"5"` coerces to 5 (harmless); `"x"`, `NaN` and `1.5` reach Prisma as a non-integer `take`.
+Why it stands / falls: unchanged; a crafted caller hurts only itself.
+Live check run: none possible without a session.
+Corrections to the finding: add `notifications/actions.ts:23` to Where (one `Number.isInteger` guard in both).
+Orchestrator action: none.
+
+### T2b-12 — CONFIRMED (Low stands)
+Verdict: CONFIRMED
+Confidence in verdict: certain
+Citations re-derived: the same live row; `closeAndPublish` counts it as an entry at `actions.ts:1110`; the withdrawal rule `:1603-1635`.
+What I tried to refute it with: a cleanup migration since (none).
+Why it stands / falls: unchanged. The class is now the three columns `submitEntry` reads (body, images, audioUrl).
+Live check run: `SELECT … FROM "CatchupEntry" WHERE body IS NULL AND images IS NULL AND "audioUrl" IS NULL` → 1 row, `cmsjvyuwj000004jwgespzdxs`, "in the loop" Edition 1 (published), created 2026-08-08, updated 2026-08-14; the five-column version gives the same single row.
+Corrections to the finding: none of substance.
+Orchestrator action: none (the one-line delete runs on both databases in the fix session).
+
+### T2b-13 — DOWNGRADED to Low (same root as T1-17)
+Verdict: DOWNGRADED to Low
+Confidence in verdict: certain on the plan shape (hand reconstruction, the same caveat V-T1 states for T1-17)
+Citations re-derived: `catchups-edition-view.ts:149` (was `:146`); `VISIBLE_COMMENT` `posts.ts:89-93`.
+What I tried to refute it with: correlation at HEAD (none: Prisma unchanged, `relationJoins` not configured, the `_count` select unchanged).
+Why it stands / falls: the mechanism is exact. V-T1 ruled the feed's identical shape (T1-17) Low, on the three most-read surfaces; the reader is read less, and hearts (554) and Catch-up comments (0) grow slowly. Low, sharing T1-17's fix.
+Live check run: `EXPLAIN (ANALYZE, BUFFERS)` of the reconstructed reader statement for the newest published Edition → `HashAggregate (Group Key: "CatchupEntryLove"."entryId")` over a `Seq Scan` of **all 554** heart rows (141 groups) to serve **8** entries; the comment arm is the same whole-table shape joined to `User`.
+Corrections to the finding: severity Medium → Low; line numbers above.
+Orchestrator action: none.
 
 ## New candidates
-(pending)
+
+### V-T2-01 — Since every batch member runs the cycle (daec81ec), an account the trust model holds at Stage 0 or 1 can close and publish its batch's live Edition early, extend it, or delete anyone's question: the four cycle controls never ask for a verified member
+- Severity: High (proposed; certain on the mechanism, likely on the severity). One-way, group-wide, live today, and reachable by a stranger in two steps. If the orchestrator keeps L10-01 at Medium this is its live form and should move with it.
+- Confidence: certain. What would change my mind: an owner ruling that running a batch's cycle is a Stage 0 capability.
+- Where:
+  - `src/app/(main)/catchups/actions.ts:1018-1079` `openAnswering`, `:1092-1202` `closeAndPublish`, `:1282-1337` `extendDeadline`, `:948-1012` `curatePrompt` (remove `:986-1010`, a bare delete): `auth()` then `loadKeeperEdition(…, { allowBatch: true })`, no `requireVerifiedMember()`. Compare `startEdition` `:1234`, `submitPrompt` `:829`, `submitEntry` `:1446`, `setEditionTimeCapsule` `:1382`, which all call it.
+  - `:396-430` `loadKeeperEdition`: the batch branch `:413-415` ("Every member holds this one; nothing left to check but the freeze below").
+  - `src/app/(main)/catchups/[catchupId]/(home)/page.tsx:476-477` `canRun: isKeeper || isBatch` (no stage), which draws the rows in `settings-surface.tsx:185-225` ("Open answering", "Give everyone longer", "Close and send it out").
+  - How a below-Stage-2 account gets into a batch: signup joins before any confirmation (`src/components/auth/actions.ts:224-230`, L10-01 door 1); the profile's year edit needs only `auth()` (`profile-actions.ts:100-102`) and since e49e6265 moves the account into the new batch at once (`:253` → `syncBatchGroupQuietly`).
+  - The rule it breaks: `src/lib/member-gate.ts` header (Stage 2 "every write"); `docs/SECURITY.md` trust table. The spec records the gap without naming it: `docs/spec/catchups.md:236-240` (Gates blank for `curatePrompt`, "ended, idle" for `openAnswering`/`extendDeadline`, "ended" for `closeAndPublish`), and `:227-228` defines "Verified" as "a confirmed email address", which is not what `requireVerifiedMember` checks.
+- Taxonomy: 6h identity states (unconfirmed, unvouched) · write-path invariant 2 · L10
+- Expected: the trust model: every community write, and above all a one-way write that rings a whole group, is Stage 2. The same file gates the gentler acts (asking, answering, Start) at Stage 2 and leaves the irreversible ones open.
+- Actual (live, read-only, 2026-10-23): 55 of the 397 members of batch Catch-ups are below Stage 2 (email unconfirmed or profile unverified); 7 of them are in Batch of 2024, whose Edition 2 is `answering` right now (44 members, closes 2026-10-25 07:00 IST). Each sees "Close and send it out" in Settings and can press it: the Edition publishes at once, nobody can answer any more, and the batch is told it is ready to read. In `collecting` they can delete any member's question. They cannot ask, answer, heart or Start, so the account the app refuses a question to can end everyone else's week of writing. A stranger can do the same: sign up claiming a year (passing the trivia gate), land in that batch, press. With the instant year move, one account can visit every batch with a live Edition in turn. Before daec81ec (2026-09-27) batch Catch-ups refused all four outright; L10-01 called door 3 latent because "batch Catch-ups have none".
+- Why: daec81ec opened the cycle to the batch by an `allowBatch` opt-in on the loaders and on the home's `canRun`; neither carries the viewer's stage. The four actions were Keeper-only before, and their Keeper was assumed to have passed the member gate at creation (L10-01's "Why").
+- Proof: read-only, repeatable: `SELECT count(DISTINCT u.id) FILTER (WHERE u."emailVerified" IS NULL OR u."verifyState" IS DISTINCT FROM 'verified') … FROM "GroupMember" m JOIN "User" u … JOIN "Group" g … JOIN "CatchupSeries" c … WHERE g."batchYear" IS NOT NULL` → 55 of 397 (7 in 2024). Live write proof: a throwaway unconfirmed account with batch year X on a batch whose Edition is answering, pressing "Close and send it out". Do NOT run it on Batch of 2024's live Edition.
+- Fix direction: `requireVerifiedMember()` after `auth()` in `openAnswering`, `closeAndPublish`, `extendDeadline` and `curatePrompt` (and in `endCatchup`, `removeCatchupMember`, `setCatchupKeeper` for people Catch-ups, L10-01's list); make the home's `canRun` false below Stage 2 so the rows are not drawn; correct the spec's Gates column and its definition of "Verified". Owner call alongside L10-01: whether a below-Stage-2 batch member should be in the group at all.
+- Gate: a rule test over `catchups/actions.ts`: every export that passes `allowBatch: true` (and every export that rings `notify*` for others) calls `requireVerifiedMember` (the shape `batch-catchup-keeper-rule.test.mjs` already walks).
+- Known-related: L10-01 door 3 (latent at the baseline; this is it made live) and door 1/1b (how they get in); T2a-13 (standing, the other half of "membership is never re-checked").
+
+### V-T2-02 — The Catch-up actions advance an Edition before checking that the caller is in its group, the ordering the reader page fixed and the spec forbids (routed lead from T2b, answered)
+- Severity: Low
+- Confidence: certain on the mechanism; the consequence is small
+- Where: `actions.ts:371-377` `loadMemberEdition` → `loadFreshEdition` `:268-303`, which runs `advanceEdition` at `:286` before the membership read at `:374`. Every member action and every cycle control starts here: `submitPrompt :836`, `setEditionTimeCapsule :1385`, `submitEntry :1459`, `toggleEntryLove :1675`, `loadCommentableEntry :1770` (→ `loadEntryComments`, `createEntryComment`, `toggleEntryCommentLike`), `loadKeeperEdition :410`. Contrast `catchups/edition/[editionId]/page.tsx:70-74` ("advanceEdition is a write … which was the ordering bug") and `:148`, and `docs/spec/catchups.md:187-189` ("after checking membership (a non-member cannot trigger a write by opening a url)").
+- Taxonomy: write-path invariant (check before act) · L12 · L9 (the page's comment names the bug the actions still have)
+- Expected: the spec's rule; the page's own fix.
+- Actual: any signed-in account holding an Edition or entry id (bell links carry them) can make that Edition's clock run, with its bells, a little before a member's visit or the tick would. The steps are the same idempotent CAS writes, so nothing wrong is written. The two refusals also differ ("Catch-up Edition not found." against "You are not a member of this group."), an existence oracle on cuids nobody can guess.
+- Why: `loadFreshEdition` predates the page's two-phase fix and was never split the same way.
+- Proof: argue-only (needs a non-member session).
+- Fix direction: read the base row, check membership, then advance (the page's order), and return one sentence for both refusals.
+- Gate: a rule test that `loadMemberEdition` reads membership before it calls `advanceEdition`.
+- Known-related: leads-routed `:157` (T2b's lead, answered here).
 
 ## Cross-zone notes
-(pending)
+- **L10-01 (V-L-b) door 1b, ruled at HEAD**: the accumulation half is **FIXED-SINCE e49e6265** (a year edit now moves the member out of the old batch). The door itself is **still open and faster**: the edit needs only `auth()` (`profile-actions.ts:100-102`, no rate limit), and `syncBatchGroupQuietly` (`:253`) moves the account into the new batch's group immediately rather than overnight, so one account can step through every batch's Catch-up in a minute, one at a time; the move also counts it toward the floor (`ensureBatchCatchup` via `joinBatchGroup`). Door 3 is no longer latent: see V-T2-01 (daec81ec made every batch member a cycle-runner with no stage check). The live count moved from 19 unconfirmed accounts in active Catch-ups to 55 below-Stage-2 members of batch Catch-ups.
+- **L4-01 (V-L-b), the engine's catch, at HEAD**: unchanged and now more likely to fire. `isMissingTable`'s message fallback (`prisma-errors.ts:50-57`: `/Catchup/` plus "does not exist") still matches a missing COLUMN, and the engine returns silently on it before reporting: `advanceEdition` `catchups.ts:320`, `advanceDueCatchups` `:494`, `healBatchCatchupsAndMemberships` `batch-catchups.ts:399`, `syncBatchGroupQuietly` `:265`, `runAction` `actions.ts:205-206`. Three column-drop files are written and NOT applied (`2026-10-09-drop-vote-questions.sql`, `2026-10-11-drop-song-columns.sql`, `2026-10-17-drop-rhythm-columns.sql`; live: `cadence`, `nextOpensAt`, `pausedAt`, `songUrl`, `pollOptionId`, `CatchupPromptOption`, `CatchupReminderPref.deletedAt` all present). Once one runs, a Vercel instant rollback to a build that still selects those columns, or the demo applying a drop before its code, turns every Catch-up surface into "not set up yet" with the engine stopped and Sentry silent. Worth a sentence in the drop files' headers until L4-01 is fixed.
+- **T7b-15 (V-T7b), at HEAD**: the wording half stands and is live right now: Batch of 2024's Edition 2 closes 2026-10-25 01:30 UTC (07:00 IST Sunday) under "Answers close Sunday 25 October" (`catchups-core.ts:1227-1228`, `:1263-1266`). The never-withdrawn half stands (no reminder delete on publish in `applyEditionAction`, `catchups.ts:148-218`, or in `submitEntry`); its audience shrank with 6fb896bd (reminders off by default), and one live reminder exists (written 2026-10-23 02:00 UTC). The "Last day to answer" branch is `catchups-core.ts:1103`.
+- **T3 (V-T3)**: T3-09 folds with T2a-02 (one name root, still open); T3-15 with T2a-09 (role strings, still open); T3-17 still stands and keeps T2a-10 narrow (the token is serialized at `page.tsx:426`, rendered nowhere); T3-22 rides T2a-03's fix unit; T3-06's `extendDeadline` docblock is at `actions.ts:1274-1277`. leads-routed `:278` (the reader's `said()` dropping a voice answer with no words) is FIXED-SINCE 9e6721df ("A recording with no words would have been dropped … fixed and pinned"); its vote half is moot (5d5c6898).
+- **T6 (V-T6)**: T6-02's writer half is FIXED-SINCE e49e6265 with T2a-01; its `users-by-batch` `accountType` gap (`route.ts:35-41`) is unchanged.
+- **T1 (V-T1 / V-DRIFT)**: T2b-13 is now Low, matching T1-17; T2b-11's `take` hole is shared with `notifications/actions.ts:23`.
+- **Owner questions**: drop Q2 (T2a-06, moot); keep Q3 (T2a-07); keep Q10 (T2a-13, T2b-05, L10-02), reworded without "reminded daily"; add V-T2-01's stage question to L10-01's.
 
 ## Coverage
-(pending)
+- Checked completely at HEAD (citation re-derived, refutation attempted, severity ruled): T2a-01 … T2a-14 (the verdicts written 2026-09-27, each with an "At HEAD" line added 2026-10-23), T2b-01 … T2b-13, the two new candidates, and the zone-note rulings (T6-02, L10-01 door 1b, L4-01's engine half, T7b-15, the three drafted owner questions).
+- At-HEAD tally: FIXED-SINCE 2 (T2a-01 e49e6265, T2b-01 b6cbdfc0) plus the notify half of T2a-03 (077eaacf) and T2a-11's bullet (3); MOOT-SINCE 3 (T2a-05, T2a-06, T2a-12, all eb855c71) plus T2a-11's bullets (4) and (6) and T2b-05's vote half (5d5c6898).
+- Partially checked, and why: T2b-13's SQL is a hand reconstruction, not a fresh capture through the Prisma `query` event (Prisma unchanged since the finder's capture); T2b-07's no-R2 cause depends on the local `.env`, which is denied to me; V-T2-01 and V-T2-02 need a session to prove live (steps given; V-T2-01 must not be proven on Batch of 2024's live Edition).
+- Read in full at HEAD: `src/app/(main)/catchups/actions.ts` (2,432), `src/lib/catchups.ts` (501), `src/lib/batch-catchups.ts` (402), `src/lib/catchups-notify.ts` (412), `src/lib/catchups-edition-view.ts` (the loader), the state-machine and copy sections of `src/lib/catchups-core.ts`, `src/lib/group-succession.ts`, the parser half of `link-preview-core.ts`, the export script's copy loop, `docs/spec/catchups.md` §3.4-§4. Read the diffs of every commit in `rebaseline.md` that touched Catch-ups.
+STATUS: COMPLETE at HEAD 88642426

@@ -1,0 +1,134 @@
+{
+ "V-T2-01": {
+  "kind": "DUPLICATE",
+  "canonical": "L10-01",
+  "note": "orchestrator: L10-01's door 3 (V-T2 says so itself); L10-01 is canonical, High"
+ },
+ "C1-06": {
+  "kind": "OWNER-DECLINED",
+  "final": "High",
+  "note": "owner 2026-10-23: \"its not that deep. can leave it public.\""
+ },
+ "T7b-03": {
+  "kind": "CONFIRMED-CORRECTED",
+  "note": "orchestrator: canonical over T3-16 (V-T3's pick; V-T7b had deferred)"
+ },
+ "T3-16": {
+  "kind": "DUPLICATE",
+  "canonical": "T7b-03",
+  "note": "orchestrator: T7b-03 canonical"
+ },
+ "T5-01": {
+  "final": "Medium",
+  "note": "V-DRIFT CHANGED: c41893f0 fixed the bounced-address case; a typo that does not bounce is still permanent"
+ },
+ "T5-08": {
+  "final": "Low",
+  "note": "V-DRIFT CHANGED: since d7a8041d nothing-sent leaves every gate open"
+ },
+ "C3-01": {
+  "kind": "CONFIRMED",
+  "final": "Medium",
+  "note": "orchestrator verified at source: closeAndPublish actions.ts:1110-1136 + extendPatch catchups-core.ts:869-881 (deadline = now + 3 days)"
+ },
+ "C2-01": {
+  "final": "Low",
+  "note": "orchestrator: plain Low; an R2 stall has never been recorded"
+ },
+ "T1-18": {
+  "final": "Low",
+  "note": "V-T1: Low conditional on Fluid compute; L8 measured fluid: true"
+ },
+ "V-L-c-01": {
+  "final": "Low",
+  "note": "explained: the owner downgraded to Hobby on 2026-10-23; residual: OPERATIONS/TRAPS still name vercel metrics, which needs Observability Plus."
+ },
+ "C5-01": {
+  "kind": "CONFIRMED",
+  "final": "High",
+  "note": "orchestrator verified at source; on Hobby (2026-10-23) a few thousand requests spend the month's 5,000 transformations and new images stop for 30 days."
+ },
+ "C5-02": {
+  "kind": "CONFIRMED",
+  "final": "Medium",
+  "note": "orchestrator re-derived from the meters constants (rate-limit.ts:76-79, email-queue.ts:435-437)"
+ },
+ "C5-03": {
+  "kind": "CONFIRMED",
+  "final": "Medium",
+  "note": "orchestrator verified: trivia-bank.ts on origin/main (f8ef67a2), contains-substring judge at :277"
+ },
+ "C5-04": {
+  "kind": "CONFIRMED",
+  "note": "orchestrator: accepted on the finder's source argument (Low)"
+ },
+ "C5-05": {
+  "kind": "CONFIRMED",
+  "note": "orchestrator: accepted on the finder's source argument (Low)"
+ },
+ "O-09": {
+  "kind": "CONFIRMED",
+  "final": "Medium",
+  "note": "orchestrator: the class; each instance validated separately"
+ },
+ "C8-02": {
+  "kind": "CONFIRMED",
+  "final": "Medium",
+  "note": "orchestrator: adminHidePost sets isHidden only (source); the finder proved the three images live; not adversarially validated"
+ },
+ "C8-03": {
+  "kind": "CONFIRMED",
+  "final": "Medium",
+  "note": "orchestrator: no isHidden on CatchupEntry (source); not adversarially validated"
+ },
+ "C8-01": {
+  "kind": "NOT-VALIDATED",
+  "note": "the last completeness round; the audit closed on the owner's word before a validator ran"
+ },
+ "C8-04": {
+  "kind": "NOT-VALIDATED",
+  "note": "the last completeness round; the audit closed on the owner's word before a validator ran"
+ },
+ "C8-05": {
+  "kind": "NOT-VALIDATED",
+  "note": "the last completeness round; the audit closed on the owner's word before a validator ran"
+ },
+ "C8-06": {
+  "kind": "NOT-VALIDATED",
+  "note": "the last completeness round; the audit closed on the owner's word before a validator ran"
+ },
+ "C8-07": {
+  "kind": "NOT-VALIDATED",
+  "note": "the last completeness round; the audit closed on the owner's word before a validator ran"
+ },
+ "C8-08": {
+  "kind": "NOT-VALIDATED",
+  "note": "the last completeness round; the audit closed on the owner's word before a validator ran"
+ },
+ "C8-09": {
+  "kind": "NOT-VALIDATED",
+  "note": "the last completeness round; the audit closed on the owner's word before a validator ran"
+ },
+ "L5-01": {
+  "kind": "CONFIRMED",
+  "final": "High",
+  "note": "REVIVED 2026-10-24: the owner moved production back to Vercel Hobby on 2026-10-23 (memory: platform-health). Steady ~4 min/day Active CPU = ~2 h/month of Hobby's 4 h at ~575 members; the trailing meter read 4h13m/4h right after the switch. V-L-c's MOOT ruling rested on Pro."
+ },
+ "L5-11": {
+  "kind": "CONFIRMED",
+  "final": "Medium",
+  "note": "REVIVED 2026-10-24 (Hobby since 2026-10-23): 5,000 image transformations a month; C5-01 lets anyone spend them."
+ },
+ "L8-04": {
+  "final": "High",
+  "note": "Hobby since 2026-10-23: no spend cap, but each allowance (1M CDN requests, 1M invocations) stops its feature for 30 days when spent, shared with the demo; one WAF rate-limit rule per project is available on Hobby (Vercel docs, fetched 2026-10-24)."
+ },
+ "L8-06": {
+  "note": "Skew Protection is Pro/Enterprise only (Vercel docs, 2026-10-24); on Hobby the fix is code-side."
+ },
+ "V-R4b-01": {
+  "kind": "DUPLICATE",
+  "canonical": "C7a-02",
+  "note": "V-R4b: fold into C7a-02 (photo-aim save without callAction/finally)"
+ }
+}
