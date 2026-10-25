@@ -1,3 +1,22 @@
+## 2026-10-25 (deps) — CI green again: seven high and critical advisories patched
+
+The `check` workflow had failed on the last two pushes (7aff912, 35bdf67), on one gate only: seven
+new high or critical dependency advisories. Three were in Next.js (two unauthenticated remote code
+execution bugs, in the image optimizer with SVGs and in `use cache`, and a Server Actions denial of
+service); the rest were Sentry (a middleware bypass through the tunnel route), DOMPurify twice
+(through posthog-js) and Zod (memory exhaustion). Fixed by moving `next` 16.3.8 to 16.4.3 (no 16.3
+backport exists), `@sentry/nextjs` to 10.76.2 (staying on v10), `zod` to 4.6.7 and `puppeteer` to
+25.16.0 (its nested zod 3 was affected too), and refreshing the lockfile's `dompurify` and
+`fast-uri`. `npm audit` now reports zero.
+
+`eslint-config-next` stays at 16.3.8 on purpose: 16.4.3 brings `eslint-plugin-react-hooks` 7.1.1,
+whose React Compiler rules report 95 new errors across 25 files (refs read during render, setState
+inside effects; mostly the mascot and the auth forms). It carries no advisory, so that cleanup is
+its own piece of work. A local production build on 16.4.3 succeeds and serves. It newly warns that
+the local-disk branch of `storage.ts` traces all of `public/` into the upload routes' bundles (the
+16.3.8 build on Vercel printed nothing); left alone, since that is about 16 MB of committed files,
+far under the function size limit.
+
 ## 2026-10-24 (audit) — bug audit 3 closed: 410 findings, 359 open, a fix-prompt for the campaign
 
 The third bug audit, paused on 2026-09-27, was finished. The code had moved 113 commits, so every
