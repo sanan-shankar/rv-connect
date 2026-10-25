@@ -367,7 +367,7 @@ rules (a seek goes to the head unconditionally, any other change pulls up only).
 switch through a server-rendered `firstPage` instead and it fights that reseed guard rather
 than using it.
 
-Found by rv-connect-06 while root-causing the post-action scroll reset (commit `9fec6f6`,
+Found by rv-connect-06 while root-causing the post-action scroll reset (commit `b345c3a`,
 which is also why the in-place switch will feel smooth at all); confirmed here by reading
 the file.
 

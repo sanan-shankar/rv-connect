@@ -8,7 +8,7 @@ Specs read first: `docs/spec/catchups.md` (in full), `docs/planning/catchups-rew
 (in full), `spec.md` (§1-§3.5b and §4-§11 in full, the rest by heading), `handover.md` (start,
 status board, the phase rows, the relevant session-log passages), `review-2026-09-06.md`
 (skimmed: its own handover says "grep, do not read"), and audit 2's `catchups.md` agent report
-plus its fix-prompt board. Date 2026-09-24, HEAD `70570bcd`. Files in territory: 51. Read fully: 51.
+plus its fix-prompt board. Date 2026-09-24, HEAD `495ecdd2`. Files in territory: 51. Read fully: 51.
 
 ## Coverage
 - Read fully (51 files, 12,324 raw lines):
@@ -41,7 +41,7 @@ This territory is a freshly rebuilt feature. It is carefully argued and heavily 
 7,556 code lines, 4,000 comment lines, ratio 0.53), and most of the comment mass is owner quotes and
 measurements. By the rule audits 1 and 2 proved, that is the product, not bloat.
 
-The rebuild did leave damage, all of it from build phase 7 (`b94677ce`, 2026-09-09), which swapped
+The rebuild did leave damage, all of it from build phase 7 (`e8307e39`, 2026-09-09), which swapped
 the home's files wholesale.
 - Two features are plumbed end to end with no door. The settings **Picture** row opens nothing (the
   326-line picker and `setCatchupPicture` are orphaned), and the Keeper's **invite link** vanished
@@ -66,7 +66,7 @@ The cheap half (dead exports, unused options, stale comments, re-typed constants
 small: roughly 150 lines. Split: 26 structural, 9 cheap.
 
 What surprised me:
-- The damage is **regression by transplant**. Every dead control traces to `b94677ce`.
+- The damage is **regression by transplant**. Every dead control traces to `e8307e39`.
 - Audit 2's parked rows (catchups-02/08/09) mostly **survived the rework**, re-created rather than
   fixed. Only catchups-07 went moot, with `preparing`.
 
@@ -96,7 +96,7 @@ instead (≈200 lines).
 - **Evidence**:
   - `raw/knip-repo-plus-lab.txt` lists `picture-picker-dialog.tsx` as an unused file and
     `setCatchupPicture` (`actions.ts:797`) as an unused export. madge and depcruise agree.
-  - `git show b94677ce` deletes `keeper-settings-dialog.tsx`, the picker's only importer
+  - `git show e8307e39` deletes `keeper-settings-dialog.tsx`, the picker's only importer
     (`-import { PicturePickerDialog } from "./picture-picker-dialog";` and
     `-      <PicturePickerDialog`). The `settings-surface.tsx` added in the same commit gives the row
     a `picture` shape and no renderer.
@@ -131,7 +131,7 @@ instead (≈200 lines).
 ### catchups-ui-02 - Give the invite link a door again, or retire the invite subsystem (owner)
 - **Where**:
   - What was deleted: the `InviteLink` component inside `home/people-panel.tsx`, removed in
-    `b94677ce`. `git show b94677ce -- src/components/catchups/home/people-panel.tsx` shows
+    `e8307e39`. `git show e8307e39 -- src/components/catchups/home/people-panel.tsx` shows
     `-{data.inviteToken && data.catchupStatus !== "ended" && ( <InviteLink token={data.inviteToken} />`
     and `-  const path = \`/catchups/join/${token}\`;`.
   - Still present, but only reachable through links shared before 2026-09-09:
@@ -161,7 +161,7 @@ instead (≈200 lines).
   - **Restore.** Add a "Copy invite link" control to `PeoplePanel` for `canManage` (the Keeper of an
     active people Catch-up), built from the token. Send `inviteToken` only when
     `isKeeper && !isBatch && status !== "ended"`; today every member's browser receives it. The old
-    `InviteLink` at `b94677ce^` is the reference, about 25 lines.
+    `InviteLink` at `e8307e39^` is the reference, about 25 lines.
   - **Retire.**
     - Delete the three join files, `AcceptInvite`, `joinCatchupByToken` and `newInviteToken`.
       Removing `newInviteToken` also removes `node:crypto` from the core and unblocks
@@ -193,7 +193,7 @@ instead (≈200 lines).
 - **Tier**: T2     **Class**: structural     **Decides**: autonomous
 - **Evidence**:
   - `grep -rn "data-resume" src e2e scripts` finds only this line; nothing listens for it.
-  - `git log -L` on the block shows it was born this way in `b94677ce`.
+  - `git log -L` on the block shows it was born this way in `e8307e39`.
   - Architecture §5's region table makes "Start it again" the on-hold state's one primary action.
     The working resume is the settings row (`settings-surface.tsx:294-300`: key `"resume"`, then
     `confirm("resume")`, then `resumeCatchup`).
@@ -331,7 +331,7 @@ instead (≈200 lines).
   - Read side by side, `closeAndPublish`'s three branches are the engine's `extend` and `transition`
     retyped. The only difference is `excludeUserId: session.user.id`, so the Keeper is not told about
     their own act.
-  - Phase 14 (`76aac5ac`) had to add the capsule path in both places.
+  - Phase 14 (`889ea41e`) had to add the capsule path in both places.
 - **What to do**:
   - Export a narrow engine entry from `lib/catchups.ts`, e.g.
     `applyKeeperClose(edition, entryCount, now, { excludeUserId })`. It builds the same
@@ -471,7 +471,7 @@ instead (≈200 lines).
 - **Tier**: T1     **Class**: structural     **Decides**: autonomous
 - **Evidence**:
   - knip lists it as an unused file; madge-orphans-filtered and depcruise (no-orphans) agree.
-  - `git show b94677ce -- "src/app/(main)/catchups/[catchupId]/answer/page.tsx"` removes its only
+  - `git show e8307e39 -- "src/app/(main)/catchups/[catchupId]/answer/page.tsx"` removes its only
     import (`-import { AnswerRedirect } from "@/components/catchups/answer/answer-redirect";`) when
     the route became a server 308.
   - It carries the territory's only `react-hooks/exhaustive-deps` disable (`raw/type-sludge.txt`).
@@ -642,7 +642,7 @@ instead (≈200 lines).
 - **Evidence**:
   - `EDITION_TIMING_SELECT` exists so every reader of an Edition "selects exactly the same set"
     (audit-2 catchups-09).
-  - Phase 14 (`76aac5ac`) had to add `timeCapsule` and `publishAt` at all four sites.
+  - Phase 14 (`889ea41e`) had to add `timeCapsule` and `publishAt` at all four sites.
   - `latestRaw.createdAt` is read nowhere (grep).
 - **What to do**:
   - `EDITION_COLUMNS` becomes `{ id: true, catchupId: true, number: true, sealedAt: true, ...EDITION_TIMING_SELECT }`.
@@ -1013,7 +1013,7 @@ instead (≈200 lines).
     `:2389-2397`: "seven actions ... the four lifecycle controls ... the three membership controls"
     (nine callers now, six of them lifecycle).
   - `[catchupId]/(home)/page.tsx:44-47`: "Asymmetric two-column shape ... see
-    `home/catchup-home-shell.tsx`" (deleted in `b94677ce`).
+    `home/catchup-home-shell.tsx`" (deleted in `e8307e39`).
   - Same file `:169-173`: "the people panel shows only the first PILLS_SHOWN". No such constant
     exists.
   - `edition/[editionId]/page.tsx:69`: a JSDoc describing `advanceAndReload`, sitting above
@@ -1028,8 +1028,8 @@ instead (≈200 lines).
   - `catchup-home.tsx:299-302`: "the panel inside them is the same component the
     /lab/catchups/settings room draws -- so the room he signed off and the shipped surface cannot
     drift". This is FALSE. The room draws `src/app/lab/catchups/_settings.tsx`, a separate 1,226-line
-    copy frozen on 2026-09-09 (`b49a0552`), and the shipped one has since moved (`334d7907`,
-    `d422de66`).
+    copy frozen on 2026-09-09 (`3290d221`), and the shipped one has since moved (`44a1ac87`,
+    `3be6ae75`).
   - `settings-surface.tsx:811-824`, in `useSettings`: "the same shape `ReminderPrefControl` already
     used" (deleted), and "`router.refresh()` after a success". The code never calls it; the actions'
     `revalidatePath` refreshes the current route.
@@ -1225,7 +1225,7 @@ instead (≈200 lines).
 - **catchups-01** (audit 2), retire the Spotify pipeline: still open. The code half is here as
   catchups-ui-08; the columns are gated on his release (spec §16).
 - **catchups-02**, cadence trios and prop drills: PARKED, then partly moot. keeper-settings-dialog,
-  console-collecting and library-picker-dialog were deleted in `b94677ce`, but the library drill and a
+  console-collecting and library-picker-dialog were deleted in `e8307e39`, but the library drill and a
   fifth cadence spelling were re-created. Now catchups-ui-20, still blocked on catchups-10.
 - **catchups-03**, Keeper-only dialogs shipped to every member: moot in its files, re-created in shape
   on the new home. Now catchups-ui-04.
@@ -1257,7 +1257,7 @@ instead (≈200 lines).
 
 ## For other lenses
 - **Bug audit** (not read by me as evidence):
-  - catchups-ui-01, -02 and -03: three dead controls since `b94677ce`.
+  - catchups-ui-01, -02 and -03: three dead controls since `e8307e39`.
   - catchups-ui-07: the photo-wall composer caps at 1 against his locked 3.
   - catchups-ui-31: `custom` is inert, so the exit slides the wrong way after Back.
   - `join/[token]/page.tsx:133` and `accept-invite.tsx:42` print the group's name, not the Catch-up's
@@ -1312,7 +1312,7 @@ instead (≈200 lines).
 
 ## Charter leads and questions, answered
 - **knip `setCatchupPicture` and `setEditionTimeCapsule`: dead or in progress?**
-  - `setCatchupPicture` is neither: it was orphaned by regression in `b94677ce`, and the fix is to
+  - `setCatchupPicture` is neither: it was orphaned by regression in `e8307e39`, and the fix is to
     mount the picker (catchups-ui-01).
   - `setEditionTimeCapsule` is in progress and owner-gated. It carries "NOTHING CALLS THIS YET"
     (`actions.ts:1634`), is pinned by `time-capsule-rule.test.mjs:229-239`, and its lab drawing waits

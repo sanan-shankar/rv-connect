@@ -1,7 +1,7 @@
 # Orientation findings (Phase 0) — 2026-09-24
 
 ## Repo state at start
-- HEAD 70570bcd, tree clean. 706 commits since audit 2 (2026-08-25). Biggest churn: catchups (rework: editions, batch catch-ups, time capsule, voice, vote, link previews, comments-on-answers, leaving/read-mark, pictures), collection (river, class collection, screen copies 2026-09-23, set-aside, exif dates, import-album), feed comments rework (09-16), hearts, Read more, 300-word letter rule, loading screens (09-21), analytics visit paths, login-attempt detail, bot-check soft-fail (09-11), support totals exclusion (09-22), refactor audit 2 drops.
+- HEAD 495ecdd2, tree clean. 706 commits since audit 2 (2026-08-25). Biggest churn: catchups (rework: editions, batch catch-ups, time capsule, voice, vote, link previews, comments-on-answers, leaving/read-mark, pictures), collection (river, class collection, screen copies 2026-09-23, set-aside, exif dates, import-album), feed comments rework (09-16), hearts, Read more, 300-word letter rule, loading screens (09-21), analytics visit paths, login-attempt detail, bot-check soft-fail (09-11), support totals exclusion (09-22), refactor audit 2 drops.
 - `npm run check` GREEN: TS clean, ESLint clean, protocol clean, 65 lab routes, 130/130 unit tests, deps clean, security board 74 tracked/0 open high. 52.9s.
 - `npm run visual`: running; directory RED (expected live-data drift per bugs.md), letters RED and took 1.1 MINUTES (lead: slow /letters or a hung request), catchups green 26.7s (also slow).
 - Dev server: PID 75607 next-server v16.3.3 on :3000, cwd = this checkout. NOT mine; do not kill.
@@ -35,7 +35,7 @@
 15. The (main) layout awaits data ABOVE every loading.tsx (prisma.ts comment) — a slow layout query blanks the whole site.
 16. Loading screens rewritten 09-21 for every route — loading-boundary rule test exists; check for a loading.tsx that awaits/throws.
 17. Hearts "every tap counts while a save is in the air" (09-17) — new toggle-queue.ts; races.
-18. bugs.md: retention of notifications settled at 30 days (74cc61a) while privacy policy promised a year — verify the policy text and the sweep agree NOW.
+18. bugs.md: retention of notifications settled at 30 days (0cecf11) while privacy policy promised a year — verify the policy text and the sweep agree NOW.
 
 ## Orchestrator reads (Phase 1b), 2026-09-24 ~06:30 IST
 - (main)/layout.tsx: awaits Promise.all of FOUR queries above every loading.tsx: unreadNotificationCount, verificationMailState (unconfirmed only), catchup.findFirst (non-teachers), advanceDueCatchups(userId) (a WRITE path on every page view; "swallows every error"). Then after(drainMailQueue) and after(touchLastSeen). So a request can demand 4 of the pool's 5 connections at once; two concurrent requests per instance already queue. → L5 arithmetic. If session read throws (DB down) the layout throws → (main)/error.tsx? verify which boundary.

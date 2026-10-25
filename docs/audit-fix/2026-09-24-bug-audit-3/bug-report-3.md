@@ -5,7 +5,7 @@ compiles everything found up to that point so none of it is lost, and it is comm
 working folder. A later session finishes the audit by following `work/task_plan.md` ("RESUME HERE"
 at the top); it will replace this file with the final report and write `fix-prompt.md` beside it.
 
-- **Scope:** the whole application at `70570bcd` (2026-09-23). Seven commits have landed since
+- **Scope:** the whole application at `495ecdd2` (2026-09-23). Seven commits have landed since
   (section 6); a finding in a file they touched must be re-checked before anyone fixes it.
 - **Audit-only.** No application code, config, schema or test was changed by this audit.
 - **Method:** 13 territory finders and 12 cross-cutting lenses (read-only), an adversarial validator
@@ -139,11 +139,11 @@ growth projections and a ready-to-run k6 load-test plan for a *preview* deployme
 
 ## 6. What changed while the audit was paused
 
-The audit read `70570bcd`. By the pause, HEAD was `60b8fc16` (seven commits by other sessions):
-`ac70bd9d` (a changed batch year moves the member out of the old batch — likely fixes T2a-01/T6-02),
-`9ef7d821` (batch Catch-ups every three months), `81bb7d11` (the guide's chapters and a once-only
-tour — T8b-13, T8b-16), `ca85e424` (the dialog close button — T8b-01's file), `1b6e5fd3` (the
-directory's city panel — T6), `bda5571c` (the Collection drop box — T4b), `60b8fc16` (chip colours).
+The audit read `495ecdd2`. By the pause, HEAD was `4eddc6f7` (seven commits by other sessions):
+`e49e6265` (a changed batch year moves the member out of the old batch — likely fixes T2a-01/T6-02),
+`14f77687` (batch Catch-ups every three months), `46d4408f` (the guide's chapters and a once-only
+tour — T8b-13, T8b-16), `08d25d12` (the dialog close button — T8b-01's file), `b5a87180` (the
+directory's city panel — T6), `105e056c` (the Collection drop box — T4b), `4eddc6f7` (chip colours).
 Re-check any finding in those files before fixing it.
 
 ## 7. Cleanup
@@ -175,7 +175,7 @@ Low) are in `work/verdicts/V-T1.md` and `V-T8.md`.
 | L8-05 | High | **High** | unvalidated | T2b-01 in platform terms: on Hobby under Fluid compute, one hostile link in one answer spends the month's 4 Active-CPU-hours in about 48 page views, and while it burns it blocks the event loop every other member's request on that instance shares |
 | O-03 | High | **High** | unvalidated; orchestrator-checked | A five-second wait for a pooled connection during the session read signs the member out: NextAuth turns the throw into "no session" and the main layout bounces them to the sign-in form mid-form |
 | O-07 | High | **High** | orchestrator PROVED live for the local config (plaintext socket); production = one Vercel env check | The app's database connection is not encrypted: `pg` is given no `ssl` and the connection string asks for none, so every query and every row crosses the network in plaintext |
-| T2a-01 | High | **High** | validated (corrected); orchestrator-checked; LIKELY FIXED after the baseline by ac70bd9d — re-check | Correcting a batch year leaves the member inside the wrong batch's Catch-up for ever, with no way out (7 live cases) |
+| T2a-01 | High | **High** | validated (corrected); orchestrator-checked; LIKELY FIXED after the baseline by e49e6265 — re-check | Correcting a batch year leaves the member inside the wrong batch's Catch-up for ever, with no way out (7 live cases) |
 | T2b-01 | High | **High** | unvalidated; orchestrator-checked | One pasted link to a hostile page makes the server spin for minutes in the background, on every save of that answer and every read of that Edition, for ever |
 | T3-01 | High | **High** | unvalidated; orchestrator-checked | The Settings "Picture" row opens nothing: the picture picker is never mounted, so no member or Keeper can change a Catch-up's photograph from the app |
 | T3-02 | High | **High** | unvalidated; orchestrator-checked | A question picked from the library loses its kind: the ask box never sends `category`, so "A photo from everyone" and "Songs from everyone" are stored as plain text questions and the photo wall can never be reached from the app |

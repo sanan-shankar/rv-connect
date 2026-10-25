@@ -8,7 +8,7 @@ it (kit / active exploration / verdict shipped / superseded / reference or tool)
 shipped from it and what imports what, confirm no shipped file imports it, measure what it costs
 (lines, lab-only JavaScript, fonts, tracked bytes), register the lab-to-shipped clones, classify knip's
 lines, and put every archive candidate to the owner as a question with "keep" as the default.
-Audit-only; nothing in the tree was changed. Date 2026-09-24, HEAD `70570bcd`.
+Audit-only; nothing in the tree was changed. Date 2026-09-24, HEAD `495ecdd2`.
 Files in territory: 140 under `src/app/lab/` outside `catchups/` (50,630 lines; cloc: 39,452 code,
 8,081 comment, 3,097 blank), 15 tracked files in `public/lab/` (2.01 MB), 1 spec, 8 planning docs.
 Read fully: 21 source files (2,927 lines) and 2 docs; every other file at classification depth.
@@ -84,8 +84,8 @@ parked (G4); its one lab move, the `.hoopoe` rules into `lab.css`, landed and tu
 ## Classification (the kit and every room)
 
 "Own change" is the last commit that was about the room, skipping the four sweeps that touched most
-rooms mechanically (`a4f33dec` the /preview move 07-30, `ed51b119` the `page.lab.tsx` rename 09-08,
-`d81a7db9` Round to Edition 09-08, `40791570` the avatar fallback 09-14). "Born" follows the file
+rooms mechanically (`69bbaa5e` the /preview move 07-30, `a66add3c` the `page.lab.tsx` rename 09-08,
+`e875a2e7` Round to Edition 09-08, `7a5d2135` the avatar fallback 09-14). "Born" follows the file
 across the /preview move. "Lab JS" is the route's first-load bytes that no shipped route loads
 (uncompressed; includes the lab's shared 57 KB motion chunk on 24 routes). An asterisk marks a room
 the registry commits as archived; the 31 `LabRoomState` rows may archive more (lab-catchups-15).
@@ -97,8 +97,8 @@ the registry commits as archived; the 31 `LabRoomState` rows may archive more (l
 | transitions* | 640 | 06-29 | 06-29 | verdict shipped | the sliding marker's spring is `NAV_MARKER_SPRING` (`motion.tsx:60`, the room's values exactly) | 101 | - |
 | composer* | 1,153 (2) | 06-30 | 08-02 | verdict shipped | the composer rework | 110 | - |
 | feed-canvas | 897 (+134) | 07-04 | 07-04 | verdict shipped | right-rail modules (`rail-card.tsx` cites it) | 120 | - |
-| landing | 256 (+908) | 06-29 | 06-29 | verdict shipped, since switched off | the landing's living section (`fba18f40`), now the parked showcase family | 96 | - |
-| feedback | 960 | 06-29 | 06-29 | verdict shipped | the approved moments were ported into the app (`85cc3663`, `7c03568f`, 06-30 and 07-01) | 111 | - |
+| landing | 256 (+908) | 06-29 | 06-29 | verdict shipped, since switched off | the landing's living section (`e734e56e`), now the parked showcase family | 96 | - |
+| feedback | 960 | 06-29 | 06-29 | verdict shipped | the approved moments were ported into the app (`f87f3b9e`, `ca8efa84`, 06-30 and 07-01) | 111 | - |
 | loading | 551 | 06-29 | 06-29 | verdict shipped | the warm shimmer (`skeleton-warm`), ported in the same two commits | 94 | - |
 | loading-ideas | 683 | 06-30 | 06-30 | never picked | "Nothing here is wired into the real app yet"; the 09-21 loading series went another way | 100 | - |
 | eggs | 374 | 06-29 | 08-02 | verdict shipped | `konami-eggs.tsx` cites it | 84 | - |
@@ -109,16 +109,16 @@ the registry commits as archived; the 31 `LabRoomState` rows may archive more (l
 | crop | 613 (2) + 1.51 MB | 08-27 | 09-05 | verdict shipped | `photo-layout.ts`, `photo-frame.tsx` cite it; waiting on his look at "several at once" | 212 | specimens feed `/lab/collection` |
 | new-post | 804 (2) | 09-13 | 09-14 | verdict shipped | badge + in place, 09-14; "the room stays as the record" | 147 | - |
 | collection (+scrub, swap) | 1,975 (5) | 08-28 | 09-23 | tool + records | the Collection's e2e fixture; scrub became `photo-scrubber.tsx` (09-13) | 98 / 48 / 82 | `e2e/collection-seek`, `collection-journeys` |
-| reach | 410 | 09-09 | 09-09 | verdict shipped | the calling card (`16758d27`) | 103 | - |
+| reach | 410 | 09-09 | 09-09 | verdict shipped | the calling card (`38709987`) | 103 | - |
 | viewer* | 197 | 07-30 | 09-05 | tool | the real shared viewer against Collection records | 16 | - |
 | valley (+hills, seal) | 1,975 (13) + 0.52 MB | 09-16 | 09-16 | active exploration | reviewed 09-16, none taken as it stands; round two continues in years | 148 / 109 / 85 | `valley-terrain.mjs` output |
 | years (then, wall, weave) | 2,142 (11) | 09-16 | 09-16 | active exploration | waiting on his review since 09-16; the wall needs a gitignored atlas | 77-94 | `wall-atlas.mjs` output |
 | comments | 205 (2) | 09-16 | 09-16 | verdict shipped | shows the shipped `PostCard` + `CommentsSection` | 208 | - |
-| focus | 188 | 08-29 | 08-29 | verdict shipped | `field-focus.ts` (`d9b7d3f9`) | 79 | - |
-| support-ideas | 1,304 (6) | 08-18 | 08-18 | verdict shipped + parked design | tree shipped; aviary parked in `wood.tsx` (`2937fc45`) | 93 | - |
+| focus | 188 | 08-29 | 08-29 | verdict shipped | `field-focus.ts` (`a144aaea`) | 79 | - |
+| support-ideas | 1,304 (6) | 08-18 | 08-18 | verdict shipped + parked design | tree shipped; aviary parked in `wood.tsx` (`a572f55f`) | 93 | - |
 | groups-rethink* | 1,571 (7) | 07-18 | 08-08 | superseded | Groups removed from the app | 20-25 x5 | - |
 | craft* | 814 (3) | 07-25 | 08-03 | verdict shipped | sidebar contrast (`tailwind-theme.css:74` cites it); loads 2 font families | 40 | - |
-| spine* | 482 (2) | 07-25 | 07-25 | verdict shipped | the one-spine `ContentColumn` (`1ae1c066`, 07-30, "six different left edges, 224px apart") | 28 | - |
+| spine* | 482 (2) | 07-25 | 07-25 | verdict shipped | the one-spine `ContentColumn` (`76b9162e`, 07-30, "six different left edges, 224px apart") | 28 | - |
 | support | 406 (2) | 07-25 | 07-25 | superseded | the bar it audits (`cost-bar.tsx`) went in the 08-18 rework | 23 | - |
 | everything | 996 (2) | 07-25 | 08-04 | superseded audit log | 68 findings + 8 bests from 07-25; 25 of 65 cited paths gone (lab-rest-12) | 103 | - |
 | tiles | 1,813 (2) | 07-25 | 08-03 | reference | "a box must earn its border", now a house standard; the surfaces it measured were rebuilt | 67 | - |
@@ -134,7 +134,7 @@ the registry commits as archived; the 31 `LabRoomState` rows may archive more (l
 | centroid | 53 | 06-29 | 09-11 | tool | render target for `scripts/dev/centroid.mjs` and `generate-bird-photos.mjs` | 0 | both scripts |
 | logo | 77 | 06-29 | 06-29 | reference | "documents the final mark" (CLAUDE.md) | 0 | - |
 | glass-edges | 371 | 08-26 | 08-27 | verdict shipped + tool | the Android icon's edge light (`generate-icons.mjs` bakes `edge-light.ts`) | 0 | `scripts/dev/apple-edge/look.mjs`, `compare.mjs` |
-| hoopoe-marks | 542 (2) | 08-26 | 08-27 | verdict shipped + tool | the hoopoe peek icon (`21a67bdb`); geometry left the lab (`a6d15595`) | 0 | `look.mjs` |
+| hoopoe-marks | 542 (2) | 08-26 | 08-27 | verdict shipped + tool | the hoopoe peek icon (`18337ac8`); geometry left the lab (`7e26ebe2`) | 0 | `look.mjs` |
 | icon-directions | 605 | 08-24 | 08-24 | superseded | the icon became the hoopoe on 08-27 | 0 | - |
 | icon-colours | 473 | 08-22 | 08-24 | superseded | same | 0 | - |
 | logos* | 121 | 06-27 | 06-27 | superseded | the valley-and-hills direction won and is `PeaksMark` | 0 | - |
@@ -233,7 +233,7 @@ centroid, logo, location-picker); active 2 (valley, years); verdict not built 2 
 - **Phase**: placeholder
 - **Tier**: T2     **Class**: structural     **Decides**: autonomous
 - **Evidence**: `src/app/lab/layout.tsx:16-19` returns `notFound()` for anyone whose role is not
-  admin, in every environment, since `b64e44aa` (2026-08-20, security Phase 6). So every render of
+  admin, in every environment, since `a95c61fd` (2026-08-20, security Phase 6). So every render of
   `/lab` has `session.user.role === "admin"`, `editable` is always true, the banner and the disabled
   state are unreachable, and the page's own `auth()` call exists only to compute it. This is the page
   half of lab-catchups-09 (the action's `NODE_ENV` bypass), which the sibling handed to this lens.
@@ -338,7 +338,7 @@ centroid, logo, location-picker); active 2 (valley, years); verdict not built 2 
   `rotate(-68deg) translate(-2px,2px)` and the right-hand twins).
 - **Phase**: dead
 - **Tier**: T1     **Class**: structural     **Decides**: autonomous
-- **Evidence**: `2046bff1` (2026-09-05, audit 2's bundle-build-10) moved the block out of `globals.css`
+- **Evidence**: `3afc2da6` (2026-09-05, audit 2's bundle-build-10) moved the block out of `globals.css`
   unchanged. Both sets are unlayered and of equal specificity (`.hoopoe .wing` against `.hoopoe .wing-l`
   is 0,2,0 each; the rotations are 0,3,0 each), and v2's `<style>` renders in the body, after the
   layout's stylesheet in the head, so v2 wins every property both declare: transition, origin and
@@ -367,7 +367,7 @@ centroid, logo, location-picker); active 2 (valley, years); verdict not built 2 
 - **Tier**: T1     **Class**: structural     **Decides**: autonomous
 - **Evidence**: the room maps over `ARCHETYPES`, which has 51 entries, so birds 26 to 50 render with no
   name, and index 3 is labelled "Indian Roller" while `SPECIES_FULL_NAMES[3]` is "Laughing Dove" since
-  `f163b534` (2026-08-04, "the Indian Roller is the owner's alone, and a dove takes its slot").
+  `12b2f398` (2026-08-04, "the Indian Roller is the owner's alone, and a dove takes its slot").
   `/lab/birds-rv` and `/birds` both read `SPECIES_FULL_NAMES`/`GALLERY_SPECIES` precisely "so it can
   never drift" (`birds-rv/page.lab.tsx:6`, `bird-avatar-v2.tsx:1682`).
 - **What to do**: `import { ARCHETYPES, SPECIES_FULL_NAMES } from "@/components/common/bird-avatar-v2";`,
@@ -433,13 +433,13 @@ centroid, logo, location-picker); active 2 (valley, years); verdict not built 2 
 - **Phase**: placeholder
 - **Tier**: T4     **Class**: structural     **Decides**: owner
 - **Evidence**: `public/images/landing/` does not exist. `git log --diff-filter=D -- 'public/images/landing/*'`:
-  `f8ef8a20` (2026-09-07, "cleanup", the owner's own commit) deleted all five (283,284 B). Audit 2's
+  `acdafccf` (2026-09-07, "cleanup", the owner's own commit) deleted all five (283,284 B). Audit 2's
   owner decision D2 was "the landing showcase stays"; its pictures went three days later by his hand.
   So every concept in the room renders its feature screenshots as broken images (through `next/image`,
   which 404s a missing source), and the shipped showcase family (`showcase.tsx`, switched off) points
   at the same five.
 - **What to do**: nothing autonomous; owner decision 4. The two cheap resolutions: restore the five
-  files from `f8ef8a20^` (`git checkout f8ef8a20^ -- public/images/landing/`), or accept the room as a
+  files from `acdafccf^` (`git checkout acdafccf^ -- public/images/landing/`), or accept the room as a
   record of layouts and replace `SHOTS` in `_shared.ts` with a plain placeholder frame. Whichever he
   picks for the room should match what happens to the showcase family (tracked-weight's carry-over).
 - **Saving**: depends on the answer: 0 lines (restore, +283 KB tracked); or ~30 lines; or 3,904 lines
@@ -520,7 +520,7 @@ centroid, logo, location-picker); active 2 (valley, years); verdict not built 2 
   broadsheet/dossier/terrace/passport among themselves. `/lab/profiles` is the heaviest route in my
   territory: 1,318 KB first load, 386 KB of it lab-only (`36q3wjbrivkvt.js` 139 KB,
   `11gartaxotlyo.js` 66 KB). `_profile-avatar.tsx` was a shipped component moved into the lab because
-  only these rooms used it (`0e4a2642`, 2026-08-26).
+  only these rooms used it (`f1146a60`, 2026-08-26).
 - **What to do**: nothing autonomous; owner decision 5. The clean cut keeps the harness, `_data.ts`,
   Letterhead III, `_chain-kit.tsx` (also imported by `/lab/chain-lines`) and the six chain treatments
   its `?chain=` switch draws, and trims `CONCEPTS` to the one entry.
@@ -801,9 +801,9 @@ centroid, logo, location-picker); active 2 (valley, years); verdict not built 2 
   agent for and one against): unchanged. `src/components/support/wood.tsx` (246 lines, "PARKED (owner,
   2026-08-18)") still has one importer, `support-ideas/_variant-aviary.tsx:34`. Not re-argued.
 - **Audits 1 and 2's landing showcase** (D2 declined, "the landing showcase stays"): its five
-  screenshots were deleted by the owner on 2026-09-07 (`f8ef8a20`); see lab-rest-10 and decision 4.
+  screenshots were deleted by the owner on 2026-09-07 (`acdafccf`); see lab-rest-10 and decision 4.
 - **"The lab ships no JavaScript to a member"**: still true for my 58 routes, re-proved above.
-- **Audit 2's world-atlas drop** (`d6e2954e`): DONE; `directory/_maps.tsx:44-50` and
+- **Audit 2's world-atlas drop** (`9d68ccb8`): DONE; `directory/_maps.tsx:44-50` and
   `valley/_terminator.tsx:25` fetch `/geo/countries-110m.json`.
 - **The sibling's lab-catchups-09, -14 and -15** touch my files (`page.lab.tsx`, `_lab-client.tsx`,
   `_registry.ts`): -09 pairs with lab-rest-03; -14 lands with lab-rest-14; -15's SELECT should run before
@@ -820,7 +820,7 @@ centroid, logo, location-picker); active 2 (valley, years); verdict not built 2 
   `src/components/layout/app-shell.tsx:66` (the valley back-layer on every signed-in page) and
   `src/components/landing/hero-photo.ts:16` (`HERO_IMAGE_SRC`) both use it. (2) `/lab/directory`'s
   94 KB chunk `2rghf1hhqy35w.js` is described as the world atlas, but the room has fetched the atlas
-  since `d6e2954e` (`directory/_maps.tsx:44-50`); it is more likely `d3-geo` + `d3-zoom` +
+  since `9d68ccb8` (`directory/_maps.tsx:44-50`); it is more likely `d3-geo` + `d3-zoom` +
   `d3-selection` + `topojson-client`, imported eagerly by the room. Harmless either way (admin-only).
   Also: `/lab/everything`'s 86 KB chunk is `_findings.ts`'s text (lab-rest-12).
 - **tracked-weight**: agree with -07 (the eleven Collection stand-ins to `public/lab/`) and suggest

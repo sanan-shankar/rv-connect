@@ -127,7 +127,7 @@ keeps every file.
   shared height helpers in `_geo.ts`). Record mode for video; relief from the imagery's
   brightness and a film grain (the biggest step from rendered to photographed); the
   camera looks down on the games field before tilting up to the hills; the glass mark has
-  a rim. Commits 03a19bb8, 16414299, 6a26376c, f9cf6ef2. Render a cut:
+  a rim. Commits 6f896bb8, 9b2ce78b, 33aee54d, 2294302b. Render a cut:
   `node /tmp/rv-record.mjs <name> land|port 30 17.8` (a scratch script; recreate from
   the record-mode comment in `_film.tsx` if /tmp was cleared).
 

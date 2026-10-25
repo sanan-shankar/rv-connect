@@ -87,7 +87,7 @@ test("every month the index names has its file, and every archived entry is inde
 
 test("every session the index lists still has its entry in the month's file", () => {
   /* The other direction of the test above, added 2026-09-27. That day
-     9ef7d821 replaced progress-2026-09.md with its own entry (-8,363 lines)
+     14f77687 replaced progress-2026-09.md with its own entry (-8,363 lines)
      and five later commits each replaced the one before. The index still
      listed every session, so "every archived entry is indexed" stayed green
      while the month's record went missing. A session that WRITES the month

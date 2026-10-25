@@ -217,7 +217,7 @@ None. Every neighbour I found while checking T5 is already a candidate elsewhere
 
 ## Coverage
 
-- Checked completely (all 17): T5-01 … T5-17. Every citation opened and re-derived at HEAD 70570bcd (the tree has no application changes since the audit started); corrections recorded per verdict.
+- Checked completely (all 17): T5-01 … T5-17. Every citation opened and re-derived at HEAD 495ecdd2 (the tree has no application changes since the audit started); corrections recorded per verdict.
 - Also read and ruled on as instructed: O-03 (canonical for T5-17; severity ruled with L5 §0), O-04, O-05; T8b-03 (merged into T5-06 with its Next trace re-derived against next 16.3.3); L4-06 (compared with T5-03 and corrected by measurement); L5-02 (kept out of every T5 count); L5 §0 in full; V-T8's T8b-03 verdict.
 - Library sources read for this: `@auth/core` (`index.js` error path, `lib/index.js` action switch, `lib/actions/session.js`, `lib/actions/callback/index.js` credentials branch, `lib/actions/callback/oauth/csrf-token.js`, `errors.js`), `next-auth/lib/index.js`, `next-auth/react.js` (`signIn`), `@upstash/ratelimit` v2.0.8 (`limit`, `getRemaining`, `applyTimeout`), `@upstash/redis` 1.38.2 (`request` retry loop), Next 16.3.3 (`server-action-reducer.js`, `action-handler.js` forwarding, `walk-tree-with-flight-router-state.js`, `spec-extension/response.js`).
 - Live, read-only: `LoginAttempt` reasons and re-sign-in timing; unconfirmed-member counts (bounces, typo domains, same-name twins — counts only, no addresses printed); dev-log signature counts; `dig` of the production hostnames; an offline `/tmp` probe of the installed Upstash libraries against unreachable hosts (no app, no shared state, deleted by the command that made it).

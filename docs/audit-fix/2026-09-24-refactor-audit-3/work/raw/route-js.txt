@@ -1,4 +1,4 @@
-# Per-route first-load client JavaScript, production build of HEAD 70570bcd (2026-09-24).
+# Per-route first-load client JavaScript, production build of HEAD 495ecdd2 (2026-09-24).
 # Source: .next/diagnostics/route-bundle-stats.json (written by next build 16.3.3); gzip = sum of gzip -6 of each chunk file.
 # Derived by the bundle-build lens; audit-2 comparisons in work/agents/bundle-build.md.
 routes: 118  lab: 66  shipped (non-lab, non-api): 52

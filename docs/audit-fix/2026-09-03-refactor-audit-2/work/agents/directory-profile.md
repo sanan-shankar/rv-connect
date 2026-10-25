@@ -339,8 +339,8 @@ The six charter questions, in one line each, with the finding that carries the d
 - **Evidence**: knip lists both files as unused and `SortPill` as an unused export; confirmed
   by grep across `src`, `scripts`, `e2e` including the lab: zero importers of either file, zero
   JSX uses of `SortPill`. `git log -S` puts the last real importer of `ActiveFilterChips` and
-  `ResultCount` at `bfabfea feat(directory): the filter chrome becomes one sentence` and of
-  `SortPill` at `8a0ba37 feat(collection): the archive is a river` -- the Collection left the
+  `ResultCount` at `03522a3 feat(directory): the filter chrome becomes one sentence` and of
+  `SortPill` at `f01c444 feat(collection): the archive is a river` -- the Collection left the
   kit that day and now owns its own river controls, so the kit's second consumer is **admin**
   (`admin-filter-bar.tsx`, `content-list.tsx`, `people-list.tsx` import facet-select,
   filter-popover, filter-sheet, sentence-line, types), not Collection. The lab room
@@ -369,7 +369,7 @@ The six charter questions, in one line each, with the finding that carries the d
 - **Phase**: dead
 - **Tier**: T1     **Class**: structural     **Decides**: autonomous
 - **Evidence**: knip flags `HOUSE_OPTIONS`; grep confirms zero readers since
-  `37e6f32 feat(directory): one chrome row, search on the title line, Profession for House`
+  `c5ab73d feat(directory): one chrome row, search on the title line, Profession for House`
   (the owner, 2026-08-28: "remove filtering by house", quoted at `directory-client.tsx:341-345`).
   What is left is a two-entry array (`TYPE_OPTIONS`) whose only reader is `directory-client.tsx`
   and whose name collides with a different `TYPE_OPTIONS` in `src/lib/admin-content.ts:19`.
@@ -396,7 +396,7 @@ The six charter questions, in one line each, with the finding that carries the d
 - **Phase**: dedupe
 - **Tier**: T2     **Class**: structural     **Decides**: autonomous
 - **Evidence**: Audit 1's F-09 asked for two things: one `PERSON_SELECT` (done, `select.ts`,
-  commit `ab82f30`) and one person type (not done; the fix-prompt row 230 folded it into the
+  commit `c8b6d63`) and one person type (not done; the fix-prompt row 230 folded it into the
   select constants work and only the select landed). Today: `ProfileCard` reads `currentCity`
   (`profile-card.tsx:68`, `shortPlaceLabel(user.currentCity)`), so the `select.ts:17-18`
   comment is wrong -- that column IS a pixel (the card's city). `workplace`, by contrast, is
@@ -569,7 +569,7 @@ The six charter questions, in one line each, with the finding that carries the d
   `expectedCount` doc shrinks).
 - **Risk & gate**: medium. `npm run check`; Jerry's profile and a stranger's at both viewports,
   switch All/Posts/Letters, Load more; the count pill and the list must still agree
-  (`f47102a fix(profile): the feed opens at the height it is going to be` is the last time this
+  (`9ebd75d fix(profile): the feed opens at the height it is going to be` is the last time this
   pair was tuned).
 - **Confidence**: medium-high. Would change my mind: if the feed lens rules that `loadPosts`
   must stay action-only; then the extraction is theirs to sequence.
@@ -804,7 +804,7 @@ The six charter questions, in one line each, with the finding that carries the d
 - **Phase**: hygiene
 - **Tier**: T1     **Class**: cheap     **Decides**: autonomous
 - **Evidence**: `git log -- src/app/(main)/profile/[id]/loading.tsx` shows no commit since
-  `22b4b6c feat(profile): ship the letterhead as everyone's profile`; audit 1's F-11 named
+  `d03b053 feat(profile): ship the letterhead as everyone's profile`; audit 1's F-11 named
   these two lines and the fix-prompt (row 216) records the skeleton batch as done for four
   sites -- the directory's was rewritten (`directory/loading.tsx` is now correct), this one
   was not. The skeleton's own contract (`:1-7`, "the page with the ink drained out ... so
@@ -822,8 +822,8 @@ The six charter questions, in one line each, with the finding that carries the d
     (`page.tsx:415-418`: "there is no /settings any more (a request to it 404s)"). Say "from
     your profile".
   - `src/lib/city-coords.ts:186-190` -- "the map's existing supercluster merges them at low
-    zoom": supercluster left in `f5db59d`; audit-1 F-14 named this line; still present (last
-    touch `2f43a3d` un-exported symbols only). Say "the map's screen-space clustering
+    zoom": supercluster left in `f99a128`; audit-1 F-14 named this line; still present (last
+    touch `55aefdf` un-exported symbols only). Say "the map's screen-space clustering
     (map-cluster.ts)".
   - `src/lib/city-coords.ts:129-135` -- an orphaned docblock for `cityNameVariants` stacked
     above `cityFilterTargets`'s own; move it down to `:157`.
@@ -968,7 +968,7 @@ not lines), and the spec already knows the traps (the 10.5px byline is yours, ke
 **The lab Letterhead III variant vs the shipped sheet** (carried over from audit 1). The
 shipped file's header still says "Keep them in step, or retire the concept"
 (`letterhead-profile.tsx:6-9`); nobody has kept them in step (the shipped sheet moved through
-`d68d923`, `83ec7fc`, `f47102a` and the variant did not), and the lab registry now describes
+`7517103`, `7ab53aa`, `9ebd75d` and the variant did not), and the lab registry now describes
 Letterhead III as "the current one: the shipped sheet plus the 2026-08-02 tweaks" -- which
 means the variant is the design record of a *proposal*, and the shipped sheet is the record
 of what won. What the shipped one should be: the source of truth, and its header should stop

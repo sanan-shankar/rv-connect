@@ -4,7 +4,7 @@ media library in `src/lib` (the `collection*`, `photo-*`, `river-*` modules, the
 `caption-tidy`, the `upload-*` and `image*` modules, `storage.ts`), the media primitives in
 `src/components/common` (viewer, carousel, frame, rows, aim, opener, arrow, attach dialog), the pipeline
 logic of `src/app/api/upload/**` and `src/app/api/photo/download`, and, read-only, the album / backfill /
-sweep / tag-photos scripts. Audit-only. Date 2026-09-24, HEAD `70570bcd`, tree clean apart from the two
+sweep / tag-photos scripts. Audit-only. Date 2026-09-24, HEAD `495ecdd2`, tree clean apart from the two
 audit folders. Files in territory: 90 (68 source and script files, 22 test files); read fully: 67; the rest partly (see Coverage).
 
 ## Coverage
@@ -80,7 +80,7 @@ they have not. Moot from audit 2: G10 (its subject is guarded off), FEATURES.md 
   `:291-294`, and the `ascending`/`pageUp` helpers), `src/lib/append-page.test.mjs:71-81`.
 - **Phase**: placeholder
 - **Tier**: T3     **Class**: structural     **Decides**: autonomous
-- **Evidence**: the geometry commit `d920f631` ("the river knows its own height before it loads") is
+- **Evidence**: the geometry commit `bc73af44` ("the river knows its own height before it loads") is
   `862 insertions(+), 33 deletions(-)`: it added the new model and removed nothing. Its progress entry
   (`docs/history/progress-2026-09.md`, 2026-09-09 later) says it outright: "`scrollAnchor`, `landAt`'s
   corrections and the zero-pull latch are all dead weight in the geometry path and stand down there;
@@ -325,7 +325,7 @@ they have not. Moot from audit 2: G10 (its subject is guarded off), FEATURES.md 
   scopeFacts"` finds only these two files and `contribute-room.tsx`. The copy has already drifted: the
   contribute dialog is handed the flat `roomLeft` (`:1738`), not `facts.roomLeft`, so after a swap the
   room caps a drop by the OTHER half's remaining quota. Audit 2 recorded this as a correctness bug
-  (`report.md:306`, `collection-02`: "`facts.roomLeft` is computed and never read, despite `dad5307`")
+  (`report.md:306`, `collection-02`: "`facts.roomLeft` is computed and never read, despite `9affe44`")
   and handed it to the bug tracker; it is not in `docs/planning/bugs.md` and is still live.
 - **What to do**: make `scopeFacts` required; drop `pending`, `hasApprovedPhotos`, `roomLeft` from
   `collectionPageData`'s return and from `CollectionClient`'s props; read `facts.*` everywhere
@@ -346,7 +346,7 @@ they have not. Moot from audit 2: G10 (its subject is guarded off), FEATURES.md 
 - **Evidence**: the comment says the `collection` alternative is there for "a presigned URL minted by
   the OLD code when the new code deploys ... Safe to narrow to `staging/` alone once nothing old is in
   flight -- which is any time after the deploy, since a presign is short-lived" (presigns expire in 600 s,
-  `storage.ts:186`). The staging change is `04c90a27` (2026-08-28); `scripts/README.md:84` records the
+  `storage.ts:186`). The staging change is `61c0b7ed` (2026-08-28); `scripts/README.md:84` records the
   post-deploy sweep on 2026-09-05: "0 keys, 0.00 MB".
 - **What to do**: `/^staging\/[a-z0-9]+\/\d{4}\/\d{2}\/[a-z0-9]+-o\.(jpg|jpeg|png|webp|gif)$/` and
   `keyBelongsTo(input.key, session.user.id, "staging")`; cut the comment to its first paragraph's reason
@@ -761,7 +761,7 @@ they have not. Moot from audit 2: G10 (its subject is guarded off), FEATURES.md 
   imports so a bare `node --test` can load it. Deliberate.
 
 ## Audit carry-overs in this territory
-- **E11 collection tail (PARTIAL)**: `toViewerImage` x3 (`fresh-code-03`) DONE (`1f6f9e43`, pinned by
+- **E11 collection tail (PARTIAL)**: `toViewerImage` x3 (`fresh-code-03`) DONE (`704d385b`, pinned by
   `collection-viewer-image.test.mjs`); photo-meta column map (`collection-09`) DONE in the app
   (`photoRowData`), the album importer keeps its own raw INSERT; two contribution pipelines into one
   ingest (`fresh-code-01 ⊃ collection-06 = media-viewer-04`) STILL OPEN -> 04; viewer cross-dissolve

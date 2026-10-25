@@ -3,10 +3,10 @@
 Verifier: docs-area. Date: 2026-09-04. Read-only throughout: no builds, no tsc, no knip, no
 browser, no database, no npm. Everything below was re-read at today's HEAD.
 
-**HEAD has moved since the audit baseline.** The reports were written against `72b5a1d`; HEAD is
-now `74cc61a` (`fix(retention): notifications are kept 30 days, everywhere`), with `72b5a1d`
+**HEAD has moved since the audit baseline.** The reports were written against `09772aa`; HEAD is
+now `0cecf11` (`fix(retention): notifications are kept 30 days, everywhere`), with `09772aa`
 (`fix(viewer): ...`) in between. Nothing in this cluster's territory was touched by either, but
-`a13a8a9` is now HEAD~2, not HEAD~1 as `scripts-e2e-ci-19` says. Working tree at read time:
+`6918a0f` is now HEAD~2, not HEAD~1 as `scripts-e2e-ci-19` says. Working tree at read time:
 `M docs/audit-fix/README.md`, `M progress.md`, `?? docs/audit-fix/2026-09-03-refactor-audit-2/`
 (the audit's own files). No source file in this cluster has uncommitted edits.
 
@@ -73,7 +73,7 @@ Facts verified at HEAD:
 - `docs/OPERATIONS.md:224-229` still opens *"**One `overrides` entry lives in `package.json`, and
   it is not permanent.**"* and documents `deepmerge-ts` alone, closing with *"an override that
   outlives its reason is a pin nobody remembers making."*
-- `5dbb402` (2026-09-02) added browserslist + mysql2 + postcss-selector-parser; `a13a8a9`
+- `f39d7a5` (2026-09-02) added browserslist + mysql2 + postcss-selector-parser; `6918a0f`
   (2026-09-02) added fast-uri. Both diffs read directly.
 - I reconstructed `lib-core-config-08`'s table from `package-lock.json` with a node one-liner.
   **It is exactly right**, every cell:
@@ -96,7 +96,7 @@ Corrections:
 - `scripts-e2e-ci-19` cites `docs/OPERATIONS.md:238-247` — **wrong section**. 238-247 is §5
   (Bundle analyzer). The overrides paragraph is 224-229. A fixer following that citation edits
   the analyzer prose.
-- `scripts-e2e-ci-19` calls `a13a8a9` "HEAD~1"; it is HEAD~2 now.
+- `scripts-e2e-ci-19` calls `6918a0f` "HEAD~1"; it is HEAD~2 now.
 - `lib-core-config-08`'s "up to 3 overrides" is a *candidate* count, not a saving: caret ranges
   resolve at install time and I could not run npm either. Its own confidence line already says
   so. The lock diff is the arbiter; keep that step.
@@ -260,7 +260,7 @@ Keep the "Proportions" follow-up, as the finding says — nothing on disk closes
 **Verdict: confirmed** (and the finding **understates** it by one line).
 
 - `find src/app -name "@modal" -o -name "(..)*"` → **nothing**. No intercepting route exists.
-- `820762a` (2026-08-27, *"perf(guide): take the route out of the press, and the address with
+- `1d2f264` (2026-08-27, *"perf(guide): take the route out of the press, and the address with
   it"*) is the commit. `src/lib/guide-open.ts:1-27` is the header the finding quotes, and it
   records both measured failures verbatim ("404-444ms of nothing after the press"; "Next's router
   watches history ... the chapter closed itself on open"). `GuideLayer` is mounted at

@@ -110,7 +110,7 @@ function ComboboxList({ className, ...props }: ComboboxPrimitive.List.Props) {
 // concentric with it through the 4px inset, so the highlight can never read as
 // cutting the panel corner.
 //
-// NO min-height. `min-h-9` arrived in 74feaa2 and, on top of px-3 py-2, forced
+// NO min-height. `min-h-9` arrived in 380c454 and, on top of px-3 py-2, forced
 // a one-line result past its natural height; that is the same stretch the owner
 // called out in the menus. The row's own padding sets its size, so a two-line
 // result (label + sublabel, the location picker's shape) still grows honestly.

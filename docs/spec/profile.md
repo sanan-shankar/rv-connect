@@ -1,7 +1,7 @@
 # Spec: profile
 
 > **Resolved 2026-07-30.** The rejection recorded below was answered by the letterhead
-> profile — `22b4b6c feat(profile): ship the letterhead as everyone's profile` — which is
+> profile — `d03b053 feat(profile): ship the letterhead as everyone's profile` — which is
 > the page members see today. Where this spec's layout sections and the shipped page
 > disagree, the shipped page is the successor. The reversals listed below are still binding
 > design rules. The concepts brief has been deleted; it lives in git history

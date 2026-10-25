@@ -22,7 +22,7 @@ serves the analytics tabs and the ranges alike, with a press state both lacked.
 **`npm run visual` is red on eleven desktop routes that are not this work's**: landing, login,
 feed, directory, letters, catch-ups, both Collection views, support, birds and about. Every one
 has its content column about 7px left of the baseline, and /birds is 579px taller, which is the
-birds gate-2 round (f42e4eb4) landing on top of this session; mobile passes throughout. The
+birds gate-2 round (2cc47df2) landing on top of this session; mobile passes throughout. The
 desktop privacy baseline is held back with them, because rebaselining it alone would bake that
 shift in. Whoever rebaselines the birds takes privacy too, after looking.
 
@@ -315,7 +315,7 @@ tree: `src/lib/magazine/` (the grammar, the beam search, the scorer, the measure
 `from-export.ts`, `magazine.test.mjs` and its 178 checks), the lab room `/lab/catchups/magazine` with
 its four modules and its registry row, the twelve JSON fixtures and their corpus, the printer
 `scripts/dev/print-magazine.mjs` with its `scripts/README.md` row, and `magazine.md` (783 lines).
-37 files, about 23,000 lines. **Commit `35b75868` is the whole record** — the layout grammar, the
+37 files, about 23,000 lines. **Commit `3e92eb2d` is the whole record** — the layout grammar, the
 three-round failure hunt, the paper panel and the print spike — if it is ever wanted back.
 
 Two seams the deletion exposed. `ExportedImage.width`/`height` were added for the magazine's image
@@ -655,7 +655,7 @@ export and admin bits, the demo allow-list row, and spec.md 3.11. The feed's own
 
 `CatchupPromptOption` and `CatchupEntry.pollOptionId` were measured empty and stay until the code
 removal has deployed: `2026-10-09-drop-vote-questions.sql` is written and NOT APPLIED, because a
-column dropped before its code is live breaks production. Commits `6e663ba5` and `7f36fea9` hold the
+column dropped before its code is live breaks production. Commits `5d8d52cb` and `3a4fb0e8` hold the
 whole feature if it is ever wanted back.
 
 

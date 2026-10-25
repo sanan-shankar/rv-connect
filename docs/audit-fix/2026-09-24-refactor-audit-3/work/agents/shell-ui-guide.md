@@ -6,7 +6,7 @@ Charter T09: the app shell (`src/components/layout/**`), the shadcn ui set (`src
 the guide (`src/components/guide/**`, `src/app/(main)/guide/**`, `about/**`), the PWA pieces
 (`src/components/pwa/**`), the demo bar, the root app files, the `(main)` layout/template/error/
 forbidden, `(policies)/**`, `src/app/lab/layout.tsx` and three libs (`back-closes.ts`,
-`edge-light.ts`, `utils.ts`). Date 2026-09-24, HEAD `70570bcd`.
+`edge-light.ts`, `utils.ts`). Date 2026-09-24, HEAD `495ecdd2`.
 
 ## Coverage (so far)
 - Read fully: all 13 layout files, all 16 ui files except select/combobox/sonner/field-focus/

@@ -1340,7 +1340,7 @@ test the previous session left rather than by looking at the site and calling it
 the 21 landing-page chunks contain `prefers-reduced-motion: reduce`. The two hits for the bare
 string are Sonner's stylesheet and the `motion` library's own `initPrefersReducedMotion`, which
 asks for `"(prefers-reduced-motion)"` with no `: reduce` — both third-party, both inconclusive by
-design, which is why the agreed answer was the exact string and its ABSENCE. `fabd7042` is new in
+design, which is why the agreed answer was the exact string and its ABSENCE. `bf80312c` is new in
 this push, so the test is about this deploy and not an earlier one.
 
 Then all six, against both Supabase projects. **61** bell links rewritten from `/catchups/round/`
@@ -1466,7 +1466,7 @@ route redirects to login before routing, so no status code distinguishes the bui
 healthy; that is not proof, and these are `DROP`s on members' data with no undo.
 
 The close-out now carries the test the next session should use: fetch the landing page, pull its
-chunk URLs, grep them for `prefers-reduced-motion`. Every check was removed in `fabd7042`, one of
+chunk URLs, grep them for `prefers-reduced-motion`. Every check was removed in `bf80312c`, one of
 them in the landing footer's bird, so its **absence** proves the new build is live. Its presence
 proves nothing — the `motion` library ships the same string.
 
@@ -1866,7 +1866,7 @@ cannot express.
 
 `npm run check` green before every commit: types, lint, protocol, **46 lab routes**, **106/106
 tests**, deps, security. No pixels moved, so `npm run visual` was not run. Six commits,
-`ae88aaec`..`(this one)`.
+`31dc0bd2`..`(this one)`.
 
 **Parked, and named so nobody thinks they were missed**: `docs-07` and `docs/spec/catchups.md`
 entirely, plus `docs/planning/catchups-rework/*` — a peer session is rebuilding Catch-ups in this
@@ -1927,7 +1927,7 @@ Three new owner questions, then two. Twenty is F41, and its stated default is to
 he answers, because it is the only item in the spec that would truncate something a member wrote.
 Twenty-one was withdrawn within the hour: the 10% tile tightening he asked to be measured before it
 touched the feed had already been measured (8px above the reaction row, 9px below, shared) and had
-already shipped as `2a6f7d25`, on its own so he can revert it alone.
+already shipped as `3df46d53`, on its own so he can revert it alone.
 
 And a correction to this session's own arithmetic, made the same day: **six** of the eleven batches
 have exactly one person in them, not three, and nine have four or fewer, not eight. More than half
@@ -2097,7 +2097,7 @@ mode "visually inert" 60 lines of `.dark` block later.
 and the mobile drawer cannot disagree about who sees Catch-ups.
 
 **The raw hex.** `protocol-audit` had one finding left in the whole repo: the sidebar wordmark's
-`text-[#EAF1DF]`, from `bed93ca1`. **No token matches it** -- the nearest, `--sidebar-foreground`,
+`text-[#EAF1DF]`, from `eef41265`. **No token matches it** -- the nearest, `--sidebar-foreground`,
 is `#EBF3EE`, a different colour -- and it should not be one: it is the lightest of the logo's
 three fixed planes, which must not flip with the theme. So it went where the mark's other fills
 already live and are sanctioned, as `PeaksMark`'s `variant="cream"`. Byte-identical output; the
@@ -2319,7 +2319,7 @@ Session S4c. It was meant to be a fine-tune with the owner in the loop; its prom
 tweaks, take them" and also named two items as ours. He had not given the tweaks yet, and the
 session filled the wait with the two items instead of stopping. He rejected the result: *"i don't
 like any of the aesthetic changes you've made they all suck."* Every aesthetic change is reverted
-and `src/app/lab/catchups/sketches/` is byte-identical to `d9bf261` again — the masthead, the Round
+and `src/app/lab/catchups/sketches/` is byte-identical to `f944617` again — the masthead, the Round
 number leaving the reader, the dropped unanswered question, the bounded rail, the clamped rail rows
 and a simplify pass, all gone.
 
@@ -2910,7 +2910,7 @@ that is not this Mac. Twenty-two launch sites call it. Smoke-run: all three scre
 a bare launch, with no `PUPPETEER_EXECUTABLE_PATH` in the environment.
 
 **Finding 03 was 80% already fixed** — `screenshot-auth.mjs`, `verify-shot.mjs` and
-`theme-shots.mjs` got the phone's pointer in `23bae4f` on 2026-09-05. `_dir-room-shots.mjs` had not,
+`theme-shots.mjs` got the phone's pointer in `fba1336` on 2026-09-05. `_dir-room-shots.mjs` had not,
 and has it now.
 
 **`_shoot.mjs` is the shot itself**: which Chrome, what `--mobile` means, where the file lands, and
@@ -3239,7 +3239,7 @@ hard-coding it, so a rename cannot quietly empty them. Mutation-tested both ways
 `update` reds it, dropping the `count === 0` check reds it. −292/+79 across four files.
 
 **D1 — the feed's sort and time filters.** `<FeedColumn showControls={false}>` has been the feed's
-only render since `096a034` (2026-06-28), so the disclosure holding "Most recent / Most liked / Most
+only render since `275ebe6` (2026-06-28), so the disclosure holding "Most recent / Most liked / Most
 discussed" and "Today / This week / This month / This year" has not been on screen for ten weeks and
 nothing else writes either value. Everything conditioned on them went: the block and its `Input` and
 `Select` imports, the two state hooks, the `showControls` prop on both components, `getTimeFilterDate`
@@ -3357,7 +3357,7 @@ serif is a title or a name, sans is the app talking. `globals.css` puts the head
 so every label now says `font-sans` explicitly.
 
 `npm run check` green (105 tests). Every screen read at 390 and 1512 across eight rounds. The
-`sidebar.tsx:132` protocol finding is `bed93ca`, another session's.
+`sidebar.tsx:132` protocol finding is `eef4126`, another session's.
 
 ## 2026-09-06 — Catch-ups rework, S3: ten directions and the sketch room
 
@@ -3997,7 +3997,7 @@ HTTP 200), and `git status` stays clean.
 
 ## 2026-09-05 — a security pin on a corpse
 
-Refactor audit 2, Phase A, row A6, first half. `ae5bc9a` removed the hoopoe tour on 2026-08-27,
+Refactor audit 2, Phase A, row A6, first half. `3f97f8f` removed the hoopoe tour on 2026-08-27,
 "total rather than a flag". `scripts/qa/tour-mobile-verify.mjs` still looked for
 `[role="dialog"][aria-label="Product tour"]` and a button reading "hoopoe tour" on `/admin`.
 Neither has existed for nine days; run today it would retry four times and exit 2, INCONCLUSIVE,
@@ -4042,8 +4042,8 @@ protect. They now read `check.mjs`. The probe reports 13 passed, 0 failed.
 ## 2026-09-05 — the filter kit stops describing a consumer it lost
 
 Refactor audit 2, Phase A, row A8, first piece. The Collection left
-`src/components/common/filters/*` in `8a0ba37` and grew its own river controls; the directory
-chrome became one sentence in `bfabfea`. Between them they orphaned `active-filter-chips.tsx`
+`src/components/common/filters/*` in `f01c444` and grew its own river controls; the directory
+chrome became one sentence in `03522a3`. Between them they orphaned `active-filter-chips.tsx`
 (61 lines), `result-count.tsx` (19) and `SortPill` (37), and left five comments across the kit
 still naming Collection as its second consumer and `active-filter-chips.tsx` as a live twin. The
 kit's actual second consumer is admin: People, Content and their filter sheets.
@@ -4080,8 +4080,8 @@ Refactor audit 2, Phase A, row A8, third piece. Four tracked files under `public
 build since August.
 
 The three crop files were the room's first cut on 2026-08-27 and were superseded the next day by
-`6fb0780`, which rewrote `_specimens.ts` around the eleven `shape-*.webp` fixtures; nobody deleted
-the originals. `c3-thumb` is the file audit 1's finding 17 missed, because `77dc9da` matched on
+`983dc51`, which rewrote `_specimens.ts` around the eleven `shape-*.webp` fixtures; nobody deleted
+the originals. `c3-thumb` is the file audit 1's finding 17 missed, because `62f4701` matched on
 display copies and `c3.webp` is live. Its header comment now says which files "delete these files"
 means.
 
@@ -4135,7 +4135,7 @@ rather than reasoned: removed all three, ran `npm install`, and every resolved v
 the advisory gate stayed clean. `postcss-selector-parser` is not even in the tree any more; its
 only asker was `shadcn`.
 
-`fast-uri`'s override is nine days old (`a13a8a9`, 2026-09-02). It closed four real advisories at
+`fast-uri`'s override is nine days old (`6918a0f`, 2026-09-02). It closed four real advisories at
 the time by moving the *lockfile* off 3.1.5; what it did not need to be was permanent.
 
 §4 is now a table -- override, what it forces, who pins it, what it closes, when it can go --
@@ -4280,7 +4280,7 @@ Refactor audit 2, Phase A, row A6, second half. Owner's call: retire rather than
 `scripts/qa/_dir-chrome-probe.mjs` measured the live directory toolbar so `/lab/directory`'s stated
 numbers stayed re-derivable. Its `page.evaluate` opened with
 `document.querySelector('[data-tour="directory-search"]')`, and every `data-tour` attribute in the
-repository went with the hoopoe tour in `ae5bc9a` on 2026-08-27. Its caller prints
+repository went with the hoopoe tour in `3f97f8f` on 2026-08-27. Its caller prints
 `${label}: toolbar not found` and continues, so since that day it has run clean, **exited 0**, and
 produced twelve of those lines instead of a measurement table -- the failure this project likes
 least, a tool reporting success while doing nothing.
@@ -4299,7 +4299,7 @@ hand before trusting them against today's bar.
 Refactor audit 2, Phase A, row A10. `bugs.md` carried a dated cleanup: *"After 2027-08-01: delete
 `/notice/[id]`."* That date was arithmetic -- 2026-07-24, when moderation notes moved to messages,
 plus a 365-day notification retention. The owner settled retention at **30 days** yesterday
-(`74cc61a`), which moves the answer to 2026-08-23.
+(`0cecf11`), which moves the answer to 2026-08-23.
 
 Checked live rather than trusting the arithmetic, because a wrong answer 404s a link in somebody's
 inbox. Against production **and** demo: **0 notifications created before 2026-07-24, and 0 carrying
@@ -4676,7 +4676,7 @@ Class Collection's own heading and its Chronological order, no round trip and no
 
 ## 2026-09-05 — Phase C closed: the query floor
 
-All eleven rows of refactor audit 2's Phase C, in twelve commits (`29582b3`..`ce223a0`). Nine routes
+All eleven rows of refactor audit 2's Phase C, in twelve commits (`9cea25c`..`c12403c`). Nine routes
 measured with `pg_stat_statements` against the same files at the phase's start commit, minimum of
 several samples each:
 
@@ -5212,7 +5212,7 @@ that had changed underneath it.
 All three paths in are build-time tooling (`@sentry/webpack-plugin`'s webpack, `prisma`'s
 dev server, the `shadcn` CLI), every one of them through `ajv`, so nothing reachable at
 runtime -- but this repo closes advisories rather than reasoning about reachability, and
-`5dbb402` set the precedent with three others last week.
+`f39d7a5` set the precedent with three others last week.
 
 `overrides: { "fast-uri": "^3.1.7" }`. The 3.x line carries the patch, so no major bump and
 no `ajv` compatibility question: all four resolutions move 3.1.5 -> 3.1.7 and the tree is
@@ -5524,7 +5524,7 @@ inside the longest tick so the two read as a label on a ruler.
 **Two visual baselines updated, both examined first.** Mobile `collection` and
 `collection-class` carried two intentional differences: the scrubber's hairline is a TIMER
 rather than a state -- raised by a scroll, gone a second and a half later -- so it is masked in
-`volatileRegions()` now, and the baselines predated `8a10763`, the approved change that opens
+`volatileRegions()` now, and the baselines predated `142e653`, the approved change that opens
 the header search as a line rather than a box. The differing pixels were bounded to
 (279,77)-(390,124) and read before anything was rewritten.
 
@@ -6109,7 +6109,7 @@ visible change lives inside a dropdown, and the shelf that went was empty for ev
 
 The owner, on the sidebar: *"the eye is too drawn to the logo ... it now seems bigger and more
 imposing."* It was not bigger. Flattening the mark to one cream silhouette a few days earlier
-(`bed93ca1`) had raised its ink by **64%** at an unchanged 24px — measured by summing luminance
+(`eef41265`) had raised its ink by **64%** at an unchanged 24px — measured by summing luminance
 departure from the rail green over the mark's box, three-plane 61% against flat 100%. So the
 complaint was real and the obvious fix was the wrong one.
 
@@ -7461,7 +7461,7 @@ hearts and the composer are live, because a dead thread is not a fair test of on
 taste call. DESIGN-SYSTEM.md:333, written 2026-09-08 for dialogs: sections are separated by space
 and never a hairline, and the reason given there is iOS — a line goes between rows inside one
 grouped box, and whole groups are told apart by whitespace. A post and its thread are two groups.
-The letters byline hairline went for exactly this reason earlier the same day (8f1a3bc1).
+The letters byline hairline went for exactly this reason earlier the same day (95744447).
 
 What the Well costs, stated in the room: mist is reserved for one recessed region per card and
 never two adjacent (globals.css:124). A post with a photograph is still fine, but the thread has
@@ -7889,7 +7889,7 @@ it flies, which needs a real upload.
 His words, after the tap fix: "it works on collection and catch ups and letters now but still not feed ...
 it gets red and reacts each click ... but still no celebration".
 
-Cause: d632b8f3 (2026-09-14, New post is the member's own bird) put the whole feed inside the composer's
+Cause: 1be31066 (2026-09-14, New post is the member's own bird) put the whole feed inside the composer's
 `<AnimatePresence initial={false}>`. That `initial={false}` reaches, through context, every Motion element
 inside a child present at first render, at any depth and for as long as it lives. The heart's flecks mount
 on each like, so they started at their end state: sampled per frame at 1440, opacity 0 and already at
@@ -8460,7 +8460,7 @@ it on 2026-09-27 for usage. It is audit-only: no application code changed.
 
 **Two usage limits and one interrupt killed agents mid-read.** The write-early rule meant nothing on disk was lost.
 
-**Found at close-out (ORCH-01).** `9ef7d821` overwrote `docs/history/progress-2026-09.md` (−8,363 lines), and each
+**Found at close-out (ORCH-01).** `14f77687` overwrote `docs/history/progress-2026-09.md` (−8,363 lines), and each
 later commit replaced the previous entry. The file is recoverable from git. It was reported to the owner and not
 fixed here. This entry is added to the file as it now stands.
 
@@ -8483,11 +8483,11 @@ application code changed. The throwaway account was deleted on 2026-09-25 at the
 
 ## 2026-09-27 (docs) — the September session history is restored, and the log test now checks both directions
 
-At the owner's request ("Du it"). `9ef7d821` had replaced `docs/history/progress-2026-09.md` with its own entry
+At the owner's request ("Du it"). `14f77687` had replaced `docs/history/progress-2026-09.md` with its own entry
 (−8,363 lines), and five later commits each replaced the one before. Nothing was lost from git, but the file held
 only the latest entries while `progress.md` still indexed every session.
 
-- The 287 entries are restored byte for byte from `9ef7d821^`.
+- The 287 entries are restored byte for byte from `14f77687^`.
 - The 7 entries written since are appended in the order their commits wrote them.
 - An entry another session had added but not committed is left in the working copy for that session to commit.
 
@@ -8524,7 +8524,7 @@ way, in bursts from single sessions, which reads as flaky connections rather tha
 
 ## 2026-09-27 (catchups) — a photo or songs question picked from the library is asked as one again
 
-Owner: "Fix the library photo and song questions." Since `b94677ce` (2026-09-09) rebuilt the
+Owner: "Fix the library photo and song questions." Since `e8307e39` (2026-09-09) rebuilt the
 ask box, picking a photo-wall or songs question from the library only prefilled its words:
 the set it came from was dropped at the pick, `submitPrompt` saved `category: null`, and the
 question was answered in the plain text box and published as a plain tile. Every categorised
@@ -9002,7 +9002,7 @@ Bug audit 3, T2b-01 / L8-05 (High). `parsePageMeta` reads the `<head>` of whatev
 server sends, with patterns that backtracked: measured here, one `<meta>` tag of 40 KB of letters
 took 2.8 s, 80 KB 11.9 s, and at the fetcher's 512 KB cap **455 s**, in one synchronous call that
 blocks every other request Fluid routes to the same process. Link previews reached posts and
-letters on 2026-09-27 (`022f8bc7`), so any member's pasted link could trigger it.
+letters on 2026-09-27 (`cd1ec452`), so any member's pasted link could trigger it.
 
 Every pattern is now bounded: a whole meta tag (2 KB, and it also stops at the next `<`, so no
 stretch of the page is read by more than one opener), an attribute name (64), a title (1 KB).
@@ -9063,7 +9063,7 @@ the last control outside two lab sketches that did; "Use another email" beside i
 Leaf ring (`outline-ring`, DESIGN-SYSTEM "Focus states", controls). Both do now. Measured by tabbing
 onto it in `/lab/email-states` at 1440 and 390: a solid 2px `rgb(31, 138, 76)` ring with its 2px gap.
 
-The Catch-ups fix deployed with another session's push (`4afde865`), and the visual suite, re-run on
+The Catch-ups fix deployed with another session's push (`0a99214d`), and the visual suite, re-run on
 a quiet machine, passed 25 of 25 in 3.9 minutes, `birds` desktop included, so its earlier timeout was
 load. With the work finished, the owner asked for the session's leftover docs to go, so
 `docs/spec/email.md` is deleted. Every rule in it already sat beside the code that enforces it, and

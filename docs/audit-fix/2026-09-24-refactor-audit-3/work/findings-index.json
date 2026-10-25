@@ -231,7 +231,7 @@
   "decides": "owner",
   "saving": "Rhythms 5 queries → 2 (statsFilter + rhythm), −18 lines; the thread page −8 lines.",
   "gate": "low; visible to the owner. Screenshots of `/admin/analytics?view=rhythms` and one thread, 1440 and 390.",
-  "claim": "`git show ec979e4c` shows both views drawing device, OS and last-page panels since the seven-view split (`74f6eabd`); Rhythms pays for `loadUsageBreakdowns`' three queries including the trail CTE (statement #105, 18.5 ms mean, the costliest analytics statement) to draw one of its three outputs, then two more. On the thread page, the row and the button beside it go to the same record; `admin-person-row.tsx:43-57` records the owner's rule (\"clear what's clickable\", \"I should just be able to click "
+  "claim": "`git show b1467c5d` shows both views drawing device, OS and last-page panels since the seven-view split (`9969fcd3`); Rhythms pays for `loadUsageBreakdowns`' three queries including the trail CTE (statement #105, 18.5 ms mean, the costliest analytics statement) to draw one of its three outputs, then two more. On the thread page, the row and the button beside it go to the same record; `admin-person-row.tsx:43-57` records the owner's rule (\"clear what's clickable\", \"I should just be able to click "
  },
  {
   "id": "admin-analytics-19",
@@ -374,7 +374,7 @@
   "decides": "autonomous",
   "saving": "about 115 lines out of `signup-form.tsx` (and one of the five eslint-disables in the territory), about 15 out of `float-field.tsx`, about 3-4 KB off `/signup`'s register chunk. The Popover stack still",
   "gate": "medium. The owner said \"look unchanged\", and the two signup notes open under the icon, clamp to the viewport and close on outside-tap. Gates: screenshots of both notes at 1440 and 390 (hover on deskto",
-  "claim": "Audit 2 row G2 (\"Two systems, not three ... one decision\"). The owner's reading table says \"7 | default | (a) — all three help bubbles onto one piece of machinery, **look unchanged**.\" The fix-prompt board lists phase G as \"DONE\" with G1 and G7 shipped and six rows parked. G2 appears in neither. `git log` shows `info-tooltip.tsx` unchanged since `7ec5b338` (2026-08-29), `signup-form.tsx` untouched since before 2026-09-01, and `verified-mark.tsx` moved onto base-ui Tooltip on 2026-09-15 (`9430ab9"
+  "claim": "Audit 2 row G2 (\"Two systems, not three ... one decision\"). The owner's reading table says \"7 | default | (a) — all three help bubbles onto one piece of machinery, **look unchanged**.\" The fix-prompt board lists phase G as \"DONE\" with G1 and G7 shipped and six rows parked. G2 appears in neither. `git log` shows `info-tooltip.tsx` unchanged since `c7170949` (2026-08-29), `signup-form.tsx` untouched since before 2026-09-01, and `verified-mark.tsx` moved onto base-ui Tooltip on 2026-09-15 (`ed16a2f"
  },
  {
   "id": "auth-onboarding-settings-06",
@@ -543,7 +543,7 @@
   "decides": "autonomous",
   "saving": "about 12 lines; one wrong argument removed.",
   "gate": "nil. `unattended-rule.test.mjs` C-154 pins the `reportSwallowed` path (untouched). `mail-policy.test.mjs`, `upload-shared.test.mjs` and `email-normalization-rule.test.mjs` read `rate-limit.ts` for oth",
-  "claim": "`git log -S'Two hundred photographs' -- src/lib/rate-limit.ts` shows `6af84335` (2026-08-28), when the value became 400 (two tokens per photograph, so 200 an hour). `git log -S'collectionUploads: { tokens: 1000'` shows `35bdd5b7` the next day, which added the second block and left the first. At 1000, the JSDoc's arithmetic is wrong (500 an hour; two hours to the 1,000-photograph ceiling). In a file whose rule is that every constant is argued for, a wrong argument is worse than none. The per-pair"
+  "claim": "`git log -S'Two hundred photographs' -- src/lib/rate-limit.ts` shows `994d0b04` (2026-08-28), when the value became 400 (two tokens per photograph, so 200 an hour). `git log -S'collectionUploads: { tokens: 1000'` shows `2e480d26` the next day, which added the second block and left the first. At 1000, the JSDoc's arithmetic is wrong (500 an hour; two hours to the 1,000-photograph ceiling). In a file whose rule is that every constant is argued for, a wrong argument is worse than none. The per-pair"
  },
  {
   "id": "auth-onboarding-settings-19",
@@ -777,7 +777,7 @@
   "decides": "autonomous (see Notes on reminder timing)",
   "saving": "2 queries per authenticated page view (3 → 1, and the 1 returns no rows) for every member of a Catch-up in its live window, outside the minutes around a deadline. For the Batch of 2023's waiting Editi",
   "gate": "medium-low. `npm run check` (the three pins above). On localhost as Jerry, before and after, count the `CatchupSeries`/`CatchupEdition` selects per `/feed` load with Prisma query logging. Behaviour to",
-  "claim": "The scoped `where` matches an active Catch-up of the viewer with ANY Edition that is `collecting` or `answering`. That is true through the whole ~10-day live window of every Catch-up (3 days of questions, 7 of answers). It is true indefinitely for a batch's first Edition waiting for three questions (`questionsCloseAt: null`, commit `86fb1f07` 2026-09-22; the Batch of 2023 has 39 members) and for a dormant Edition (two empty question windows). When it matches, Prisma makes three sequential round "
+  "claim": "The scoped `where` matches an active Catch-up of the viewer with ANY Edition that is `collecting` or `answering`. That is true through the whole ~10-day live window of every Catch-up (3 days of questions, 7 of answers). It is true indefinitely for a batch's first Edition waiting for three questions (`questionsCloseAt: null`, commit `eed06ee0` 2026-09-22; the Batch of 2023 has 39 members) and for a dormant Edition (two empty question windows). When it matches, Prisma makes three sequential round "
  },
  {
   "id": "catchups-lib-03",
@@ -874,7 +874,7 @@
   "id": "catchups-lib-10",
   "title": "Let the export script import what it retypes, and use or delete the two export helpers nobody calls",
   "file": "catchups-lib.md",
-  "where": "`scripts/dev/export-catchups.mjs:87-98` (`kindOf`, *\"`promptKind` from src/lib/catchups-types.ts, which this .mjs cannot import through the TS path alias\"*), `:187` (`version: 1`), `:303-317` (the totals); `src/lib/catchups-export.ts:208-231` (`everyAnswer`, `exportTotals`: no consumer anywhere since they were written in `1036a81b`, 2026-09-05), `:74`, `:87` and `:93` (`ExportedMembership`, `Expor",
+  "where": "`scripts/dev/export-catchups.mjs:87-98` (`kindOf`, *\"`promptKind` from src/lib/catchups-types.ts, which this .mjs cannot import through the TS path alias\"*), `:187` (`version: 1`), `:303-317` (the totals); `src/lib/catchups-export.ts:208-231` (`everyAnswer`, `exportTotals`: no consumer anywhere since they were written in `eddfdf98`, 2026-09-05), `:74`, `:87` and `:93` (`ExportedMembership`, `Expor",
   "phase": "dedupe",
   "tier": "T2",
   "class": "structural",
@@ -900,7 +900,7 @@
   "id": "catchups-lib-12",
   "title": "Delete the dead exports and types (includes audit 2 `catchups-05`)",
   "file": "catchups-lib.md",
-  "where": "`src/lib/catchups-types.ts:221-235` (`CatchupIndexCard`: 0 consumers since `5e688bb4`, 2026-09-08, \"the list becomes a shelf\"; it models the old index's \"Start one\" row). `src/lib/catchup-pictures.ts:146-157` (`bandKeptFraction`: its docblock says *\"Exported because the aiming control has to say it out loud\"*, but no component imports it, and since it was written in `02f9302f` its only consumer ha",
+  "where": "`src/lib/catchups-types.ts:221-235` (`CatchupIndexCard`: 0 consumers since `69da2844`, 2026-09-08, \"the list becomes a shelf\"; it models the old index's \"Start one\" row). `src/lib/catchup-pictures.ts:146-157` (`bandKeptFraction`: its docblock says *\"Exported because the aiming control has to say it out loud\"*, but no component imports it, and since it was written in `b6b38f95` its only consumer ha",
   "phase": "dead",
   "tier": "T1",
   "class": "structural",
@@ -933,13 +933,13 @@
   "decides": "owner",
   "saving": "~30 comment lines; one spelling; one divergent successor write.",
   "gate": "medium (it rewrites live membership rows). The only visible change is that a purge-promoted Keeper becomes removable by another Keeper. `npm run check` (`group-succession.test.mjs`, `time-capsule-rule",
-  "claim": "`feed/actions.ts` `deletePost` now checks only the site role (`post.authorId === session.user.id || session.user.role === \"admin\"`, ~460). `Post.groupId` was dropped on 2026-09-08 (`c34aae3e`). Group and GroupMember are read by Catch-ups code, the purge, the admin people merge and the demo, and nothing else (grep: 13 non-lab files). So `\"admin\"` on a membership now means exactly \"Keeper\", and the decoupling three docblocks defend protects nothing. What remains is an inconsistency. A successor ch"
+  "claim": "`feed/actions.ts` `deletePost` now checks only the site role (`post.authorId === session.user.id || session.user.role === \"admin\"`, ~460). `Post.groupId` was dropped on 2026-09-08 (`7ce1da1f`). Group and GroupMember are read by Catch-ups code, the purge, the admin people merge and the demo, and nothing else (grep: 13 non-lab files). So `\"admin\"` on a membership now means exactly \"Keeper\", and the decoupling three docblocks defend protects nothing. What remains is an inconsistency. A successor ch"
  },
  {
   "id": "catchups-lib-15",
   "title": "Fix the comments that describe deleted code or point the wrong way (audit 2 `catchups-14`)",
   "file": "catchups-lib.md",
-  "where": "(each item is independent): 1. `src/lib/catchups-core.ts:37-70`: a block opened at 37 with `/* ----` that never closes until the `*/` meant for `askerVisible`'s docblock at 70. Its text, *\"Why the runtime deps (prisma, the notify builders) load via dynamic import instead of a static `import` ... Do NOT convert these back to static imports\"*, describes code deleted by `9f9a1fd8` (2026-08-27, \"split",
+  "where": "(each item is independent): 1. `src/lib/catchups-core.ts:37-70`: a block opened at 37 with `/* ----` that never closes until the `*/` meant for `askerVisible`'s docblock at 70. Its text, *\"Why the runtime deps (prisma, the notify builders) load via dynamic import instead of a static `import` ... Do NOT convert these back to static imports\"*, describes code deleted by `3b1a3539` (2026-08-27, \"split",
   "phase": "hygiene",
   "tier": "T1",
   "class": "cheap",
@@ -972,7 +972,7 @@
   "decides": "owner",
   "saving": "(b) 2,692 lines out of `src/lib`, net 0. (c) ~3,900 lines of TS/JS, plus the fixtures and the magazine test's share of check time (T14 to measure).",
   "gate": "(b) low; (c) low and reversible with one revert. `npm run check`; the lab registry audit if (c) removes the room.",
-  "claim": "Import trace (grep of `lib/magazine` across `src`, `scripts` and `e2e`). One commit (`35b75868`, 2026-09-14), untouched since. The handover board says \"M1 Magazine design | DONE\" and \"M2+ Magazine build | OPEN\". magazine.md §8: *\"Nothing after M2 starts until he has looked at a real Edition's PDF\"*, and for M2, *\"The engine moves nothing\"*, so `src/lib` is its planned home. Handover D39: *\"the magazine's existence is his wish and its schedule is ours.\"* What it costs today: nothing in a member's"
+  "claim": "Import trace (grep of `lib/magazine` across `src`, `scripts` and `e2e`). One commit (`3e92eb2d`, 2026-09-14), untouched since. The handover board says \"M1 Magazine design | DONE\" and \"M2+ Magazine build | OPEN\". magazine.md §8: *\"Nothing after M2 starts until he has looked at a real Edition's PDF\"*, and for M2, *\"The engine moves nothing\"*, so `src/lib` is its planned home. Handover D39: *\"the magazine's existence is his wish and its schedule is ours.\"* What it costs today: nothing in a member's"
  },
  {
   "id": "catchups-lib-18",
@@ -1037,13 +1037,13 @@
   "decides": "autonomous",
   "saving": "0 lines removed (about 8 added). 2 knip \"unused\" items resolved and 1 dead control made live. Loaded on demand, the picker's upload and aiming code stays out of first load.",
   "gate": "low. - `npm run check`: `upload-size-rule.test.mjs:41` and `focus-recipe.test.mjs:61` already list the picker file; `catchup-pictures.test.mjs` must stay green. - As Jerry, the Keeper of a people Catc",
-  "claim": "- `raw/knip-repo-plus-lab.txt` lists `picture-picker-dialog.tsx` as an unused file and `setCatchupPicture` (`actions.ts:797`) as an unused export. madge and depcruise agree. - `git show b94677ce` deletes `keeper-settings-dialog.tsx`, the picker's only importer (`-import { PicturePickerDialog } from \"./picture-picker-dialog\";` and `- <PicturePickerDialog`). The `settings-surface.tsx` added in the same commit gives the row a `picture` shape and no renderer. - So pressing Picture sets `dialog` stat"
+  "claim": "- `raw/knip-repo-plus-lab.txt` lists `picture-picker-dialog.tsx` as an unused file and `setCatchupPicture` (`actions.ts:797`) as an unused export. madge and depcruise agree. - `git show e8307e39` deletes `keeper-settings-dialog.tsx`, the picker's only importer (`-import { PicturePickerDialog } from \"./picture-picker-dialog\";` and `- <PicturePickerDialog`). The `settings-surface.tsx` added in the same commit gives the row a `picture` shape and no renderer. - So pressing Picture sets `dialog` stat"
  },
  {
   "id": "catchups-ui-02",
   "title": "Give the invite link a door again, or retire the invite subsystem (owner)",
   "file": "catchups-ui.md",
-  "where": "- What was deleted: the `InviteLink` component inside `home/people-panel.tsx`, removed in `b94677ce`. `git show b94677ce -- src/components/catchups/home/people-panel.tsx` shows `-{data.inviteToken && data.catchupStatus !== \"ended\" && ( <InviteLink token={data.inviteToken} />` and `- const path = \\`/catchups/join/${token}\\`;`. - Still present, but only reachable through links shared before 2026-09-",
+  "where": "- What was deleted: the `InviteLink` component inside `home/people-panel.tsx`, removed in `e8307e39`. `git show e8307e39 -- src/components/catchups/home/people-panel.tsx` shows `-{data.inviteToken && data.catchupStatus !== \"ended\" && ( <InviteLink token={data.inviteToken} />` and `- const path = \\`/catchups/join/${token}\\`;`. - Still present, but only reachable through links shared before 2026-09-",
   "phase": "placeholder",
   "tier": "T4",
   "class": "structural",
@@ -1063,7 +1063,7 @@
   "decides": "autonomous",
   "saving": "0 lines. One dead Keeper control made live, one unused attribute gone.",
   "gate": "low. - `catchup-lifecycle.test.mjs:117-135` pins `EditionRegion`'s ended, then paused, then answering order. Keep the function name and the order. - Pause a disposable Catch-up as its Keeper, press th",
-  "claim": "- `grep -rn \"data-resume\" src e2e scripts` finds only this line; nothing listens for it. - `git log -L` on the block shows it was born this way in `b94677ce`. - Architecture §5's region table makes \"Start it again\" the on-hold state's one primary action. The working resume is the settings row (`settings-surface.tsx:294-300`: key `\"resume\"`, then `confirm(\"resume\")`, then `resumeCatchup`)."
+  "claim": "- `grep -rn \"data-resume\" src e2e scripts` finds only this line; nothing listens for it. - `git log -L` on the block shows it was born this way in `e8307e39`. - Architecture §5's region table makes \"Start it again\" the on-hold state's one primary action. The working resume is the settings row (`settings-surface.tsx:294-300`: key `\"resume\"`, then `confirm(\"resume\")`, then `resumeCatchup`)."
  },
  {
   "id": "catchups-ui-04",
@@ -1102,7 +1102,7 @@
   "decides": "autonomous",
   "saving": "about 60-80 lines of `actions.ts`. Three near-copies of the clock's close become none, and \"the Keeper's early close is the clock's close\" becomes structural rather than a comment.",
   "gate": "medium-high, because this path publishes and notifies. - `time-capsule-rule.test.mjs` reads `closeAndPublish`'s body (the `timeCapsule: false` guard on the publish write); move those pins onto the eng",
-  "claim": "- jscpd: `actions.ts [1378:23-1387:14] ↔ [1418:20-1427:12]`, the seal and publish transactions. - The action says so itself at `:1404-1405`: \"exactly as the clock's own `applyEditionAction` does it\". - Read side by side, `closeAndPublish`'s three branches are the engine's `extend` and `transition` retyped. The only difference is `excludeUserId: session.user.id`, so the Keeper is not told about their own act. - Phase 14 (`76aac5ac`) had to add the capsule path in both places."
+  "claim": "- jscpd: `actions.ts [1378:23-1387:14] ↔ [1418:20-1427:12]`, the seal and publish transactions. - The action says so itself at `:1404-1405`: \"exactly as the clock's own `applyEditionAction` does it\". - Read side by side, `closeAndPublish`'s three branches are the engine's `extend` and `transition` retyped. The only difference is `excludeUserId: session.user.id`, so the Keeper is not told about their own act. - Phase 14 (`889ea41e`) had to add the capsule path in both places."
  },
  {
   "id": "catchups-ui-07",
@@ -1154,7 +1154,7 @@
   "decides": "autonomous",
   "saving": "−1 file, −29 lines, −1 eslint-disable.",
   "gate": "nil; `npm run check`.",
-  "claim": "- knip lists it as an unused file; madge-orphans-filtered and depcruise (no-orphans) agree. - `git show b94677ce -- \"src/app/(main)/catchups/[catchupId]/answer/page.tsx\"` removes its only import (`-import { AnswerRedirect } from \"@/components/catchups/answer/answer-redirect\";`) when the route became a server 308. - It carries the territory's only `react-hooks/exhaustive-deps` disable (`raw/type-sludge.txt`)."
+  "claim": "- knip lists it as an unused file; madge-orphans-filtered and depcruise (no-orphans) agree. - `git show e8307e39 -- \"src/app/(main)/catchups/[catchupId]/answer/page.tsx\"` removes its only import (`-import { AnswerRedirect } from \"@/components/catchups/answer/answer-redirect\";`) when the route became a server 308. - It carries the territory's only `react-hooks/exhaustive-deps` disable (`raw/type-sludge.txt`)."
  },
  {
   "id": "catchups-ui-11",
@@ -1245,7 +1245,7 @@
   "decides": "autonomous",
   "saving": "about −30 lines and 3 clones gone. The next clock column is one edit, not four.",
   "gate": "low. Check `time-capsule-rule.test.mjs`'s regexes before moving anything: some assert that a select contains `timeCapsule`, and the literal will now live in lib.",
-  "claim": "- `EDITION_TIMING_SELECT` exists so every reader of an Edition \"selects exactly the same set\" (audit-2 catchups-09). - Phase 14 (`76aac5ac`) had to add `timeCapsule` and `publishAt` at all four sites. - `latestRaw.createdAt` is read nowhere (grep)."
+  "claim": "- `EDITION_TIMING_SELECT` exists so every reader of an Edition \"selects exactly the same set\" (audit-2 catchups-09). - Phase 14 (`889ea41e`) had to add `timeCapsule` and `publishAt` at all four sites. - `latestRaw.createdAt` is read nowhere (grep)."
  },
  {
   "id": "catchups-ui-18",
@@ -1492,7 +1492,7 @@
   "decides": "autonomous",
   "saving": "~304 lines client + ~80 action + ~22 cursor lib + 8 `append-page` + ~125 test lines (~540 lines); ~3.5-4.5 KB of the 17.6 KB Collection client chunk (≈1.3 KB gzip); 3 source pins and ~9 unit tests tha",
   "gate": "medium. This is the most-fixed surface of September. Gate: `npm run check`, `npm run visual`, `e2e/collection-journeys.spec.ts` and `e2e/collection-seek.spec.ts` (the latter drives the LAB's copy, so ",
-  "claim": "the geometry commit `d920f631` (\"the river knows its own height before it loads\") is `862 insertions(+), 33 deletions(-)`: it added the new model and removed nothing. Its progress entry (`docs/history/progress-2026-09.md`, 2026-09-09 later) says it outright: \"`scrollAnchor`, `landAt`'s corrections and the zero-pull latch are all dead weight in the geometry path and stand down there; the cursor walk still serves /lab/collection and the orders that are not years.\" Neither half of that last clause "
+  "claim": "the geometry commit `bc73af44` (\"the river knows its own height before it loads\") is `862 insertions(+), 33 deletions(-)`: it added the new model and removed nothing. Its progress entry (`docs/history/progress-2026-09.md`, 2026-09-09 later) says it outright: \"`scrollAnchor`, `landAt`'s corrections and the zero-pull latch are all dead weight in the geometry path and stand down there; the cursor walk still serves /lab/collection and the orders that are not years.\" Neither half of that last clause "
  },
  {
   "id": "collection-media-02",
@@ -1583,7 +1583,7 @@
   "decides": "autonomous",
   "saving": "~15 lines, one widened security input.",
   "gate": "low, security-adjacent (audit C2). `image-purge-rule.test.mjs:52` pins `COLLECTION_ORIGINAL_KEY.test(input.key)` by name -- keep the name. `npm run check`; one real direct contribution.",
-  "claim": "the comment says the `collection` alternative is there for \"a presigned URL minted by the OLD code when the new code deploys ... Safe to narrow to `staging/` alone once nothing old is in flight -- which is any time after the deploy, since a presign is short-lived\" (presigns expire in 600 s, `storage.ts:186`). The staging change is `04c90a27` (2026-08-28); `scripts/README.md:84` records the post-deploy sweep on 2026-09-05: \"0 keys, 0.00 MB\"."
+  "claim": "the comment says the `collection` alternative is there for \"a presigned URL minted by the OLD code when the new code deploys ... Safe to narrow to `staging/` alone once nothing old is in flight -- which is any time after the deploy, since a presign is short-lived\" (presigns expire in 600 s, `storage.ts:186`). The staging change is `61c0b7ed` (2026-08-28); `scripts/README.md:84` records the post-deploy sweep on 2026-09-05: \"0 keys, 0.00 MB\"."
  },
  {
   "id": "collection-media-09",
@@ -1921,7 +1921,7 @@
   "decides": "autonomous",
   "saving": "1 file out of `common/`, 1 inverted dependency, ~−4 lines.",
   "gate": "low. No test pins the path. `npm run check`; open a profile's houses in edit mode at 1440 (popover) and 390 (sheet).",
-  "claim": "- `grep -rn \"house-options\" src` finds the file itself and `house-chain-editor.tsx:36`. - It was shared with `HousePicker` until `1906c68b` (2026-09-07, owner Q17: \"delete the whole house picker lab\"). Since then it has been a profile component living in `common/` and reaching back into `profile/` for its colours. That is the only `common/` → feature-folder import in my territory. - The fallback, `tintIndexFor?.(h) ?? (selected ? picked : 0)` (\"what a caller without a chain beside it would want\""
+  "claim": "- `grep -rn \"house-options\" src` finds the file itself and `house-chain-editor.tsx:36`. - It was shared with `HousePicker` until `348716e2` (2026-09-07, owner Q17: \"delete the whole house picker lab\"). Since then it has been a profile component living in `common/` and reaching back into `profile/` for its colours. That is the only `common/` → feature-folder import in my territory. - The fallback, `tintIndexFor?.(h) ?? (selected ? picked : 0)` (\"what a caller without a chain beside it would want\""
  },
  {
   "id": "common-primitives-11",
@@ -1934,7 +1934,7 @@
   "decides": "autonomous",
   "saving": "−3 lines; one stacking context per rendered identity row.",
   "gate": "low. `npm run visual` (the feed, letters and collection baselines all render identity rows). `src/lib/identity-row-overflow-rule.test.mjs` is unaffected.",
-  "claim": "`git log -S'IDENTITY_COPY_NUDGE_Y_PX'` finds one commit, `b2110669` (2026-07-03), which added it at `0`; it has never held any other value. The result is an inline `transform: translateY(0px)` on the text column of every IdentityRow, on 8 shipped surfaces (feed posts, comments, letters, the viewer byline, the rails, admin). It moves nothing, but it still creates a stacking context and a containing block for fixed-position descendants."
+  "claim": "`git log -S'IDENTITY_COPY_NUDGE_Y_PX'` finds one commit, `d9c5f9f3` (2026-07-03), which added it at `0`; it has never held any other value. The result is an inline `transform: translateY(0px)` on the text column of every IdentityRow, on 8 shipped surfaces (feed posts, comments, letters, the viewer byline, the rails, admin). It moves nothing, but it still creates a stacking context and a containing block for fixed-position descendants."
  },
  {
   "id": "common-primitives-12",
@@ -1947,7 +1947,7 @@
   "decides": "autonomous",
   "saving": "~−30 lines (most `type=\"button\"` attributes sit on their own line), 50 restated attributes, one variant name.",
   "gate": "low. tsc flags any `variant=\"default\"` left behind; `npm run check` (`focus-recipe.test.mjs:95-101` reads button.tsx); `npm run visual` should show no diff.",
-  "claim": "- The two variants are one constant. The letterhead's ternary has compiled to the same classes since it was written (`c7e95407`, 2026-08-07, when both were already `CANOPY_FILL`). \"Done\" and \"Edit profile\" look identical by construction, while the code reads as if they differ. - base-ui's Button already emits `type=\"button\"` for native buttons (`node_modules/@base-ui/react/use-button/useButton.js:82-84`, merged under the caller's props). - The base class already carries `rounded-full` (`button.t"
+  "claim": "- The two variants are one constant. The letterhead's ternary has compiled to the same classes since it was written (`ab3d8d54`, 2026-08-07, when both were already `CANOPY_FILL`). \"Done\" and \"Edit profile\" look identical by construction, while the code reads as if they differ. - base-ui's Button already emits `type=\"button\"` for native buttons (`node_modules/@base-ui/react/use-button/useButton.js:82-84`, merged under the caller's props). - The base class already carries `rounded-full` (`button.t"
  },
  {
   "id": "common-primitives-13",
@@ -1992,7 +1992,7 @@
   "id": "common-primitives-16",
   "title": "Correct the primitives' docblocks that describe callers, colours or files that are gone",
   "file": "common-primitives.md",
-  "where": "- `love-button.tsx:42-43` names \"feed posts, comments, the Collection, group posts\"; Groups have been removed. - `love-button.tsx:49` says \"Per DESIGN-SYSTEM sec. 7 / PUNCHLIST\"; PUNCHLIST.md was folded into bugs.md in `44579fb4` (2026-07-02). - `share-button.tsx:10` and `bookmark-button.tsx:8` also say \"group posts\". - `bookmark-button.tsx:116-120` tunes the stroke against \"16px Lucide icons at s",
+  "where": "- `love-button.tsx:42-43` names \"feed posts, comments, the Collection, group posts\"; Groups have been removed. - `love-button.tsx:49` says \"Per DESIGN-SYSTEM sec. 7 / PUNCHLIST\"; PUNCHLIST.md was folded into bugs.md in `ea442e37` (2026-07-02). - `share-button.tsx:10` and `bookmark-button.tsx:8` also say \"group posts\". - `bookmark-button.tsx:116-120` tunes the stroke against \"16px Lucide icons at s",
   "phase": "hygiene",
   "tier": "T1",
   "class": "cheap",
@@ -2038,7 +2038,7 @@
   "decides": "autonomous",
   "saving": "~8 lines; one response shape instead of two; no DB change.",
   "gate": "low. `npm run check`; in the app, \"Add my batch\" on `/catchups/new` as Jerry still adds the batch. T12 (api-actions-crons) owns this route's gate shape; this touches none of it (`vetLookupRequest` sta",
-  "claim": "the flag's own comment says \"Opt-in so the default `{ userIds }` shape existing callers depend on is untouched\". That caller was `src/components/groups/create-group-form.tsx:80` (`git grep users-by-batch 063896c0^ -- src`), and it stopped calling in the same commit that added the flag (`063896c0`, 2026-07-25, \"retire Groups\"; `git grep users-by-batch 063896c0 -- src` finds only the people picker). Two months with no consumer of the bare-id shape. The QA probes do not need it either: `scripts/qa/"
+  "claim": "the flag's own comment says \"Opt-in so the default `{ userIds }` shape existing callers depend on is untouched\". That caller was `src/components/groups/create-group-form.tsx:80` (`git grep users-by-batch 6b2b3918^ -- src`), and it stopped calling in the same commit that added the flag (`6b2b3918`, 2026-07-25, \"retire Groups\"; `git grep users-by-batch 6b2b3918 -- src` finds only the people picker). Two months with no consumer of the bare-id shape. The QA probes do not need it either: `scripts/qa/"
  },
  {
   "id": "directory-profile-04",
@@ -2103,7 +2103,7 @@
   "decides": "autonomous",
   "saving": "~30 lines; one dead URL parameter; Load more filters by exactly what page 1 filtered by.",
   "gate": "low. `npm run check` - `directory-rule.test.mjs` (C-093, C-095, C-099, C-092, C-097, the transition pin: exactly one `router.push(`), `profile-editor-rule.test.mjs:83` (`Number.isFinite(loaded)` in `a",
-  "claim": "nothing links to `/directory?cursor=`: Load more has used the server action since the day both were written (`ab333794`, 2026-06-29), and a grep for `cursor=` or any `/directory?` builder in `src`, `scripts` and `e2e` finds none that sets it. A stale `?cursor=` in a pasted URL would render a list starting mid-way with no way back to its top. Separately, the Load-more hand-off loses information: a map pin's escape link sends several cities (`alumni-map.tsx:63-65`, `/directory?city=A&city=B`, audi"
+  "claim": "nothing links to `/directory?cursor=`: Load more has used the server action since the day both were written (`9df2f5c8`, 2026-06-29), and a grep for `cursor=` or any `/directory?` builder in `src`, `scripts` and `e2e` finds none that sets it. A stale `?cursor=` in a pasted URL would render a list starting mid-way with no way back to its top. Separately, the Load-more hand-off loses information: a map pin's escape link sends several cities (`alumni-map.tsx:63-65`, `/directory?city=A&city=B`, audi"
  },
  {
   "id": "directory-profile-09",
@@ -2168,7 +2168,7 @@
   "decides": "autonomous",
   "saving": "~20 lines; one rule asserted in one place; test-file count unchanged (130).",
   "gate": "none. `npm run check` (the unit gate's file-count floor).",
-  "claim": "audit Low 99's rule is asserted twice with different fixtures (Cauvery 2014/2015/2017 in `houses.test.mjs:44-52`, Golden 2014/2015/2017 in `house-spans.test.mjs:26-40`), and the malformed-input case twice (`houses.test.mjs:67-72`, `house-spans.test.mjs:42-48`). `house-spans.test.mjs` was refilled with these in audit 1's fix (`d960b45d`) so the suite would not drop below its file-count floor after `seedHouseYearRows` was deleted - so both files have to keep at least one test, and both do after th"
+  "claim": "audit Low 99's rule is asserted twice with different fixtures (Cauvery 2014/2015/2017 in `houses.test.mjs:44-52`, Golden 2014/2015/2017 in `house-spans.test.mjs:26-40`), and the malformed-input case twice (`houses.test.mjs:67-72`, `house-spans.test.mjs:42-48`). `house-spans.test.mjs` was refilled with these in audit 1's fix (`b909298a`) so the suite would not drop below its file-count floor after `seedHouseYearRows` was deleted - so both files have to keep at least one test, and both do after th"
  },
  {
   "id": "directory-profile-14",
@@ -2246,7 +2246,7 @@
   "decides": "owner",
   "saving": "removal: ~250 lines (~120 code: rule ~50, posts.ts ~15, validators ~12, actions ~5, page/rail/letters ~6, tests ~70, comments ~60), one DB column, and one `OR` arm with a `LIKE '%key%'` off every feed",
   "gate": "medium. Live SELECT the fix session must run first, read-only: `SELECT count(*) FROM \"Post\" WHERE \"targetBatches\" IS NOT NULL AND \"targetBatches\" <> '';` - if it is not 0, removing the arm WIDENS thos",
-  "claim": "no component writes the field and none ever did. `grep -rn targetBatches src/components` finds only comments; `git log --all -S'\"targetBatches\"' -- src/components src/app` returns one commit, `8a73497f` (2026-03-20), which is the server action reading it; `git log --all -S'targetBatches' -- src/components/posts/create-post-form.tsx` returns nothing, so the composer never had a batch picker. The composer's only audience control is \"Show to\" with the member's own cities (`create-post-form.tsx:1047"
+  "claim": "no component writes the field and none ever did. `grep -rn targetBatches src/components` finds only comments; `git log --all -S'\"targetBatches\"' -- src/components src/app` returns one commit, `c897b445` (2026-03-20), which is the server action reading it; `git log --all -S'targetBatches' -- src/components/posts/create-post-form.tsx` returns nothing, so the composer never had a batch picker. The composer's only audience control is \"Show to\" with the member's own cities (`create-post-form.tsx:1047"
  },
  {
   "id": "feed-posts-comments-03",
@@ -2259,7 +2259,7 @@
   "decides": "owner",
   "saving": "removal: ~600 lines across ~15 files (components 314, composer ~45, actions ~95, card/type ~20, validators/double-submit ~15, demo seed ~25, analytics/export ~10, tests ~60), 2 tables and 4 indexes, 2",
   "gate": "medium (touches the demo seed and the account export). SELECT first: `SELECT (SELECT count(*) FROM \"PollOption\") AS options, (SELECT count(*) FROM \"PollVote\") AS votes;` Gates: `npm run check`, the de",
-  "claim": "`raw/db-tables-live.json`: `PollOption` `n_live_tup 0`, `n_dead_tup 6`; `PollVote` `n_live_tup 0`, `n_dead_tup 4` - somebody tried it and deleted it; counters since 2026-05-22 (`db-stats-reset.json`). Polls shipped 2026-03-22 (`13f73937`). `PollVote_pollOptionId_idx` has 0 scans. Every `loadPosts` and `loadSavedPosts` page still joins `pollOptions` (with a per-option vote `_count`) and the viewer's `pollVotes` for every row."
+  "claim": "`raw/db-tables-live.json`: `PollOption` `n_live_tup 0`, `n_dead_tup 6`; `PollVote` `n_live_tup 0`, `n_dead_tup 4` - somebody tried it and deleted it; counters since 2026-05-22 (`db-stats-reset.json`). Polls shipped 2026-03-22 (`ba559f1b`). `PollVote_pollOptionId_idx` has 0 scans. Every `loadPosts` and `loadSavedPosts` page still joins `pollOptions` (with a per-option vote `_count`) and the viewer's `pollVotes` for every row."
  },
  {
   "id": "feed-posts-comments-04",
@@ -2298,7 +2298,7 @@
   "decides": "autonomous",
   "saving": "~30 lines net, one contentEditable implementation instead of two, and the three writing surfaces behave identically by construction.",
   "gate": "medium: this is the most-used writing surface. Gates: `npm run check` (`composer-rule.test.mjs` pins on handleSubmit and the persistence hook; `rich-text-editing.test.mjs`); by hand on desktop and on ",
-  "claim": "`rich-text-area.tsx:4-7` says it is the writing surface \"for everything that is not the full feed/letter composer (which keeps its own contentEditable for mentions, polls and the expand choreography, on the same primitives)\". Polls never lived in the editor (`PollCreator` is a sibling block), and the expand choreography was the pill, deleted on 2026-09-14 (`d632b8f3`). Mentions are the one real difference. The two editors call the same three helpers from `rich-text-editing.ts` and carry byte-ide"
+  "claim": "`rich-text-area.tsx:4-7` says it is the writing surface \"for everything that is not the full feed/letter composer (which keeps its own contentEditable for mentions, polls and the expand choreography, on the same primitives)\". Polls never lived in the editor (`PollCreator` is a sibling block), and the expand choreography was the pill, deleted on 2026-09-14 (`1be31066`). Mentions are the one real difference. The two editors call the same three helpers from `rich-text-editing.ts` and carry byte-ide"
  },
  {
   "id": "feed-posts-comments-07",
@@ -2311,7 +2311,7 @@
   "decides": "owner",
   "saving": "~40 lines (the hand motion wrapper, three copies of the row class string, the role plumbing, `more`'s Escape branch), one `{...({...} as object)}` spread, and the last menu off the shared material.",
   "gate": "medium; member-visible. The city chips in a flex-wrap become radio rows with a check, and the menu takes the Float surface, 12px corners and the shared pop. Gates: `npm run visual`, screenshots of the",
-  "claim": "`grep -rn 'role=\"menu\"' src` outside the lab returns this one site. It predates the rule: built 2026-07-24 (`2d5fd948`), while DESIGN-SYSTEM §3 \"Menus & dropdowns: one material\" landed 2026-07-30 and says every dropdown \"is the same object\" - Float `--popover` surface, `--radius-md` 12px, the layered shadow, rows highlighted by `state-layer`, opening below the trigger's leading edge, `EASE_POP` ~140ms, and \"a page may not override radius, colour, offset or animation\". This menu is `bg-card`, `ro"
+  "claim": "`grep -rn 'role=\"menu\"' src` outside the lab returns this one site. It predates the rule: built 2026-07-24 (`cccd0176`), while DESIGN-SYSTEM §3 \"Menus & dropdowns: one material\" landed 2026-07-30 and says every dropdown \"is the same object\" - Float `--popover` surface, `--radius-md` 12px, the layered shadow, rows highlighted by `state-layer`, opening below the trigger's leading edge, `EASE_POP` ~140ms, and \"a page may not override radius, colour, offset or animation\". This menu is `bg-card`, `ro"
  },
  {
   "id": "feed-posts-comments-08",
@@ -2324,7 +2324,7 @@
   "decides": "autonomous",
   "saving": "~8 lines, 1 prop, 7 call-site attributes.",
   "gate": "low. `npm run check` (tsc covers the lab), `npm run visual` (no pixel should move).",
-  "claim": "`grep -rn 'variant=\"sheet\"\\|variant: \"sheet\"' src` finds no PostCard caller; every one of the seven callers passes `\"card\"` or nothing. The sheet mode arrived with the v2 ruled-sheet feed on 2026-06-27 (`21eb32f2`, per `git log -S'variant === \"sheet\"'`) and that design now lives only in `/lab/v2`, which draws its own list (`lab/v2/page.lab.tsx:489`)."
+  "claim": "`grep -rn 'variant=\"sheet\"\\|variant: \"sheet\"' src` finds no PostCard caller; every one of the seven callers passes `\"card\"` or nothing. The sheet mode arrived with the v2 ruled-sheet feed on 2026-06-27 (`f8256fa5`, per `git log -S'variant === \"sheet\"'`) and that design now lives only in `/lab/v2`, which draws its own list (`lab/v2/page.lab.tsx:489`)."
  },
  {
   "id": "feed-posts-comments-09",
@@ -2363,7 +2363,7 @@
   "decides": "autonomous",
   "saving": "~9 lines.",
   "gate": "low. `npm run check`; scroll the feed past two pages.",
-  "claim": "`decodeKeyset` returns null for any string whose `|` is missing or first (`keyset.ts:56-57`), so `\"offset:20\"` already decodes to null, which is \"start from the first page\" - exactly what the guard's own comment says the guard exists to do. The offset arm it protected was deleted on 2026-09-07 (`c4bf886c`). The cursor has not been \"a post id\" since the value keyset landed (`d6c61dd4`, 2026-08-24)."
+  "claim": "`decodeKeyset` returns null for any string whose `|` is missing or first (`keyset.ts:56-57`), so `\"offset:20\"` already decodes to null, which is \"start from the first page\" - exactly what the guard's own comment says the guard exists to do. The offset arm it protected was deleted on 2026-09-07 (`6e0871c5`). The cursor has not been \"a post id\" since the value keyset landed (`248b05ec`, 2026-08-24)."
  },
  {
   "id": "feed-posts-comments-12",
@@ -2421,7 +2421,7 @@
   "id": "feed-posts-comments-16",
   "title": "About ninety comment lines describe code that was deleted or changed; delete or correct them",
   "file": "feed-posts-comments.md",
-  "where": "(each verified against the code beside it and, where named, the commit that changed it): - `src/components/posts/comments-section.tsx:251-260` - \"The move itself runs in an effect ... The scroll is skipped when the composer is already in view\": no such scroll exists or ever shipped (`0f869b26`'s own message: scrolling to the composer \"cannot be made to work\"), and `:304-317` says \"There is no scro",
+  "where": "(each verified against the code beside it and, where named, the commit that changed it): - `src/components/posts/comments-section.tsx:251-260` - \"The move itself runs in an effect ... The scroll is skipped when the composer is already in view\": no such scroll exists or ever shipped (`02423f69`'s own message: scrolling to the composer \"cannot be made to work\"), and `:304-317` says \"There is no scro",
   "phase": "hygiene",
   "tier": "T1",
   "class": "cheap",
@@ -2545,7 +2545,7 @@
   "decides": "owner",
   "saving": "delete path: 326 lines + ~40 lines of plumbing + 1 server-action endpoint + 2 clones; restore path: 0 lines, one working control.",
   "gate": "low either way. `npm run check` (the two allowlist tests, `catchups-core.test.mjs`, `batch-catchups.test.mjs` which greps `mayChangeCatchupPicture`); open `/catchups/<id>` as a Keeper and press Settin",
-  "claim": "`grep -rl picture-picker-dialog src scripts e2e` returns only the two rule tests above - no importer in shipped code and none in `src/app/lab` (the lab settings room has its own `PictureBody` at `src/app/lab/catchups/_settings.tsx:1222`). `git log -S \"picture-picker-dialog\"`: last imported in `02f9302f`, the import dropped in `b94677ce` (2026-09-09) when the settings surface was rebuilt. knip (`knip-repo-plus-lab.txt`) lists it as one of its two unused Catch-ups files. jscpd: two clones against "
+  "claim": "`grep -rl picture-picker-dialog src scripts e2e` returns only the two rule tests above - no importer in shipped code and none in `src/app/lab` (the lab settings room has its own `PictureBody` at `src/app/lab/catchups/_settings.tsx:1222`). `git log -S \"picture-picker-dialog\"`: last imported in `b6b38f95`, the import dropped in `e8307e39` (2026-09-09) when the settings surface was rebuilt. knip (`knip-repo-plus-lab.txt`) lists it as one of its two unused Catch-ups files. jscpd: two clones against "
  },
  {
   "id": "fresh-code-02",
@@ -2584,7 +2584,7 @@
   "decides": "autonomous",
   "saving": "~120 lines across 10 files, 1 component, 1 helper, 4 fewer branches on every Catch-ups page render.",
   "gate": "medium only because it is 10 files. Gate first, on BOTH databases: `SELECT table_name FROM information_schema.tables WHERE table_schema='public' AND table_name LIKE 'Catchup%' ORDER BY 1;` - expect th",
-  "claim": "`raw/db-tables-live.json` (production): `CatchupSeries` 8 live rows, `CatchupEdition` 9, `CatchupEntry` 141, `CatchupEditionRead` 23, `CatchupPromptOption` 0 (exists), `LinkPreview` 7. The migrations that create them are dated 2026-09-08 to 2026-09-14 and `c34aae3e` records that the September migrations were run \"against both Supabase projects\". The guard exists for \"migration handoff rule 3b\" - the window between a deploy and the owner running the SQL. That window closed sixteen days ago and ev"
+  "claim": "`raw/db-tables-live.json` (production): `CatchupSeries` 8 live rows, `CatchupEdition` 9, `CatchupEntry` 141, `CatchupEditionRead` 23, `CatchupPromptOption` 0 (exists), `LinkPreview` 7. The migrations that create them are dated 2026-09-08 to 2026-09-14 and `7ce1da1f` records that the September migrations were run \"against both Supabase projects\". The guard exists for \"migration handoff rule 3b\" - the window between a deploy and the owner running the SQL. That window closed sixteen days ago and ev"
  },
  {
   "id": "fresh-code-05",
@@ -2623,7 +2623,7 @@
   "decides": "autonomous (the TRAPS edit is a factual correction of a do-not-touch document; the orchestrator should say whether that counts)",
   "saving": "~6 lines; the point is that these comments are the kind §4 defends *because* they carry facts, and four of them carry the wrong fact with the word \"authoritative\" on them.",
   "gate": "none to code. `npm run check` (there is a rule test that reads the schema header? none found by grep for \"ELEVEN\"; `index-coverage.test.mjs` reads the schema and should stay green).",
-  "claim": "`git show c34aae3e` (2026-09-08, \"docs: the six migrations are run\"): \"bounceKind, greyscale, area, freeTags, Post.groupId, Group.description and Group.coverImage dropped. Every guard passed.\" `raw/db-columns-live.json` at HEAD: `Image` has no `greyscale`; `Photo` has no `area`, no `freeTags`; `Group` has no `description`, no `coverImage`; `OutboundEmail` has no `bounceKind`; `Post` has no `groupId`. `raw/db-indexes-live.json`: the trigram indexes that exist are `Photo_caption_trgm_idx`, `User_n"
+  "claim": "`git show 7ce1da1f` (2026-09-08, \"docs: the six migrations are run\"): \"bounceKind, greyscale, area, freeTags, Post.groupId, Group.description and Group.coverImage dropped. Every guard passed.\" `raw/db-columns-live.json` at HEAD: `Image` has no `greyscale`; `Photo` has no `area`, no `freeTags`; `Group` has no `description`, no `coverImage`; `OutboundEmail` has no `bounceKind`; `Post` has no `groupId`. `raw/db-indexes-live.json`: the trigram indexes that exist are `Photo_caption_trgm_idx`, `User_n"
  },
  {
   "id": "fresh-code-08",
@@ -2896,7 +2896,7 @@
   "decides": "autonomous",
   "saving": "~110 lines of dead code, ~25 lines of tombstones (the tombstones are the cheap part).",
   "gate": "none; nothing renders them. `npm run check` (tsc + lab registry).",
-  "claim": "`raw/knip-repo-plus-lab.txt` lines 34-36, 48-50, 211. Each symbol occurs once in its own file (the declaration) and nowhere in `src`, `scripts` or `e2e` (the `<Contents b={b} />` at `_pages.tsx:540` is that file's own local component). History: `git log -G\"<Contents[ />]\"` last touched 677d177d (2026-09-07); `VIEWPORT_WIDTH` lost its last reader in 98175b44 (2026-09-07, the Screens tab's deletion); `<Picture` and `<Own` were never rendered. `raw/tsc-unused.txt`: `wall/_shapes.tsx(255,48): 'g' is"
+  "claim": "`raw/knip-repo-plus-lab.txt` lines 34-36, 48-50, 211. Each symbol occurs once in its own file (the declaration) and nowhere in `src`, `scripts` or `e2e` (the `<Contents b={b} />` at `_pages.tsx:540` is that file's own local component). History: `git log -G\"<Contents[ />]\"` last touched aa07c4b5 (2026-09-07); `VIEWPORT_WIDTH` lost its last reader in 1c3d7bbf (2026-09-07, the Screens tab's deletion); `<Picture` and `<Own` were never rendered. `raw/tsc-unused.txt`: `wall/_shapes.tsx(255,48): 'g' is"
  },
  {
   "id": "lab-catchups-07",
@@ -2935,7 +2935,7 @@
   "decides": "autonomous",
   "saving": "~7 lines here and ~15 in lab-rest's files; one rule instead of two.",
   "gate": "low; the owner's dev sessions sign in as admin (dev-login). This file is in the `gate-coverage.test.mjs` sweep (`serverActionFiles()`); the `requireAdminAction` marker stays, now unconditional. Also r",
-  "claim": "the bypass is from 84f64abe (2026-07-30), when `/lab` was open to anyone. Since b64e44aa (2026-08-20, security Phase 6) the lab layout returns `notFound()` for any non-admin in every environment (`src/app/lab/layout.tsx:16-19`). So the page-side check can never be false for anyone who renders `/lab`, and the action-side bypass is now the one path that writes `LabRoomState` without a session, on a dev server whose database is production's."
+  "claim": "the bypass is from 7d9b4543 (2026-07-30), when `/lab` was open to anyone. Since a95c61fd (2026-08-20, security Phase 6) the lab layout returns `notFound()` for any non-admin in every environment (`src/app/lab/layout.tsx:16-19`). So the page-side check can never be false for anyone who renders `/lab`, and the action-side bypass is now the one path that writes `LabRoomState` without a session, on a dev server whose database is production's."
  },
  {
   "id": "lab-catchups-10",
@@ -2961,7 +2961,7 @@
   "decides": "autonomous",
   "saving": "~190 lines (most of `_media.ts` plus ~20 in `_data.ts`); one duplicated link grammar; no network calls from the sketches, settings and magazine rooms' loaders.",
   "gate": "low. Room-visible in one place: with `?data=pressure`, a pasted Spotify or YouTube link's card shows the placeholder title the magazine already shows (\"A song on Spotify\") instead of a live oembed tit",
-  "claim": "`_media.ts:30-35` calls itself \"a lab-side stand-in for work the rooms will do properly\"; that work shipped as phase 10 (286820f7, 2026-09-14: a pure link grammar in `link-preview-core.ts`, the resolver with its `LinkPreview` table and re-hosted images). Two things follow. (1) On the live path the lab resolver is inert or wrong: `_data.ts:195-199` records that \"a link the real loader resolved is now taken OUT of `e.body`\", so the wave scans bodies that no longer hold the links it knows, and wher"
+  "claim": "`_media.ts:30-35` calls itself \"a lab-side stand-in for work the rooms will do properly\"; that work shipped as phase 10 (5a332878, 2026-09-14: a pure link grammar in `link-preview-core.ts`, the resolver with its `LinkPreview` table and re-hosted images). Two things follow. (1) On the live path the lab resolver is inert or wrong: `_data.ts:195-199` records that \"a link the real loader resolved is now taken OUT of `e.body`\", so the wave scans bodies that no longer hold the links it knows, and wher"
  },
  {
   "id": "lab-catchups-12",
@@ -2987,7 +2987,7 @@
   "decides": "autonomous",
   "saving": "0 lines; one false invariant gone (a session trusting it would edit the room expecting production to change).",
   "gate": "none; `npm run check`.",
-  "claim": "`settings/_room.tsx:16-25` imports everything from `../_settings` (the lab's own 1,226-line file). b94677ce (2026-09-09 12:41) created `settings-surface.tsx` (1,191 lines at birth) as a transplant and never touched the room, whose last commit is b49a0552 (02:17 the same day). They have diverged since: d422de66 (2026-09-15) moved the shipped surface to the shared `BottomSheet`; 334d7907 (back closes overlays); the shipped surface offers three rhythms and the room four (`settings-surface.tsx:52-58"
+  "claim": "`settings/_room.tsx:16-25` imports everything from `../_settings` (the lab's own 1,226-line file). e8307e39 (2026-09-09 12:41) created `settings-surface.tsx` (1,191 lines at birth) as a transplant and never touched the room, whose last commit is 3290d221 (02:17 the same day). They have diverged since: 3be6ae75 (2026-09-15) moved the shipped surface to the shared `BottomSheet`; 44a1ac87 (back closes overlays); the shipped surface offers three rhythms and the room four (`settings-surface.tsx:52-58"
  },
  {
   "id": "lab-catchups-14",
@@ -3000,7 +3000,7 @@
   "decides": "autonomous",
   "saving": "0 lines; the index stops advertising things that are not there.",
   "gate": "none; `npm run check` (the lab registry audit reads `_registry.ts`).",
-  "claim": "`_harness.tsx:51-58` says the stills and the Screens tab are gone (98175b44, 2026-09-07); the views are `phone|laptop` (`_harness.tsx:44-49`); navigators B and C are deleted (`_navigator.tsx:37-38`); the list draws photograph cards (`_list.tsx:93-160`). The other seven Catch-ups registry notes match their rooms (checked each against its page)."
+  "claim": "`_harness.tsx:51-58` says the stills and the Screens tab are gone (1c3d7bbf, 2026-09-07); the views are `phone|laptop` (`_harness.tsx:44-49`); navigators B and C are deleted (`_navigator.tsx:37-38`); the list draws photograph cards (`_list.tsx:93-160`). The other seven Catch-ups registry notes match their rooms (checked each against its page)."
  },
  {
   "id": "lab-catchups-15",
@@ -3052,7 +3052,7 @@
   "decides": "autonomous",
   "saving": "~18 lines; one rule instead of two; one `auth()` per `/lab` view (free today, because `auth()` is React-cached and the layout already called it, so this is clarity, not speed).",
   "gate": "low. `npm run check` (`src/lib/gate-coverage.test.mjs` sweeps `actions.ts`, not the page; `security-regressions.test.mjs`); open `/lab` signed in as admin and archive and restore one room.",
-  "claim": "`src/app/lab/layout.tsx:16-19` returns `notFound()` for anyone whose role is not admin, in every environment, since `b64e44aa` (2026-08-20, security Phase 6). So every render of `/lab` has `session.user.role === \"admin\"`, `editable` is always true, the banner and the disabled state are unreachable, and the page's own `auth()` call exists only to compute it. This is the page half of lab-catchups-09 (the action's `NODE_ENV` bypass), which the sibling handed to this lens."
+  "claim": "`src/app/lab/layout.tsx:16-19` returns `notFound()` for anyone whose role is not admin, in every environment, since `a95c61fd` (2026-08-20, security Phase 6). So every render of `/lab` has `session.user.role === \"admin\"`, `editable` is always true, the banner and the disabled state are unreachable, and the page's own `auth()` call exists only to compute it. This is the page half of lab-catchups-09 (the action's `NODE_ENV` bypass), which the sibling handed to this lens."
  },
  {
   "id": "lab-rest-04",
@@ -3091,7 +3091,7 @@
   "decides": "autonomous",
   "saving": "~12 lines; the v2 bird styled in one place instead of two that disagree (82 degrees and a 40,49 origin against 68 degrees and 24,37).",
   "gate": "low. Open `/lab/v2`, find the login concept, toggle the password eye: wings fold and open at 68 degrees, eyes hide while covered. `npm run check`.",
-  "claim": "`2046bff1` (2026-09-05, audit 2's bundle-build-10) moved the block out of `globals.css` unchanged. Both sets are unlayered and of equal specificity (`.hoopoe .wing` against `.hoopoe .wing-l` is 0,2,0 each; the rotations are 0,3,0 each), and v2's `<style>` renders in the body, after the layout's stylesheet in the head, so v2 wins every property both declare: transition, origin and rotation. What still applies from `lab.css` is `transform-box: view-box` (the CSS initial value, so a no-op) and the "
+  "claim": "`3afc2da6` (2026-09-05, audit 2's bundle-build-10) moved the block out of `globals.css` unchanged. Both sets are unlayered and of equal specificity (`.hoopoe .wing` against `.hoopoe .wing-l` is 0,2,0 each; the rotations are 0,3,0 each), and v2's `<style>` renders in the body, after the layout's stylesheet in the head, so v2 wins every property both declare: transition, origin and rotation. What still applies from `lab.css` is `transform-box: view-box` (the CSS initial value, so a no-op) and the "
  },
  {
   "id": "lab-rest-07",
@@ -3104,7 +3104,7 @@
   "decides": "autonomous",
   "saving": "~8 lines; one drifted copy of a shipped list.",
   "gate": "none beyond the room. `npm run check`; open `/lab/birds-bg`.",
-  "claim": "the room maps over `ARCHETYPES`, which has 51 entries, so birds 26 to 50 render with no name, and index 3 is labelled \"Indian Roller\" while `SPECIES_FULL_NAMES[3]` is \"Laughing Dove\" since `f163b534` (2026-08-04, \"the Indian Roller is the owner's alone, and a dove takes its slot\"). `/lab/birds-rv` and `/birds` both read `SPECIES_FULL_NAMES`/`GALLERY_SPECIES` precisely \"so it can never drift\" (`birds-rv/page.lab.tsx:6`, `bird-avatar-v2.tsx:1682`)."
+  "claim": "the room maps over `ARCHETYPES`, which has 51 entries, so birds 26 to 50 render with no name, and index 3 is labelled \"Indian Roller\" while `SPECIES_FULL_NAMES[3]` is \"Laughing Dove\" since `12b2f398` (2026-08-04, \"the Indian Roller is the owner's alone, and a dove takes its slot\"). `/lab/birds-rv` and `/birds` both read `SPECIES_FULL_NAMES`/`GALLERY_SPECIES` precisely \"so it can never drift\" (`birds-rv/page.lab.tsx:6`, `bird-avatar-v2.tsx:1682`)."
  },
  {
   "id": "lab-rest-08",
@@ -3143,7 +3143,7 @@
   "decides": "owner",
   "saving": "depends on the answer: 0 lines (restore, +283 KB tracked); or ~30 lines; or 3,904 lines and 199 KB of lab-only JS if the room goes to history.",
   "gate": "none to members; open `/lab/landings?v=clarity` after either fix.",
-  "claim": "`public/images/landing/` does not exist. `git log --diff-filter=D -- 'public/images/landing/*'`: `f8ef8a20` (2026-09-07, \"cleanup\", the owner's own commit) deleted all five (283,284 B). Audit 2's owner decision D2 was \"the landing showcase stays\"; its pictures went three days later by his hand. So every concept in the room renders its feature screenshots as broken images (through `next/image`, which 404s a missing source), and the shipped showcase family (`showcase.tsx`, switched off) points at "
+  "claim": "`public/images/landing/` does not exist. `git log --diff-filter=D -- 'public/images/landing/*'`: `acdafccf` (2026-09-07, \"cleanup\", the owner's own commit) deleted all five (283,284 B). Audit 2's owner decision D2 was \"the landing showcase stays\"; its pictures went three days later by his hand. So every concept in the room renders its feature screenshots as broken images (through `next/image`, which 404s a missing source), and the shipped showcase family (`showcase.tsx`, switched off) points at "
  },
  {
   "id": "lab-rest-11",
@@ -3422,7 +3422,7 @@
   "id": "tracked-weight-01",
   "title": "Re-export the three Catch-up covers at the optimiser's ceiling; the camera-resolution masters live in history",
   "file": "tracked-weight.md",
-  "where": "`public/images/catchups/shaded-path.webp` (3,346,288 B, 4608x2306), `boulder-hill.webp` (1,840,694 B, 4608x2303), `stone-benches.webp` (1,601,734 B, 3456x1716); all added by `41a73a73` (2026-09-10, \"his first three photographs replace the six stand-ins\"). The reasoning that put them in at this size: `src/lib/catchup-pictures.ts:160-172`, the comment block beginning `HIS FIRST THREE, 2026-09-10` an",
+  "where": "`public/images/catchups/shaded-path.webp` (3,346,288 B, 4608x2306), `boulder-hill.webp` (1,840,694 B, 4608x2303), `stone-benches.webp` (1,601,734 B, 3456x1716); all added by `afe4d367` (2026-09-10, \"his first three photographs replace the six stand-ins\"). The reasoning that put them in at this size: `src/lib/catchup-pictures.ts:160-172`, the comment block beginning `HIS FIRST THREE, 2026-09-10` an",
   "phase": "relocate (the masters leave the tree the way `landing-origin",
   "tier": "T2",
   "class": "structural",
@@ -3442,7 +3442,7 @@
   "decides": "autonomous",
   "saving": "**−3,654,755 B tracked (3.49 MB), −122 files** now; a further ~3-5 MB when audit 3's own campaign closes. 0 code lines; ~13,000 markdown/JSON lines out of the tree (cloc counts the `.md` and `.json`),",
   "gate": "low. `npm run check` (`scripts/qa/campaign.test.mjs` reads the fix-prompt's board and must stay well-formed; nothing reads `work/`). `git grep -n \"refactor-audit-2/work/\"` after the edit must return o",
-  "claim": "the folder is 8.1 % of every byte git tracks and 47 % of `docs/audit-fix`; it holds the third-largest single document in the repository (`findings-index.json`, a machine index) and 64 raw tool outputs that this audit has re-run and superseded (`raw/cloc-by-file.csv` 70 KB, `raw/jscpd.txt` 44 KB, `raw/knip*.txt` 4 files 77 KB, and so on). `report.md` cites `work/` 15 times and `fix-prompt.md` 10 times; the two bug-audit-2 survivors cite it 0 times. Audit 1's eviction (`9e5fbecb`) is the worked ex"
+  "claim": "the folder is 8.1 % of every byte git tracks and 47 % of `docs/audit-fix`; it holds the third-largest single document in the repository (`findings-index.json`, a machine index) and 64 raw tool outputs that this audit has re-run and superseded (`raw/cloc-by-file.csv` 70 KB, `raw/jscpd.txt` 44 KB, `raw/knip*.txt` 4 files 77 KB, and so on). `report.md` cites `work/` 15 times and `fix-prompt.md` 10 times; the two bug-audit-2 survivors cite it 0 times. Audit 1's eviction (`d69b20a5`) is the worked ex"
  },
  {
   "id": "tracked-weight-03",
@@ -3474,7 +3474,7 @@
   "id": "tracked-weight-05",
   "title": "`shots:clean` exists and nobody runs it: 520 MB of scratch screenshots, plus two dead piles under `.claude/`",
   "file": "tracked-weight.md",
-  "where": "`e2e/.shots/` (ignored, `.gitignore:41`): 908 files, 518,652 KiB; 230 files older than seven days (131 MB); 475 files written on 2026-09-21 alone (the loading-screen series). The command: `package.json:15` `\"shots:clean\": \"find e2e/.shots -type f -mtime +7 -delete; echo 'cleared scratch screenshots older than a week'\"`, added by `29790d82` (2026-09-07, \"one scratch folder for screenshots, and a co",
+  "where": "`e2e/.shots/` (ignored, `.gitignore:41`): 908 files, 518,652 KiB; 230 files older than seven days (131 MB); 475 files written on 2026-09-21 alone (the loading-screen series). The command: `package.json:15` `\"shots:clean\": \"find e2e/.shots -type f -mtime +7 -delete; echo 'cleared scratch screenshots older than a week'\"`, added by `fa9e0d3e` (2026-09-07, \"one scratch folder for screenshots, and a co",
   "phase": "relocate (process)",
   "tier": "T2",
   "class": "structural",
@@ -3520,7 +3520,7 @@
   "decides": "autonomous",
   "saving": "~8 lines; a config file where every entry means something again.",
   "gate": "`git status --short` identical before and after; `npm run check`.",
-  "claim": "audit 2's root-assets-08 named all three on 2026-09-04; the file has been edited three times since (`29790d82` 09-07, `a53827c2` 09-08, `6302bae2` 09-16, per `git log -- .gitignore`) and each edit added or removed its own line without touching these. `git grep -ln \"supabase link\\|npx supabase\\|supabase/\"` still returns only `.gitignore` and audit-2 reports; there is no `supabase/` directory. Every other pattern has a subject on disk or a written reason: I re-checked all 34 against disk (`.pw-bro"
+  "claim": "audit 2's root-assets-08 named all three on 2026-09-04; the file has been edited three times since (`fa9e0d3e` 09-07, `d77d05f7` 09-08, `4fa9928d` 09-16, per `git log -- .gitignore`) and each edit added or removed its own line without touching these. `git grep -ln \"supabase link\\|npx supabase\\|supabase/\"` still returns only `.gitignore` and audit-2 reports; there is no `supabase/` directory. Every other pattern has a subject on disk or a written reason: I re-checked all 34 against disk (`.pw-bro"
  },
  {
   "id": "tracked-weight-09",

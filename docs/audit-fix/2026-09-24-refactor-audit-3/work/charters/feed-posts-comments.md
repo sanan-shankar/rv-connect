@@ -14,11 +14,11 @@ Report: `work/agents/feed-posts-comments.md`. See `_header.md`.
 
 ## Specs and context
 `docs/spec/DESIGN-SYSTEM.md`, `docs/spec/letters.md` (the 300-word post/letter line, 2026-09-17),
-`docs/spec/media.md` (carousels, the viewer). Commits to read with `git show --stat`: `97d9bb61`
-("the comment section ships; the two looks become one"), `0f869b26`, `f5334404`, `bee6f8cd`,
-`5a0d8359` (Read more folds by measured lines), `e5c16faf` (every tap counts while a save is in the
-air), `d632b8f3` (New post is the member's own bird, and the composer pill is gone), `69293b5f`
-(drop the verified leaf), `286820f7`/`f0a02e73` (link previews).
+`docs/spec/media.md` (carousels, the viewer). Commits to read with `git show --stat`: `8582a30b`
+("the comment section ships; the two looks become one"), `02423f69`, `bf05bc8b`, `57f424e6`,
+`7873578e` (Read more folds by measured lines), `82aa15dc` (every tap counts while a save is in the
+air), `1be31066` (New post is the member's own bird, and the composer pill is gone), `2c3a761b`
+(drop the verified leaf), `5a332878`/`e58ed2ad` (link previews).
 
 ## Leads from the orchestrator (claims to confirm or refute, not conclusions)
 - The comment section was unified on 2026-09-16 ("the two looks become one"): is the second look
@@ -29,7 +29,7 @@ air), `d632b8f3` (New post is the member's own bird, and the composer pill is go
   `select` sets); `LinkPreview` has 7 rows; `Like` seq_scan 30,802 on 75 rows. Which code paths?
 - The composer pill removal (09-14): any pill code left? Any `create-post-form` variants?
 - `link-preview-core.ts` (518) + `link-preview.ts` (416): 934 lines for link cards. Earned?
-- `toggle-queue.ts` (09-17) and the like celebration replay (`7de9490b`): is there still a
+- `toggle-queue.ts` (09-17) and the like celebration replay (`80da11f5`): is there still a
   LoveButton path and a separate heart path?
 
 ## Questions this territory must answer

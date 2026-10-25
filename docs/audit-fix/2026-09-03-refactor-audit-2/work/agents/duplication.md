@@ -429,7 +429,7 @@ preamble at line 386 is paired four times); jscpd's own de-overlapped total is 2
 - **Phase**: dedupe
 - **Tier**: T2     **Class**: structural     **Decides**: autonomous
 - **Evidence**: clones 82, 215, 216, 217. Audit-1 dup-16 asked for one `DirectoryPerson` type;
-  the fix log records "IDENTITY/AUTHOR_CARD selects + directory PERSON_SELECT → ab82f30", the
+  the fix log records "IDENTITY/AUTHOR_CARD selects + directory PERSON_SELECT → c8b6d63", the
   select half. The three TypeScript declarations are still three, twelve identical fields
   each (PinPerson adds `otherCities`), and post-card's `author` is a fourth spelling of the
   AUTHOR_CARD shape. Audit-1 dup-06 took 39 inline `birdOverride: true` selects to 12; nine
@@ -884,7 +884,7 @@ preamble at line 386 is paired four times); jscpd's own de-overlapped total is 2
   `*-rule.test.mjs`. A shared walker would hide the grammar that IS the rule. Keep.
 - **`report-action.ts`'s two transaction tails** (229): `alreadyReported` vs `alreadyFlagged`
   are client API (the dialogs read them); the shared part (`openReportThread`) is already
-  shared. Audit-1 dup-24 item 1 (the preamble) was done (`c5025c5`).
+  shared. Audit-1 dup-24 item 1 (the preamble) was done (`85b37b7`).
 - **`api-gate.ts`'s two tails** (230): six lines in one file that audit-1's own fix created.
 - **The five `*-message.ts` sentinels**: audit-1's not-finding stands (dependency-free by
   contract; plain-Node probes import them).

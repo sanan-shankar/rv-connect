@@ -389,7 +389,7 @@ way — the year is a fixed width, so the row never moves.
 the exact commits she ran, not against today's code:
 
 - `contribute-room.tsx` `fileOne` builds one object carrying caption, buckets and
-  `...photoDate(m0, valleyYear())` — byte-identical at `2873faf`, `35bdd5b` and now.
+  `...photoDate(m0, valleyYear())` — byte-identical at `9798c44`, `2e480d2` and now.
 - `contributePhotoDirect` accepted `photoYear`/`photoMonth` and passed both to
   `parsePhotoMeta` at those same commits.
 - `photoDate`, `yearGiven` and `eraFromPartial` were untouched by the refactor; only
@@ -494,7 +494,7 @@ approved. And the arrow keys were bound before the is-somebody-typing check, so 
 right moved the photograph instead of the caret while you were fixing a caption.
 
 **Not mine, flagged:** `npm run visual` fails on `collection` (desktop). The baseline was last
-written at `78a6b9e`; `9528ed1` then changed `collection-client.tsx` and `image-viewer.tsx`
+written at `ebd5b3f`; `a9c28d3` then changed `collection-client.tsx` and `image-viewer.tsx`
 without rebaselining. Left alone deliberately — accepting it here would absorb an unreviewed
 visual change into an unrelated commit.
 
@@ -714,7 +714,7 @@ The field is now on the reasoned BORDERLESS list in focus-recipe.test.mjs, besid
 profile pen. It has no border to tint, so it carries the recipe's split rather than its
 classes: a hairline on click, 2px on Tab, read off the same html[data-modality].
 
-/lab/search is deleted, on his instruction, once the pick was made. `git show 6fbf46d`
+/lab/search is deleted, on his instruction, once the pick was made. `git show 0877226`
 is the whole room.
 
 ## 2026-08-29 — the swap becomes one caret, and the pill is deleted
@@ -837,7 +837,7 @@ JavaScript, which rules out the MCP's `evaluate_script`. Read off the page — p
 gives `/collection?scope=class` and "The Class Collection"; pressing Valley gives back a bare
 `/collection`, so the default scope is omitted rather than written as `?scope=valley`; a cold
 `?scope=class` renders the right half. **Zero RSC refetches on either press** and `scrollY`
-held at 0, so the action-navigation class of bug 9fec6f6 fixed has not come back through this
+held at 0, so the action-navigation class of bug b345c3a fixed has not come back through this
 door. Nothing from the valley leaked into the class half.
 
 ## 2026-08-29 — the Collection grows a second half, and it is enforced before it is visible
@@ -1297,7 +1297,7 @@ that the hard way).
 
 ## 2026-08-29 — the focus ring, chosen properly this time
 
-The first focus commit (822a389) fixed three primitives that most fields do not use and
+The first focus commit (c36faec) fixed three primitives that most fields do not use and
 called the job done. The owner clicked two boxes at random and they differed; there were
 eleven treatments in all. This entry is the real work, and the way it was decided.
 
@@ -2979,7 +2979,7 @@ with no baseline written.
 
 `audit-status --fail-on-open=critical,high` had been failing every push since the morning,
 across three commits by two sessions, on H21: "verifyState gates nothing". The gate was
-never gone. "One door per kind of route" (60e8ee0) moved it into `src/lib/api-gate.ts`, so
+never gone. "One door per kind of route" (23484f7) moved it into `src/lib/api-gate.ts`, so
 `/api/upload` calls `vetUploadRequest`, which calls `requireVerifiedMember` on its second
 check. The probe grepped each route for the literal call and reported a gate that was very
 much applied.
@@ -4100,7 +4100,7 @@ it was: it also fails a Keeper action that reaches the freeze without asking for
 **Filed, not fixed**: the /login password peek-a-boo does not cover the bird's eyes. Not at the
 end of the intro, not on the reveal toggle. /signup's register step tucks the wings correctly
 with the same two verbs, so the mascot is fine and /login is not. Proved not to be a regression
-from this campaign by probing the same page at `e7efc97`, before any of these files were
+from this campaign by probing the same page at `32128fd`, before any of these files were
 touched: the identical wings-down bird. It is bug 20 in `docs/planning/bugs.md`, with a note
 that no gate can see it — /login's hoopoe sits inside a masked volatile region, so a green
 visual run says nothing about the bird.
@@ -4163,7 +4163,7 @@ extractors carry their own anti-vacuity assert.
 The third fix session of the 2026-08-25 refactor audit. All 8 phase-2 rows executed in 11
 commits, plus two the owner decided at session start. `npm run check` green before every one;
 `npm run visual` **23/23**, the eight content-drift failures sessions 1 and 2 both saw now
-masked by another session's `900546f`; `npm run verify:crawl` 17/17.
+masked by another session's `85b0cff`; `npm run verify:crawl` 17/17.
 
 **Owner's calls**: the landing showcase is decoupled now with ship-vs-retire still open; the
 tour stays demo-only and is lazy-loaded rather than armed for members; the About page keeps
@@ -4235,7 +4235,7 @@ deliberate hard navigations (each keeps its behaviour and now says why).
   twice for two blank pages — the exact failure it exists to catch. Ids now come from the database
   and each row must show that person's name. Proved by feeding it a name that is not on the page.
 - `drive.mjs`'s houses and places scenarios drove `/settings`, gone since the letterhead profile
-  absorbed the editors (22b4b6c). Both now open the member's own profile, and the houses scenario
+  absorbed the editors (d03b053). Both now open the member's own profile, and the houses scenario
   asserts the panel is really on screen rather than only screenshotting whatever happened.
 
 **The popover joined the menu material.** PopoverContent hand-restated the surface and animated with
@@ -5806,7 +5806,7 @@ account ever, and the two admin accounts are both the owner's. The Visit was wri
 14:04 IST with `browser`, `os`, `country` and `city` all null — Vercel stamps geography onto
 every real request and every real agent string parses to a browser, so four nulls means a
 script against **localhost**, and local dev shares one database with production. Six minutes
-later commit `6d5609e` landed saying, in its own log: "signed in as a real member,
+later commit `d61199a` landed saying, in its own log: "signed in as a real member,
 `/admin/catchups/<id>` answers 307 to /feed". That was the previous session proving the new
 reading room's guard, via `/api/dev-login`, **as Kartik**. The guard held. The footprint is
 what stayed.
@@ -5925,7 +5925,7 @@ tests). `npm run visual` 18/23 — all five reds read and confirmed as database 
 moved the directory count and the map clusters, a catch-up named "test" was archived); layout and
 type pixel-identical, no baselines rewritten.
 
-- **The cause was ours and dated exactly: `b64e44a`, 20 Aug 13:58.** It added
+- **The cause was ours and dated exactly: `a95c61f`, 20 Aug 13:58.** It added
   `Strict-Transport-Security` and the CSP's `upgrade-insecure-requests` to every response, dev
   included. WebKit obeys `upgrade-insecure-requests` on `localhost`, Chromium exempts it, so Safari
   fetched every stylesheet and script over an https the dev server does not speak. Both headers are
@@ -6384,7 +6384,7 @@ pushed. `npm run check` green throughout (38 unit tests, up from 26), `npm run v
 Owner: "the house chain was arrows before. recently we made it lines. revert it back to arrows as
 it was before."
 
-- **`houses-chain.tsx` restored to its state before commit 5aa5549** (2026-08-19,
+- **`houses-chain.tsx` restored to its state before commit 014bec1** (2026-08-19,
   "replace house-chain arrows with colour-handoff lines"): the SVG arrow glyph with its head, the
   6px gap each side, the 4px `TURN_LEAD` that keeps a turn off the pills, and the arrowheads on
   the serpentine turns. Nothing else in that commit was touched.
@@ -6877,8 +6877,8 @@ done "in a billion different ways", and "so much grey text". Spec written and ap
   teachers read wrong, and `IdentityRow`'s default meta style is 10.5px, below the scale). The app
   outside `/admin` was deliberately not touched. The tour trigger stays on Overview and its test
   followed the guard into the layout rather than being deleted.
-- Commits: `f31a448` spec, `ae7d9c4` the rebuild, `41d5011` the spacing and clarity pass,
-  `cba56e0` simplify. Not pushed.
+- Commits: `2863977` spec, `c48ab30` the rebuild, `6327330` the spacing and clarity pass,
+  `4b056f2` simplify. Not pushed.
 
 ## Session 2026-08-19 — The hoopoe gets a public playground at `/hoopoe`
 Owner's ask: lift the lab's hoopoe room out to `/hoopoe`, keep the lab version untouched, and on
@@ -6929,7 +6929,7 @@ deleted through its own delete-account flow.
   Enter/comma/blur commit (blur matters on phones), backspace on empty removes the last chip,
   dedupe case-insensitive, pasted comma lists split. Chips byte-identical to the city pills;
   the input is the shared `<Input>` (protocol auditor caught my hand-rolled first draft
-  reverting the 12a1bac focus-outline fix). Subjects title-case as they become pills.
+  reverting the 1af0314 focus-outline fix). Subjects title-case as they become pills.
 - **Signup**: Teacher keeps Joined/Left at half-width each (Batch alone leaves, popLayout);
   Left is optional and its fit-to-content InfoTip says "Still teaching at Rishi Valley? / Leave
   this blank." - two forced lines, no orphan (owner rejected two longer drafts and a w-64 bubble
@@ -7134,7 +7134,7 @@ unchanged pending his pick.
 - **Fix**: `willChange: "filter"` on the shadow span, and nothing else. It owns its raster, so no
   neighbour's invalidation can cut it. Same bar, same 3px blur, same 0.14; darkest pixel 212 and
   spread 32 on the same crop, before and after.
-- **Two wrong turns first, both reverted** (`1fe4cff`): swapping the label's spring for an
+- **Two wrong turns first, both reverted** (`e039de2`): swapping the label's spring for an
   opacity-only tween, and repainting the shadow as a radial gradient. Neither was asked for, both
   changed how the thing looks and moves, and the owner had to catch them. The artifact does not
   appear in a headless capture — asking for his screenshot earlier would have found the real cause
@@ -7399,7 +7399,7 @@ play with and its prose is a caption; a Second look room is a memo with exhibits
 room must not be modelled on one. Audits keep their rigour but change shape, specimen first,
 fix beside it. The pre-registration checklist gained the matching question.
 
-Commits: 6730e14 (CLAUDE.md), 28ad1bb (lab-voice.md). `npm run check` clean, 15/15 tests.
+Commits: ce5c727 (CLAUDE.md), a258eb3 (lab-voice.md). `npm run check` clean, 15/15 tests.
 
 Session outcome (2026-08-19, night): audit item A2 resolved without the owner.
 
@@ -7415,7 +7415,7 @@ OWNER-INPUT-REQUIRED.md, PDF regenerated, OPERATIONS.md records the single-photo
 command. One open question the first run will answer: whether the R2 token in GitHub secrets
 can read the media bucket, or is scoped to the backup bucket only.
 
-Commit: f8aeb76. `npm run check` clean, 15/15 tests. Not yet pushed — needs the owner's
+Commit: 56069a2. `npm run check` clean, 15/15 tests. Not yet pushed — needs the owner's
 go-ahead, then a manual Actions run to prove the media job end to end.
 
 Session outcome (2026-08-20): the home-screen icon, and a divider that followed you between
@@ -7450,19 +7450,19 @@ tsc passed off the fresh types on disk, and the running server threw
 PrismaClientValidationError from its cached client. The key now folds in each model's
 `*ScalarFieldEnum`, so it moves on any schema change at all.
 
-Commits: 2e160c6 (the icon set, swallowed into a concurrent session's security commit — see
-below), c372839 (feed marker + the Prisma key). `npm run check` clean 15/15, `npm run visual`
+Commits: 40afa7f (the icon set, swallowed into a concurrent session's security commit — see
+below), 0444d80 (feed marker + the Prisma key). `npm run check` clean 15/15, `npm run visual`
 21/21.
 
 Note for whoever reads this next: several sessions were live in this tree, and one of them ran
 a bare `git commit` while the icon files sat staged, so those eight files landed inside
-2e160c6 rather than under their own message. Nothing is lost and nothing was rewritten. A
+40afa7f rather than under their own message. Nothing is lost and nothing was rewritten. A
 third item the owner raised — the show/hide password button on /reset-password — could not be
 reproduced in Chrome at either viewport (it reveals and re-hides correctly on both fields) and
 the owner set it aside rather than pin down what he saw.
 
 ## Session 2026-08-14 (round 3) — No rings on boxes; the whole auth family swept; mobile keeps its keyboard
-Owner notes on round 2, shipped in `7a505a7` / `094a540`:
+Owner notes on round 2, shipped in `75265bf` / `31f5933`:
 - **The leaf focus ring is OFF every calm-form box** (owner: "I don't want the green outline
   on boxes. it still shows on phone"): inputs match :focus-visible even on tap, so the ring
   flashed green on every touch. The caret + floating label are the field's focus state now.
@@ -7489,7 +7489,7 @@ Owner notes on round 2, shipped in `7a505a7` / `094a540`:
   green. Not pushed.
 
 ## Session 2026-08-14 (round 2) — Login joins the calm form; toggle animates both ways; mist
-Owner follow-ups on the signup redesign, shipped in `e555fde` / `4c931a2` / `12a1bac`:
+Owner follow-ups on the signup redesign, shipped in `f2bdfb2` / `6a8c1a8` / `1af0314`:
 - **The expand snap is fixed.** auto-animate FLIPs siblings on row REMOVAL but drops them
   straight to place on INSERTION (frame-sampled: shrink eased ~250ms, expand jumped 68px in one
   frame). Replaced with Motion layout rows + `AnimatePresence mode="popLayout"` for the years
@@ -7503,11 +7503,11 @@ Owner follow-ups on the signup redesign, shipped in `e555fde` / `4c931a2` / `12a
   `FIELD_SHELL`, segmented track, autofill inset shadows. Mist is +2.6 dL* on the page (auditor
   corrected my +3.5 claim), the well-you-type-into rung, no white-slab glare. DESIGN-SYSTEM.md
   §3 updated.
-- **/login rebuilt on FloatField** (`4c931a2`): no subtitle, two mist wells, 400px column
+- **/login rebuilt on FloatField** (`6a8c1a8`): no subtitle, two mist wells, 400px column
   matching signup, "Forgot it?" right-aligned under the password box, lg canopy CTA, popLayout
   rows. Flight/perch/admin machinery untouched; admin bypass, wrong-password error and
   forgot-password email carry all re-verified live.
-- **App-wide a11y catch** (`12a1bac`): keyboard focus rings on every `Button` and `Input` were
+- **App-wide a11y catch** (`1af0314`): keyboard focus rings on every `Button` and `Input` were
   INVISIBLE - Tailwind v4's `outline-none` zeroes `--tw-outline-style` and
   `focus-visible:outline-2` only restores width, so rings resolved 2px leaf with style:none.
   Screenshot-qa caught it probing computed styles; fixed with `focus-visible:outline-solid` on
@@ -7522,7 +7522,7 @@ Owner follow-ups on the signup redesign, shipped in `e555fde` / `4c931a2` / `12a
 ## Session 2026-08-14 — Signup goes calm (Revolut reference) + landing frost timing
 Owner asked for the join page to stop feeling crowded and daunting, retitled to "A bit about
 yourself", subtitle gone, and sent the Revolut "bank account details" reel as the target: soft
-filled boxes, label inside, nothing else. Shipped in `886fbab`:
+filled boxes, label inside, nothing else. Shipped in `4f8683e`:
 - **`FloatField`** (`src/components/common/float-field.tsx`): 56px paper-filled borderless field,
   12px radius, label floats up on focus/fill/autofill via transform-only translate+scale (0.72 =
   11.5px rendered; base stays 16px so iOS never zooms). Placeholder hints exist but appear only
@@ -7545,7 +7545,7 @@ filled boxes, label inside, nothing else. Shipped in `886fbab`:
   Flagged for a future owner call: SegmentedPills' 32px tap target (app-wide control, iOS wants
   44), the 20px-tall Back link (shared with /login), and /login still on bordered inputs while
   its sibling signup went paper (deliberate scope, worth harmonizing later).
-- **Landing frost fix** (`071323d`): the hero Sign in pill's backdrop blur popped in a beat
+- **Landing frost fix** (`1656ce6`): the hero Sign in pill's backdrop blur popped in a beat
   after load, because an ancestor fading below opacity 1 forms a backdrop root and the pill
   couldn't sample the photo mid-entrance. Middle block now animates transform only; the fade
   lives on the headline wrapper and each CTA (`MotionLink`) individually with identical
@@ -7592,7 +7592,7 @@ filled boxes, label inside, nothing else. Shipped in `886fbab`:
   hand-edited constant: the page sums paid live-mode Contribution rows per view and passes paise
   into CostBar; the bar completes at the Rs 4,00,000 build cost. Failed sum falls back to the
   zero-state bar. Verified live: fill renders max(0.8825%, 12px), exactly 3,530/4,00,000.
-  Committed faa41af.
+  Committed f70ffcb.
 
 ## 2026-08-13 (later) - Production sends its own mail, verified
 
@@ -7684,9 +7684,9 @@ One session, eleven commits, every item from the owner's list landed and verifie
 
 ## 2026-08-12 (later) - the physics pass reverted
 
-- Owner verdict on the flight physics pass (c279438): "it's made it much worse." Reverted whole,
+- Owner verdict on the flight physics pass (04f3730): "it's made it much worse." Reverted whole,
   no cherry-picking; the flight layer is byte-identical to its pre-pass state (verified against
-  7003690, which passed the landing check 28/28). Lesson recorded for the next attempt: the four
+  88abc3b, which passed the landing check 28/28). Lesson recorded for the next attempt: the four
   changes were all mathematically defensible and measured as intended, and the owner still hated
   the result, so flight-feel changes must be judged by the owner WATCHING each change in isolation,
   one at a time, not shipped as a bundle argued from mechanism. The physics commit's analysis

@@ -6,7 +6,7 @@ file, every server-function byte the deploy traces, and every second of the buil
 audit-2 baselines and against what the audit-2 campaign (phase B, G1) promised to leave behind. I
 did not judge code structure inside components (territory agents) or whether a dependency should
 exist (dependency-diet). Method, so the next reader can repeat it: the production build at
-`.next/` (HEAD `70570bcd`, built 2026-09-24 01:16 to 01:32 under load 15 to 27 with a cold
+`.next/` (HEAD `495ecdd2`, built 2026-09-24 01:16 to 01:32 under load 15 to 27 with a cold
 Turbopack filesystem cache), Next's own `.next/diagnostics/route-bundle-stats.json` for the eager
 chunk list per route (`node` over it, gzip -6 of each chunk file for the compressed figures),
 Next's `experimental-analyze --output` data at `.next/diagnostics/analyze/data/**/analyze.data`
@@ -59,7 +59,7 @@ read fully: all 21.
   base-ui, motion-dom and Sentry package internals beyond what the analyzer and the chunk strings
   name; the `.next/server/chunks/ssr/*.js` bodies beyond string counts.
 - Uncommitted edits seen (someone else's WIP): none in my territory. `git status --short` shows only
-  the two audit folders untracked. Every number here is from HEAD `70570bcd`.
+  the two audit folders untracked. Every number here is from HEAD `495ecdd2`.
 
 ## Summary
 
@@ -118,7 +118,7 @@ the numbers that matter come from the artefact, not the clock.
   is 97.7 MB / 1,957 unique files: `scripts/dev` 22.92 MB (the magazine room, see Notes), server
   chunks 22.39, `public/` 21.16, libvips 17.33, `@prisma/client` 4.58. The cause is the tracer's
   handling of a partially static path: `@vercel/nft` sees `path.join(process.cwd(), "public", <expr>)`
-  and includes the directory. It was already true at audit 2 (`git show 72b5a1d:src/lib/storage.ts`
+  and includes the directory. It was already true at audit 2 (`git show 09772aa:src/lib/storage.ts`
   has the same three joins at lines 118-186); audit 2's "35.9 MB function" already carried the
   public folder of that day, and it has grown by the three Catch-up photographs (6.8 MB, 2026-09-10)
   since. The branch never runs on Vercel (`useR2` is true there), so nothing in the function ever

@@ -19,8 +19,8 @@ proposal that touches a pinned file.
 
 ## Specs and context
 `docs/SECURITY.md`, `docs/spec/demo.md`, `docs/TRAPS.md`, AGENTS.md's auth section. Commits:
-`3558e96d` (a failed bot check stops being a permanent lockout), `70570bcd` (the trivia `never[]`
-list), `c2ac10f4` (dark-mode gauntlet copy), `638793cc` (loading screens for Pick your bird, Dark
+`aa5cfdd2` (a failed bot check stops being a permanent lockout), `495ecdd2` (the trivia `never[]`
+list), `dba738dc` (dark-mode gauntlet copy), `135b9cb7` (loading screens for Pick your bird, Dark
 mode, Welcome).
 
 ## Leads from the orchestrator

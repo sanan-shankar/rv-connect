@@ -207,7 +207,7 @@ function Tile({ entry, viewerIsAdmin }: { entry: EditionEntry; viewerIsAdmin: bo
           21 on a laptop. Below it: 7 + 6 + 10 = 23. A tenth of each is about
           2px, so both paddings come down 2. The side padding is untouched,
           which he asked for by name. The feed's half of the same change
-          shipped separately as 2a6f7d25 so he can revert it alone. */}
+          shipped separately as 3df46d53 so he can revert it alone. */}
       <div className="px-4 pb-1.5 pt-1 md:px-5 md:pb-2 md:pt-1.5">
         <Reactions entry={entry} viewerIsAdmin={viewerIsAdmin} />
       </div>

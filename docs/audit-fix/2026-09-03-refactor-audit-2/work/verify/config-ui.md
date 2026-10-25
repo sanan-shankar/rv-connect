@@ -1,8 +1,8 @@
 # config-ui - adversarial verification notes (refactor audit 2)
 
 Verifier charter: globals.css, Tailwind, next.config, package.json, the shadcn `ui/` primitives.
-Tree state when verified: HEAD = `74cc61a` ("fix(retention): notifications are kept 30 days,
-everywhere"), exactly **one** commit past the audit baseline `72b5a1d`, and that commit touches
+Tree state when verified: HEAD = `0cecf11` ("fix(retention): notifications are kept 30 days,
+everywhere"), exactly **one** commit past the audit baseline `09772aa`, and that commit touches
 retention, not anything in this cluster. `git status --short` clean for `src/app/globals.css`,
 `src/components/ui/`, `next.config.ts`, `package.json` (the `image-viewer.tsx` WIP noted in the
 session-start snapshot is gone; `git show HEAD:...image-viewer.tsx` line 542 is the same line the

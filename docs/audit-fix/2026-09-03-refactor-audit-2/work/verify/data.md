@@ -1,9 +1,9 @@
 # data - adversarial verification notes (refactor audit 2)
 
 Verifier charter: Prisma schema, retention, keyset pagination, query shape. Read-only; no build,
-no tsc, no knip, no browser, no database. HEAD at verification: `74cc61a`
+no tsc, no knip, no browser, no database. HEAD at verification: `0cecf11`
 ("fix(retention): notifications are kept 30 days, everywhere") — ONE commit ahead of the HEAD the
-finders read (`72b5a1d`). Working tree: `docs/audit-fix/README.md` and `progress.md` modified by a
+finders read (`09772aa`). Working tree: `docs/audit-fix/README.md` and `progress.md` modified by a
 peer session, plus this audit's own untracked folder. Nothing in my territory is uncommitted.
 
 Cluster ids: data-layer-01, -02, -03, -04, -15, -16, lib-core-config-03, lib-tests-01, lib-tests-13.
@@ -222,14 +222,14 @@ loginAttempts, auditLogs, outboundEmails, visits (the only `endedAt`), searches 
 folded in (`adminMessages` at `:150`, `catchupCopies` at `:235`, the purge at `:295` and
 `pendingImages` at `:362`) are correctly excluded.
 
-Correction 1 — line numbers, shifted by commit `74cc61a`, which added ten comment lines to
+Correction 1 — line numbers, shifted by commit `0cecf11`, which added ten comment lines to
 `KEEP_DAYS.notifications`. At HEAD: the eight steps are `:178-218` (not 166-206); `KEEP_DAYS` is
 `:31-88` (not 32-75); `SweepResult` is `:90-111` (not 77-99); `const result: SweepResult` is `:369`
 (not 357-373).
 
 Correction 2 — the finding's closing note is now moot AND was wrong. It says *"if the owner picks
 30 days there, `notifications` leaves this table before it is written."* The owner did pick 30
-(`74cc61a`), and `KEEP_DAYS.notifications: 30` at `:53` feeds the same unchanged plain-cutoff step
+(`0cecf11`), and `KEEP_DAYS.notifications: 30` at `:53` feeds the same unchanged plain-cutoff step
 at `:188-192`. Nothing leaves the table; the proposal is unaffected. What the 30-day change does
 leave behind is a different duplication, one nobody in this cluster claimed: notifications are now
 deleted in **two** places on the same 30-day window — `retention.ts:188` and

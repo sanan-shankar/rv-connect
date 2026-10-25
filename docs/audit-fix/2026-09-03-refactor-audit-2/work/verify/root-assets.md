@@ -1,10 +1,10 @@
 # verify/root-assets — adversarial verification of cluster `root-assets`
 
 Verifier pass, 2026-09-04. Tree HEAD has moved since the find phase: the finder measured at
-`72b5a1d`; HEAD is now **`74cc61a`** ("fix(retention): notifications are kept 30 days,
+`09772aa`; HEAD is now **`0cecf11`** ("fix(retention): notifications are kept 30 days,
 everywhere"). `git status --short` shows `M docs/audit-fix/README.md`, `M progress.md` and the
 untracked audit folder — another session's WIP. **Every number below was recomputed by me**,
-against `72b5a1d` where the finding named that sha and against HEAD where the claim is about
+against `09772aa` where the finding named that sha and against HEAD where the claim is about
 "today". Read-only throughout: `git show/log/ls-files/cat-file`, `grep`, `wc`, `find`, `stat`,
 `du`, one `python3` line-segmenting script over a `git show` dump in `/tmp`. No build, no
 browser, no database, nothing written outside this file.
@@ -15,14 +15,14 @@ byte figures (108,648 / 152,102 / 61,428 / 619,393 / 420,350 / 13,589,284 / 10,8
 2,708,125 / 106,153,137 / 192,612 / 40,135) all reproduce **to the byte**. The errors are
 concentrated in one place: the `progress.md` growth table in root-assets-01 pairs a line count
 from one sha with a byte count from a different one, and root-assets-04's *headline* counts
-(53 dirs, "the repo's own ten", "38 … all trace to 6c686cb") are each off by one against a
+(53 dirs, "the repo's own ten", "38 … all trace to ef8acc8") are each off by one against a
 body that is otherwise exact.
 
 ---
 
 ## root-assets-01 — archive August out of progress.md — **confirmed-with-correction**
 
-Reproduced at `72b5a1d`: `git show 72b5a1d:progress.md | wc -l -c` → **8,545 lines /
+Reproduced at `09772aa`: `git show 09772aa:progress.md | wc -l -c` → **8,545 lines /
 600,161 bytes**; `grep -c '^## '` → **202**. Exact match.
 
 The August figure is right once you count the three dateless `## Round N` headers that sit
@@ -46,18 +46,18 @@ but two rows pair mismatched measurements:
 
 | the finding's row | what I measured |
 |---|---|
-| 2026-08-26 `dbc9c06` — 4,101 lines, "~256 KB" | `dbc9c06` is **4,101 lines / 291,911 B**. 255,986 B is the size at **`827e650`** (the archive commit itself, 3,575 lines) — a different sha. |
-| 2026-08-28 `6915627` — 6,527 lines, 433,986 B | **6,527 lines / 460,613 B**. Line count right, byte count wrong by 26,627 B; I cannot reproduce 433,986 at any sha I checked. |
-| 2026-08-30 `8d3f51b` — 7,483 lines | **7,483 / 527,872** ✓ |
-| "2026-09-01" `1f89b86` — 7,849 lines | **7,849 / 552,240** ✓ but the commit is dated **2026-08-31**, not 09-01. |
-| 2026-09-03 `72b5a1d` — 8,545 / 600,161 | ✓ exact |
+| 2026-08-26 `da11efe` — 4,101 lines, "~256 KB" | `da11efe` is **4,101 lines / 291,911 B**. 255,986 B is the size at **`4300d47`** (the archive commit itself, 3,575 lines) — a different sha. |
+| 2026-08-28 `4242797` — 6,527 lines, 433,986 B | **6,527 lines / 460,613 B**. Line count right, byte count wrong by 26,627 B; I cannot reproduce 433,986 at any sha I checked. |
+| 2026-08-30 `8c657c2` — 7,483 lines | **7,483 / 527,872** ✓ |
+| "2026-09-01" `02a81ea` — 7,849 lines | **7,849 / 552,240** ✓ but the commit is dated **2026-08-31**, not 09-01. |
+| 2026-09-03 `09772aa` — 8,545 / 600,161 | ✓ exact |
 
 Consequently the headline *"+4,444 lines and +344,175 bytes in eight days"* mixes baselines:
-+4,444 lines is against `dbc9c06`, +344,175 bytes is against `827e650`. Pick one and the
++4,444 lines is against `da11efe`, +344,175 bytes is against `4300d47`. Pick one and the
 figures are:
-- vs `827e650` (the archive commit, 2026-08-26): **+4,970 lines / +344,175 B** in 8 days =
+- vs `4300d47` (the archive commit, 2026-08-26): **+4,970 lines / +344,175 B** in 8 days =
   621 lines/day, ~301 KB/week.
-- vs `dbc9c06` (later the same day): **+4,444 lines / +308,250 B** = 555 lines/day,
+- vs `da11efe` (later the same day): **+4,444 lines / +308,250 B** = 555 lines/day,
   ~269 KB/week.
 Either way the finding's conclusion is unaffected and if anything understated.
 
@@ -67,7 +67,7 @@ Verified as stated: *"86 % larger than the 322,948 bytes audit 1 condemned it at
 at `progress.md:4399-4405` ✓ (`## Earlier months` is at line 4399 exactly; the sentence *"A
 month moves there once it is closed, in the same commit as an ordinary session entry"* is
 line 4405, not 4404). `docs/history/progress-2026-06.md` = 650 lines, `-07.md` = 241 ✓, both
-by `827e650` (2026-08-26) ✓.
+by `4300d47` (2026-08-26) ✓.
 
 **Zero path consumers confirmed.** `git grep -n "progress\.md"` outside the file returns only
 prose: `CLAUDE.md:30,78,117`, `docs/README.md:12,36`, `docs/spec/admin.md:224,622`,
@@ -76,7 +76,7 @@ comments/`console.log` strings), and the ten hits inside
 `.claude/skills/planning-with-files/SKILL.md`, which mean a different file. Nothing parses it.
 
 Root tracked bytes at HEAD: 1,211,482 across 15 files (`progress.md` 601,629 = 49.7 %,
-`package-lock.json` 541,687 = 44.7 %, together 94.4 %). At `72b5a1d` that is 1,210,014 — the
+`package-lock.json` 541,687 = 44.7 %, together 94.4 %). At `09772aa` that is 1,210,014 — the
 finding says 1,209,974, a 40-byte discrepancy I could not source and do not care about.
 
 **One thing the fixer must know that the finding did not flag**: the finder recommends a
@@ -86,7 +86,7 @@ proposal contradicts. Settle the order question before writing the test.
 
 ## root-assets-02 — two chronologies, September at both ends — **confirmed-with-correction**
 
-All structural claims reproduce at `72b5a1d`:
+All structural claims reproduce at `09772aa`:
 - `## Earlier months` at **line 4399** ✓; block 2 opens at **4406** with
   `## 2026-08-11 - Forgot password, email confirmation, and a send queue` ✓.
 - Block 1 (lines 1-4398): **94** `## ` headers ✓, line 3 is `## 2026-09-02 — four fast-uri
@@ -146,11 +146,11 @@ I went past the finder's grep, per my charter:
 - `git grep -n "readdirSync" -- src/app/lab` is empty ✓ — no dynamic path in.
 
 History confirms the supersession story exactly: the three crop files were added by
-**`26dc483` (2026-08-27, "six ways to hold a photograph…")** and never touched again;
-**`6fb0780` (2026-08-28, "the crop room shows what we do, not what we might do")** landed the
+**`77cb700` (2026-08-27, "six ways to hold a photograph…")** and never touched again;
+**`983dc51` (2026-08-28, "the crop room shows what we do, not what we might do")** landed the
 next day; `_specimens.ts` now lists exactly **eleven** `src` values, all `/lab/crop/shape-*.webp`
-(lines 36-126) ✓. `c3-thumb.webp` was added by **`c559d3e` (2026-06-28)** and has exactly one
-commit in its history ✓. `77dc9da` (2026-08-26, "delete the collection images nothing loads")
+(lines 36-126) ✓. `c3-thumb.webp` was added by **`9c3fe15` (2026-06-28)** and has exactly one
+commit in its history ✓. `62f4701` (2026-08-26, "delete the collection images nothing loads")
 removed v4-v6, c5-c6, their thumbs and the twelve `gen/` SVGs — 22 files — and did not touch
 `c3-thumb` ✓, so "audit-1 finding 17 missed one file" is right. That commit's own message says
 it checked *"against both databases"*, which is the same SELECT the finding prescribes.
@@ -167,7 +167,7 @@ Every *byte* figure reproduces exactly. Three *count* figures are off by one eac
 - `superpowers-*`: **14 dirs, 108,648 B** ✓ (summed file by file).
 - `impeccable-*`: **21 dirs, 152,102 B** ✓.
 - `planning-with-files` 8,636 B ✓; `VibeSec-Skill` 24,779 B ✓.
-- The eight from `ac2827b` (2026-08-21) ✓ including `code-review-skill` 23 files / 224,125 B ✓.
+- The eight from `955a70a` (2026-08-21) ✓ including `code-review-skill` 23 files / 224,125 B ✓.
 - **Imported: 43 dirs / 85 files / 18,578 lines / 619,393 B** ✓ — I reproduced 18,578 with
   `git ls-files .claude/skills | grep -v <the nine repo dirs> | xargs wc -l`.
 - **Repo's own: 11 files / 61,428 B** ✓ exactly.
@@ -179,7 +179,7 @@ Every *byte* figure reproduces exactly. Three *count* figures are off by one eac
    720,956 B figures in the "Where" line are `.claude/` **as a whole**; skills alone are
    **680,821 B**. 52 − 43 imported = **9** repo-owned dirs, which is also the number the
    finding lists by name while calling them "ten".
-2. **The "38 … all trace to `6c686cb`" bullet enumerates only 37** (14 + 21 + 1 + 1). 38 *is*
+2. **The "38 … all trace to `ef8acc8`" bullet enumerates only 37** (14 + 21 + 1 + 1). 38 *is*
    the correct count of dirs untouched since 2026-03-30 — but the 38th is **`liftkit-spacing`**
    (last commit 2026-03-30), which the same finding elsewhere says explicitly not to delete
    because CLAUDE.md, `.claude/agents/screenshot-qa.md` and `docs/spec/media.md` all name it.
@@ -249,7 +249,7 @@ read-only, and that uncertainty argues for removal.
   `e2e/visual.spec.ts:28-68` has **12** entries (landing, login, feed, directory, letters,
   catchups, collection, collection-class, support, birds, about, privacy) and
   `git ls-files e2e/__screenshots__ | wc -l` = **24** = 12 × 2 ✓. `collection-class` came from
-  `f08bc5e` (2026-08-29) ✓. Tiny correction: the array is lines **28-68** (the finding said
+  `0d69d85` (2026-08-29) ✓. Tiny correction: the array is lines **28-68** (the finding said
   28-67; 68 is the closing `];`).
 - **`CLAUDE.md:206`**: `/impeccable` (`/audit`, `/polish`, `/typeset`). Confirmed against my own
   skill listing: the harness offers `impeccable-audit`, `impeccable-polish`,
@@ -272,7 +272,7 @@ Every measurement reproduces to the byte:
   privacy — `directory` is `live: "map"`, which is *not* `"band"`, so it is full-page) → 14
   files at **10,881,159 B = 80.1 %** ✓.
 - History: `git rev-list --objects --all -- e2e/__screenshots__ | git cat-file --batch-check`
-  → **157 blobs / 106,153,137 B** ✓, across **39** commits ✓, first `fb6b29f` **2026-08-19** ✓.
+  → **157 blobs / 106,153,137 B** ✓, across **39** commits ✓, first `64f4221` **2026-08-19** ✓.
 - `.git` on disk **232 MB** (finding: 231 MB) — fine.
 
 **Correction to the percentages.** Tracked tree at HEAD = **1,252 files / 33,759,557 B**, by
@@ -308,8 +308,8 @@ actually runs **49-66**, with the quoted sentence on lines 59-60.
 `scripts/dev/apple-edge/look.mjs:17` is verbatim `const OUT = '.tmp-shots/edge';` with
 `mkdirSync(OUT, { recursive: true });` on line 18 ✓. `git grep -n "tmp-shots"` returns
 **exactly two hits**: that line and `.gitignore:99` ✓ — the ignore rule exists solely to hide
-the violation. Dates check out: `look.mjs` was added by **`45e9bb4` (2026-08-27)**, one day
-before **`c8d0e87` (2026-08-28, "chore(root): five entries leave the root and nothing goes
+the violation. Dates check out: `look.mjs` was added by **`4c9aa02` (2026-08-27)**, one day
+before **`8347d4a` (2026-08-28, "chore(root): five entries leave the root and nothing goes
 looking for them")**, which is why it was missed ✓. `.tmp-shots/` does not exist on disk ✓.
 This is a one-string fix and I have no reservation about it.
 
@@ -318,7 +318,7 @@ This is a one-string fix and I have no reservation about it.
 `find . -name .DS_Store` excluding `node_modules`, `.next`, `.git`, `.scratch` → **25 files /
 192,612 B** ✓, root one **10,244 B** ✓, **0 tracked** (`git ls-files | grep -c DS_Store` = 0) ✓,
 whole-tree **281** so 256 live inside `.scratch` ✓. Audit 1 counted **19** — verified in
-`2026-08-25-refactor-audit-1/work/agents/root-docs-assets.md:90` ✓, swept by `0a73211`
+`2026-08-25-refactor-audit-1/work/agents/root-docs-assets.md:90` ✓, swept by `1959266`
 (2026-08-26) ✓. Nine days, +6 files.
 
 Two nits: the per-directory enumeration lists three under `.claude/` but there are **four**
@@ -359,7 +359,7 @@ and `progress.md` ✓.
 ## root-assets-13 — this audit's .scratch must die at close-out — **confirmed**
 
 `du -sh .scratch` → **3.3G** ✓, containing `audit2-build`, `audit2-build-nolab`, `lab-aside`.
-Root is at **32 entries** ✓ (the two over the post-`c8d0e87` 30 are `.DS_Store` and `.scratch`).
+Root is at **32 entries** ✓ (the two over the post-`8347d4a` 30 are `.DS_Store` and `.scratch`).
 `.gitignore:81-82` reads *"One-off debugging probes. Throwaway by nature, never referenced by
 the app."* ✓. 256 of the tree's 281 `.DS_Store` files live inside it ✓. Nothing to argue with;
 it is a close-out checklist line, and the finding is right that the build baselines worth

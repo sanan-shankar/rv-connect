@@ -4,7 +4,7 @@ Territory reader for the application shell and the shared primitives: the root a
 layouts, `template.tsx`, the error/not-found/forbidden boundaries, `manifest`/`robots`/`sitemap`,
 `globals.css`, `src/components/layout/**` (10), `src/components/ui/**` (16), the generic pieces of
 `src/components/common/**` (20), `src/components/analytics/**` (3), `src/lib/utils.ts`,
-`fnv1a.ts`, `theme.ts`, `components.json`, `postcss.config.mjs`. Date: 2026-09-04 (HEAD `72b5a1d`).
+`fnv1a.ts`, `theme.ts`, `components.json`, `postcss.config.mjs`. Date: 2026-09-04 (HEAD `09772aa`).
 Files in territory: 62; read fully: 62.
 
 ## Coverage
@@ -36,7 +36,7 @@ Files in territory: 62; read fully: 62.
   audit them; where I crossed them, it is under "For other lenses".
 - **Uncommitted edits seen**: none in my territory. `git status --short` at session start showed
   only this audit's own untracked folder; the `image-viewer.tsx` modification listed in the
-  session's opening snapshot had already landed as `72b5a1d`.
+  session's opening snapshot had already landed as `09772aa`.
 - **Measurements** were taken by reading the committed build in `.scratch/audit2-build/.next/`
   and `raw/route-bundle-stats.json` with `grep -F` on marker strings. I ran no build, no dev
   server, no browser and no database query.
@@ -154,7 +154,7 @@ keeps it alive.
   form and fill `apiRef`/its equivalent from `onReady` instead of `ref`. Nothing else changes:
   mascot.md's binding structural rule for these two files is that "a ref-owning wrapper is mounted
   early and its `<Hoopoe>` puppet mounted on demand, never both in the same commit" (the Strict
-  Mode double-invoke postmortem at `87c054d^`) — that is about MOUNT order and is preserved
+  Mode double-invoke postmortem at `b705425^`) — that is about MOUNT order and is preserved
   exactly; only the module import moves. Optionally add `void import("@/components/mascot/hoopoe")`
   inside `tryEnter()` a beat before `setMounted(true)`, which starts the fetch while the guard is
   being checked; there are 8 s of `BLOCKED_RETRY_MS` and 90 s of idle to cover it, so no preload is

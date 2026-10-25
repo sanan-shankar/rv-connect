@@ -22,11 +22,11 @@ Report: `work/agents/collection-media.md`. See `_header.md`.
 
 ## Specs and context
 `docs/spec/media.md` (2026-09-23), `docs/planning/collection-rework/handover.md`,
-`docs/planning/class-collection/spec.md`, `docs/spec/hand-run-passes.md`. Commits: `91c735cb`
-(screen copies, 2026-09-23 — three stored objects per photograph now), `d920f631` (the river knows
-its own height before it loads), `8f85b30e` (the river stops fetching itself), `02362260`
-(the phone's scrubber), `f63c3926`/`836e3b37`/`951df4fd` (the date box), `2c996b83` (upload
-progress), `7885ce33` (set aside in review), `c331e7b0` (two reservation shortcuts tried and
+`docs/planning/class-collection/spec.md`, `docs/spec/hand-run-passes.md`. Commits: `cdbdfa77`
+(screen copies, 2026-09-23 — three stored objects per photograph now), `bc73af44` (the river knows
+its own height before it loads), `eaac7d98` (the river stops fetching itself), `6f5b5d20`
+(the phone's scrubber), `12eb99f8`/`07797776`/`b1cd4bd7` (the date box), `b876bc9e` (upload
+progress), `251e46c8` (set aside in review), `fa0c88cc` (two reservation shortcuts tried and
 reverted — do not re-propose them).
 
 ## Leads from the orchestrator

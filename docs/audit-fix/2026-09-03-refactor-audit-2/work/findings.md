@@ -1,9 +1,9 @@
 # Refactor audit 2 — findings (orchestrator working notes)
 
-Baseline taken 2026-09-03 16:40–16:50 IST at HEAD `72b5a1d`, tree clean. Raw outputs in `raw/`.
+Baseline taken 2026-09-03 16:40–16:50 IST at HEAD `09772aa`, tree clean. Raw outputs in `raw/`.
 
 ## Orientation
-- Predecessor closed 2026-08-27 at `033ea43`; 146 commits since, 122 files added (raw/files-added-since-audit1.txt,
+- Predecessor closed 2026-08-27 at `e8ef748`; 146 commits since, 122 files added (raw/files-added-since-audit1.txt,
   raw/diff-since-audit1.txt). The new mass: `src/lib` +7,631, `components/collection` +5,476 (the Collection
   rework: river, scrubber, year rail, contribute room, edit dialog), `components/common` +3,193 (photo carousel,
   frame, rows, aim, pinch-zoom, image viewer chrome), lab +2,310/−2,482, `scripts/dev` +1,886 (hand-run passes:
@@ -182,7 +182,7 @@ navigation; the RSC-refetch claim itself is the component author's measurement a
 re-measure (the agent says so; the verify pass should do it with the MCP — orchestrator can, agents cannot).
 Quality: excellent, and the honest ordering ("what would a fix session delete first") is exactly what the fix
 prompt needs. Two correctness leads beyond simplification: 02 (quota cap follows the wrong half after a swap,
-despite dad5307's claim) and the intake quota counting without `scope` (For other lenses → feed-posts).
+despite 9affe44's claim) and the intake quota counting without `scope` (For other lenses → feed-posts).
 Collection, continued: findings 05-17 read. 05 (three-hook decomposition, line-neutral, moves ~10 source pins — do
 LAST), 06 (one encode helper — same as media-viewer-04; MERGE), 07 (drop the head IntersectionObserver, the scroll
 listener already answers; −55 lines; medium risk, the most-fixed surface this week), 08 (legacy `area`/`freeTags`
@@ -335,7 +335,7 @@ statically while post-card.tsx:63-76 lazy-loads both; **03 confirmed** — lette
 `content: true` for up to 20 drafts and the strip reads only id/title/updatedAt; **04 confirmed** — wood.tsx has one
 importer, the lab aviary variant (plus the registry note); **06 confirmed** — theme-actions.ts:73-74 is the
 `setThemePreference → setTheme` alias audit 1 asked to collapse; **09 confirmed** — privacy says "20 August 2026",
-last commit 2026-08-26 (bd7da7d). **01 = bundle-build-03** (guide chapters eager on every (main) route; byte offsets
+last commit 2026-08-26 (15c4f4c). **01 = bundle-build-03** (guide chapters eager on every (main) route; byte offsets
 in the chunk agree with the analyzer attribution — two independent methods). Structural: 01, 02, 03 (a 1-line
 delete worth up to 400 KB of DB transfer per index load for a drafter), 04, 13 (count-up → motion, like
 feed-posts-13), 16 (letter page: 3 post reads → 2). Cheap but true: 05 (three "fourteen-bird" comments,
@@ -584,7 +584,7 @@ domMax 72/17 async [= bundle-build-01]. Map stack 68 KB / 23 gz on /directory on
 the lab map chunk is 203 KB with the atlas compiled in [lab]. Overrides: `deepmerge-ts` and `mysql2` are exact
 upstream pins (live); `browserslist`, `postcss-selector-parser`, `fast-uri` are floor pins whose parents'
 ranges already admit the fix — candidates to drop. **npm-audit-gate's ALLOWLIST entry GHSA-ggr8-5vv4-36mx is
-dead since b4411f1 (the override superseded it), and `phase9-probe.mjs:39` asserts it is still named** — a
+dead since b069992 (the override superseded it), and `phase9-probe.mjs:39` asserts it is still named** — a
 two-file fix, and a live example of a probe pinning a stale allowlist.
 
 ### lab (70 KB, 12 findings, 5 owner decisions, ~10 not-findings; 48 rooms classified, 21 files read fully) — read in full
@@ -658,11 +658,11 @@ and `/lab/birds-bg` + `/lab/centroid` (a `readFileSync` per request, deliberate)
 **lab-13 (added in the agent's third write, 89 KB) — VERIFIED, and it is a dependency win the dependency lens
 would not have found.** `world-atlas` is a **production** dependency (package.json:64, 7.9 MB of node_modules,
 installed on every Vercel build) whose only importer in the entire repo is `src/app/lab/directory/_maps.tsx:28`.
-The other two hits are comments. The shipped map was fixed by audit 1 (`b899d1a`) to fetch the same atlas from
+The other two hits are comments. The shipped map was fixed by audit 1 (`ad53bab`) to fetch the same atlas from
 `public/geo/countries-110m.json` (107,761 B, immutable-cached), and `alumni-map.tsx:85` states the reason
 verbatim: the import compiled 105 KB of JSON into a module in the first load of the heaviest route. **The lab
 room that prototyped that map kept the antipattern the shipped file documents as wrong** — an oversight in
-b899d1a, not a decision. Fix: make `_maps.tsx` fetch it the way `alumni-map.tsx` does (a worked example 20 lines
+ad53bab, not a decision. Fix: make `_maps.tsx` fetch it the way `alumni-map.tsx` does (a worked example 20 lines
 long, and the room's whole purpose is comparing against the shipped map, so it should load its land the same
 way), then delete the dependency. Saving: −1 production dependency, −7.9 MB node_modules, −105 KB off
 `/lab/directory`'s first load, −2 of the lab's 4 `any` sites. Note for the fix session: knip does **not**
@@ -701,7 +701,7 @@ and into `docs/planning/bugs.md`.
 ### scripts-e2e-ci (94 KB, 21 findings, 6 owner decisions; 82 files, 47 read fully) — read in full
 The largest report and the one with the most *live defects* rather than bloat. Spot checks at HEAD, **all five
 confirmed**: **01** — zero `data-tour` anywhere in `src/`, while `tour-mobile-verify.mjs:107,168` still looks for
-`[aria-label="Product tour"]` and a "hoopoe tour" button (removed by `ae5bc9a` on 2026-08-27); its 26-line test
+`[aria-label="Product tour"]` and a "hoopoe tour" button (removed by `3f97f8f` on 2026-08-27); its 26-line test
 runs in `npm run check` every day, **a security pin on a corpse**. **03** — `screenshot.mjs:50` has
 `{390×844, deviceScaleFactor: 2, isMobile: true, hasTouch: true}`; `screenshot-auth.mjs:44` has a bare
 `{width: 390, height: 844}`, so `(hover:hover)` matches and `(pointer:coarse)` does not. **08** — the HTML
@@ -759,7 +759,7 @@ every session, forever); repair vs retire `_dir-chrome-probe`.
 | Programme | Ids |
 |---|---|
 | ⚠ Notification retention bug | **ORCH-04 = scripts-e2e-ci-02** (verified; top of the outside-scope list) |
-| Dead tour tooling | scripts-e2e-ci-01 + 07 (338 lines; both caused by `ae5bc9a`) |
+| Dead tour tooling | scripts-e2e-ci-01 + 07 (338 lines; both caused by `3f97f8f`) |
 | Screenshot family: one kit, one "mobile", one Chrome | scripts-e2e-ci-03 + 04 + 15 = duplication-04 (P-S3/S8) |
 | Brace-matcher written twice | scripts-e2e-ci-09 = lib-tests-02/04 = duplication-05 (audit-1 dup-03 residue) |
 | dev-login hand-rolled | scripts-e2e-ci-14 = duplication-04 (P-S6 neighbour) |
@@ -899,7 +899,7 @@ notification deletion, 30 days is good. you can update the privacy policy to 30 
 notifications."* So the divergence was closed in the owner's direction rather than the finding's:
 the **behaviour** was right and the three documents were wrong.
 
-Shipped as `74cc61a` (`fix(retention): notifications are kept 30 days, everywhere`):
+Shipped as `0cecf11` (`fix(retention): notifications are kept 30 days, everywhere`):
 `KEEP_DAYS.notifications` 365 → 30 with the M55 history in its comment; `prune.mjs` `DEFAULT_DAYS`
 365 → 30 and its header rewritten; **the `--days 30` flag deleted from `snapshot.yml`** so the
 window exists in one place; the privacy table and `docs/SECURITY.md`'s retention table both say
@@ -988,7 +988,7 @@ second time a session has hallucinated that we're compressing collection photos 
 `TRAPS.md` was written to stop it, while the file `CLAUDE.md` sends a media session to still teaches
 it. **Promote this out of the docs hygiene phase: it causes bugs.**
 Also strong: docs-12 reaches `/notice/[id]`'s early retirement independently (it read the tree after
-`74cc61a` and says so); docs-08's 94 dead path mentions, ~54 real; docs-05, in which the index whose
+`0cecf11` and says so); docs-08's 94 dead path mentions, ~54 real; docs-05, in which the index whose
 own opening line is *"A map that lists folders which do not exist is worse than no map"* lists 12
 spec files where disk holds 15; docs-06 and docs-07 (~315 lines of `letters.md` and the Groups-based
 half of `catchups.md` specify features that were renamed or removed); docs-11 (`admin.md` opens
@@ -1021,7 +1021,7 @@ Corrections that change a recommendation rather than a citation:
 - **dead-code-07 — a foot-gun in the stated range.** `nudgeVariants` is `:112-116`; `:118-122` is
   `sectionVariants`, which is live at `:249`. Deleting `:112-122` as written breaks the hero's stagger.
 - **media-viewer-09 — one sub-claim REFUTED.** `IDLE_MS` did not move 2.6 → 3.6 s: `git log -S` finds
-  only `d84b34c`, which introduced it at 3600. The instruction to consider putting it "back to 2.6 s"
+  only `ca90145`, which introduced it at 3600. The instruction to consider putting it "back to 2.6 s"
   must be dropped.
 - **bundle-build-05** — 126 KB is really 115.7 KB, and `directory-profile-03` supersedes its
   `/welcome` half; keep only the `person-detail.tsx:25` half.
@@ -1033,9 +1033,9 @@ Corrections that change a recommendation rather than a citation:
 - **shell-primitives-13** — not the only reduced-motion violation: `landing/footer-hoopoe.tsx:176`
   does the same and declares itself a scoped exception, so the owner is deciding about two files.
 - **lib-core-config-01** — it caught that `OPERATIONS.md:117` and `:153` were still unfixed while my
-  retention commit was in progress. Both are now corrected in `74cc61a`.
+  retention commit was in progress. Both are now corrected in `0cecf11`.
 - **member-surfaces-09** — the privacy policy's "Last updated" had to move to 4 September because of
-  that same commit. Done in `74cc61a`.
+  that same commit. Done in `0cecf11`.
 
 ## Authoritative CSS measurement (orchestrator, close-out, supersedes every figure in the notes above)
 Measured directly off the two committed scratch builds at 19:05 on 2026-09-04, `stat` and `gzip -c`:

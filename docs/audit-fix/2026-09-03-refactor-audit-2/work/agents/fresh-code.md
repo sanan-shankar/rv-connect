@@ -1,7 +1,7 @@
 # fresh-code - refactor audit 2 report
 
 Cross-cutting lens over the code that has never been audited: every source file added since the
-first audit closed at `033ea43` (146 commits), plus every modified file with 150+ changed lines,
+first audit closed at `e8ef748` (146 commits), plus every modified file with 150+ changed lines,
 read file by file for the six LLM-bloat signatures (brief 5e), the React-specific ones, the
 simplification pass (5d) and the placeholder/flag hunt (5a items 2-3). Territory agents own the
 feature-level structure of the same files; this report is the second pair of eyes for local bloat.
@@ -9,7 +9,7 @@ Date: 2026-09-03. Files in territory: 110 (29,336 lines); read fully: 110.
 
 ## Coverage
 
-- **Read fully (110 files, 29,336 lines).** Computed as `git diff --name-status 033ea43..HEAD -- src scripts e2e`
+- **Read fully (110 files, 29,336 lines).** Computed as `git diff --name-status e8ef748..HEAD -- src scripts e2e`
   minus `png/sql/md/ico/svg`, taking every `A` file plus every `M` file whose `--numstat` adds+deletes
   reached 150. Five files on the list no longer exist (`contribute-dialog.tsx`, `lab/guide/*` x3,
   `lab/crop/_policies.ts`) and are not counted. Full list with a per-file verdict is in the
@@ -449,7 +449,7 @@ in the carry-overs section.
 - **Phase**: placeholder (a prop no caller passes)
 - **Tier**: T1     **Class**: cheap     **Decides**: autonomous
 - **Evidence**: `grep -rn "mixed" src --include=*.tsx | grep -v bucket-tiles` -> no JSX usage.
-  `git log -S"mixed={" -- src/components/collection` -> `0d7ae30 feat(collection): contributing
+  `git log -S"mixed={" -- src/components/collection` -> `b9741d6 feat(collection): contributing
   is a carousel, not a wall` removed the only caller; `contribute-room.tsx:542-545` says the
   multi-selection "apparatus went with it". The docblock still describes "several photographs at
   once".

@@ -618,7 +618,7 @@ Each of these was checked in the code on 2026-09-14.
   I don't think anyone's gonna use it"*). Every line of it is out of the code. `CatchupPromptOption`
   and `CatchupEntry.pollOptionId` are both empty and are dropped by
   `prisma/migrations-manual/2026-10-09-drop-vote-questions.sql`, which is NOT APPLIED until this removal
-  deploys. Commits `6e663ba5` and `7f36fea9` hold the whole thing if it is wanted back.
+  deploys. Commits `5d8d52cb` and `3a4fb0e8` hold the whole thing if it is wanted back.
 - **Phase 14, time capsule**: one Edition, sealed until it opens, with nothing readable before then,
   your own answer included; a batch Catch-up's Edition can be one. **Underneath is built**
   (2026-09-14): `CatchupEdition.timeCapsule`, `sealedAt`, `publishAt`, the `sealed` status and its
@@ -628,4 +628,4 @@ Each of these was checked in the code on 2026-09-14.
   for the owner's pick.
 - **The longer question library**: drafted in `docs/planning/catchups-rework/library-draft.md` for the
   owner to cut. `CATCHUP_PROMPT_SETS` is unchanged until he does.
-- ~~**M1, the magazine and its PDF**~~ — **DELETED 2026-10-09**, the owner's word: *"magazine is a failed experiement. delete it."* Commit `35b75868` holds the design and the engine.
+- ~~**M1, the magazine and its PDF**~~ — **DELETED 2026-10-09**, the owner's word: *"magazine is a failed experiement. delete it."* Commit `3e92eb2d` holds the design and the engine.

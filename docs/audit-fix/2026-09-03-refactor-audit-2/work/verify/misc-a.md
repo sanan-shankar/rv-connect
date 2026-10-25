@@ -3,7 +3,7 @@
 Cluster: findings whose evidence names no single file — repo-wide counts, cross-cutting
 patterns, build-output claims. Charter: recompute every number.
 
-HEAD checked: `72b5a1d` lineage; working tree has one uncommitted file from another session
+HEAD checked: `09772aa` lineage; working tree has one uncommitted file from another session
 (`src/components/common/image-viewer.tsx`), which touches none of these findings.
 Everything below was recomputed from the tree, the lockfile, `node_modules/`, the read-only
 production build at `.scratch/audit2-build/.next/`, its analyzer dump at
@@ -254,7 +254,7 @@ is the largest package in the subtree ✓. `widenClientFileUpload: false` with t
 browser SDK is initialised (server-only)" ✓ — and the only `Sentry.init` in `src` is
 `src/instrumentation.ts:80`.
 
-The truthfulness point — the load-bearing part of this finding — checks out verbatim. `cf6b482`
+The truthfulness point — the load-bearing part of this finding — checks out verbatim. `7877fc8`
 ("chore(deps): the install scripts are answered for before npm asks") justifies the approval
 "so a future npm cannot quietly drop prisma generate or **Sentry's source-map upload**", and
 that upload is switched off by `sourcemaps: { disable: !process.env.SENTRY_AUTH_TOKEN }`.
@@ -280,7 +280,7 @@ breakdown matches item for item — `chromium-bidi` 14.9, `puppeteer-core` 7.9, 
 `zod` copy 5.0 (at `chromium-bidi/node_modules/zod`), `devtools-protocol` 3.7,
 `@puppeteer/browsers` 1.3. **26 script files** reference puppeteer (27 paths including
 `scripts/README.md`) ✓. `package.json:87-89` is `"puppeteer": { "skipDownload": true }` ✓ and
-`cb3709d` is "chore(qa): stop downloading a Chrome that cannot launch" ✓.
+`47bd771` is "chore(qa): stop downloading a Chrome that cannot launch" ✓.
 
 **Two corrections, both on the Playwright half.**
 1. **Playwright is 18.1 MB, not 31.2 MB.** Its exclusive subtree is 3 packages:

@@ -1,6 +1,6 @@
 # tooling-b — adversarial verification (refactor audit 2)
 
-HEAD at verification: `72b5a1d` ("fix(viewer): the chrome stays under a resting cursor…").
+HEAD at verification: `09772aa` ("fix(viewer): the chrome stays under a resting cursor…").
 Charter: `scripts/`, `e2e/`, `.github/`, the unit tests. 17 finding ids.
 
 ## IMPORTANT — the working tree moved under me mid-verification
@@ -35,7 +35,7 @@ right now. **Still not done in that WIP: `docs/OPERATIONS.md:117` ("notification
 - `wc -l` → 248 + 26 = **274 lines**, exactly as claimed.
 - The tour is gone. `grep -rn "Product tour|data-tour|hoopoe tour" src/ e2e/` returns **one**
   hit and it is a comment: `src/components/demo/demo-bar.tsx:43` "The hoopoe tour used to…".
-  `ae5bc9a`'s message: "the removal is total rather than a flag".
+  `3f97f8f`'s message: "the removal is total rather than a flag".
 - The script's two anchors are both dead: `tour-mobile-verify.mjs:107`
   `document.querySelector('[role="dialog"][aria-label="Product tour"]')` and `:168`
   `b.textContent?.trim() === 'hoopoe tour'`.
@@ -68,8 +68,8 @@ At HEAD, every element checks out:
   `docs/OPERATIONS.md:117` "notifications 1y", `:153` "`prune.mjs --days 30`".
 - Schedules: snapshot `cron: '10 0 * * *'` (00:10 UTC), retention `cron: '0 21 * * *'` — the
   3h10m gap the finding states, and it is written in snapshot.yml's own header.
-- `git log -S"DEFAULT_DAYS = 365" -- scripts/ops/prune.mjs` → `d77197a`;
-  `git log -S"prune.mjs --days 30" -- .github/workflows/snapshot.yml` → `6adb61c`, untouched since.
+- `git log -S"DEFAULT_DAYS = 365" -- scripts/ops/prune.mjs` → `a194521`;
+  `git log -S"prune.mjs --days 30" -- .github/workflows/snapshot.yml` → `103a32b`, untouched since.
 
 **Correction:** `docs/OPERATIONS.md:153` sits inside the `### snapshot.yml` section (headings at
 134 and 157), so "The same job" there means snapshot.yml and is correct about *which* job — only
@@ -171,7 +171,7 @@ No gate: nothing runs these.
   fallback), `centroid.mjs:29` (has it), `apple-edge/look.mjs:22` (has it). All four line
   references are exact.
 - `src/lib/app-icon-safe-zone.test.mjs` exists and the committed icons were last touched by
-  `48e3312` ("fix(icons): compose the maskable icon against Android's safe zone"), so the
+  `32a8629` ("fix(icons): compose the maskable icon against Android's safe zone"), so the
   "in sync today" claim holds.
 - The warning not to wire this into `npm run check` is correct: `ci-parity.test.mjs`'s third
   test pins that `check.mjs` still names `npm-audit-gate.mjs` and `audit-status.mjs`, and the
@@ -181,7 +181,7 @@ No gate: nothing runs these.
 ## lib-core-config-04 — demo photograph pipeline has never produced a photograph — CONFIRMED
 
 - `src/lib/demo-seed/photos.generated.ts` is 15 lines ending `export const GENERATED_PHOTOS:
-  DemoPhoto[] = [];`; `git log --follow` → exactly one commit, `0ea3174`.
+  DemoPhoto[] = [];`; `git log --follow` → exactly one commit, `40dcba9`.
 - `seed.ts:39` imports it, `:313` `const allPhotos = [...GENERATED_PHOTOS, ...DEMO_PHOTOS];`.
 - `ls -d demo-photos` → No such file or directory. `.gitignore:76` `demo-photos/`.
 - `docs/spec/demo.md:137` "put images in `demo-photos/` at the repo root" — the direct conflict
@@ -322,7 +322,7 @@ All seven sub-claims verified at HEAD:
 
 - `pinch-zoom.test.mjs:41-55` is the "the swipe kept the numbers it was tuned with" test, pinning
   `SWIPE_FOLLOW = 0.14`, `SWIPE_DISTANCE = 70`, `SWIPE_VELOCITY = 420` as source text.
-  `git log -1` on it → `122ac26 feat(viewer): the photograph can be pinched open`. Its failure
+  `git log -1` on it → `c53ec62 feat(viewer): the photograph can be pinched open`. Its failure
   message ("Moving the swipe off Motion's drag was a gesture rewrite, not a re-tuning… they carry
   over verbatim") is the fix session's own proof, per CLAUDE.md's scratch-test rule.
   **Correction:** the file holds **7** tests, not 6 — so six survive the deletion, not five.
@@ -357,7 +357,7 @@ renames or relocates a test rather than deleting it will trip that, not the floo
 
 ## member-surfaces-14 — fold `valley-year.test.mjs` into `valley-day.test.mjs` — CONFIRMED
 
-`valley-year.test.mjs` is **27 lines / 3 tests**, born in `012174a`. Both files import
+`valley-year.test.mjs` is **27 lines / 3 tests**, born in `92fa0df`. Both files import
 `valleyYear` from `./utils.ts` (`valley-year.test.mjs:3`; `valley-day.test.mjs:6-14`).
 Its third test (`2026-12-31T19:00:00Z → 2027`) is the same boundary
 `valley-day.test.mjs:55-59` pins with three assertions (18:29 → 2026, 18:30 → 2027, 23:59 → 2027)

@@ -29,7 +29,7 @@ unheld.
 
 ## 1. Executive summary
 
-### 1a. Baseline (measured 2026-08-25 14:30, tree at 1d3f996)
+### 1a. Baseline (measured 2026-08-25 14:30, tree at d3c4f20)
 
 | Metric | Value | Tool |
 |---|---|---|
@@ -60,8 +60,8 @@ produced the chunk-level data this audit used.
 
 ### 1b. Expected after the diet (honest ranges; fix sessions re-measure)
 
-**Closed out 2026-08-27.** The measured column below was taken at `033ea43`, with the
-campaign's baseline commit `1d3f996` extracted to a scratch tree and measured by the SAME
+**Closed out 2026-08-27.** The measured column below was taken at `e8ef748`, with the
+campaign's baseline commit `d3c4f20` extracted to a scratch tree and measured by the SAME
 tool invocation, so every comparison here is like-for-like rather than against the numbers
 in §1a (which used whatever flags that session used).
 
@@ -79,7 +79,7 @@ in §1a (which used whatever flags that session used).
 
 Two rows the table cannot carry, both measured the same like-for-like way:
 
-| Metric | Baseline `1d3f996` | Measured 2026-08-27 |
+| Metric | Baseline `d3c4f20` | Measured 2026-08-27 |
 |---|---|---|
 | Duplication in `src` + `scripts` (jscpd 4.3, `--min-lines 5 --min-tokens 50`, run over both trees) | 235 clones · 3,641 duplicated lines · **2.04 %** | 174 clones · 2,702 duplicated lines · **1.47 %** |
 | Type sludge (non-lab `src`) | `any` 10 · `as unknown as` 11 · eslint-disable 52 | `any` 7 · `as unknown as` 11 · eslint-disable 47 |
@@ -131,7 +131,7 @@ weight, bundle bytes and database objects. Do not project SLOC here.
 
 Two more measurements taken at close-out, neither of which §1b had a row for:
 
-| Metric | Baseline `1d3f996` | Measured 2026-08-27 |
+| Metric | Baseline `d3c4f20` | Measured 2026-08-27 |
 |---|---|---|
 | Real import cycles (`madge --circular --ts-config`, excluding the generated Prisma client) | 5 | **0** |
 | Files deleted outright by the campaign | — | **48** |
@@ -309,7 +309,7 @@ as below-threshold in `verify/critic-2.md` §C.
 
 Corrections from verification (authoritative over the agent text):
 - **catchups-16 (CatchupEdition.theme "dead") is WITHDRAWN**: the admin reading room
-  committed the same day (6d5609e) selects and renders `theme`; the demo seed writes it.
+  committed the same day (d61199a) selects and renders `theme`; the demo seed writes it.
   True statement: no member-facing surface reads it. No action.
 - **dead-code-09's CONTRIBUTION_STATUSES / canBecomePaid deletion is WITHDRAWN** in favour
   of member-surfaces-11's keep: they are the unit-testable statement of the C-084/C-085
@@ -362,7 +362,7 @@ Corrections from verification (authoritative over the agent text):
     setParam wraps startTransition; workplace has a third free-text writer
     (admin/people/actions.ts:144/184); '10 routes x 2 viewports' in CLAUDE.md/OPERATIONS
     should read 11; the scripts-ledger test must match README entries by path, not
-    basename; verified-mark.test.mjs was born in abb9381.
+    basename; verified-mark.test.mjs was born in 515f20d.
 
 **Bug leads surfaced in passing** (not simplifications — file into `docs/planning/bugs.md`
 in the first fix session): (a) `catchups/round/question-section.tsx:41-44` prints

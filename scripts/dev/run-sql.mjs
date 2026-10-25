@@ -25,7 +25,7 @@
  * Supabase project, and until
  * 2026-08-21 there was no way to apply a manual migration to it. The result
  * was silent schema drift -- `User.showEmail` shipped to the main database in
- * commit eedbb3e and never reached the demo's, where every query selecting it
+ * commit d7b818e and never reached the demo's, where every query selecting it
  * then failed (found by a write-path review). A second database with no way
  * to migrate it is a second database that will be wrong.
  */

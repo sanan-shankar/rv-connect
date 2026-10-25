@@ -138,7 +138,7 @@ directory aside (`mv .next/types .next/types-stale-<date>`) rather than touching
 which another session may be mid-build in.
 
 **Security headers must be gated to production, or Safari cannot load the dev server.** From
-2026-08-20 (`b64e44a`) `next.config.ts` sent `Strict-Transport-Security` and the CSP's
+2026-08-20 (`a95c61f`) `next.config.ts` sent `Strict-Transport-Security` and the CSP's
 `upgrade-insecure-requests` on every response, `next dev` included. WebKit applies
 `upgrade-insecure-requests` to `localhost`; Chromium exempts it as a potentially-trustworthy origin.
 So Safari re-requested every stylesheet, script and font over `https://localhost:3000`, which speaks

@@ -13,9 +13,9 @@ Report: `work/agents/admin-analytics.md`. See `_header.md`.
 - `src/app/api/presence/route.ts`
 
 ## Specs and context
-`docs/spec/admin.md` (43 KB, 2026-09-21). Commits: `ec979e4c` (count visits from the browser and
-keep each visit's pages), `9a7412a2` (keep dev and the owner's own use out), `f2ba4c90`/`6eabd7d7`
-(the review room), `a9277835`/`4c9c4491` (admin loading screens), `f44418c9`. The admin lib
+`docs/spec/admin.md` (43 KB, 2026-09-21). Commits: `b1467c5d` (count visits from the browser and
+keep each visit's pages), `725f4966` (keep dev and the owner's own use out), `d201e111`/`d90452b3`
+(the review room), `e5264b13`/`f09cd964` (admin loading screens), `d1c4fed1`. The admin lib
 client/server pairs are real seams (audit 1 §5) — not a finding.
 
 ## Leads from the orchestrator

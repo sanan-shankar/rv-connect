@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
  * FilterSheet — the mobile bottom sheet that carries the full labelled facet
  * stack, with a `Clear all` / `Show N` footer (filters-rework.md sec. 5.2 /
  * 6.2). Same shell for the Directory and the admin lists; the facets
- * themselves are passed as children. The Collection left this kit in 8a0ba37
+ * themselves are passed as children. The Collection left this kit in f01c444
  * and owns its own river controls.
  */
 export function FilterSheet({

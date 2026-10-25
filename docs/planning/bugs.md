@@ -67,7 +67,7 @@ and `flag-person-dialog.tsx` still trim 2px where the Button convention is 4px. 
 2026-07-05/06 session: `profile/[id]/page.tsx` and `alumni-map.tsx` were both touched overnight for
 unrelated features (secondary city, delete-user, map zoom) and the trims were not fixed in passing.
 The `create-post-form.tsx` More-options item is moot: that composer was rebuilt overnight
-(staged-reveal, `96f7ae3`) and More is now a plain unboxed plus, not a pill.
+(staged-reveal, `2d2673f`) and More is now a plain unboxed plus, not a pill.
 - Size: tiny.
 
 ### 5. No desktop notifications affordance outside the feed
@@ -113,7 +113,7 @@ owner confirms it and it gets built for real (moved out of `/preview`): `/previe
 (five concepts: postcard, notice board, prospectus, living valley, clarity). The judge favored
 "Postcard."
 
-The equivalent profile decision is moot: the round-6 profile rebuild (`ed5f9b2`, see Settled) shipped
+The equivalent profile decision is moot: the round-6 profile rebuild (`ae928e6`, see Settled) shipped
 directly into the main app, not through a pick of one of the five `/preview/delight/profiles`
 concepts, so that preview page is now historical only.
 - Size: owner decision, then a build phase.
@@ -247,7 +247,7 @@ eyes correctly with the same two verbs, so `coverEyes()` works and something on 
 not calling it or being overwritten after it.
 
 Found on 2026-08-26 while extracting the shared flight hook (phase 4 of the refactor-audit
-campaign). **It is not a regression from that work**: the same probe against `e7efc97`, the commit
+campaign). **It is not a regression from that work**: the same probe against `32128fd`, the commit
 before the campaign touched these files, shows the identical wings-down bird at rest, and
 `[data-part=leftWing]` carries no style in either. Filed rather than fixed because it is a bug, not
 a simplification.
@@ -409,7 +409,7 @@ fell back through the server and its ~4.5MB cap, which is the single thing presi
 to avoid. Both are listed in the policy now.
 
 - Background warmth was `#E7E1D3` by owner choice, and that held until 2026-07-30. **The shipped
-  value is now `#E4E1D5`** (`--background` in `globals.css`, changed in `c286b67` with the colour
+  value is now `#E4E1D5`** (`--background` in `globals.css`, changed in `8408115` with the colour
   protocol): the owner cooled all four neutrals by 20-25% after finding iPhone True Tone had been
   exaggerating the yellow. What still stands from the original note is the floor - do not lower the
   warmth to `#E9E6DD` or `#EBE6D7`, which were earlier steps the owner moved past - plus a newer
@@ -417,7 +417,7 @@ to avoid. Both are listed in the policy now.
   reference display (True Tone and Night Shift off) before acting on it.
 - The valley tree overlay was `opacity-[0.11]` by owner choice. **The shipped value is now
   `opacity-[0.09]`** (`app-shell.tsx:40`, plus `dark:opacity-[0.04]`), lowered in the same 2026-07-30
-  commit `c286b67` alongside the cooler neutrals. The surviving instruction is that the owner picked
+  commit `8408115` alongside the cooler neutrals. The surviving instruction is that the owner picked
   the fuller tree over the faint one, so `0.09` is now the floor: do not drop it to `0.08` or below.
 - The feed ships as separate tinted tiles (PostCard `variant="card"`), a later switch away from the
   ruled sheet. (CLAUDE.md still calls it a "ruled-sheet feed"; the shipped code is tiles.)
@@ -433,21 +433,21 @@ to avoid. Both are listed in the policy now.
   directory filters/city-normalize/case-insensitive/pagination, group batch-add notification and browse
   empty state, collection seed variety, dead `landing-client.tsx` removed, stale Card primitive de-glassed.
 - Logo, password hoopoe, and sign-in button: owner-confirmed finished on 2026-07-02.
-- Secondary city shipped overnight on 2026-07-05/06 (`ab90b19`): `currentCity` stays primary, the
+- Secondary city shipped overnight on 2026-07-05/06 (`abc29d6`): `currentCity` stays primary, the
   new `secondaryCity` column is live and wired through settings, the profile "also in ..." line,
   and directory search.
 - Mobile scroll-hoopoe is moot: the landing scroll companion was removed entirely by owner decision
-  (`0cface8`), desktop and mobile both. The one remaining landing hoopoe flutters near the footer.
+  (`1569a2f`), desktop and mobile both. The one remaining landing hoopoe flutters near the footer.
 - Houses step no longer falls back to localStorage: the `houses` column migrated live 2026-07-18
   (round 6) and `/welcome`'s Houses step (`src/components/onboarding/steps/houses-step.tsx`) writes
   straight to `User.houses`; the old column-probe/localStorage path is gone. `src/lib/houses.ts`
   carries the owner-confirmed canonical 22-house list. Settings' batch field also dropped the retired
-  grade-joined path in the same round (`6576aaf`).
-- Support page rewritten in rupees, round 6 (`42614eb`): the stale "Sign-in links and invites" Email
+  grade-joined path in the same round (`3a5a182`).
+- Support page rewritten in rupees, round 6 (`7e718ff`): the stale "Sign-in links and invites" Email
   cost row is gone (no real email-sending infra to attach a cost to), and the cost bar uses the brand
   palette. Contribution is one-time-only presets, no monthly ₹20. Do not reintroduce a monthly UPI
   amount or the old Render-era cost line.
-- UPI handle confirmed and wired, 2026-07-24 (`1f549b3`, closes the old Open #4): `UPI_ID` is the
+- UPI handle confirmed and wired, 2026-07-24 (`49b7185`, closes the old Open #4): `UPI_ID` is the
   owner's real handle and the placeholder `rvalumni@upi` is gone. The QR codes are now real and
   scannable, generated and decode-verified by `scripts/gen-support-qr.mjs` (one SVG per amount, so
   scanning prefills that amount); the old hand-drawn `support-qr-placeholder.svg` encoded nothing and
@@ -462,13 +462,13 @@ to avoid. Both are listed in the policy now.
   (`BUILD_RECOVERED`) because nothing tracks UPI contributions automatically. The page no longer says
   the build cost is withheld. Monthly costs are hosting ₹1,950, photos under ₹100, and domain ₹250 a
   month; the domain is billed monthly now and sits inside the bar, not as a separate yearly pill.
-- Filters rework shipped for Directory and Collection, round 6 (`180968d` + follow-ups): the old
+- Filters rework shipped for Directory and Collection, round 6 (`f46051f` + follow-ups): the old
   all/all/all unlabeled-select bars are gone, replaced by a shared facet-filter pill system
   (`src/lib/directory-facets.ts`, `src/lib/collection-facets.ts`,
   `src/components/common/filters/*`) with labeled selects, real sort names (newest is no longer
   mislabeled "relevance"), and profession as a first-class filter separate from organization. Do not
   revert to the old unlabeled bars.
-- Feed search now actually searches the feed (`c710782`): the sidebar search box used to silently
+- Feed search now actually searches the feed (`2d11f95`): the sidebar search box used to silently
   jump to directory people-search from every surface; it is now scoped to the surface you're
   searching from.
 - The six legacy Catch-ups tables are gone (closed the old Open #11, 2026-08-03). A check against
@@ -489,7 +489,7 @@ to avoid. Both are listed in the policy now.
   Newsletter`) and all 15 posts / 21 users were verified untouched before and after. The 5
   `*@demo.valley.test` seed USERS were deliberately left in place: the owner asked for the groups
   only, and the map/directory demos still lean on those users.
-- Dropdown/select popover alignment fixed at the shared primitive, round 6 (`ac4a90b`, `f5e65ca`):
+- Dropdown/select popover alignment fixed at the shared primitive, round 6 (`23b8d25`, `1041797`):
   offset, width, corner radius, and the hover-highlight inset now match the trigger everywhere
   (report-post reason select, collection/directory facet selects), including when a popover opens
   upward. Fix future dropdown issues at the shared primitive, not per-instance.
@@ -501,7 +501,7 @@ Each entry says what to delete, when, and why that date.
 
 - ~~**After 2027-08-01: delete `/notice/[id]`.**~~ **Done 2026-09-05**, eleven months early,
   because the date was arithmetic off a number that changed. It was 2026-07-24 plus a 365-day
-  notification retention; the owner settled retention at **30 days** on 2026-09-04 (`74cc61a`),
+  notification retention; the owner settled retention at **30 days** on 2026-09-04 (`0cecf11`),
   which moves the answer to 2026-08-23. Checked live before deleting rather than trusting the
   arithmetic: **0 notifications predate 2026-07-24 and 0 carry a `/notice/%` link, on production
   and on demo.** The route, its `loading.tsx`, `openAdminNoticeThread`'s `createdAt` and `db`

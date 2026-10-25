@@ -2,7 +2,7 @@
 
 Running notes. Anything that later becomes a finding gets an ORCH-NN id here first.
 
-## Baseline (measured 2026-09-24 ~01:05–01:20 IST, HEAD 70570bcd, 347 commits after audit 2's tree 72b5a1d)
+## Baseline (measured 2026-09-24 ~01:05–01:20 IST, HEAD 495ecdd2, 347 commits after audit 2's tree 09772aa)
 - Tracked: 1,632 files · 44.90 MB (audit 2: 1,252 · 32.19 MB → +12.7 MB in three weeks).
   e2e/__screenshots__ 12.02 MB (24 files) · public/images 11.36 MB (142) · docs/audit-fix 4.16 MB (139)
   · src/app/lab 3.44 MB (201) · src/components 2.81 · src/lib 2.19 · public/lab 2.01 MB (15, tracked,
@@ -41,7 +41,7 @@ Running notes. Anything that later becomes a finding gets an ORCH-NN id here fir
 - ORCH-lead-7: the river-geometry ↔ actions cycle.
 - ORCH-lead-8: e2e baselines 12 MB, landing.png 2.33 MB.
 
-## Build (2026-09-24 01:16–01:32, HEAD 70570bcd, IN the working tree, NOT a scratch worktree)
+## Build (2026-09-24 01:16–01:32, HEAD 495ecdd2, IN the working tree, NOT a scratch worktree)
 - 952.9 s wall (user 162 s, sys 242 s); load average 6.3 at start, 14.8–19.0 at end, 27.6 ten minutes later
   (six audit agents + the peer bug-audit session + my knip variants running alongside). Phases: config 11.5 s,
   compile 8.3 min, runAfterProductionCompile 2.4 s, TypeScript 6.8 min, "writing to filesystem cache" 4.9 min,
@@ -115,7 +115,7 @@ Running notes. Anything that later becomes a finding gets an ORCH-NN id here fir
   never creates `audio/`) go to the "outside simplification" list.
 - Wave 1 complete: six of six reports on disk, all spot-checked.
 
-## Warm build + check (2026-09-24 07:49–07:52, HEAD 70570bcd)
+## Warm build + check (2026-09-24 07:49–07:52, HEAD 495ecdd2)
 - **Warm build: 68.2 s wall** (load 2.9 at start, 7.5 at end as agents launched): config 0.5 s, **compile 18.5 s**
   (audit 2: 20.3), runAfterProductionCompile 1.2 s, **filesystem cache compaction 12.1 s** (new in Next 16.3 —
   `turbopackFileSystemCacheForBuild` default-on), **TypeScript 20.6 s** (audit 2: 14.6 — +6 s), 109 static pages 6.0 s
@@ -141,7 +141,7 @@ Running notes. Anything that later becomes a finding gets an ORCH-NN id here fir
 | Programme | Rows | Ruling |
 |---|---|---|
 | **M-picker** the Catch-up picture picker has no door | catchups-ui-01, fresh-code-01, catchups-ui-30, bundle-build-04 (+tracked-weight-01 picker note) | **Regression, restore — not dead code.** `docs/spec/catchups.md` §6 "Changing it (`setCatchupPicture`)" and §3 table line 210 spec the capability. fresh-code-01's "delete" option is refuted by the spec. Goes to the bug list with a simplification guard: the dead-code phase must NOT delete `picture-picker-dialog.tsx` or `setCatchupPicture`. When mounted, it must use `next/image` or small copies (bundle-build-04 / tracked-weight-01). |
-| **M-invite** the Keeper's invite link has no door | catchups-ui-02 | **Regression** (spec §7.6 describes the join route; the copy-link control died with `people-panel.tsx` in `b94677ce`). Owner question, default **restore**. |
+| **M-invite** the Keeper's invite link has no door | catchups-ui-02 | **Regression** (spec §7.6 describes the join route; the copy-link control died with `people-panel.tsx` in `e8307e39`). Owner question, default **restore**. |
 | **M-song** Spotify/song pipeline | fresh-code-02, catchups-lib-05, catchups-ui-07, catchups-ui-08 | Spec §16 "Phase 11, the rest" already plans the removal (code + 4 columns), waiting on a DDL release that is the owner's. Code first is always safe (stop reading/writing before the drop) → **autonomous code removal**; the column drop is a gate-2 hard stop. Audit 2 D3's "leave it alone" is superseded by the rework spec written after it. |
 | **M-magazine** the engine in `src/lib` | catchups-lib-16, catchups-lib-17, fresh-code-03, bundle-build-06, lab-catchups-01/02/03 | **Do not relocate.** The rework handover's board has `M2+ Magazine build | OPEN` — four planned phases that ship it from the app, so `src/lib` is its destination, not a mistake. It ships 0 bytes to members. Keep the real wins: fixtures → builders (lab-catchups-01), the export reader out of the room graph (-02), the corpus beside the engine (-03), trim unused surface (catchups-lib-16). One owner question: is the magazine still wanted (default: yes, as planned). |
 | **M-cycle** the one import cycle | collection-media-05, fresh-code-13 | Same fix: `PhotoShapeIndex` → `collection-shape.ts`. Merge. |
@@ -260,12 +260,12 @@ history then (tracked-weight-02). This audit's closing commit corrects audit 2's
 - Owner A (profile admin buttons = second copy of the admin person page) MERGES with admin-analytics OD1 → **M-admintools**.
 
 ## ORCH-01 — the September session history was overwritten (found 2026-09-27 at close-out)
-- `9ef7d821` (2026-09-27, "feat(catchups): a batch Catch-up runs every three months") changed
+- `14f77687` (2026-09-27, "feat(catchups): a batch Catch-up runs every three months") changed
   `docs/history/progress-2026-09.md` by **+15 / −8,363 lines**: it replaced the month's full record (~587 KB) with its
-  own entry. Every later commit did the same (`81bb7d11` +19/−15, `1b6e5fd3` +11/−21, `bda5571c` +10/−11, `60b8fc16`
+  own entry. Every later commit did the same (`46d4408f` +19/−15, `b5a87180` +11/−21, `105e056c` +10/−11, `4eddc6f7`
   +8/−10), so the file now holds one entry (703 B) while `progress.md` still indexes every September session.
-- Recoverable: `git show 9ef7d821^:docs/history/progress-2026-09.md`, then re-add the five entries written since.
-  **Fixed 2026-09-27 at the owner's request** ("Du it"): the month restored from `9ef7d821^` plus the seven
+- Recoverable: `git show 14f77687^:docs/history/progress-2026-09.md`, then re-add the five entries written since.
+  **Fixed 2026-09-27 at the owner's request** ("Du it"): the month restored from `14f77687^` plus the seven
   entries written since, and the missing test direction added. See the commit that restores the file.
 - **Test gap (a finding for the docs/tests lens):** `scripts/qa/progress-log.test.mjs` checks history → index only
   ("every archived entry is indexed"). An index → history check (every `- YYYY-MM-DD …` line in a month section has its

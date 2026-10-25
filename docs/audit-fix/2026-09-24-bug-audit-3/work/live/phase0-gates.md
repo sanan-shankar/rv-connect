@@ -1,4 +1,4 @@
-# Phase 0 gate runs (2026-09-24 ~01:10 BST, at 70570bcd) — raw output kept as the crawl baseline's evidence
+# Phase 0 gate runs (2026-09-24 ~01:10 BST, at 495ecdd2) — raw output kept as the crawl baseline's evidence
 
 ## npm run check
 ```

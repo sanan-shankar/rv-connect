@@ -626,7 +626,7 @@ whatsapp-curation trio.
 ### docs-14 - `collection-scrubber/` is shipped, and its operational context has gone actively wrong
 - **Where**: `docs/planning/collection-scrubber/handover.md` (249 lines) +
   `brief.md` (194 lines) = 443 lines / 26 KB. Stale claims at `handover.md:23`, `:29`, `:104`,
-  `:231-233`. Shipped as commits `ab4cc8f`, `2400547`, `8211f64`.
+  `:231-233`. Shipped as commits `3745e95`, `5db6eb0`, `64bc90d`.
 - **Phase**: relocate     **Tier**: T2     **Class**: structural     **Decides**: autonomous
 - **Evidence**: the last four commits on `main` are the scrubber landing: *"fix(collection):
   the phone's scrubber travels instead of teleporting"*, *"feat(collection): a seek keeps the

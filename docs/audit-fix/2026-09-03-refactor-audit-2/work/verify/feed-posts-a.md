@@ -1,7 +1,7 @@
 # feed-posts-a — adversarial verification notes
 
-Verifier: feed-posts-a. Date: 2026-09-04. Tree state: HEAD `74cc61a` ("fix(retention):
-notifications are kept 30 days, everywhere"), one commit past the audit baseline `72b5a1d`.
+Verifier: feed-posts-a. Date: 2026-09-04. Tree state: HEAD `0cecf11` ("fix(retention):
+notifications are kept 30 days, everywhere"), one commit past the audit baseline `09772aa`.
 That commit touched only `src/lib/post-notifications.ts` (1 line) inside this territory, so
 every line number in the reports was written against effectively the same tree I read.
 Uncommitted work in the tree: `docs/audit-fix/README.md`, `progress.md` (someone else's WIP);
@@ -54,9 +54,9 @@ phosphor icons that go; dead-code-02's includes them. Use dead-code-02's import 
 feed-posts-01's step list.
 
 **Correction to dead-code-02's Notes.** It blames the header search pill,
-`8a10763` (2026-08-30). Wrong: `git log -S'showControls={false}' -- src/app/(main)/feed/page.tsx`
-returns exactly one commit, `096a034` (2026-06-28 19:14, "AppShell rightRail + Sidebar +
-PageHeader to match contract"). feed-posts-01 attributes it to `e5fc121` (2026-06-28 19:39),
+`142e653` (2026-08-30). Wrong: `git log -S'showControls={false}' -- src/app/(main)/feed/page.tsx`
+returns exactly one commit, `275ebe6` (2026-06-28 19:14, "AppShell rightRail + Sidebar +
+PageHeader to match contract"). feed-posts-01 attributes it to `4951669` (2026-06-28 19:39),
 which is the next commit that same evening — the date is right, the sha is one off. The block
 has been unreachable since 2026-06-28, two months before the pill landed.
 
@@ -296,7 +296,7 @@ unverifiable-needs-db.
   should stay so an old client's cursor still reads as "first page", and that
   `ProfileAuthorFeed` is unaffected), but take **dead-code-02's import list** (it catches
   `MagnifyingGlass` and `SlidersHorizontal`) and **dead-code-02's ~150-line saving**. Ignore
-  dead-code-02's causal note about `8a10763`. Tier: dead-code-02's T4 is the honest one for
+  dead-code-02's causal note about `142e653`. Tier: dead-code-02's T4 is the honest one for
   the decision, feed-posts-01's T3 for the execution once the owner has chosen.
 - **feed-posts-01 and feed-posts-03 compound**: `Select` only leaves /feed's static graph when
   both land.

@@ -1,6 +1,6 @@
 # directory-profile - refactor audit 3 report
 
-Territory T05, 2026-09-24, HEAD `70570bcd`. The directory (page, where builder, select, Load-more
+Territory T05, 2026-09-24, HEAD `495ecdd2`. The directory (page, where builder, select, Load-more
 action, grid, card, map, clustering, geocoding fallback, city facets, profession facet), the profile
 (page, letterhead, pen, houses chain and its editor, contacts editor, calling card and .vcf, author
 and saved feeds, admin and flag tools, the stray-hair prank, the loading sheet), the pick-bird flow
@@ -176,8 +176,8 @@ this territory all shipped and held.
 - **Tier**: T2     **Class**: structural     **Decides**: autonomous
 - **Evidence**: the flag's own comment says "Opt-in so the default `{ userIds }` shape existing
   callers depend on is untouched". That caller was `src/components/groups/create-group-form.tsx:80`
-  (`git grep users-by-batch 063896c0^ -- src`), and it stopped calling in the same commit that added
-  the flag (`063896c0`, 2026-07-25, "retire Groups"; `git grep users-by-batch 063896c0 -- src`
+  (`git grep users-by-batch 6b2b3918^ -- src`), and it stopped calling in the same commit that added
+  the flag (`6b2b3918`, 2026-07-25, "retire Groups"; `git grep users-by-batch 6b2b3918 -- src`
   finds only the people picker). Two months with no consumer of the bare-id shape. The QA probes do
   not need it either: `scripts/qa/phase6-probe.mjs:123` passes `detail=1`; `phase3-probe.mjs:162`
   asserts only a Stage-0 403 (and sends `?year=`, a param the route never reads).
@@ -338,7 +338,7 @@ this territory all shipped and held.
 - **Phase**: placeholder
 - **Tier**: T2     **Class**: structural     **Decides**: autonomous
 - **Evidence**: nothing links to `/directory?cursor=`: Load more has used the server action since the
-  day both were written (`ab333794`, 2026-06-29), and a grep for `cursor=` or any `/directory?`
+  day both were written (`9df2f5c8`, 2026-06-29), and a grep for `cursor=` or any `/directory?`
   builder in `src`, `scripts` and `e2e` finds none that sets it. A stale `?cursor=` in a pasted URL
   would render a list starting mid-way with no way back to its top. Separately, the Load-more hand-off
   loses information: a map pin's escape link sends several cities
@@ -496,7 +496,7 @@ this territory all shipped and held.
 - **Evidence**: audit Low 99's rule is asserted twice with different fixtures (Cauvery
   2014/2015/2017 in `houses.test.mjs:44-52`, Golden 2014/2015/2017 in `house-spans.test.mjs:26-40`),
   and the malformed-input case twice (`houses.test.mjs:67-72`, `house-spans.test.mjs:42-48`).
-  `house-spans.test.mjs` was refilled with these in audit 1's fix (`d960b45d`) so the suite would not
+  `house-spans.test.mjs` was refilled with these in audit 1's fix (`b909298a`) so the suite would not
   drop below its file-count floor after `seedHouseYearRows` was deleted - so both files have to keep
   at least one test, and both do after the merge.
 - **What to do**: move `houses.test.mjs`'s span block (`:35-72`) into `house-spans.test.mjs`,
@@ -545,7 +545,7 @@ this territory all shipped and held.
      instant its cluster splits") - no tooltip; the key is a React key.
   4. `src/lib/house-spans.ts:45-57` - the docblock of `seedHouseYearRows` ("Build the houses-editor
      row list (onboarding step + settings editor share this) ..."), orphaned on top of
-     `parseHouseSpans`'s own docblock when audit 1's fix (`d960b45d`, its `directory-profile-04`)
+     `parseHouseSpans`'s own docblock when audit 1's fix (`b909298a`, its `directory-profile-04`)
      deleted the function and left the comment. Delete the 13 lines.
   5. `src/components/profile/houses-chain.tsx:27-38` (the header's "NOT A GRID" paragraph: "drawn in
      a side gutter as one arc that leaves the END of the top row ... swings around outside the pills")
@@ -565,7 +565,7 @@ this territory all shipped and held.
      `ResolvedPlace[]` for `out` at `:168`.
   10. `src/lib/phone.ts:9` ("Four files need this; those four import it.") - three do.
   11. `src/lib/vcard.ts:8-12` (the NOTE is "built as ... Houses: Aravalli 2014-15, Nilgiri 2015-16")
-      - houses left the NOTE on 2026-09-10 (`ff67fb46`); keep the escaping argument, put the example
+      - houses left the NOTE on 2026-09-10 (`324dc23d`); keep the escaping argument, put the example
       in the past tense. (`vcard.ts` is lib-core's by elimination; it is the profile's .vcf.)
   12. `src/components/profile/letterhead-profile.tsx:29-32` - the header's rule "The one engraved rule
       gets equal air above and below and is drawn only when it has a body under it to separate" - the
@@ -624,7 +624,7 @@ this territory all shipped and held.
       calling-code Set and three functions) out of every stranger's profile download. Then
       `buildRows`' injected `formatPhone` parameter (`src/lib/contact-rows.ts:62-69`) goes too - and its
       stated reason is already stale: "tsc refuses "./utils.ts" without allowImportingTsExtensions",
-      but `tsconfig.json:16` has had `allowImportingTsExtensions: true` since `3246db26` (2026-08-22).
+      but `tsconfig.json:16` has had `allowImportingTsExtensions: true` since `2021e041` (2026-08-22).
       `src/lib/profile-email.test.mjs:25-62` already calls `buildRows(base)` without a formatter.
 - **Phase**: dedupe
 - **Tier**: T1     **Class**: cheap     **Decides**: autonomous
@@ -811,14 +811,14 @@ this territory all shipped and held.
   (`directory-client.tsx:32-58`, `warm: preloadAlumniMap` at `:431`); the profession label is
   resolved on the server (`page.tsx:401-408`), pinned (`directory-rule.test.mjs:306-326`).
 - **`-05`, `-09`, `-12`, `-17`, `-23` (D8):** done - `HousePicker` and its lab rooms gone (grep),
-  `otherCities` gone (grep), the Photos grid skipped on your own sheet (`f41e51bf`), the non-refuted
+  `otherCities` gone (grep), the Photos grid skipped on your own sheet (`5cd8587e`), the non-refuted
   dead props gone, the profile skeleton rewritten on 2026-09-21 with no engraved rule. (`-10` and
   `-21` are onboarding's and were not re-checked here.)
 - **`-08` (E12):** done - `DirectoryPerson` is derived (`select.ts:26-34`); `PinPerson` is the
   leftover, -04.
 - **`-11`, `-15`, `-16` (E11):** done - `place-write.ts` names its three writers (`:8-18`);
-  `admin-actions.ts` left `components/profile/` (`bc0be4e5`); `AdminProfileTools` uses `useAdminAct`
-  (`d1101cfe`).
+  `admin-actions.ts` left `components/profile/` (`247d4fa3`); `AdminProfileTools` uses `useAdminAct`
+  (`6dbb7754`).
 - **`-13` (C1):** done - `loadProfile` is `cache()`d (`page.tsx:41-47`). **`-14` (B13):** done -
   `page.tsx:187-203`. **`-27` (C9):** done - both lookup routes spread `IDENTITY_SELECT`.
 - **`-24` (F hygiene):** done, except new remnants listed in -15.
@@ -841,7 +841,7 @@ this territory all shipped and held.
   `getViewerCities` (one per request that needs it, `cache()`d); `COUNT(city) ... LEFT JOIN User` is the
   directory's City facet (`page.tsx:295-300`, one per render, 44 rows = the distinct cities); the country
   `GROUP BY` is `src/lib/admin-analytics.ts:166`, not the directory; the calling card replaced the tile
-  sheet in place (`16758d27`, `93d4ed1c`) and no old sheet survives - its four candidate
+  sheet in place (`38709987`, `4225b518`) and no old sheet survives - its four candidate
   constructions live in `/lab/reach` (a lab-to-shipped clone, fresh-code-06's owner decision E).
 
 ## For other lenses
@@ -850,7 +850,7 @@ this territory all shipped and held.
   $3` and the same with `"kind" = $2` - are `CelebrationSignals`
   (`src/components/mascot/moments/celebration-signals.tsx:31-40`), mounted on every `/feed` and
   `/welcome` render, NOT the profile (which has run one `groupBy` over a far larger audience where
-  since `4f06f4fd`, 2026-09-05). One `groupBy({ by: ["kind"] })` there saves a query per feed render.
+  since `3481e795`, 2026-09-05). One `groupBy({ by: ["kind"] })` there saves a query per feed render.
   **#40** (32,721) = `loadProfile`'s `include: { places }` (`profile/[id]/page.tsx:41-47`, all nine
   columns, one per view); **#46** (21,786) = `getViewerCities` (`src/lib/city-scope.ts:15-27`);
   **#55** (5,410) = the directory City facet; **#70** (2,816, 73 rows/call) = the directory pins

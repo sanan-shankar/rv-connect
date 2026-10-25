@@ -17,7 +17,7 @@
   re-derived from source with nothing environmental in the way (*source*). **Suspected** means the
   mechanism is argued from code but depends on timing, a vendor's behaviour or load that could not be
   safely proven here; each says the one check that would settle it.
-- **Line numbers** were re-derived by the validators at `70570bcd`. Audit 2's verifiers found that
+- **Line numbers** were re-derived by the validators at `495ecdd2`. Audit 2's verifiers found that
   half of all findings carry a wrong detail; this audit's validators corrected every one they found,
   but a fix session still opens the file and re-reads the range before editing.
 

@@ -5,7 +5,7 @@ Cluster: `tooling-c` (15 ids from `scripts-e2e-ci.md`). Territory: `scripts/`, `
 
 ## HEAD moved since the find phase
 
-The audit baseline was `72b5a1d`. HEAD today is **`74cc61a fix(retention): notifications are
+The audit baseline was `09772aa`. HEAD today is **`0cecf11 fix(retention): notifications are
 kept 30 days, everywhere`** — one commit, which touched `.github/workflows/snapshot.yml`,
 `scripts/ops/prune.mjs`, `docs/OPERATIONS.md`, `docs/SECURITY.md`, `src/lib/retention.ts` and
 four others. That commit **fixes finding 02** (the `--days 30` split) and **shifts the line
@@ -79,8 +79,8 @@ Every number checks out. `drive.mjs` is 727 lines and **is** the largest file in
 `dateField` 107, `wells` 243, `confirmDelete` 295, `focusStates` 357, `slide` 460, `create` 519,
 `profile` 549, `houses` 571, `places` 621, `poll` 643. `91-666` = 576 lines.
 `git log -S"async <name>("` dates reproduced exactly: slide/create/profile/houses/places/poll
-2026-07-25 (`c979eb0`, `063896c`, `fd235d7`, `1875992` ×3); focusStates 2026-08-29 `822a389`;
-confirmDelete 2026-08-29 `285fe9d`; wells 2026-08-29 `2873faf`; dateField 2026-08-30 `8d3f51b`.
+2026-07-25 (`56a3163`, `6b2b391`, `1658630`, `92c06aa` ×3); focusStates 2026-08-29 `c36faec`;
+confirmDelete 2026-08-29 `6c9bb09`; wells 2026-08-29 `9798c44`; dateField 2026-08-30 `8c657c2`.
 Corrections:
 1. **`e2e/.shots/date-probe.jpg` exists on this machine right now** — 6,681 bytes, Aug 30 23:37.
    So `dateField` *does* run here. The claim "cannot run at all for anybody but its author" is
@@ -88,7 +88,7 @@ Corrections:
    which is the honest wording.
 2. Extra evidence the finding missed, and it strengthens the case: `progress.md:3904` records
    *"drive.mjs's houses and places scenarios drove `/settings`, gone since the letterhead profile
-   absorbed the editors (22b4b6c). Both now open the member's own profile"* — two of the ten had
+   absorbed the editors (d03b053). Both now open the member's own profile"* — two of the ten had
    already rotted once and had to be repaired.
 Deletion safety: the only references to `drive.mjs` anywhere are `scripts/README.md:118`, its own
 usage line at `:10`, and four `progress.md` narration lines. Nothing invokes it.
@@ -172,7 +172,7 @@ and `auth.setup.ts:2` +`:32`, both as claimed.
 ### 13 — crawl misses /guide — CONFIRMED
 `crawl.mjs:44` holds exactly 20 destinations; I counted them. `src/app/(main)/guide/page.tsx` and
 `src/app/(main)/guide/[area]/page.tsx` both exist; `git log -1 -- src/app/(main)/guide` →
-`503a00a feat(guide): the guide ships, and the title is the way in`. The self-indicting comment is
+`56c20fb feat(guide): the guide ships, and the title is the way in`. The self-indicting comment is
 at `:40-43`. The other absentees named in the finding all exist:
 `src/app/(main)/catchups/new/page.tsx`, `src/app/(main)/letters/new/page.tsx`, and
 `src/app/(policies)/{privacy,terms,guidelines}`. No corrections.
@@ -225,7 +225,7 @@ So the swap is **not** semantics-preserving. It is a change in the right directi
   calls the finding leaves alone are already printing it.
 
 ### 17 — snapshot.yml shell injection — CONFIRMED, LINE NUMBERS MOVED
-HEAD `74cc61a` edited this file. The block is now at **`.github/workflows/snapshot.yml:77-82`**
+HEAD `0cecf11` edited this file. The block is now at **`.github/workflows/snapshot.yml:77-82`**
 (finding says 76-81), with `${{ inputs.day }}` at `:78` and `:79`. The secrets in scope are at
 `:66-75` (`SUPABASE_DIRECT_URL`, `SENTRY_AUTH_TOKEN`, `POSTHOG_PERSONAL_API_KEY`,
 `POSTHOG_PROJECT_ID`, `GITHUB_TOKEN`) — one more than the finding listed. It remains the only

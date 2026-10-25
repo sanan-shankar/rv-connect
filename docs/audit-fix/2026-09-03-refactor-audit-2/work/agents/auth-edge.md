@@ -286,7 +286,7 @@ sign-in page almost nothing extra, and the fat is in a form primitive nobody sus
   at the two mounts ("in case a visitor lands here directly and bounces back to the landing
   hero to fly again") describes a case the page's own mounted bird already covers, and the
   landing re-mounts its own warmup on the way back regardless. `git log -S HoopoeWarmup` on
-  login-client shows it arrived inside `36e17cd` "feat(security): bot defence and one rate
+  login-client shows it arrived inside `a335156` "feat(security): bot defence and one rate
   limiter at every door" (2026-08-20) with no measurement of its own.
 - **What to do**: delete the import and the `<HoopoeWarmup />` (with its 3-line comment) from
   both auth clients. Leave `hoopoe-warmup.tsx` and the landing's mount alone.
@@ -346,7 +346,7 @@ sign-in page almost nothing extra, and the fat is in a form primitive nobody sus
 - **Evidence**: the layout renders `<div className="min-h-screen bg-background">{children}</div>`
   and nothing else. The body already carries `bg-background`; every page and the error
   boundary set their own `min-h-screen`. Its comment ("login is a photo-split;
-  signup/onboarding center their own card") dates from `ddf25bf` 2026-06-28 and is false
+  signup/onboarding center their own card") dates from `52b22af` 2026-06-28 and is false
   twice over: /signup has been a photo-split since the calm-form redesign, and onboarding
   (`/welcome`) lives under `(main)`. A route group needs no layout; `(auth)/error.tsx` nests
   under the root layout and keeps working.
@@ -369,7 +369,7 @@ sign-in page almost nothing extra, and the fat is in a form primitive nobody sus
   docblock (lines 65-75) still argues the export: "Exported because `email-actions.ts` needs
   to claim a token inside the SAME transaction ... So the claim is repeated against `tx` --
   see `claimToken` below, which is where that now lives". That last clause is the giveaway:
-  `claimToken` (`d3b1b79`, audit-1 auth-edge-08) moved the claim INTO this file, so the
+  `claimToken` (`9848a2b`, audit-1 auth-edge-08) moved the claim INTO this file, so the
   reason for the export left with it, and the paragraph now describes the state it replaced.
 - **What to do**: drop the `export` keyword; cut the docblock to its first two sentences
   ("The stored form of a token. Only the hash is ever written down, so a database read
@@ -455,7 +455,7 @@ sign-in page almost nothing extra, and the fat is in a form primitive nobody sus
 - **Where**:
   (a) `src/components/auth/email-actions.ts:29-32` -- a four-line docblock for
   `MIN_PASSWORD` with no declaration under it (the constant moved to `password-rule.ts` in
-  `2630812`); it now floats above a section divider.
+  `a57a684`); it now floats above a section divider.
   (b) `src/lib/rate-limit.ts:203-206` -- `rateLimit()`'s docblock ("Count this event against
   the limit ... one line after the member gate") sits above `reportLimiterFailure`'s docblock
   (207-220), two declarations away from its function at line 232.
@@ -652,10 +652,10 @@ sign-in page almost nothing extra, and the fat is in a form primitive nobody sus
 
 ## Audit-1 carry-overs in this territory
 
-- auth-edge-01 (flight-perch hook): done (`0dd055a`), adopted by `login-client:99`,
+- auth-edge-01 (flight-perch hook): done (`e8cd77f`), adopted by `login-client:99`,
   `signup-client:97`, `auth-panel:117`; no fourth copy exists.
-- auth-edge-02 (photo panel): done (`76d999e`); `AuthPhotoPanel` used by all three shells.
-- auth-edge-03 (PasswordField adopted): done (`da091ca`); used by login, signup-form, reset
+- auth-edge-02 (photo panel): done (`51fb17a`); `AuthPhotoPanel` used by all three shells.
+- auth-edge-03 (PasswordField adopted): done (`20f36db`); used by login, signup-form, reset
   (twice) and `auth-first-frame`; no inline reveal toggle remains.
 - auth-edge-04 (five `*-message.ts` files into one): filed as optional taste, NOT done.
   Current state, reported not re-argued: still five files (`rate-limit-message` 8 lines,
@@ -665,25 +665,25 @@ sign-in page almost nothing extra, and the fat is in a form primitive nobody sus
   of them by relative `.ts` path. Two things have changed since: the login page's
   code-to-sentence map (`login-client.tsx:165-173`) and the proposed `proof()` in
   auth-edge-02 are both consumers that would read more naturally from one file.
-- auth-edge-05 (links schema + displayEmail): done (`64f8297`); `linksList()` at
+- auth-edge-05 (links schema + displayEmail): done (`6ed6f8f`); `linksList()` at
   `validators.ts:60-81`, both `displayEmail`s on `emailField()`.
-- auth-edge-06 (LOGIN_TRANSITION_FLAG): done (`17fcfeb`); `use-flight-arrival.ts` reads
+- auth-edge-06 (LOGIN_TRANSITION_FLAG): done (`e1f4d72`); `use-flight-arrival.ts` reads
   only `FLIGHT_FLAG` and `AUTH_PREVIEW_FLAG`.
-- auth-edge-07 (metadata-only layouts): done (`99dcc4e`); metadata inline in
+- auth-edge-07 (metadata-only layouts): done (`2654f6c`); metadata inline in
   `login/page.tsx:4` and `signup/page.tsx:4`. The route-group layout that remains is
   auth-edge-06 above.
-- auth-edge-08 (claimToken): done (`d3b1b79`); both claims call it. Its side effect is
+- auth-edge-08 (claimToken): done (`9848a2b`); both claims call it. Its side effect is
   auth-edge-07 above (`hashToken`'s export outlived its reason).
-- auth-edge-09 (seven dead exports): done (`e23e80c`); `auth.ts:382` exports `handlers`
+- auth-edge-09 (seven dead exports): done (`1106261`); `auth.ts:382` exports `handlers`
   only, `reportSchema` gone, both sentinel re-exports gone, `VerifiedViewer`,
   `tryRosterAutoVerify` and `EMAIL_MAX` unexported. The type re-export in auth-edge-08 is
   the one that survived.
 - auth-edge-10 (`signin.success`/`signin.fail` audit actions): `audit.ts` is the
   admin-analytics lens's; not re-verified here.
-- auth-edge-11 (dev-login via `next-auth/jwt`): done (`931a4cd`); `route.ts:38`.
-- auth-edge-12 (requireVerifiedMember composes Stage 1): done (`89315d9`);
+- auth-edge-11 (dev-login via `next-auth/jwt`): done (`1757b0a`); `route.ts:38`.
+- auth-edge-12 (requireVerifiedMember composes Stage 1): done (`c6f6be0`);
   `member-gate.ts:47-58`.
-- auth-edge-13 (MIN_PASSWORD + gazeFor): done (`2630812`); seven importers of the constant;
+- auth-edge-13 (MIN_PASSWORD + gazeFor): done (`a57a684`); seven importers of the constant;
   residue is the two hand-typed "8" sentences in auth-edge-13 above.
 - auth-edge-14 (auth-tokens stale docs): done; the `RATE_LIMIT` doc sits above its table
   (`:51-59`) and `mintToken`'s docstring states the per-kind burn (`:148-157`).

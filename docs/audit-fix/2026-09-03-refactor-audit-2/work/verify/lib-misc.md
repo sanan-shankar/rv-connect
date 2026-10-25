@@ -5,7 +5,7 @@ browser, no database. Every line number below was re-read at the tree state desc
 
 ## HEAD moved under me — read this first
 
-The session started at `72b5a1d`. Partway through, another session (the orchestrator's own
+The session started at `09772aa`. Partway through, another session (the orchestrator's own
 ORCH-04 fix) committed **`2b70ece` "fix(retention): notifications are kept 30 days,
 everywhere"** (2026-09-04 15:24 IST). Two findings in this cluster are dated by it:
 
@@ -257,8 +257,8 @@ commit so a later reader does not think prerendering was thrown away.
 dead.**
 
 `DocTitle updated="20 August 2026"` at `:21` ✓; the PostHog processors row at `:133` ✓;
-`bd7da7d` (2026-08-26) is the edit the finding names ✓; `terms` and `guidelines` have not been
-touched since `f69ce21` (2026-08-20), so their dates are right ✓.
+`15c4f4c` (2026-08-26) is the edit the finding names ✓; `terms` and `guidelines` have not been
+touched since `5a566d8` (2026-08-20), so their dates are right ✓.
 
 Corrections: (1) `2b70ece` (2026-09-04) changed the retention table's Notifications row from
 "1 year" to "30 days" — a change to what the document *promises members*, far more material

@@ -26,7 +26,7 @@ Report: `work/agents/prisma-demo-seed.md`. See `_header.md`.
    zero-scan indexes (4 non-unique: `Photo_caption_trgm_idx`, `MetricSnapshot_source_metric_day_idx`,
    `PhotoLove_photoId_idx`, `PollVote_pollOptionId_idx`; 9 unique/pk — a unique index enforces a
    constraint, keep unless the constraint is dead).
-3. **Groups**: "Groups is not a feature" (`c34aae3e`) yet `Group` (24 rows, 93,926 seq scans) and
+3. **Groups**: "Groups is not a feature" (`7ce1da1f`) yet `Group` (24 rows, 93,926 seq scans) and
    `GroupMember` (257 rows, 384,062 idx scans) carry Catch-ups. What of the Groups model is still
    load-bearing and what is a leftover (`Group` columns nothing reads?).
 4. **Migrations**: files whose effect is undone by a later file; files for columns since dropped;

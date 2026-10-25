@@ -1,11 +1,11 @@
 # collection-a - adversarial verification notes
 
 Verifier for cluster `collection-a` (16 finding ids), 2026-09-04.
-Tree state: HEAD is `74cc61a` ("fix(retention): notifications are kept 30 days"), one commit
-past the audit baseline `72b5a1d`. `git diff 72b5a1d..HEAD --stat -- src/components/collection
+Tree state: HEAD is `0cecf11` ("fix(retention): notifications are kept 30 days"), one commit
+past the audit baseline `09772aa`. `git diff 09772aa..HEAD --stat -- src/components/collection
 src/app/(main)/collection src/lib/collection*` is EMPTY, so every line number the collection
 report quotes is still valid at today's HEAD. `git status --short` is clean across the whole
-territory (the `image-viewer.tsx` WIP the finder saw has since landed as 72b5a1d).
+territory (the `image-viewer.tsx` WIP the finder saw has since landed as 09772aa).
 
 Method: every claim re-derived from the file itself with grep/sed, never from the report.
 No builds, no browser, no database, per brief §2.

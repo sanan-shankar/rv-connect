@@ -5,7 +5,7 @@ knip (repo config and `--production`), madge, and tsc-unused into a verdict (dea
 used-via-convention / test-only / in-progress / false positive), then hunt what the tools
 cannot see: env flags, hard-wired props and flags, unrendered variants, dead CSS tokens,
 unreferenced public assets, unlinked routes, uncalled API routes, unread Prisma models, and
-test pins that pass vacuously. Date: 2026-09-03, at HEAD `72b5a1d`. Files in territory: the
+test pins that pass vacuously. Date: 2026-09-03, at HEAD `09772aa`. Files in territory: the
 whole repo through the tool outputs (~110 symbol/file sites plus `globals.css`, `public/`,
 14 API routes, 52 non-lab routes, 44 env keys, 102 test files); read fully: 31 files, plus
 the defining range and every reference of each flagged symbol (listed under Coverage).
@@ -45,7 +45,7 @@ the defining range and every reference of each flagged symbol (listed under Cove
   reference sites (territory agents own them).
 - Uncommitted edits seen (someone else's WIP): none at audit time. The system snapshot
   showed `M src/components/common/image-viewer.tsx`, but by the time I ran `git status` HEAD
-  `72b5a1d` ("fix(viewer): the chrome stays under a resting cursor") had absorbed it and the
+  `09772aa` ("fix(viewer): the chrome stays under a resting cursor") had absorbed it and the
   tree held only this audit's own untracked folder.
 
 ## Summary
@@ -102,13 +102,13 @@ flagged deps are needed), and one moot audit-1 owner decision closed.
 - **Evidence**: knip lists both as unused files under both configs; madge lists both as
   orphans. Import-aware grep across `src`, `scripts`, `e2e`: zero importers of either path
   (the only textual matches are the two "twin" comments above and audit-1 documents).
-  `git log --follow`: `active-filter-chips.tsx` last touched 2026-08-03 (`b5760cb`),
-  `result-count.tsx` untouched since its creation on 2026-07-18 (`180968d`). Who used to
+  `git log --follow`: `active-filter-chips.tsx` last touched 2026-08-03 (`cf1216f`),
+  `result-count.tsx` untouched since its creation on 2026-07-18 (`f46051f`). Who used to
   consume them: the two-piece filter chrome that Directory and Collection ran before the
   sentence line. Today `sentence-line.tsx` is imported by `admin-filter-bar.tsx`,
   `people/people-list.tsx`, `content/content-list.tsx` and `directory-client.tsx`, and the
   Collection's chrome is `river-controls.tsx` ("the controls are one line of words",
-  `8a0ba37`, 2026-08-28). The mobile chip strip and the "42 people" line have no caller left.
+  `f01c444`, 2026-08-28). The mobile chip strip and the "42 people" line have no caller left.
   `docs/OPERATIONS.md` §8 still says knip's unused-file list "is now 5, and all five are the
   landing showcase" -- it is 7 because of these two, which is exactly the tool doing its job.
 - **What to do**: `git rm` both files. Edit the two comments so they no longer point at a
@@ -190,7 +190,7 @@ flagged deps are needed), and one moot audit-1 owner decision closed.
   of `true` is the tell: a default nobody takes. Fear: the "Most liked / Most discussed"
   sorts might be something the owner remembers asking for and expects to find; if so the
   fix is surfacing, not deleting, and this finding becomes a UI task. Related: the header
-  search pill (`8a10763`, 2026-08-30) is what made the block unreachable.
+  search pill (`142e653`, 2026-08-30) is what made the block unreachable.
 
 ### dead-code-03 - Delete `SortPill` and `HOUSE_OPTIONS`, the leftovers of the 2026-08-28 chrome changes
 - **Where**: `src/components/common/filters/facet-select.tsx:110-149` (`SortPill` and its
@@ -202,11 +202,11 @@ flagged deps are needed), and one moot audit-1 owner decision closed.
 - **Tier**: T1     **Class**: structural (small)     **Decides**: autonomous
 - **Evidence**: knip flags both. `SortPill`: zero JSX renders anywhere in `src` (lab
   included); the only matches are its definition and two comments. `git log -S SortPill`:
-  last consumer removed in `8a0ba37` (2026-08-28, the Collection river), and the owner had
+  last consumer removed in `f01c444` (2026-08-28, the Collection river), and the owner had
   already removed sorting from the directory on 2026-08-03 (`directory-facets.ts:8-9`: "the
   owner removed the control on 2026-08-03 ('I think we just remove sorting')"). `HOUSE_OPTIONS`:
   self=1; `directory-client.tsx:18` imports only `TYPE_OPTIONS`; `git log -S HOUSE_OPTIONS`
-  shows the consumer left in `37e6f32` (2026-08-28, "Profession for House"). Both are one-day
+  shows the consumer left in `c5ab73d` (2026-08-28, "Profession for House"). Both are one-day
   orphans of rewrites that committed the new thing and left the old.
 - **What to do**: delete `SortPill` (facet-select.tsx:110-149); make `anyItem` a required
   prop of `FacetOptionsPopup` and drop the `{anyItem && ...}` guard (2 lines simpler); fix
@@ -359,13 +359,13 @@ flagged deps are needed), and one moot audit-1 owner decision closed.
   uses `file: "demo-banyan-benches"` keys and `seed.ts:320` appends `-thumb.webp`). The
   three crop files have 0/0 references; the room's own `_specimens.ts:36-95` names only the
   eleven `shape-*.webp`, and `lab/collection/_archive.ts:25` says "its specimens and their
-  eleven webp files". `git log`: all three added in `26dc483` (2026-08-27, "six ways to hold
-  a photograph") and orphaned the next day by `6fb0780` ("the crop room shows what we do,
+  eleven webp files". `git log`: all three added in `77cb700` (2026-08-27, "six ways to hold
+  a photograph") and orphaned the next day by `983dc51` ("the crop room shows what we do,
   not what we might do"), which rewrote the room around the eleven shapes and did not
   `git rm` the previous set. `c3-thumb.webp`: 0/0 references; `c3.webp` itself is used
   (`demo-seed/content.ts:115`, two lab letterhead variants) but nothing builds its `-thumb`
   path (the lab viewer at `lab/viewer/page.tsx:81-87` lists `c1-thumb`, `c4-thumb`,
-  `c2-thumb` and not `c3-thumb`); unreferenced since `c559d3e` (2026-06-28). The untracked
+  `c2-thumb` and not `c3-thumb`); unreferenced since `9c3fe15` (2026-06-28). The untracked
   trio is audit-1 dead-code-07, never executed (`comm -13 <(git ls-files public) <(find
   public -type f)` still lists exactly these three; the two WhatsApp originals and the
   `public/uploads` leftovers from that finding are gone).
@@ -609,7 +609,7 @@ Every non-lab route in `route-js.txt` has an inbound `href`/`Link`/`redirect` ex
   `/guide/${area}` as the fallback href. The index page is reachable only by typing the URL
   or from an area page. Cost: one route at the floor (1,064 KB). Owner question, not a
   delete: it may be intended as the help hub. See Owner decisions.
-- `/donate` -- no route any more (audit-1 §18: a proxy redirect to /support, `9714b09`).
+- `/donate` -- no route any more (audit-1 §18: a proxy redirect to /support, `17e611b`).
 - The suspects the charter named (`/dark-mode` 1 link from the profile theme tile, `/birds` 5,
   `/pick-bird` 5, `/about` 2 incl. the sidebar, `/welcome` 5) are all linked.
 
@@ -675,7 +675,7 @@ needs offset paging that the rest of the feed deliberately moved away from, and 
 ask for it later the code is one `git revert` away.
 
 **2. The landing showcase (audit-1 decision 1, still open).** Current state, no re-arguing:
-it was decoupled on 2026-08-26 (`a808af8`) into `showcase.tsx`, the landing route imports
+it was decoupled on 2026-08-26 (`7d0e5e4`) into `showcase.tsx`, the landing route imports
 none of it, and 0 bytes reach the public landing's client bundle. What is riding the call:
 the 5 files knip lists (828 lines, 36 KB of source: showcase 255, footer-hoopoe 317,
 feature-section 104, landing-footer 81, trust-section 71), the six files only they and the
@@ -733,7 +733,7 @@ lab lens's and yours; the three orphaned files beside them (dead-code-06) go reg
   de-export).
 - **`SESSION_GAP_MIN`, `DEMO_CLOSED_PATHS`** -- audit-1 honesty checks, unchanged.
 - **`/notice/[id]`** -- data-linked shim, dated to retire after 2027-08-01 in its header
-  (`4219a1d`). **`/hoopoe`** -- owner-sanctioned, public by design.
+  (`bc634a1`). **`/hoopoe`** -- owner-sanctioned, public by design.
 - **`/api/resend/webhook`, `/api/razorpay/webhook`, `/api/auth/[...nextauth]`** -- called
   from outside the repo by design.
 - **All 44 env keys** -- each read; the questionable ones carry in-code defaults (section C).
@@ -770,7 +770,7 @@ lab lens's and yours; the three orphaned files beside them (dead-code-06) go reg
   suggests the data-layer lens should re-check whether the SELECT ever ran.
 - **Owner decision 17 (Collection filter row vs sentence line)**: **moot** -- the 2026-08-28
   river rewrite replaced the old chrome; its two leftover files are dead-code-01.
-- **Owner decision 18 (/donate)**: done as a proxy redirect (`9714b09`); no route remains.
+- **Owner decision 18 (/donate)**: done as a proxy redirect (`17e611b`); no route remains.
 - **dead-code-07 (untracked public junk)**: partly done -- the WhatsApp originals and
   `public/uploads` leftovers are gone; `landing-original.jpeg` (6 MB) and two `.DS_Store`
   remain (dead-code-06 here).

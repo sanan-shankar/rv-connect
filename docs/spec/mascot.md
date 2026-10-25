@@ -242,7 +242,7 @@ photographs, since the only other way to see it is a real upload.
   sidebar's idle-rest bird (`sidebar-hoopoe.tsx`) glides in, to preen/peck/happy-hop before it settles to
   sleep instead of going straight there.
 - **Bell delivery** — RETIRED. `moments/bell-delivery-hoopoe.tsx` and `shouldOfferBellDelivery` were
-  deleted in 87c054d; opening the notifications bell no longer flies a hoopoe onto it. The 26-line
+  deleted in b705425; opening the notifications bell no longer flies a hoopoe onto it. The 26-line
   description that stood here described the shipped behaviour of a file that no longer exists.
   One thing from it is worth keeping, because it still governs two live files: **a ref-owning wrapper
   is mounted early and its `<Hoopoe>` puppet mounted on demand**, never both in the same commit.
@@ -250,7 +250,7 @@ photographs, since the only other way to see it is a real upload.
   `useEffect(() => () => clearTimeout(...), [])` on a freshly-mounted parent silently cleared its
   child's just-armed `onReady` timer — so `play()` never ran and the bird sat on screen forever.
   `sidebar-hoopoe.tsx` and `logo-easter-egg-hoopoe.tsx` are both structured this way for this reason.
-  The full postmortem is in git history at 87c054d^.
+  The full postmortem is in git history at b705425^.
 
 - **Logo easter egg** (`moments/logo-easter-egg-hoopoe.tsx` + `moments/logo-peek.tsx`): three rapid clicks
   on the logo, the desktop sidebar's or the phone top bar's. Since 2026-09-17 it is the APP ICON's hoopoe,

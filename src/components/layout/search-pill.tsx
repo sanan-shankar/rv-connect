@@ -30,7 +30,7 @@ import { cn } from "@/lib/utils";
  *    2026-08-30: "the speed and just the overall un-calm nature of it. It's
  *    not neat." Three things moving, on two different springs.
  * 2. A bare glass that drew a rule leftward, words settling onto it (picked
- *    from seven at /lab/search, `git show 6fbf46d`). Calm, but the only
+ *    from seven at /lab/search, `git show 0877226`). Calm, but the only
  *    header control with no circle. Owner, 2026-09-14: "everything else is in
  *    a circle and this is just hanging. this is too different particularly
  *    sometimes on a textured [background]."

@@ -4,7 +4,7 @@ Territory T01 (`feed-posts-comments`): the feed page and its rail, the post card
 section, the composer and its two hooks, polls, reports, the notifications actions, the photo aim
 action, the post-visibility pair, rich text, link previews, the heart/bookmark toggle queue and
 `normalize.ts`, plus `entry-comment-actions.ts` for comparison with the feed's pair. Audit-only;
-nothing in the tree was changed. Date 2026-09-24, HEAD `70570bcd`. Files in territory: 44 source
+nothing in the tree was changed. Date 2026-09-24, HEAD `495ecdd2`. Files in territory: 44 source
 files (10,600 lines); read fully: 44. Related tests read as the behavioural spec where a proposal
 touches a pin (list under Coverage).
 
@@ -172,7 +172,7 @@ that is now moot: audit 2's D1 (sort filters, done), B11, C7, E11's feed half, f
 - **Tier**: T4     **Class**: structural     **Decides**: owner
 - **Evidence**: no component writes the field and none ever did. `grep -rn targetBatches
   src/components` finds only comments; `git log --all -S'"targetBatches"' -- src/components src/app`
-  returns one commit, `8a73497f` (2026-03-20), which is the server action reading it;
+  returns one commit, `c897b445` (2026-03-20), which is the server action reading it;
   `git log --all -S'targetBatches' -- src/components/posts/create-post-form.tsx` returns nothing, so
   the composer never had a batch picker. The composer's only audience control is "Show to" with the
   member's own cities (`create-post-form.tsx:1047-1090`). Nothing in `scripts/`, `prisma/` or `e2e/`
@@ -234,7 +234,7 @@ that is now moot: audit 2's D1 (sort filters, done), B11, C7, E11's feed half, f
 - **Tier**: T4     **Class**: structural     **Decides**: owner
 - **Evidence**: `raw/db-tables-live.json`: `PollOption` `n_live_tup 0`, `n_dead_tup 6`; `PollVote`
   `n_live_tup 0`, `n_dead_tup 4` - somebody tried it and deleted it; counters since 2026-05-22
-  (`db-stats-reset.json`). Polls shipped 2026-03-22 (`13f73937`). `PollVote_pollOptionId_idx` has 0
+  (`db-stats-reset.json`). Polls shipped 2026-03-22 (`ba559f1b`). `PollVote_pollOptionId_idx` has 0
   scans. Every `loadPosts` and `loadSavedPosts` page still joins `pollOptions` (with a per-option
   vote `_count`) and the viewer's `pollVotes` for every row.
 - **What to do**: owner picks. If **remove**: delete the two components, the composer's poll state,
@@ -344,7 +344,7 @@ that is now moot: audit 2's D1 (sort filters, done), B11, C7, E11's feed half, f
 - **Evidence**: `rich-text-area.tsx:4-7` says it is the writing surface "for everything that is not
   the full feed/letter composer (which keeps its own contentEditable for mentions, polls and the
   expand choreography, on the same primitives)". Polls never lived in the editor (`PollCreator` is a
-  sibling block), and the expand choreography was the pill, deleted on 2026-09-14 (`d632b8f3`).
+  sibling block), and the expand choreography was the pill, deleted on 2026-09-14 (`1be31066`).
   Mentions are the one real difference. The two editors call the same three helpers from
   `rich-text-editing.ts` and carry byte-identical class strings (`create-post-form.tsx:653-659` and
   `rich-text-area.tsx:100-103`: the tap-highlight suppression and the `data-[empty=true]:before`
@@ -378,7 +378,7 @@ that is now moot: audit 2's D1 (sort filters, done), B11, C7, E11's feed half, f
 - **Phase**: dedupe
 - **Tier**: T3     **Class**: structural     **Decides**: owner
 - **Evidence**: `grep -rn 'role="menu"' src` outside the lab returns this one site. It predates the
-  rule: built 2026-07-24 (`2d5fd948`), while DESIGN-SYSTEM §3 "Menus & dropdowns: one material"
+  rule: built 2026-07-24 (`cccd0176`), while DESIGN-SYSTEM §3 "Menus & dropdowns: one material"
   landed 2026-07-30 and says every dropdown "is the same object" - Float `--popover` surface,
   `--radius-md` 12px, the layered shadow, rows highlighted by `state-layer`, opening below the
   trigger's leading edge, `EASE_POP` ~140ms, and "a page may not override radius, colour, offset or
@@ -419,7 +419,7 @@ that is now moot: audit 2's D1 (sort filters, done), B11, C7, E11's feed half, f
 - **Tier**: T1     **Class**: structural     **Decides**: autonomous
 - **Evidence**: `grep -rn 'variant="sheet"\|variant: "sheet"' src` finds no PostCard caller;
   every one of the seven callers passes `"card"` or nothing. The sheet mode arrived with the v2
-  ruled-sheet feed on 2026-06-27 (`21eb32f2`, per `git log -S'variant === "sheet"'`) and that
+  ruled-sheet feed on 2026-06-27 (`f8256fa5`, per `git log -S'variant === "sheet"'`) and that
   design now lives only in `/lab/v2`, which draws its own list (`lab/v2/page.lab.tsx:489`).
 - **What to do**: drop the prop and its type; `wrapClass` becomes the card string; `:547` becomes
   `"-mx-4 mt-3"`; delete `variant="card"` at the seven call sites (the four lab rooms must be edited
@@ -487,8 +487,8 @@ that is now moot: audit 2's D1 (sort filters, done), B11, C7, E11's feed half, f
 - **Evidence**: `decodeKeyset` returns null for any string whose `|` is missing or first
   (`keyset.ts:56-57`), so `"offset:20"` already decodes to null, which is "start from the first
   page" - exactly what the guard's own comment says the guard exists to do. The offset arm it
-  protected was deleted on 2026-09-07 (`c4bf886c`). The cursor has not been "a post id" since the
-  value keyset landed (`d6c61dd4`, 2026-08-24).
+  protected was deleted on 2026-09-07 (`6e0871c5`). The cursor has not been "a post id" since the
+  value keyset landed (`248b05ec`, 2026-08-24).
 - **What to do**: `const from = decodeKeyset(opts?.cursor);` (renamed: `after` shadows the
   `after` import from `next/server` at `:8` inside this function), delete `:1110-1115`, rewrite
   `:1033` as `// opaque keyset cursor from encodeKeyset`. While there, `:1123` computes `hasMore`
@@ -615,22 +615,22 @@ that is now moot: audit 2's D1 (sort filters, done), B11, C7, E11's feed half, f
 - **Where** (each verified against the code beside it and, where named, the commit that changed it):
   - `src/components/posts/comments-section.tsx:251-260` - "The move itself runs in an effect ... The
     scroll is skipped when the composer is already in view": no such scroll exists or ever shipped
-    (`0f869b26`'s own message: scrolling to the composer "cannot be made to work"), and `:304-317`
+    (`02423f69`'s own message: scrolling to the composer "cannot be made to work"), and `:304-317`
     says "There is no scroll here".
   - `comments-section.tsx:531-549` - a stray "The measured content: divider, the thread, and the
-    composer" (the divider was deleted in `97d9bb61`) followed by a second telling of the
+    composer" (the divider was deleted in `8582a30b`) followed by a second telling of the
     Reply-scroll "treadmill" already told at `:304-317`; `:550-558` says what `renderComposer` is.
   - `comments-section.tsx:442-444` - "Cleared on a timer rather than on the animation ending,
     because ... posting a reply moves the composer back to the foot": there is no timer
-    (`setSent((n) => n + 1)` is a counter used as a key) and since `9ec2ea79` the reply box never moves.
+    (`setSent((n) => n + 1)` is a counter used as a key) and since `a745d65d` the reply box never moves.
   - `comments-section.tsx:699-704` - "pt-[21px] on the accordion ... 12 + 9 = 21": 21px was the
-    deleted `look === "rule"` branch (`git show 0f869b26` shows it beside `pt-[28px]`); the code is
+    deleted `look === "rule"` branch (`git show 02423f69` shows it beside `pt-[28px]`); the code is
     `pt-[28px]` and `:709-720` explains 26 + 2.
   - `comments-section.tsx:215-219` - "Run as a layout effect so the browser never paints the
     intermediate height" above a `useEffect` (`git log -S'useLayoutEffect'` on the file: never). Either
     the comment or the hook is wrong; see For other lenses (bug).
   - `comments-section.tsx:1054-1057` - "The input stays a plain single-line field": it is the growing
-    textarea since `0f869b26`.
+    textarea since `02423f69`.
   - `comments-section.tsx:134-135`, `:912-914` - "Feed/group cards", "Feed / groups", "(rows,
     divider, input)": no groups, no divider.
   - `src/components/posts/post-card.tsx:49-56` - "the comment thread (718 lines), the full-screen
@@ -641,23 +641,23 @@ that is now moot: audit 2's D1 (sort filters, done), B11, C7, E11's feed half, f
     the in-flight guard that `lib/toggle-queue.ts` replaced (its own header, `:4-14`, "WHAT THIS
     REPLACED"); the next two lines are the `useHeartToggle` calls.
   - `post-card.tsx:647-648` ("Only when the row is the card's last child", made unconditional by
-    `bee6f8cd`) and `:669-671` ("(see `pt-[21px]` there), so the divider ...": 28px, no divider).
+    `57f424e6`) and `:669-671` ("(see `pt-[21px]` there), so the divider ...": 28px, no divider).
   - `src/components/posts/create-post-form.tsx:853-860` - "The icon cluster wears self-end
-    -mb-[9px] -ml-[9px] ... self-end, not items-center": superseded on 2026-08-02 (`c2a7e511`), whose
+    -mb-[9px] -ml-[9px] ... self-end, not items-center": superseded on 2026-08-02 (`90f9a061`), whose
     own paragraph at `:868-880` says the old approach was replaced; the code is `-ml-[9px] flex
     items-center`.
   - `create-post-form.tsx:622-629` with the `peer` class at `:645` and `group ... rounded-[var(--radius-input)]`
     on the wrapper at `:630` - "The field, with ONE clean focus ring overlay ... Wrapper, field and
     ring overlay share the value": the overlay (`peer-focus:opacity-100`) was deleted on 2026-08-29
-    (`d9b7d3f9`); no `peer-*` or `group-*` consumer remains. Keep `relative` (the mention list is
+    (`a144aaea`); no `peer-*` or `group-*` consumer remains. Keep `relative` (the mention list is
     positioned against it).
   - `create-post-form.tsx:1249-1251` ("they skip the pill + height machinery") and `:601-602`
-    ("Shared by the collapsible feed composer"): the pill went on 2026-09-14 (`d632b8f3`).
+    ("Shared by the collapsible feed composer"): the pill went on 2026-09-14 (`1be31066`).
   - `src/app/(main)/feed/actions.ts:938-944` - adminRemoveComment calls deleteComment "an author's
     or admin's hard delete, already wired to nothing in the UI": it is soft (its own docblock,
     `:907-914`) and wired (the comment's menu -> Delete -> ConfirmDialog -> `actions.remove`).
   - `src/app/(main)/notifications/actions.ts:8-13` - "Keyset on the row id ... resolved by Prisma":
-    the function is a value keyset (`d6c61dd4`), as its inline comment `:25-30` says.
+    the function is a value keyset (`248b05ec`), as its inline comment `:25-30` says.
   - `src/lib/post-caps.ts:9-15` - "docs/spec/letters.md:253" (that file has 183 lines since
     2026-09-08) and "the composer nudges toward a Letter at 600 characters" (300 WORDS since
     2026-09-17, `LETTER_MIN_WORDS`, `utils.ts:528`).
@@ -921,10 +921,10 @@ that is now moot: audit 2's D1 (sort filters, done), B11, C7, E11's feed half, f
   (common) draws it and `useHeartToggle` -> `createToggleQueue` drives it for all five hearts (post,
   comment, letter, Catch-up answer, Collection photo); `heart.test.mjs:53-71` pins that every one of
   them goes through the hook and the hook through the queue.
-- **"The second comment look" (lead)**: gone. `97d9bb61` deleted the `look` prop and every branch
+- **"The second comment look" (lead)**: gone. `8582a30b` deleted the `look` prop and every branch
   behind it; `grep -n 'look ===\|"rule"\|"space"'` on the file and on `post-card.tsx` finds nothing.
   What survives is one comment still quoting the deleted look's 21px (16).
-- **The composer pill (lead)**: gone since `d632b8f3`; what survives is naming (`collapse`,
+- **The composer pill (lead)**: gone since `1be31066`; what survives is naming (`collapse`,
   `collapsedPlaceholder`, 09), two comments (16), the RichTextArea docblock (06), DESIGN-SYSTEM §2's
   mention and four stale QA probes (For other lenses). No `create-post-form` variants exist: two callers,
   one component.
@@ -981,7 +981,7 @@ that is now moot: audit 2's D1 (sort filters, done), B11, C7, E11's feed half, f
 - **Audit 2 G11 (`feed-posts-15`, extract the composer's "+" menu and attachment strip)**: parked by
   the owner (Q27), recorded as `docs/planning/FEATURES.md` item 3; still accurate (both regions are
   still inline in `editorBody`). 07 is a different lever and goes to him as decision C.
-- **D1 (`feed-posts-01` = `dead-code-02`, the unreachable sort and time filters)**: done, `c4bf886c`
+- **D1 (`feed-posts-01` = `dead-code-02`, the unreachable sort and time filters)**: done, `6e0871c5`
   (2026-09-07). Residue: the `offset:` guard and a stale cursor comment (11).
 - **B11 (`feed-posts-03`, latch and defer ReportDialog)**: done (`post-card.tsx:198-206`, `:729-739`).
 - **B13 (`directory-profile-14`, seed the profile's first page)**: done; 01 applies the same shape to

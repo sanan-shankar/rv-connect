@@ -632,7 +632,7 @@ it particularly cause it takes up real estate in the UI and I don't think anyone
 
 Everything this section specified is removed from the code: the `"vote"` category, the choices, the
 pick, the rules module and the lab room. The design and the whole implementation are in commits
-`6e663ba5` and `7f36fea9` if it is ever wanted back.
+`5d8d52cb` and `3a4fb0e8` if it is ever wanted back.
 
 The two database objects — `CatchupPromptOption` and `CatchupEntry.pollOptionId`, both empty on
 production and the demo — are dropped by
@@ -1027,7 +1027,7 @@ in it.
   2026-09-09**, and it ships inside phase 8. See §10.1 for what he picked and the two rules that
   came with it.
 
-**Track M, the magazine, is DELETED**, 2026-10-09, on the owner's word: *"magazine is a failed experiement. delete it."* Commit `35b75868` holds the whole design and the layout engine if it is ever wanted back.
+**Track M, the magazine, is DELETED**, 2026-10-09, on the owner's word: *"magazine is a failed experiement. delete it."* Commit `3e92eb2d` holds the whole design and the layout engine if it is ever wanted back.
 
 **X may ship first and at any time.** It is independent of the redesign, it is fixes from causes
 S1 already root-caused, and F23 and F18 are live faults on a surface seventy members use.
@@ -1247,7 +1247,7 @@ The ledger in `handover.md` is the aid; **the brief is the test**. ¶1 to ¶52, 
 
 ## 14. What this spec does not cover, and why
 
-- **The magazine and the PDF (¶21, ¶30, ¶31).** **Track M, the magazine, is DELETED**, 2026-10-09, on the owner's word: *"magazine is a failed experiement. delete it."* Commit `35b75868` holds the whole design and the layout engine if it is ever wanted back. M1 was built — a layout grammar,
+- **The magazine and the PDF (¶21, ¶30, ¶31).** **Track M, the magazine, is DELETED**, 2026-10-09, on the owner's word: *"magazine is a failed experiement. delete it."* Commit `3e92eb2d` holds the whole design and the layout engine if it is ever wanted back. M1 was built — a layout grammar,
   a twelve-fixture corpus and a working printer — and it is gone with the rest of the track: the
   engine, the lab room, the fixtures, the printer and `magazine.md`. M2 to M8 are withdrawn
   unbuilt. Nothing else in this spec depended on it.
@@ -1309,7 +1309,7 @@ The 10% tightening (N93) was measured on 2026-09-07 and the number IS shared wit
 above the reaction row's box and 9px below**, either side of a 32px button whose glyph is inset 7,
 so the ink sat 21px under the words and 23px above the border. A tenth of each is 2px:
 `mt-2 -> mt-1.5`, and the bottom pull `-7 -> -9`. It shipped to the feed as
-**`2a6f7d25`, its own revertable commit**, which is exactly the *"keep that as one nuclear commit
+**`3df46d53`, its own revertable commit**, which is exactly the *"keep that as one nuclear commit
 that I can revert"* he asked for in N17. The Catch-ups half arrives with build phase 8, because the
 drawn tile uses the feed's own control at the feed's own sizes.
 

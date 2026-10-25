@@ -1,13 +1,13 @@
 # collection-b - adversarial verification notes
 
 Cluster: **collection-b** (the Collection: client, server actions, scripts, tests, photograph
-pipeline). 15 finding ids. Verified read-only at HEAD **74cc61a** (the brief's baseline was
-72b5a1d; the one commit since, `fix(retention): notifications are kept 30 days, everywhere`,
-touches nothing in this territory -- `git diff --stat 72b5a1d..HEAD` lists only prune.mjs,
+pipeline). 15 finding ids. Verified read-only at HEAD **0cecf11** (the brief's baseline was
+09772aa; the one commit since, `fix(retention): notifications are kept 30 days, everywhere`,
+touches nothing in this territory -- `git diff --stat 09772aa..HEAD` lists only prune.mjs,
 retention.ts, notice/[id], privacy, post-notifications, two docs and progress.md).
 
 Working tree: clean apart from the untracked audit folder. The `M src/components/common/image-viewer.tsx`
-that the session opened with is now committed (it is 72b5a1d, `fix(viewer): the chrome stays
+that the session opened with is now committed (it is 09772aa, `fix(viewer): the chrome stays
 under a resting cursor`), so nothing I read was somebody's uncommitted WIP.
 
 Verdict counts: 7 confirmed, 8 confirmed-with-correction, 0 refuted outright (one sub-claim of
@@ -165,7 +165,7 @@ description should not claim all three call sites are the same.
 `mixed?: string[]`, `:78` `const some = !on && mixed.includes(b.value);`, `:100-113` the nested
 ternary whose middle arm is `some ? "border-canopy/40 bg-canopy/[0.08] text-foreground"`.
 The only caller is `photo-questions.tsx:127-130` and it passes `value` and `onChange` only.
-`git log -S"mixed={" -- src/components/collection` returns `0d7ae30` and `6af8433`, i.e. the prop
+`git log -S"mixed={" -- src/components/collection` returns `b9741d6` and `994d0b0`, i.e. the prop
 was added and its caller removed. `contribute-room.tsx:543-545` says the multi-select "apparatus
 went with it". Nothing else in `src` uses the identifier as a prop.
 
@@ -280,8 +280,8 @@ check here and it is not load-bearing.
   `TRAPS.md:163-170` both quoted accurately.
 
 Corrections:
-1. **`git blame` softens "unchanged since 21eb32f 2026-06-27" slightly.** Line 341 (the 1600 box)
-   is indeed 21eb32f; line 342 (`.webp({ quality: 80 });`) is `f648e52b 2026-09-02` -- that commit
+1. **`git blame` softens "unchanged since f8256fa 2026-06-27" slightly.** Line 341 (the 1600 box)
+   is indeed f8256fa; line 342 (`.webp({ quality: 80 });`) is `ec8bb5d2 2026-09-02` -- that commit
    split both chains to introduce `const encode` for `withExif`, and in it the DIRECT path was
    still `quality: 90`. So the q80 value has never been reconsidered, but the line was touched on
    the very day the finding says the decision was made, by a commit that left it alone. The

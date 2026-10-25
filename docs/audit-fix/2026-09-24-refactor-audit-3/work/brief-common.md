@@ -129,7 +129,7 @@ and say so.
   every non-application tool; `docs/ROADMAP.md` what things were supposed to be;
   `docs/planning/FEATURES.md` parked ideas; `docs/planning/bugs.md` the bug tracker. Read the spec
   for your territory before judging anything in it "unnecessary".
-- **Sizes today (cloc `--vcs=git`, code lines, 2026-09-24, HEAD `70570bcd`):** whole repo
+- **Sizes today (cloc `--vcs=git`, code lines, 2026-09-24, HEAD `495ecdd2`):** whole repo
   286,820 (TypeScript 122,795; Markdown 89,737; JSON 43,491; JavaScript 21,609; SQL 1,535;
   Prisma 681; CSS 518). `src/app` non-lab 13,672 TS in 138 files (51 `page.tsx`, 18 `route.ts`,
   12 `actions.ts`, 35 `loading.tsx`); `src/app/lab` 49,548 TS in 187 files + **18,632 lines of
@@ -140,7 +140,7 @@ and say so.
   (audit-fix 34,956 · planning 18,345 · history 14,141 · spec 4,208 · the rest); `.claude/`
   15,195 MD in 93 files. Comment-to-code ratios: lib 0.83, collection 0.80, api 0.68, directory
   0.67, common 0.50, (main) 0.48, admin 0.27, lab 0.23.
-- **Growth since audit 2 (tree `72b5a1d`, 2026-09-03 → HEAD, 347 commits):** whole-repo code
+- **Growth since audit 2 (tree `09772aa`, 2026-09-03 → HEAD, 347 commits):** whole-repo code
   lines 199,028 → 286,820; TS 100,033 → 122,795; MD 51,023 → 89,737; JSON 22,428 → 43,491.
   499 files added, 119 deleted, 1,159 touched (`raw/files-added-since-audit2.txt`,
   `raw/diff-numstat-since-audit2.txt`). The lab grew +39,610 lines; `src/lib` +16,173;

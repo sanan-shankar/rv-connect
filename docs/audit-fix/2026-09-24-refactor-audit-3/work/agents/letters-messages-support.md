@@ -2,7 +2,7 @@
 
 PARTIAL (in progress). Agent charter: T11, letters, member-to-admin messages, the support/payments
 page, and the mail stack (email, queue, templates, policy, Razorpay). Date 2026-09-24, HEAD
-`70570bcd`. Audit-only.
+`495ecdd2`. Audit-only.
 
 ## Coverage
 - Read fully: (in progress)

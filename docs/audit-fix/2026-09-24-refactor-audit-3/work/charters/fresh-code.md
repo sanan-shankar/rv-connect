@@ -17,11 +17,11 @@ each change, which is what you judge the code against).
    added files (sketches, fixtures, valley, years) get classification depth only (T15/T16 own them):
    note only what leaks or duplicates shipped code.
 2. **The 60 most-changed existing files** (by `+` in the numstat): the same pass, on the changed
-   regions (`git diff 72b5a1d HEAD -- <file>`), plus: did the change leave a stale comment, a dead
+   regions (`git diff 09772aa HEAD -- <file>`), plus: did the change leave a stale comment, a dead
    branch, a prop nobody passes any more, an import nobody uses (tsc would catch unused imports
    only with `noUnusedLocals` — `raw/tsc-unused.txt` has 2; ESLint's `no-unused-vars` is on?).
 3. **The series to read as wholes**, because bloat hides between commits: the loading-screen series
-   (2026-09-21: `36bc5ffe` the test, `07a88bab` the refactor, then one commit per area — 35
+   (2026-09-21: `d98c2813` the test, `11b1cf89` the refactor, then one commit per area — 35
    `loading.tsx` files: what is shared, what is copied); the comment section (09-16); the
    Catch-ups rework (09-05 → 09-14); the Collection's dates/scrubber/screen-copies (09-13 → 09-23);
    the mascot moments (09-17); the calling card (09-09); the composer redesign (09-13/14); the

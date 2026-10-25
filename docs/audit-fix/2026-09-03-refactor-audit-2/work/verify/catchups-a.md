@@ -1,8 +1,8 @@
 # catchups-a — adversarial verification (refactor audit 2)
 
-Verifier: catchups-a. Date: 2026-09-04. HEAD at verification: `74cc61a`
+Verifier: catchups-a. Date: 2026-09-04. HEAD at verification: `0cecf11`
 ("fix(retention): notifications are kept 30 days, everywhere"), which is **one commit
-past the audit baseline `72b5a1d`**. `git log 72b5a1d..HEAD` = 1 commit, retention-only,
+past the audit baseline `09772aa`**. `git log 09772aa..HEAD` = 1 commit, retention-only,
 touches nothing in this territory. Working tree at verification: `M docs/audit-fix/README.md`,
 `M progress.md`, `?? docs/audit-fix/2026-09-03-refactor-audit-2/` — no uncommitted edits in
 any file I judged.

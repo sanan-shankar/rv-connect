@@ -26,8 +26,8 @@ brief-common §1 verbatim + the two "how to think" sentences, name the key and r
 `work/brief-common.md` in full, `work/charters/_header.md`, `work/charters/_launch.md`, and the charter; follow
 `_launch.md`; return its short summary. Model: Opus for territories, Fable for the cross-cutting lenses.
 
-**Before relaunching, account for the moving tree.** The raw tool outputs are from HEAD `70570bcd` (2026-09-24);
-the tree has moved since (`git log 70570bcd..HEAD --oneline | wc -l`). If it moved a lot, re-run the cheap tools
+**Before relaunching, account for the moving tree.** The raw tool outputs are from HEAD `495ecdd2` (2026-09-24);
+the tree has moved since (`git log 495ecdd2..HEAD --oneline | wc -l`). If it moved a lot, re-run the cheap tools
 (cloc, knip with `raw/knip.repo-plus-lab.json`, jscpd, madge — commands in the Errors table and findings.md) into
 `work/raw/` first, and tell agents the new HEAD. Findings already landed are re-verified at compile time anyway.
 
@@ -63,7 +63,7 @@ Agent reports on disk under `work/agents/<key>.md` are DONE — never relaunch o
 
 ## Phases
 - [x] Phase 0a: orient — CLAUDE/AGENTS, goal-sloc (+references), code-simplifier, campaign skill,
-      audit-2 report §1a/§5/§6/§7 and brief-common read. `npm run check` GREEN at HEAD 70570bcd
+      audit-2 report §1a/§5/§6/§7 and brief-common read. `npm run check` GREEN at HEAD 495ecdd2
       (45.9 s, 130/130 tests, 65 lab routes).
 - [x] Phase 0b: tools — cloc, knip ×(bare, prod, repo config, repo+lab), madge (circular, orphans),
       jscpd ×3 cuts (+json), tsc --noUnused*, type-coverage (CRASHES on Node 26, third audit running;

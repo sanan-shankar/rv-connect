@@ -10,8 +10,8 @@ On 2026-10-15 a 2024 alumnus made a second Catch-up with exactly the 42 people o
 2024 one, named "🪇". The batch one had run one round (one person answered) and its rhythm put
 the next in December. "Start the next Edition now" existed, open to every batch member since
 2026-09-27, but it lived in the settings panel and nobody found it. Folded back in by
-`prisma/migrations-manual/2026-10-17-fold-2024-duplicate-into-batch.sql` (commits 4bb43f76,
-4ac75cd1).
+`prisma/migrations-manual/2026-10-17-fold-2024-duplicate-into-batch.sql` (commits 19047d9a,
+81a5aa91).
 
 ## His words, verbatim (2026-10-17)
 
@@ -108,7 +108,7 @@ So a member who never takes part gets two bells per Edition, and a batch nobody 
 
 | Item | Status | Notes |
 |---|---|---|
-| Fold the 2024 duplicate | DONE | 4bb43f76, 4ac75cd1; checked as a member, 42/42 in, 9 questions intact |
+| Fold the 2024 duplicate | DONE | 19047d9a, 81a5aa91; checked as a member, 42/42 in, 9 questions intact |
 | 1. Start by hand | DONE | engine, actions, home, settings, create, list, admin, guide, spec; driven end to end as Jerry |
 | 2. Two bells | DONE | taking-part audience, reminders off by default (column moved, applied), extension silent, nudge deleted |
 | 3. Batch shortcut | DONE | the shortcut becomes "Your batch already has a Catch-up" and links there |

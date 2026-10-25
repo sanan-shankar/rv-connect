@@ -1,11 +1,11 @@
 # shell-c - adversarial verification notes
 
 Cluster: the app shell, common primitives, layout, mascot, landing, onboarding, guide, support,
-settings. HEAD at time of verification: `74cc61a` ("fix(retention): notifications are kept 30 days,
+settings. HEAD at time of verification: `0cecf11` ("fix(retention): notifications are kept 30 days,
 everywhere"). Working tree: only `docs/audit-fix/README.md`, `progress.md` modified and this audit
 folder untracked — no source file in my territory has uncommitted edits. (Note: the git-status
 snapshot in my prompt listed `src/components/common/image-viewer.tsx` as modified; at the time I
-read the tree it was clean, i.e. that edit landed as `72b5a1d`/`74cc61a`.)
+read the tree it was clean, i.e. that edit landed as `09772aa`/`0cecf11`.)
 
 Method: every claim re-derived from source at HEAD plus byte attribution against the read-only
 build at `.scratch/audit2-build/.next/`. No builds, no browser, no DB, no writes outside this file.

@@ -775,7 +775,7 @@ finding 02.
 - **Risk & gate**: low. `npm run check`. The pipeline itself is hand-run and its output is committed
   — `src/lib/app-icon-safe-zone.test.mjs` decodes the shipped `icon-maskable-512.png` and asserts
   the hoopoe's eyes survive a circular Android mask, so a bad regeneration fails `npm run check`
-  loudly. The committed PNGs are in sync today (last touched by `48e3312`, the same commit as the
+  loudly. The committed PNGs are in sync today (last touched by `32a8629`, the same commit as the
   maskable safe-zone fix, and the tree is clean).
 - **Confidence**: high.
 

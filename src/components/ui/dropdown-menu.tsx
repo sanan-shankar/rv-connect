@@ -67,7 +67,7 @@ function DropdownMenuItem({
         // Menu-material row: radius --radius-sm (8.8px, concentric with the
         // 12px panel through its 4px inset).
         //
-        // NO min-height. It carried `min-h-9` between 74feaa2 and 2026-08-02,
+        // NO min-height. It carried `min-h-9` between 380c454 and 2026-08-02,
         // which took every row from 28px (py-1 on a 20px line box) to 36px and
         // made the sidebar account menu 40px taller than the content in it:
         // the owner's "before it was nicely sized ... the last few updates have

@@ -15,9 +15,9 @@ Report: `work/agents/landing-mascot-avatars.md`. See `_header.md`.
 
 ## Specs and context
 `docs/spec/avatars.md` (40 KB), `docs/spec/mascot.md` (23 KB), DESIGN-SYSTEM's landing section.
-Commits: `07ad0bdf` (the hoopoe answers a tap, keeps living, and celebrates the photographs),
-`eb55658c`/`86447f73` (three clicks on the logo raise the app icon's hoopoe), `3c6c1e02` (the
-Android icon is the peek again), `9600932d` (the lockup), `40791570`. Memory notes worth knowing:
+Commits: `820a1c37` (the hoopoe answers a tap, keeps living, and celebrates the photographs),
+`7fab0995`/`9ca07075` (three clicks on the logo raise the app icon's hoopoe), `7eeaebb7` (the
+Android icon is the peek again), `097fb727` (the lockup), `7a5d2135`. Memory notes worth knowing:
 the mascot's transform-box gotcha and the "template-transform containing-block" gotcha are real
 constraints, not bloat.
 

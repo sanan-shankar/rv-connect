@@ -296,7 +296,7 @@ const CHECKS = [
       // the write paths. Correctness beyond shape is scripts/qa/phase3-probe.mjs.
       const gate = decomment(read("src/lib/member-gate.ts"));
       if (!/verifyState !== "verified"/.test(gate)) return open("no member-tier gate; verifyState still unread by any permission");
-      /* Follow the indirection. "one door per kind of route" (60e8ee0) moved the
+      /* Follow the indirection. "one door per kind of route" (23484f7) moved the
          gate into src/lib/api-gate.ts, so grepping a route for the literal call
          reported a gate that was very much still applied -- and failed CI on
          main for a day. A route counts as gated if it calls

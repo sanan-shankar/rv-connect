@@ -2,7 +2,7 @@
 
 ## How this audit was run
 
-**Scope.** The whole application as it stood at `70570bcd` (2026-09-23): ~142,000 lines of
+**Scope.** The whole application as it stood at `495ecdd2` (2026-09-23): ~142,000 lines of
 application TypeScript outside the `/lab` rooms, 22 server-action files, 18 API routes, 41 tables,
 the four GitHub workflows, the Vercel crons and the production-writing scripts. `/lab` pages were
 out of scope except `src/app/lab/actions.ts` and the admin gate on the lab layout.

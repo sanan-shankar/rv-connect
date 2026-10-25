@@ -1,6 +1,6 @@
 # Refactor audit 2 — task plan
 
-Started 2026-09-03 ~16:45 IST at HEAD 72b5a1d (tree clean, 1,252 tracked files). Audit-only:
+Started 2026-09-03 ~16:45 IST at HEAD 09772aa (tree clean, 1,252 tracked files). Audit-only:
 no application code, config, schema or test changes. Everything this session writes lives under
 `docs/audit-fix/2026-09-03-refactor-audit-2/` — `report.md` + `fix-prompt.md` at the top, the
 working mess under `work/` (this plan, `findings.md`, `raw/` tool output, `agents/` reports,
@@ -20,7 +20,7 @@ is argued for in a comment).
 ## STATE AT 2026-09-04 20:15 — AUDIT CLOSED
 `report.md` and `fix-prompt.md` are final. 22 reports, 369 findings. **Verification complete: 28
 clusters, 381 verdicts, 348 of 369 findings covered, 6 refuted sub-claims, 200 corrections.** Five
-completeness rounds, last two dry. `npm run check` green. ORCH-04 shipped as `74cc61a`.
+completeness rounds, last two dry. `npm run check` green. ORCH-04 shipped as `0cecf11`.
 
 **One thing left for the owner, because this session's safety net blocked it (correctly):**
 `.scratch/audit2-build-nolab` is a 2.5 GB throwaway git worktree from this audit's lab-free build.

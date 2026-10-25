@@ -1,12 +1,12 @@
 # docs-report-b — adversarial verification notes
 
 Cluster: `docs-report-b` = docs-12 … docs-21, all from `work/agents/docs.md`.
-Verified at HEAD `74cc61a` ("fix(retention): notifications are kept 30 days, everywhere"),
+Verified at HEAD `0cecf11` ("fix(retention): notifications are kept 30 days, everywhere"),
 2026-09-04. Read-only: no builds, no tsc, no browser, no database, no writes outside this file.
 
 Working-tree state seen: ` M docs/audit-fix/README.md`, ` M progress.md`, `?? docs/audit-fix/2026-09-03-refactor-audit-2/`.
 Note that the docs.md finder wrote its report while `docs/SECURITY.md` and `src/lib/retention.ts`
-were **uncommitted**; they are committed now (`74cc61a`), so several "uncommitted" qualifiers in
+were **uncommitted**; they are committed now (`0cecf11`), so several "uncommitted" qualifiers in
 docs-12 are stale in the finder's favour.
 
 Every counted fact below was recounted, not taken.
@@ -104,7 +104,7 @@ Corrections:
    *"LIVE as of 2026-08-29, and it had not been marked so"*), `/collection?scope=class` on **2026-09-02**.
    The finding's "both … masked since 2026-09-02" is half right.
 2. **"the last four commits on `main` are the scrubber landing" is no longer true** — HEAD has moved twice
-   since (`72b5a1d`, `74cc61a`). The three named shas (`ab4cc8f`, `2400547`, `8211f64`) are real and are
+   since (`09772aa`, `0cecf11`). The three named shas (`3745e95`, `5db6eb0`, `64bc90d`) are real and are
    commits 3-5 back.
 3. **Bonus, for the tooling/e2e lens:** `e2e/visual.spec.ts:150` contains the same stale claim as
    `handover.md:233` — *"/collection is deliberately NOT in this list"* — inside the LIVE-ROUTES docblock,

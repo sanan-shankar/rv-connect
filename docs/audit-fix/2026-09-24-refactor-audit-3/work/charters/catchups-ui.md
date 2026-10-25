@@ -13,11 +13,11 @@ Report: `work/agents/catchups-ui.md`. See `_header.md`.
 `docs/spec/catchups.md` (rewritten 2026-09-14 "to describe what shipped"), then
 `docs/planning/catchups-rework/architecture.md`, `spec.md`, `handover.md` (its status board and
 ledger), `review-2026-09-06.md`. The whole surface shipped between 2026-09-05 and 09-22 and has
-never been audited. Key commits: `b94677ce` (the home becomes a place), `5eccd80d` (the reader is
-the front runner), `5e688bb4` (the list becomes a shelf), `02f9302f` (every Catch-up carries a
-photograph), `552dc442`/`86fb1f07` (batch Catch-ups), `76aac5ac` (time capsule), `6e663ba5`/
-`a8f4ea6f` (vote and voice), `cb001228` (comments on entries), `9d583974` (a heart stops
-rebuilding the whole Edition), `35b75868` (the magazine).
+never been audited. Key commits: `e8307e39` (the home becomes a place), `21a837e3` (the reader is
+the front runner), `69da2844` (the list becomes a shelf), `b6b38f95` (every Catch-up carries a
+photograph), `cb131059`/`eed06ee0` (batch Catch-ups), `889ea41e` (time capsule), `5d8d52cb`/
+`5f2de4ac` (vote and voice), `36fa8e65` (comments on entries), `41bee3b6` (a heart stops
+rebuilding the whole Edition), `3e92eb2d` (the magazine).
 
 ## Leads from the orchestrator
 - knip (`raw/knip-repo-plus-lab.txt`): `setCatchupPicture` (actions.ts:797) and

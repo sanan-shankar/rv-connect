@@ -5,7 +5,7 @@ predicates, the whole mail path, the retention sweep, image purging, the Sentry
 instrumentation hook) and the entire configuration surface (next.config.ts, tsconfig,
 eslint, postcss, vercel.json, package.json, prisma.config.ts, .mcp.json, every GitHub
 workflow and Renovate), plus the demo seed data and the four demo scripts.
-Date: 2026-09-04. HEAD `72b5a1d`, working tree clean apart from this audit's own folder.
+Date: 2026-09-04. HEAD `09772aa`, working tree clean apart from this audit's own folder.
 Files in territory: 38. Read fully: 38 (two data files — `demo-seed/content.ts` and
 `demo-seed/people.ts` — were read structurally rather than sentence by sentence; see
 Coverage).
@@ -53,7 +53,7 @@ the audit-1 report §4/§5 and `fix-prompt.md` rows naming `lib-core-config-01/0
 
 **Uncommitted edits seen (someone else's WIP):** none. `git status --short` shows only
 this audit's own untracked folder. The `src/components/common/image-viewer.tsx`
-modification noted at session start had landed as `72b5a1d` before I began.
+modification noted at session start had landed as `09772aa` before I began.
 
 ---
 
@@ -68,7 +68,7 @@ prose duplicated out of `docs/OPERATIONS.md` (finding 12). Everything else earns
 
 The real wins are elsewhere, and the biggest one is not a line count. **A retention
 policy the owner decided, and that three documents state as one year, is enforced as
-thirty days**, because a bug fix (`d77197a`, audit M55) changed a script's default and
+thirty days**, because a bug fix (`a194521`, audit M55) changed a script's default and
 never touched the workflow that overrides it. That leaves a whole step of the nightly
 sweep permanently deleting zero rows, and `docs/SECURITY.md`'s retention table saying
 something untrue about members' data. That is finding 01.
@@ -122,14 +122,14 @@ under Audit-1 carry-overs.
   that state a false fact)
 - **Tier**: T2     **Class**: structural     **Decides**: owner (the window is his
   decision; the *fix* once he picks a number is autonomous)
-- **Evidence**: `d77197a` ("fix(retention): presence telemetry expires…") closed audit
+- **Evidence**: `a194521` ("fix(retention): presence telemetry expires…") closed audit
   M55 with this in its body, verbatim:
 
   > *M55. prune.mjs deleted notifications at 30 days while retention.ts deleted the same
   > table at a year, so the app documented one policy and a script quietly enforced a
   > stricter one. retention.ts is the source of truth now and prune.mjs matches it.*
 
-  `git show --stat d77197a` touches seven files. `.github/workflows/snapshot.yml` is not
+  `git show --stat a194521` touches seven files. `.github/workflows/snapshot.yml` is not
   one of them. That workflow still reads:
 
   ```yaml
@@ -139,7 +139,7 @@ under Audit-1 carry-overs.
 
   and `prune.mjs:34` takes `--days` over its own `DEFAULT_DAYS = 365`, whose comment now
   says *"Matches KEEP_DAYS.notifications in src/lib/retention.ts. Change it there."*
-  `git log -S"prune.mjs --days 30" -- .github/workflows/snapshot.yml` → `6adb61c`, the
+  `git log -S"prune.mjs --days 30" -- .github/workflows/snapshot.yml` → `103a32b`, the
   original 30-day commit, untouched since.
 
   Consequences, each verified by reading:
@@ -157,7 +157,7 @@ under Audit-1 carry-overs.
      asked for a flat 30 days"* — a comment left over from before the M55 fix.
 - **What to do**: this is one decision and then five one-line edits.
   - **If 30 days is the real policy** (which is what has actually been happening since
-    `6adb61c`, and what `prune.mjs:59-62` says the owner asked for): set
+    `103a32b`, and what `prune.mjs:59-62` says the owner asked for): set
     `KEEP_DAYS.notifications = 30` in `retention.ts:42`, set `DEFAULT_DAYS = 30` in
     `prune.mjs:33`, drop `--days 30` from `snapshot.yml:92` so the default is the only
     number, change `docs/SECURITY.md:85` to `| Notifications | 30 days |` and
@@ -335,7 +335,7 @@ under Audit-1 carry-overs.
 - **Tier**: T4     **Class**: structural     **Decides**: owner
 - **Evidence**:
   - `git log --follow -- src/lib/demo-seed/photos.generated.ts` returns exactly one
-    commit, `0ea3174` ("feat(demo): a public, no-login showcase build of the site"), and
+    commit, `40dcba9` ("feat(demo): a public, no-login showcase build of the site"), and
     `git log -p --follow` on that path contains **zero** added lines matching `url:`. The
     array has been `[]` from the day it was created and has never held a photograph.
   - `demo-photos/` does not exist (`ls -d demo-photos` → no such directory) and is
@@ -602,7 +602,7 @@ under Audit-1 carry-overs.
 
   The pattern is clear: the two that matter override a **pinned exact** version; the
   three that probably do not were caret ranges that a plain `npm update` would have
-  raised. `a13a8a9` ("build(deps): close four fast-uri advisories with an override") is
+  raised. `6918a0f` ("build(deps): close four fast-uri advisories with an override") is
   the most recent of them.
 
   Separately, `docs/OPERATIONS.md` §4 has drifted badly: it opens *"One `overrides` entry
@@ -856,8 +856,8 @@ under Audit-1 carry-overs.
   // drag the Resend SDK into the browser bundle.
   ```
   There is no re-export. `git log -S 'export { maskEmail }' -- src/lib/email.ts` returns
-  two commits: `fa99bd2` added `export { maskEmail } from "./mask-email";` as the last
-  line of the file, and `e23e80c` — **"refactor(lib): remove dead exports the audit
+  two commits: `5be9c54` added `export { maskEmail } from "./mask-email";` as the last
+  line of the file, and `1106261` — **"refactor(lib): remove dead exports the audit
   proved unreferenced"**, from audit 1's own fix campaign — removed the statement and
   left its comment behind.
 - **What to do**: delete lines 250-253. `maskEmail` is still imported normally at
@@ -1221,7 +1221,7 @@ audit spends time re-deciding it.
 - **`prisma.config.ts` is 31 lines of which 15 are one comment, and the comment is the
   point.** It records why there is exactly one `.env`, why there is deliberately no
   `migrations` block, and why the CLI must use `DIRECT_URL`. Audit 1 already cleaned this
-  file (`9c12779`).
+  file (`0c7529f`).
 - **`postcss.config.mjs`, `.mcp.json`, `eslint.config.mjs`.** Nothing to say about the
   first two beyond that they are minimal and required. `eslint.config.mjs`'s lab
   exemption (`:49-65`) is well-argued with a counted example — 12 of 25 warnings on
@@ -1239,7 +1239,7 @@ audit spends time re-deciding it.
   `exclude` only trims the initial file set and 16 files import
   `@/generated/prisma/client` anyway. The claimed ~5 s/build does not exist. Still true.
 - **`lib-core-config-05` — email-queue's duplicated and misplaced doc blocks: DONE**
-  (`6277a3e`). Its optional half (collapsing `scheduleSend`/`scheduleDrain` into
+  (`6017657`). Its optional half (collapsing `scheduleSend`/`scheduleDrain` into
   `runDetached`) was deliberately refused because `docs/TRAPS.md` names `scheduleDrain()`
   as the worked example of the `after()`-throws-synchronously shape. I re-read both and
   agree; see Not-findings.
@@ -1249,7 +1249,7 @@ audit spends time re-deciding it.
   own `export const maxDuration` was followed for two of the three — which is half of
   finding 10.
 - **`lib-core-config-08` — instrumentation collapse and the prisma.config stanza: DONE**
-  (`9c12779`). Both files are in the shape that row described.
+  (`0c7529f`). Both files are in the shape that row described.
 - **`bundle-build-06` — Sentry's `runAfterProductionCompile`: RE-REFUTED on magnitude**
   (measured at ~1 s across six builds, not the 3.0 s claimed). Not retried. Note for the
   fix session: finding 06 is a **different** Sentry option and does not reopen this one.
@@ -1337,7 +1337,7 @@ And the only comment in the territory describing code that no longer exists,
 
 > *Re-exported so server callers can reach it from the module they already import.*
 
-There is no re-export; `e23e80c` removed it and left this behind. That contrast is the
+There is no re-export; `1106261` removed it and left this behind. That contrast is the
 whole of the comment story here: 1,300+ comment lines in this territory, and four of them
 are bloat.
 

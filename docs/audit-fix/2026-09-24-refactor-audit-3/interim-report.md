@@ -16,7 +16,7 @@ Say: *"@docs/audit-fix/2026-09-24-refactor-audit-3/work/task_plan.md continue re
 is done, the fourteen readings still to run, how to launch them, and the compile steps that follow. Everything the
 orchestrator decided is in `work/findings.md`; nothing depends on the old session's memory.
 
-## Baseline (measured 2026-09-24, tree `70570bcd`)
+## Baseline (measured 2026-09-24, tree `495ecdd2`)
 
 | Measure | Now | At audit 2 (2026-09-03) |
 |---|---|---|
@@ -138,7 +138,7 @@ The campaign's first gate asks them all at once.
 
 ## Outside this audit, found at close-out
 
-**The September session history was overwritten.** Commit `9ef7d821` (2026-09-27) replaced
+**The September session history was overwritten.** Commit `14f77687` (2026-09-27) replaced
 `docs/history/progress-2026-09.md` with its own entry, deleting 8,363 lines, and each commit since has done the same.
 **Fixed the same day at the owner's request:** the 287 entries are back, the seven written since are appended,
 and the progress-log test now checks both directions, so an overwrite fails `npm run check`. Details: `work/findings.md`, ORCH-01.

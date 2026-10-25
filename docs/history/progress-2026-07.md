@@ -79,8 +79,8 @@ Nothing reads these files — they are the record, not an input.
 Scope: a single large owner voice-note prompt (round 6; see `task_plan.md`), covering foundation
 schema/data work, onboarding, a first-run walkthrough, the profile page rebuild, feature work
 (city-scoped posts, admin moderation, display-email), the support page, curated WhatsApp content,
-the peregrine falcon avatar, and a ~25-item bug blitz. Commit range `4df6c2b..774388e` (44 commits),
-landing immediately after the round-6 task-plan commit (`2390eda`).
+the peregrine falcon avatar, and a ~25-item bug blitz. Commit range `035c6d6..9232252` (44 commits),
+landing immediately after the round-6 task-plan commit (`21e23f1`).
 
 Headline changes:
 - **Onboarding**: batch year collected directly (no more "grade joined" inference), phone number

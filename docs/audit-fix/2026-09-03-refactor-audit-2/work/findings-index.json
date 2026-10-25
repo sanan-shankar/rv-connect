@@ -10,7 +10,7 @@
   "decides": "owner",
   "saving": "~150 lines in content-list, ~60 in collection/actions (two server actions), 3 action imports, 1 fewer approval writer (the approve write then exists only in `saveReview`), and one B-042-shaped handler",
   "gate": "medium (behaviour removed on an admin surface). `npm run check`; open `/admin/content` with a photograph waiting and confirm the row shows the chip-link and no buttons; open `/admin/review` and approv",
-  "claim": "Two commits two days apart. `65c5e94` (2026-08-28, \"a page of the photo queue clears in one press\") added +143 lines to content-list and +42 to collection/actions: the tick set, the batch bar, `approvePhotos`. `076be8c` (2026-08-30, \"a room for reviewing photographs, one at a time and big\") built `/admin/review`, removed the `pending` option from `TYPE_OPTIONS`, and had the content page redirect `?type=pending` to the room -- but touched content-list by only +28/-18 lines and left every approval"
+  "claim": "Two commits two days apart. `cc86225` (2026-08-28, \"a page of the photo queue clears in one press\") added +143 lines to content-list and +42 to collection/actions: the tick set, the batch bar, `approvePhotos`. `6a39f88` (2026-08-30, \"a room for reviewing photographs, one at a time and big\") built `/admin/review`, removed the `pending` option from `TYPE_OPTIONS`, and had the content page redirect `?type=pending` to the room -- but touched content-list by only +28/-18 lines and left every approval"
  },
  {
   "id": "admin-analytics-02",
@@ -133,7 +133,7 @@
   "id": "admin-analytics-11",
   "title": "`publish()` in `admin-counts.tsx` hand-lists the keys it compares and has already fallen behind the interface",
   "file": "admin-analytics.md",
-  "where": "`src/components/admin/admin-counts.tsx:51-61`; `src/lib/admin.ts:179-189` (`AdminCounts`, which gained `photos` in `076be8c`).",
+  "where": "`src/components/admin/admin-counts.tsx:51-61`; `src/lib/admin.ts:179-189` (`AdminCounts`, which gained `photos` in `6a39f88`).",
   "phase": "hygiene",
   "tier": "T1",
   "class": "cheap",
@@ -257,7 +257,7 @@
   "decides": "autonomous",
   "saving": "1 file, 9 lines; one fewer layout segment in the render tree of five routes.",
   "gate": "low. `npm run check`; open /login, /signup, /verify-email (no token) and the auth error boundary (throw once locally) to confirm the cream background and full height; `npm run visual` (login + signup ",
-  "claim": "the layout renders `<div className=\"min-h-screen bg-background\">{children}</div>` and nothing else. The body already carries `bg-background`; every page and the error boundary set their own `min-h-screen`. Its comment (\"login is a photo-split; signup/onboarding center their own card\") dates from `ddf25bf` 2026-06-28 and is false twice over: /signup has been a photo-split since the calm-form redesign, and onboarding (`/welcome`) lives under `(main)`. A route group needs no layout; `(auth)/error.t"
+  "claim": "the layout renders `<div className=\"min-h-screen bg-background\">{children}</div>` and nothing else. The body already carries `bg-background`; every page and the error boundary set their own `min-h-screen`. Its comment (\"login is a photo-split; signup/onboarding center their own card\") dates from `52b22af` 2026-06-28 and is false twice over: /signup has been a photo-split since the calm-form redesign, and onboarding (`/welcome`) lives under `(main)`. A route group needs no layout; `(auth)/error.t"
  },
  {
   "id": "auth-edge-07",
@@ -270,7 +270,7 @@
   "decides": "autonomous",
   "saving": "~10 lines; one knip line clears; a docblock stops describing deleted code.",
   "gate": "none beyond `npm run check`. Pins: `verify-outcome-rule.test.mjs` reads decommented `auth-tokens.ts` for `reason: \"used\"; userId` and the `BURNS_ON_MINT` table -- untouched; `email-normalization-rule.",
-  "claim": "`raw/knip-repo-config.txt:67` lists it unused; grep of `src` and `scripts` finds no importer -- the one external mention is a comment in `email-actions.ts:175`. The docblock (lines 65-75) still argues the export: \"Exported because `email-actions.ts` needs to claim a token inside the SAME transaction ... So the claim is repeated against `tx` -- see `claimToken` below, which is where that now lives\". That last clause is the giveaway: `claimToken` (`d3b1b79`, audit-1 auth-edge-08) moved the claim I"
+  "claim": "`raw/knip-repo-config.txt:67` lists it unused; grep of `src` and `scripts` finds no importer -- the one external mention is a comment in `email-actions.ts:175`. The docblock (lines 65-75) still argues the export: \"Exported because `email-actions.ts` needs to claim a token inside the SAME transaction ... So the claim is repeated against `tx` -- see `claimToken` below, which is where that now lives\". That last clause is the giveaway: `claimToken` (`9848a2b`, audit-1 auth-edge-08) moved the claim I"
  },
  {
   "id": "auth-edge-08",
@@ -315,7 +315,7 @@
   "id": "auth-edge-11",
   "title": "Eight comments that describe deleted or moved code",
   "file": "auth-edge.md",
-  "where": "(a) `src/components/auth/email-actions.ts:29-32` -- a four-line docblock for `MIN_PASSWORD` with no declaration under it (the constant moved to `password-rule.ts` in `2630812`); it now floats above a section divider. (b) `src/lib/rate-limit.ts:203-206` -- `rateLimit()`'s docblock (\"Count this event against the limit ... one line after the member gate\") sits above `reportLimiterFailure`'s docblock ",
+  "where": "(a) `src/components/auth/email-actions.ts:29-32` -- a four-line docblock for `MIN_PASSWORD` with no declaration under it (the constant moved to `password-rule.ts` in `a57a684`); it now floats above a section divider. (b) `src/lib/rate-limit.ts:203-206` -- `rateLimit()`'s docblock (\"Count this event against the limit ... one line after the member gate\") sits above `reportLimiterFailure`'s docblock ",
   "phase": "hygiene",
   "tier": "T1",
   "class": "cheap",
@@ -569,7 +569,7 @@
   "decides": "autonomous",
   "saving": "~12 lines, 1 clone, 1 copy drift closed.",
   "gate": "low. `npm run check`; screenshot a preparing Round on the home and at its permalink as Keeper and as a member (desktop and 390x844).",
-  "claim": "Both render `<AlmostReady eyebrow=... title=\"Putting your Catch-up together.\" body=... />` followed by `{keeper && <PublishNowButton editionId />}` in a centred wrapper. The body differs: the home says \"They all appear together the moment this Round publishes.\" and the permalink \"They all appear at once when this Round publishes.\" Both sentences entered in the same commit (`145ac49`, 2026-07-25), so neither is the corrected one; they are two drafts of one line. The wrappers differ too (`FadeRise"
+  "claim": "Both render `<AlmostReady eyebrow=... title=\"Putting your Catch-up together.\" body=... />` followed by `{keeper && <PublishNowButton editionId />}` in a centred wrapper. The body differs: the home says \"They all appear together the moment this Round publishes.\" and the permalink \"They all appear at once when this Round publishes.\" Both sentences entered in the same commit (`a9ce200`, 2026-07-25), so neither is the corrected one; they are two drafts of one line. The wrappers differ too (`FadeRise"
  },
  {
   "id": "catchups-08",
@@ -868,7 +868,7 @@
   "decides": "autonomous",
   "saving": "~14 lines; one prop that promised a mode that no longer exists.",
   "gate": "low. `npm run check`; `npm run visual` (`/collection`'s contribute pop-up is not in the visual routes, so open it once at 390 and 1440 in chrome-devtools).",
-  "claim": "`grep -rn \"mixed\" src/components/collection src/components/admin/review src/app/lab` finds no caller passing `mixed=`; `git log -S\"mixed={\"` shows the last caller left in 0d7ae30 (2026-08-28, \"contributing is a carousel, not a wall\"). `grep -rn \"ContributeRoom\\b\" src` finds no importer outside its own file; the standalone route `/collection/add` was deleted on 2026-08-28 (D32) and no lab room mounts the room. `Staged.state` is `\"waiting\" | \"lifting\" | \"here\" | \"failed\"`; \"reading\" is a counter ("
+  "claim": "`grep -rn \"mixed\" src/components/collection src/components/admin/review src/app/lab` finds no caller passing `mixed=`; `git log -S\"mixed={\"` shows the last caller left in b9741d6 (2026-08-28, \"contributing is a carousel, not a wall\"). `grep -rn \"ContributeRoom\\b\" src` finds no importer outside its own file; the standalone route `/collection/add` was deleted on 2026-08-28 (D32) and no lab room mounts the room. `Staged.state` is `\"waiting\" | \"lifting\" | \"here\" | \"failed\"`; \"reading\" is a counter ("
  },
  {
   "id": "collection-13",
@@ -933,7 +933,7 @@
   "decides": "autonomous",
   "saving": "1 file (161 lines), 1 ledger row, ~12 lines in `actions.ts`, one fewer accepted key shape on a public action.",
   "gate": "low. The dry run's own output; `npm run check` (`scripts-ledger.test.mjs` will fail if the README row outlives the file or vice versa).",
-  "claim": "The script's own header: *\"RUN IT TWICE. Once now, and once more after the change that moves new originals to `staging/` has been deployed ... After that second run this script has no live question to answer and should be deleted along with its line in scripts/README.md.\"* The staging change is 04c90a2 (2026-08-28); the repo has been pushed several times since (the 2026-09-02 sessions record pushes), so production mints `staging/` keys now. Nothing in `progress.md` records the second run."
+  "claim": "The script's own header: *\"RUN IT TWICE. Once now, and once more after the change that moves new originals to `staging/` has been deployed ... After that second run this script has no live question to answer and should be deleted along with its line in scripts/README.md.\"* The staging change is 61c0b7e (2026-08-28); the repo has been pushed several times since (the 2026-09-02 sessions record pushes), so production mints `staging/` keys now. Nothing in `progress.md` records the second run."
  },
  {
   "id": "data-layer-01",
@@ -1167,7 +1167,7 @@
   "decides": "autonomous",
   "saving": "80 lines, 2 files, one `X` Lucide import and one `PILL_SET` consumer fewer",
   "gate": "near-zero. `npm run check` (tsc proves no importer); `npm run visual` (directory and collection are in the suite, and neither can change because neither renders these).",
-  "claim": "knip lists both as unused files under both configs; madge lists both as orphans. Import-aware grep across `src`, `scripts`, `e2e`: zero importers of either path (the only textual matches are the two \"twin\" comments above and audit-1 documents). `git log --follow`: `active-filter-chips.tsx` last touched 2026-08-03 (`b5760cb`), `result-count.tsx` untouched since its creation on 2026-07-18 (`180968d`). Who used to consume them: the two-piece filter chrome that Directory and Collection ran before th"
+  "claim": "knip lists both as unused files under both configs; madge lists both as orphans. Import-aware grep across `src`, `scripts`, `e2e`: zero importers of either path (the only textual matches are the two \"twin\" comments above and audit-1 documents). `git log --follow`: `active-filter-chips.tsx` last touched 2026-08-03 (`cf1216f`), `result-count.tsx` untouched since its creation on 2026-07-18 (`f46051f`). Who used to consume them: the two-piece filter chrome that Directory and Collection ran before th"
  },
  {
   "id": "dead-code-02",
@@ -1193,7 +1193,7 @@
   "decides": "autonomous",
   "saving": "~43 lines",
   "gate": "low. `npm run check`; `npm run visual` (directory and both admin lists render FacetSelect, which is untouched).",
-  "claim": "knip flags both. `SortPill`: zero JSX renders anywhere in `src` (lab included); the only matches are its definition and two comments. `git log -S SortPill`: last consumer removed in `8a0ba37` (2026-08-28, the Collection river), and the owner had already removed sorting from the directory on 2026-08-03 (`directory-facets.ts:8-9`: \"the owner removed the control on 2026-08-03 ('I think we just remove sorting')\"). `HOUSE_OPTIONS`: self=1; `directory-client.tsx:18` imports only `TYPE_OPTIONS`; `git l"
+  "claim": "knip flags both. `SortPill`: zero JSX renders anywhere in `src` (lab included); the only matches are its definition and two comments. `git log -S SortPill`: last consumer removed in `f01c444` (2026-08-28, the Collection river), and the owner had already removed sorting from the directory on 2026-08-03 (`directory-facets.ts:8-9`: \"the owner removed the control on 2026-08-03 ('I think we just remove sorting')\"). `HOUSE_OPTIONS`: self=1; `directory-client.tsx:18` imports only `TYPE_OPTIONS`; `git l"
  },
  {
   "id": "dead-code-04",
@@ -1323,7 +1323,7 @@
   "decides": "autonomous",
   "saving": "~12 lines from the gate, ~4 lines net in the test, and one fewer accepted advisory on the security status board. 0 KB anywhere. The real value is that `npm run check` stops carrying a documented excep",
   "gate": "low. Gate: `npm run check` (the deps gate must still print \"clean\", and `scripts/qa/npm-audit-gate.test.mjs` must stay green), plus `scripts/qa/ci-parity.test.mjs` which pins that `check.yml` runs `np",
-  "claim": "the allowlist entry accepts GHSA-ggr8-5vv4-36mx \"deepmerge-ts stack exhaustion, pulled only via @prisma/config\", with `clearsWhen: \"prisma ships a 7.x release that bumps deepmerge-ts to >=8\"`. Commit `b4411f1` (2026-08-27) then added `\"deepmerge-ts\": \"^8.0.2\"` to `overrides`, which *forces* exactly that outcome: `package-lock.json` resolves `node_modules/deepmerge-ts @ 8.0.2` against `@prisma/config`'s exact `7.1.5` pin. The advisory therefore no longer appears in `npm audit --omit=dev`, and the"
+  "claim": "the allowlist entry accepts GHSA-ggr8-5vv4-36mx \"deepmerge-ts stack exhaustion, pulled only via @prisma/config\", with `clearsWhen: \"prisma ships a 7.x release that bumps deepmerge-ts to >=8\"`. Commit `b069992` (2026-08-27) then added `\"deepmerge-ts\": \"^8.0.2\"` to `overrides`, which *forces* exactly that outcome: `package-lock.json` resolves `node_modules/deepmerge-ts @ 8.0.2` against `@prisma/config`'s exact `7.1.5` pin. The advisory therefore no longer appears in `npm audit --omit=dev`, and the"
  },
  {
   "id": "dependency-diet-04",
@@ -1336,7 +1336,7 @@
   "decides": "autonomous",
   "saving": "0 lines (probably +10). This is a correctness fix on a doc the owner reads, not a reduction.",
   "gate": "none. Nothing tests OPERATIONS.md.",
-  "claim": "OPERATIONS §4 opens \"**One `overrides` entry lives in `package.json`, and it is not permanent**\" and describes `deepmerge-ts` only. Since it was written, `5dbb402` (2026-09-02) added `mysql2`, `postcss-selector-parser` and `browserslist`, and `a13a8a9` (2026-09-02, the most recent commit before this audit) added `fast-uri`. The exit condition for those four exists **only in the two commit messages**, and OPERATIONS' own sentence for why the doc exists is \"an override that outlives its reason is "
+  "claim": "OPERATIONS §4 opens \"**One `overrides` entry lives in `package.json`, and it is not permanent**\" and describes `deepmerge-ts` only. Since it was written, `f39d7a5` (2026-09-02) added `mysql2`, `postcss-selector-parser` and `browserslist`, and `6918a0f` (2026-09-02, the most recent commit before this audit) added `fast-uri`. The exit condition for those four exists **only in the two commit messages**, and OPERATIONS' own sentence for why the doc exists is \"an override that outlives its reason is "
  },
  {
   "id": "dependency-diet-05",
@@ -1375,7 +1375,7 @@
   "decides": "autonomous",
   "saving": "0 packages (it is already installed), 0 KB, +1 line. This is insurance against a build that breaks for a reason nobody can see, which is the same argument audit 1 accepted for the runtime half.",
   "gate": "none. `npm run check` (TypeScript).",
-  "claim": "audit 1's finding 06 fixed exactly this class for the runtime packages — `d3-selection` was being imported without being declared and was added to `dependencies` in `931a4cd`. The types half was not: `alumni-map.tsx:8` typechecks only because `node_modules/@types/d3-selection` is hoisted to the root by `@types/d3-zoom`'s `*` dependency on it. `d3-selection` ships no types of its own (`node_modules/d3-selection/package.json` has no `types`/`typings` and no `index.d.ts`). The day `@types/d3-zoom` "
+  "claim": "audit 1's finding 06 fixed exactly this class for the runtime packages — `d3-selection` was being imported without being declared and was added to `dependencies` in `1757b0a`. The types half was not: `alumni-map.tsx:8` typechecks only because `node_modules/@types/d3-selection` is hoisted to the root by `@types/d3-zoom`'s `*` dependency on it. `d3-selection` ships no types of its own (`node_modules/d3-selection/package.json` has no `types`/`typings` and no `index.d.ts`). The day `@types/d3-zoom` "
  },
  {
   "id": "dependency-diet-08",
@@ -1440,7 +1440,7 @@
   "decides": "owner (it is a scripts rewrite, not a dependency edit)",
   "saving": "(deferred) 1 dep, 18 packages, 34.3 MB, and one fewer browser API for a session to learn.",
   "gate": "medium-high if attempted — `npm run screenshot`, `npm run screenshot:auth`, `npm run verify:shot`, `npm run verify:crawl` and every `phase*-probe.mjs` would all need re-verifying, and CLAUDE.md's gotc",
-  "claim": "puppeteer's exclusive subtree is 18 packages / **34.3 MB** (`chromium-bidi` 14.9, `puppeteer-core` 7.9, a second `zod` copy 5.0, `devtools-protocol` 3.7); `@playwright/test` is 3 packages / **18.1 MB** on top of `playwright-core` 13.1 MB. Both drive Chrome. `package.json:87-89` already tells puppeteer not to download its own browser (`skipDownload: true`, audit-1 finding 16, landed as `cb3709d`), because CLAUDE.md gotcha 2 says the bundled Chrome is broken here and the scripts point at the real "
+  "claim": "puppeteer's exclusive subtree is 18 packages / **34.3 MB** (`chromium-bidi` 14.9, `puppeteer-core` 7.9, a second `zod` copy 5.0, `devtools-protocol` 3.7); `@playwright/test` is 3 packages / **18.1 MB** on top of `playwright-core` 13.1 MB. Both drive Chrome. `package.json:87-89` already tells puppeteer not to download its own browser (`skipDownload: true`, audit-1 finding 16, landed as `47bd771`), because CLAUDE.md gotcha 2 says the bundled Chrome is broken here and the scripts point at the real "
  },
  {
   "id": "dependency-diet-13",
@@ -1479,7 +1479,7 @@
   "decides": "autonomous",
   "saving": "0 lines. It stops the next session grepping for a file that is not there and concluding the guard was removed — which, given how carefully this repo names its pins, is a real hazard, not a typo.",
   "gate": "none.",
-  "claim": "`find . -name \"*no-motion-namespace*\"` returns nothing, and `git log --diff-filter=D --name-only -- '*no-motion-namespace*'` shows it was never deleted either — it was never created under that name. The test that actually exists was added in the same commit as the comment (`8314f24`, \"perf(motion): the app animates through `m`, features load async\") as `motion-namespace-rule.test.mjs`, and it does exactly what the comment claims (`:45-50` walks every file importing `motion/react` and fails on a "
+  "claim": "`find . -name \"*no-motion-namespace*\"` returns nothing, and `git log --diff-filter=D --name-only -- '*no-motion-namespace*'` shows it was never deleted either — it was never created under that name. The test that actually exists was added in the same commit as the comment (`b9aeab0`, \"perf(motion): the app animates through `m`, features load async\") as `motion-namespace-rule.test.mjs`, and it does exactly what the comment claims (`:45-50` walks every file importing `motion/react` and fails on a "
  },
  {
   "id": "directory-profile-01",
@@ -1557,7 +1557,7 @@
   "decides": "autonomous",
   "saving": "2 files, ~115 lines (61 + 19 + 37 SortPill + the optional-prop plumbing).",
   "gate": "low. `npm run check` (knip's unused-file count drops by two; no test names these); `npm run visual` on `/directory` (no pixel changes expected); open the admin People and Content lists and their filte",
-  "claim": "knip lists both files as unused and `SortPill` as an unused export; confirmed by grep across `src`, `scripts`, `e2e` including the lab: zero importers of either file, zero JSX uses of `SortPill`. `git log -S` puts the last real importer of `ActiveFilterChips` and `ResultCount` at `bfabfea feat(directory): the filter chrome becomes one sentence` and of `SortPill` at `8a0ba37 feat(collection): the archive is a river` -- the Collection left the kit that day and now owns its own river controls, so t"
+  "claim": "knip lists both files as unused and `SortPill` as an unused export; confirmed by grep across `src`, `scripts`, `e2e` including the lab: zero importers of either file, zero JSX uses of `SortPill`. `git log -S` puts the last real importer of `ActiveFilterChips` and `ResultCount` at `03522a3 feat(directory): the filter chrome becomes one sentence` and of `SortPill` at `f01c444 feat(collection): the archive is a river` -- the Collection left the kit that day and now owns its own river controls, so t"
  },
  {
   "id": "directory-profile-07",
@@ -1570,7 +1570,7 @@
   "decides": "autonomous",
   "saving": "1 file, 19 lines.",
   "gate": "low. `npm run check`; `/directory`, open Filters, pick Type: Teachers.",
-  "claim": "knip flags `HOUSE_OPTIONS`; grep confirms zero readers since `37e6f32 feat(directory): one chrome row, search on the title line, Profession for House` (the owner, 2026-08-28: \"remove filtering by house\", quoted at `directory-client.tsx:341-345`). What is left is a two-entry array (`TYPE_OPTIONS`) whose only reader is `directory-client.tsx` and whose name collides with a different `TYPE_OPTIONS` in `src/lib/admin-content.ts:19`. The file's nine-line header lists four things that are deliberately "
+  "claim": "knip flags `HOUSE_OPTIONS`; grep confirms zero readers since `c5ab73d feat(directory): one chrome row, search on the title line, Profession for House` (the owner, 2026-08-28: \"remove filtering by house\", quoted at `directory-client.tsx:341-345`). What is left is a two-entry array (`TYPE_OPTIONS`) whose only reader is `directory-client.tsx` and whose name collides with a different `TYPE_OPTIONS` in `src/lib/admin-content.ts:19`. The file's nine-line header lists four things that are deliberately "
  },
  {
   "id": "directory-profile-08",
@@ -1583,7 +1583,7 @@
   "decides": "autonomous",
   "saving": "1 column per row per page (60 per first page, 60 per Load more); ~35 lines across four files; the page/action pair becomes drift-proof by construction.",
   "gate": "low. `npm run check` -- `directory-rule.test.mjs` reads `page.tsx` for `cities: [city]` and `existing.cities.includes(city)` (unchanged); none of the pins name the types. Browse `/directory`, filter, ",
-  "claim": "Audit 1's F-09 asked for two things: one `PERSON_SELECT` (done, `select.ts`, commit `ab82f30`) and one person type (not done; the fix-prompt row 230 folded it into the select constants work and only the select landed). Today: `ProfileCard` reads `currentCity` (`profile-card.tsx:68`, `shortPlaceLabel(user.currentCity)`), so the `select.ts:17-18` comment is wrong -- that column IS a pixel (the card's city). `workplace`, by contrast, is fetched for every one of the 60 rows per page and read by noth"
+  "claim": "Audit 1's F-09 asked for two things: one `PERSON_SELECT` (done, `select.ts`, commit `c8b6d63`) and one person type (not done; the fix-prompt row 230 folded it into the select constants work and only the select landed). Today: `ProfileCard` reads `currentCity` (`profile-card.tsx:68`, `shortPlaceLabel(user.currentCity)`), so the `select.ts:17-18` comment is wrong -- that column IS a pixel (the card's city). `workplace`, by contrast, is fetched for every one of the 60 rows per page and read by noth"
  },
  {
   "id": "directory-profile-09",
@@ -1660,7 +1660,7 @@
   "class": "structural",
   "decides": "autonomous",
   "saving": "1 round trip and one skeleton flash on every profile view; ~0 lines (the `expectedCount` doc shrinks).",
-  "gate": "medium. `npm run check`; Jerry's profile and a stranger's at both viewports, switch All/Posts/Letters, Load more; the count pill and the list must still agree (`f47102a fix(profile): the feed opens at",
+  "gate": "medium. `npm run check`; Jerry's profile and a stranger's at both viewports, switch All/Posts/Letters, Load more; the count pill and the list must still agree (`9ebd75d fix(profile): the feed opens at",
   "claim": "The page counts posts and letters server-side (`:180-185`) and hands the counts down so the skeleton can be honest about its height (the `expectedCount` machinery, `:34-46`, exists to hide this round trip). The list itself arrives only after the client mounts, calls the server action, and re-renders: one extra request and one skeleton on every profile view. Audit 1's fix log (fix-prompt \"member-surfaces FOL / critic-1\") re-refuted this for `/directory` because it seeds from server props, and fix"
  },
  {
@@ -1778,7 +1778,7 @@
   "decides": "autonomous",
   "saving": "2 lines; one layout jump on every cold profile load.",
   "gate": "low. Throttle network, open a profile.",
-  "claim": "`git log -- src/app/(main)/profile/[id]/loading.tsx` shows no commit since `22b4b6c feat(profile): ship the letterhead as everyone's profile`; audit 1's F-11 named these two lines and the fix-prompt (row 216) records the skeleton batch as done for four sites -- the directory's was rewritten (`directory/loading.tsx` is now correct), this one was not. The skeleton's own contract (`:1-7`, \"the page with the ink drained out ... so nothing re-corners, re-pads or jumps\") is broken by a 3px bar plus tw"
+  "claim": "`git log -- src/app/(main)/profile/[id]/loading.tsx` shows no commit since `d03b053 feat(profile): ship the letterhead as everyone's profile`; audit 1's F-11 named these two lines and the fix-prompt (row 216) records the skeleton batch as done for four sites -- the directory's was rewritten (`directory/loading.tsx` is now correct), this one was not. The skeleton's own contract (`:1-7`, \"the page with the ink drained out ... so nothing re-corners, re-pads or jumps\") is broken by a 3px bar plus tw"
  },
  {
   "id": "directory-profile-24",
@@ -2005,7 +2005,7 @@
   "id": "docs-14",
   "title": "`collection-scrubber/` is shipped, and its operational context has gone actively wrong",
   "file": "docs.md",
-  "where": "`docs/planning/collection-scrubber/handover.md` (249 lines) + `brief.md` (194 lines) = 443 lines / 26 KB. Stale claims at `handover.md:23`, `:29`, `:104`, `:231-233`. Shipped as commits `ab4cc8f`, `2400547`, `8211f64`.",
+  "where": "`docs/planning/collection-scrubber/handover.md` (249 lines) + `brief.md` (194 lines) = 443 lines / 26 KB. Stale claims at `handover.md:23`, `:29`, `:104`, `:231-233`. Shipped as commits `3745e95`, `5db6eb0`, `64bc90d`.",
   "phase": "relocate",
   "tier": "T2",
   "class": "structural",
@@ -2181,7 +2181,7 @@
   "decides": "autonomous",
   "saving": "4 clones (~50 lines); 7 near-dups; the \"add a field in three places or the surfaces drift\" class closed for the directory.",
   "gate": "low. `npm run check` -- `tsc` is the whole proof for the types; `npm run verify:crawl` for the selects.",
-  "claim": "clones 82, 215, 216, 217. Audit-1 dup-16 asked for one `DirectoryPerson` type; the fix log records \"IDENTITY/AUTHOR_CARD selects + directory PERSON_SELECT → ab82f30\", the select half. The three TypeScript declarations are still three, twelve identical fields each (PinPerson adds `otherCities`), and post-card's `author` is a fourth spelling of the AUTHOR_CARD shape. Audit-1 dup-06 took 39 inline `birdOverride: true` selects to 12; nine remain, of which two (`users/search`, `directory-module`) are"
+  "claim": "clones 82, 215, 216, 217. Audit-1 dup-16 asked for one `DirectoryPerson` type; the fix log records \"IDENTITY/AUTHOR_CARD selects + directory PERSON_SELECT → c8b6d63\", the select half. The three TypeScript declarations are still three, twelve identical fields each (PinPerson adds `otherCities`), and post-card's `author` is a fourth spelling of the AUTHOR_CARD shape. Audit-1 dup-06 took 39 inline `birdOverride: true` selects to 12; nine remain, of which two (`users/search`, `directory-module`) are"
  },
  {
   "id": "duplication-07",
@@ -2467,7 +2467,7 @@
   "decides": "autonomous",
   "saving": "~12 lines; one rule for \"what is a poll option\".",
   "gate": "low. `npm run check` (`feed-write-rule` C-009 slices from `const candidates` to `const post = await prisma.post.create` and forbids an id-only select there; the poll lines are above the slice). Post a",
-  "claim": "Audit 1's feed-posts-10 replaced `parseImageUrls` with `parseJsonArray` in this file (`fd47d70`); the poll block has the identical shape (JSON.parse, Array.isArray, string filter, catch -> nothing) and was not in the finding. The pre-parse then decides \"fewer than two -> no poll\", the Zod schema decides `.min(2)` again, and `:236` decides `>= 2` a third time. The `.trim()` at `:237` runs AFTER Zod's `.min(1)`, so an option of a single space passes the schema and is stored as `\"\"` -- reachable on"
+  "claim": "Audit 1's feed-posts-10 replaced `parseImageUrls` with `parseJsonArray` in this file (`9fe70d8`); the poll block has the identical shape (JSON.parse, Array.isArray, string filter, catch -> nothing) and was not in the finding. The pre-parse then decides \"fewer than two -> no poll\", the Zod schema decides `.min(2)` again, and `:236` decides `>= 2` a third time. The `.trim()` at `:237` runs AFTER Zod's `.min(1)`, so an option of a single space passes the schema and is stored as `\"\"` -- reachable on"
  },
  {
   "id": "feed-posts-08",
@@ -2525,7 +2525,7 @@
   "id": "feed-posts-12",
   "title": "`feed/loading.tsx` holds a composer card that no longer exists",
   "file": "feed-posts.md",
-  "where": "`src/app/(main)/feed/loading.tsx:7-10` (\"Create post skeleton\": a bordered `bg-card p-6` tile with an 80px shimmer); the composer at rest is a bare 44px pill with no tile (`create-post-form.tsx:1194-1197`, owner 2026-08-04: \"get rid of the tile ... just have an icon and a pill\"); `loading.tsx` last touched 2026-07-30 (`d8149a5`), the pill landed after.",
+  "where": "`src/app/(main)/feed/loading.tsx:7-10` (\"Create post skeleton\": a bordered `bg-card p-6` tile with an 80px shimmer); the composer at rest is a bare 44px pill with no tile (`create-post-form.tsx:1194-1197`, owner 2026-08-04: \"get rid of the tile ... just have an icon and a pill\"); `loading.tsx` last touched 2026-07-30 (`6e3b10b`), the pill landed after.",
   "phase": "hygiene",
   "tier": "T1",
   "class": "cheap",
@@ -2558,7 +2558,7 @@
   "decides": "autonomous",
   "saving": "(a) ~18 lines, 1 clone; (b) 0 lines, one convention kept.",
   "gate": "low for (a): `npm run check` (`security-regressions:221` reads the file for the IS_DEMO refusal and `:274` for `500`-shaped refusals; `gate-coverage` scans `\"use server\"` files by glob so a move is pi",
-  "claim": "Session 5 shared the six-gate preamble (`vetReport`, `c5025c5`) and left the transaction. The two copies differ only in the `report.create` data and the catch's return key (`alreadyReported` vs `alreadyFlagged`). On location: every other action lives in a route's `actions.ts` or in `app/(main)/*.ts` beside the routes (`image-aim.ts`'s header explains that convention: \"A file that is not page, layout or route is not a route, so this sits in the group beside them\"); `reportUser` is imported from `"
+  "claim": "Session 5 shared the six-gate preamble (`vetReport`, `85b37b7`) and left the transaction. The two copies differ only in the `report.create` data and the catch's return key (`alreadyReported` vs `alreadyFlagged`). On location: every other action lives in a route's `actions.ts` or in `app/(main)/*.ts` beside the routes (`image-aim.ts`'s header explains that convention: \"A file that is not page, layout or route is not a route, so this sits in the group beside them\"); `reportUser` is imported from `"
  },
  {
   "id": "feed-posts-15",
@@ -2805,7 +2805,7 @@
   "decides": "autonomous",
   "saving": "~10 lines; one nested ternary becomes a plain conditional.",
   "gate": "none. `npm run check`.",
-  "claim": "`grep -rn \"mixed\" src --include=*.tsx | grep -v bucket-tiles` -> no JSX usage. `git log -S\"mixed={\" -- src/components/collection` -> `0d7ae30 feat(collection): contributing is a carousel, not a wall` removed the only caller; `contribute-room.tsx:542-545` says the multi-selection \"apparatus went with it\". The docblock still describes \"several photographs at once\"."
+  "claim": "`grep -rn \"mixed\" src --include=*.tsx | grep -v bucket-tiles` -> no JSX usage. `git log -S\"mixed={\" -- src/components/collection` -> `b9741d6 feat(collection): contributing is a carousel, not a wall` removed the only caller; `contribute-room.tsx:542-545` says the multi-selection \"apparatus went with it\". The docblock still describes \"several photographs at once\"."
  },
  {
   "id": "fresh-code-17",
@@ -2935,7 +2935,7 @@
   "decides": "owner",
   "saving": "~12 s of a 42 s build and ~9.7 MB of artifact, **per deploy of whichever build you exclude it from**. Member-facing JS: 0 either way. Member-facing CSS: 0 from this finding (that is lab-02, and it is ",
   "gate": "medium; it is a build-config change. Proof: `npm run check` (the lab registry gate must stay green), a local `next build` with and without `DEMO_MODE=1` comparing the route tables, `npm run verify:cra",
-  "claim": "the orchestrator built the repo twice at `72b5a1d`, once whole (`.scratch/audit2-build/`) and once with `src/app/lab` and `public/lab` moved outside the worktree (`.scratch/audit2-build-nolab/`, setup log `raw/build-nolab-setup.txt`). Every figure below is a `stat`/`du` on those two trees or a line out of the two build logs. The machine's load average was 6-15 during these runs, so the wall-clock figures are noisy in absolute terms but the *pairing* is fair (two nolab runs agree with each other)"
+  "claim": "the orchestrator built the repo twice at `09772aa`, once whole (`.scratch/audit2-build/`) and once with `src/app/lab` and `public/lab` moved outside the worktree (`.scratch/audit2-build-nolab/`, setup log `raw/build-nolab-setup.txt`). Every figure below is a `stat`/`du` on those two trees or a line out of the two build logs. The machine's load average was 6-15 during these runs, so the wall-clock figures are noisy in absolute terms but the *pairing* is fair (two nolab runs agree with each other)"
  },
  {
   "id": "lab-02",
@@ -2974,7 +2974,7 @@
   "decides": "autonomous",
   "saving": "**−1 production dependency** (7.9 MB of `node_modules`, one fewer Renovate target, one fewer supply-chain surface), **−105 KB from `/lab/directory`'s first load**, and **−2 of the lab's 4 `any` sites*",
   "gate": "low. `npm run check` (the dependency advisory gate and knip both read `package.json`; knip currently does **not** flag `world-atlas` precisely because the lab import keeps it honest, so after the fix ",
-  "claim": "`grep -rn 'world-atlas'` over `src/`, `scripts/`, `e2e/`, `public/`, `next.config.ts` and `package.json` returns **four** hits: the lab import, a comment in the same lab file, a comment in `alumni-map.tsx` describing the old approach, and the `package.json` line. **There is exactly one importer of this package in the entire repo and it is a lab room.** `alumni-map.tsx:82-101` is the fix audit 1 shipped as `b899d1a`, and its comment is the argument, verbatim: *\"`import worldData from 'world-atlas"
+  "claim": "`grep -rn 'world-atlas'` over `src/`, `scripts/`, `e2e/`, `public/`, `next.config.ts` and `package.json` returns **four** hits: the lab import, a comment in the same lab file, a comment in `alumni-map.tsx` describing the old approach, and the `package.json` line. **There is exactly one importer of this package in the entire repo and it is a lab room.** `alumni-map.tsx:82-101` is the fix audit 1 shipped as `ad53bab`, and its comment is the argument, verbatim: *\"`import worldData from 'world-atlas"
  },
  {
   "id": "lab-04",
@@ -3312,7 +3312,7 @@
   "decides": "owner (the window is his\n  decision; the *fix* once he picks a number is autonomous)",
   "saving": "1 dead sweep step (~10 lines with its type key and result key), 3 documents made true, 1 retention policy that stops living in two files. On the 30-day branch also ~1 database step per night removed f",
   "gate": "low. Nothing in `npm run check` reads these numbers — I grepped; there is no retention-window rule test (see \"For other lenses\": that gap is itself worth closing). `npm run check` must stay green. Bef",
-  "claim": "`d77197a` (\"fix(retention): presence telemetry expires…\") closed audit M55 with this in its body, verbatim: > *M55. prune.mjs deleted notifications at 30 days while retention.ts deleted the same > table at a year, so the app documented one policy and a script quietly enforced a > stricter one. retention.ts is the source of truth now and prune.mjs matches it.* `git show --stat d77197a` touches seven files. `.github/workflows/snapshot.yml` is not one of them. That workflow still reads: ```yaml - n"
+  "claim": "`a194521` (\"fix(retention): presence telemetry expires…\") closed audit M55 with this in its body, verbatim: > *M55. prune.mjs deleted notifications at 30 days while retention.ts deleted the same > table at a year, so the app documented one policy and a script quietly enforced a > stricter one. retention.ts is the source of truth now and prune.mjs matches it.* `git show --stat a194521` touches seven files. `.github/workflows/snapshot.yml` is not one of them. That workflow still reads: ```yaml - n"
  },
  {
   "id": "lib-core-config-02",
@@ -3351,7 +3351,7 @@
   "decides": "owner",
   "saving": "option 1 saves 0 lines and closes a rule conflict. Option 3 saves ~218 lines and 1 gitignore entry, at the cost of a capability.",
   "gate": "low either way. `npm run check` (the scripts ledger gate, `scripts/qa/scripts-ledger.test.mjs`, requires every script to be listed in `scripts/README.md` — a delete must remove that row, a move must u",
-  "claim": "- `git log --follow -- src/lib/demo-seed/photos.generated.ts` returns exactly one commit, `0ea3174` (\"feat(demo): a public, no-login showcase build of the site\"), and `git log -p --follow` on that path contains **zero** added lines matching `url:`. The array has been `[]` from the day it was created and has never held a photograph. - `demo-photos/` does not exist (`ls -d demo-photos` → no such directory) and is gitignored at `.gitignore:76`. - `docs/spec/demo.md:137` instructs: *\"put images in `"
+  "claim": "- `git log --follow -- src/lib/demo-seed/photos.generated.ts` returns exactly one commit, `40dcba9` (\"feat(demo): a public, no-login showcase build of the site\"), and `git log -p --follow` on that path contains **zero** added lines matching `url:`. The array has been `[]` from the day it was created and has never held a photograph. - `demo-photos/` does not exist (`ls -d demo-photos` → no such directory) and is gitignored at `.gitignore:76`. - `docs/spec/demo.md:137` instructs: *\"put images in `"
  },
  {
   "id": "lib-core-config-05",
@@ -3468,7 +3468,7 @@
   "decides": "autonomous",
   "saving": "4 lines, and one fewer sentence that is false.",
   "gate": "low. `npm run check`.",
-  "claim": "the file ends with four lines that explain something that is no longer there: ``` // Re-exported so server callers can reach it from the module they already // import. The implementation lives in its own dependency-free file because the // client needs it too, and importing this module into a client component would // drag the Resend SDK into the browser bundle. ``` There is no re-export. `git log -S 'export { maskEmail }' -- src/lib/email.ts` returns two commits: `fa99bd2` added `export { maskE"
+  "claim": "the file ends with four lines that explain something that is no longer there: ``` // Re-exported so server callers can reach it from the module they already // import. The implementation lives in its own dependency-free file because the // client needs it too, and importing this module into a client component would // drag the Resend SDK into the browser bundle. ``` There is no re-export. `git log -S 'export { maskEmail }' -- src/lib/email.ts` returns two commits: `5be9c54` added `export { maskE"
  },
  {
   "id": "lib-core-config-14",
@@ -3630,14 +3630,14 @@
   "id": "lib-tests-09",
   "title": "Two scratch-shaped tests by CLAUDE.md's rule, and one file of styling pins that only exists because the subject is duplicated",
   "file": "lib-tests.md",
-  "where": "- `src/components/common/pinch-zoom.test.mjs:41-55` (`the swipe kept the numbers it was tuned with`): pins the literals `SWIPE_FOLLOW = 0.14`, `SWIPE_DISTANCE = 70`, `SWIPE_VELOCITY = 420` as source text. Born 2026-09-02 with the gesture rewrite (`122ac26`); its own message says why it was written: \"Moving the swipe off Motion's drag was a gesture rewrite, not a re-tuning: these three ... carry ov",
+  "where": "- `src/components/common/pinch-zoom.test.mjs:41-55` (`the swipe kept the numbers it was tuned with`): pins the literals `SWIPE_FOLLOW = 0.14`, `SWIPE_DISTANCE = 70`, `SWIPE_VELOCITY = 420` as source text. Born 2026-09-02 with the gesture rewrite (`c53ec62`); its own message says why it was written: \"Moving the swipe off Motion's drag was a gesture rewrite, not a re-tuning: these three ... carry ov",
   "phase": "dead (the first two) / architecture (the third)",
   "tier": "T1",
   "class": "cheap",
   "decides": "autonomous",
   "saving": "~19 lines; one false-positive class on re-tuning.",
   "gate": "low; `npm run check`.",
-  "claim": "quoted; `git log -1 -- src/components/common/pinch-zoom.test.mjs` = `122ac26 2026-09-02 feat(viewer): the photograph can be pinched open`."
+  "claim": "quoted; `git log -1 -- src/components/common/pinch-zoom.test.mjs` = `c53ec62 2026-09-02 feat(viewer): the photograph can be pinched open`."
  },
  {
   "id": "lib-tests-10",
@@ -3747,7 +3747,7 @@
   "id": "media-viewer-04",
   "title": "The Collection stores three different encodes depending on which door a photograph came through; the app has five server recipes in four files",
   "file": "media-viewer.md",
-  "where": "`src/app/(main)/collection/actions.ts:339-342` (FormData fallback: `.resize(1600, 1600, { fit: \"inside\", withoutEnlargement: true }).webp({ quality: 80 })`, unchanged since `21eb32f` 2026-06-27); `src/app/(main)/collection/actions.ts:585-611` (direct path: `storedResizeBox` + `COLLECTION_WEBP_QUALITY` = 100, full resolution, decided 2026-09-02); `src/lib/collection-intake.ts:105-129` (composer tic",
+  "where": "`src/app/(main)/collection/actions.ts:339-342` (FormData fallback: `.resize(1600, 1600, { fit: \"inside\", withoutEnlargement: true }).webp({ quality: 80 })`, unchanged since `f8256fa` 2026-06-27); `src/app/(main)/collection/actions.ts:585-611` (direct path: `storedResizeBox` + `COLLECTION_WEBP_QUALITY` = 100, full resolution, decided 2026-09-02); `src/lib/collection-intake.ts:105-129` (composer tic",
   "phase": "dedupe / architecture",
   "tier": "T3",
   "class": "structural",
@@ -3760,7 +3760,7 @@
   "id": "media-viewer-05",
   "title": "Say at `toDisplayWebp` whose recipe it is, and put `MAX_STORED_PIXELS` back under its own docblock",
   "file": "media-viewer.md",
-  "where": "`src/lib/image.ts:33-49` (the 40MP docblock), `50-69` (`toDisplayWebp`, inserted between the docblock and its constant by `60e8ee0`, 2026-08-26), `71` (`export const MAX_STORED_PIXELS`). The sentence that would have stopped both hallucinations lives at `docs/TRAPS.md:163-176` and `src/lib/image-cdn.ts:32-34`, not on the function.",
+  "where": "`src/lib/image.ts:33-49` (the 40MP docblock), `50-69` (`toDisplayWebp`, inserted between the docblock and its constant by `23484f7`, 2026-08-26), `71` (`export const MAX_STORED_PIXELS`). The sentence that would have stopped both hallucinations lives at `docs/TRAPS.md:163-176` and `src/lib/image-cdn.ts:32-34`, not on the function.",
   "phase": "hygiene",
   "tier": "T1",
   "class": "cheap",
@@ -3806,20 +3806,20 @@
   "decides": "autonomous",
   "saving": "3 files, 332,668 tracked bytes, the same bytes off every deploy.",
   "gate": "none. `npm run check` (the lab registry audit does not read `public/`).",
-  "claim": "added by `26dc483` (2026-08-27, \"six ways to hold a photograph\"); `6fb0780` (2026-08-28, \"the crop room shows what we do\") replaced the room's specimen set with the eleven `shape-*.webp` files, whose paths are the only ones in `src/app/lab/crop/_specimens.ts`. A grep for the three names across `src`, `docs`, `e2e`, `scripts` and `public` finds them only in the audit's own `raw/tracked-files.txt`. Everything under `public/` ships to Vercel's static output, so they are deployed on every push as we"
+  "claim": "added by `77cb700` (2026-08-27, \"six ways to hold a photograph\"); `983dc51` (2026-08-28, \"the crop room shows what we do\") replaced the room's specimen set with the eleven `shape-*.webp` files, whose paths are the only ones in `src/app/lab/crop/_specimens.ts`. A grep for the three names across `src`, `docs`, `e2e`, `scripts` and `public` finds them only in the audit's own `raw/tracked-files.txt`. Everything under `public/` ships to Vercel's static output, so they are deployed on every push as we"
  },
  {
   "id": "media-viewer-09",
   "title": "Today's viewer fix is sound at the root, but the chrome-idle mechanism it extended wants its own hook, and it re-tuned a constant inside a bug fix",
   "file": "media-viewer.md",
-  "where": "`src/components/common/image-viewer.tsx:227-232` (tri-state), `244` (`lastNudge`), `279-282` (`onTapPhoto` toggles), `396-416` (nudge listeners: pointermove, wheel, keydown), `418-440` (400 ms interval: focus check, `:hover` poll behind `matchMedia(\"(hover: hover)\")`, time check), `150` (`IDLE_MS` 2600 -> 3600 in `72b5a1d`), plus five `data-viewer-chrome` marks (625, 639, 651, 695) and one `data-v",
+  "where": "`src/components/common/image-viewer.tsx:227-232` (tri-state), `244` (`lastNudge`), `279-282` (`onTapPhoto` toggles), `396-416` (nudge listeners: pointermove, wheel, keydown), `418-440` (400 ms interval: focus check, `:hover` poll behind `matchMedia(\"(hover: hover)\")`, time check), `150` (`IDLE_MS` 2600 -> 3600 in `09772aa`), plus five `data-viewer-chrome` marks (625, 639, 651, 695) and one `data-v",
   "phase": "architecture (hygiene edge)",
   "tier": "T2",
   "class": "structural",
   "decides": "autonomous",
   "saving": "0 lines net (relocation), one 800-line file becomes ~735 + ~90; clarity.",
   "gate": "low-medium. `image-viewer-chrome.test.mjs` reads `image-viewer.tsx` for `[data-viewer-chrome]:hover`, `matchMedia(\"(hover: hover)\")`, the `wheel`/`nudge` listener and the absence of a `pointerdown` nu",
-  "claim": "the charter asked whether `72b5a1d` is a patch on a patch. Verdict, in two halves. (a) The page-behind fix is the ROOT cause corrected, not a patch: `document.body.style .overflow = \"hidden\"` never reached the viewport because `globals.css` clips `<html>` sideways, so the lock was a no-op for a fortnight; moving it to `documentElement` is the right fix, and the non-passive wheel/touchmove guard with the `data-viewer-scroll` exemption is a reasoned belt (iOS rubber-band). It is now pinned four wa"
+  "claim": "the charter asked whether `09772aa` is a patch on a patch. Verdict, in two halves. (a) The page-behind fix is the ROOT cause corrected, not a patch: `document.body.style .overflow = \"hidden\"` never reached the viewport because `globals.css` clips `<html>` sideways, so the lock was a no-op for a fortnight; moving it to `documentElement` is the right fix, and the non-passive wheel/touchmove guard with the `data-viewer-scroll` exemption is a reasoned belt (iOS rubber-band). It is now pinned four wa"
  },
  {
   "id": "media-viewer-10",
@@ -4014,7 +4014,7 @@
   "decides": "autonomous",
   "saving": "~12 lines; one fewer indirection in the dark-mode write path.",
   "gate": "low. `npm run check` (`gate-coverage.test.mjs` and `security-regressions .test.mjs` run in it); walk `/dark-mode` to the regrets step and press \"No regrets\", then `/dark-mode` again and press \"Turn of",
-  "claim": "audit 1's member-surfaces-11 said \"rename `setTheme` to `setThemePreference`, delete the alias and its 11-line comment\". The fix session instead de-exported `setTheme` as part of the ~55-symbol de-export sweep (commit `2f43a3d`) and widened `gate-coverage.test.mjs` to read every async function so the private one kept its inherited gate (fix-prompt lines 210-215). The wrapper and its comment are still there, now describing a private function and a public one that does nothing but call it. Both ca"
+  "claim": "audit 1's member-surfaces-11 said \"rename `setTheme` to `setThemePreference`, delete the alias and its 11-line comment\". The fix session instead de-exported `setTheme` as part of the ~55-symbol de-export sweep (commit `55aefdf`) and widened `gate-coverage.test.mjs` to read every async function so the private one kept its inherited gate (fix-prompt lines 210-215). The wrapper and its comment are still there, now describing a private function and a public one that does nothing but call it. Both ca"
  },
  {
   "id": "member-surfaces-07",
@@ -4040,7 +4040,7 @@
   "decides": "autonomous",
   "saving": "0 lines; a spec that stops contradicting the code it governs.",
   "gate": "none (docs). No test reads the guide spec.",
-  "claim": "`find src/app -name \"@modal\" -o -name \"(..)*\"` finds nothing. Commit `820762a` (2026-08-27, \"perf(guide): take the route out of the press, and the address with it\") replaced the intercepting route with the `guide-open.ts` external store and the `GuideLayer` in the `(main)` layout; `guide-open.ts:1-27` records the two measured failures that led there (404-444 ms before the sheet existed; `history.pushState` fighting Next's router). The spec's section 6 table still says a letter \"goes to one perso"
+  "claim": "`find src/app -name \"@modal\" -o -name \"(..)*\"` finds nothing. Commit `1d2f264` (2026-08-27, \"perf(guide): take the route out of the press, and the address with it\") replaced the intercepting route with the `guide-open.ts` external store and the `GuideLayer` in the `(main)` layout; `guide-open.ts:1-27` records the two measured failures that led there (404-444 ms before the sheet existed; `history.pushState` fighting Next's router). The spec's section 6 table still says a letter \"goes to one perso"
  },
  {
   "id": "member-surfaces-09",
@@ -4053,7 +4053,7 @@
   "decides": "owner (it is a legal document's date; the\n  edit itself is trivially autonomous)",
   "saving": "0 lines; a true date on a document members are asked to rely on.",
   "gate": "none. `npm run visual` photographs `/privacy` and will show the one-word diff; accept it with `visual:update` in the same commit.",
-  "claim": "`git log -- \"src/app/(policies)/privacy/page.tsx\"` shows `bd7da7d` on 2026-08-26 (\"refactor(analytics): one analytics tool, not two\") changed the processors table row from \"PostHog and Vercel Analytics\" to \"PostHog\". The document still says \"Last updated 20 August 2026\", and its own \"Changes\" section promises \"the date at the top always says when it was last touched\". `terms` and `guidelines` have not changed since 20 August, so their dates are right. While here I checked the retention table aga"
+  "claim": "`git log -- \"src/app/(policies)/privacy/page.tsx\"` shows `15c4f4c` on 2026-08-26 (\"refactor(analytics): one analytics tool, not two\") changed the processors table row from \"PostHog and Vercel Analytics\" to \"PostHog\". The document still says \"Last updated 20 August 2026\", and its own \"Changes\" section promises \"the date at the top always says when it was last touched\". `terms` and `guidelines` have not changed since 20 August, so their dates are right. While here I checked the retention table aga"
  },
  {
   "id": "member-surfaces-10",
@@ -4157,7 +4157,7 @@
   "decides": "autonomous (the archive is executing\n  a written rule)",
   "saving": "root `progress.md` **600 KB -> ~45 KB (-92 %)**, 8,545 -> ~640 lines. Zero cloc lines net (moved, not deleted) — stated honestly. The root's tracked bytes fall from 1,209,974 to ~655,000, i.e. `packag",
   "gate": "low. `git grep -c \"progress.md\"` before and after to confirm no path consumer appeared; `npm run check` (the new test must pass at HEAD after the move, and must be shown to FAIL before it — write the ",
-  "claim": "measured at four points in git, all `git show <sha>:progress.md | wc -l`: | date | sha | lines | bytes | |---|---|---|---| | 2026-08-26 (after `827e650` archived June+July) | `dbc9c06` | 4,101 | ~256 KB | | 2026-08-28 | `6915627` | 6,527 | 433,986 | | 2026-08-30 | `8d3f51b` | 7,483 | — | | 2026-09-01 | `1f89b86` | 7,849 | — | | 2026-09-03 (HEAD) | `72b5a1d` | 8,545 | 600,161 | **+4,444 lines and +344,175 bytes in eight days = 555 lines/day, ~3,890 lines/week, ~301 KB/week.** The file is now 86 %"
+  "claim": "measured at four points in git, all `git show <sha>:progress.md | wc -l`: | date | sha | lines | bytes | |---|---|---|---| | 2026-08-26 (after `4300d47` archived June+July) | `da11efe` | 4,101 | ~256 KB | | 2026-08-28 | `4242797` | 6,527 | 433,986 | | 2026-08-30 | `8c657c2` | 7,483 | — | | 2026-09-01 | `02a81ea` | 7,849 | — | | 2026-09-03 (HEAD) | `09772aa` | 8,545 | 600,161 | **+4,444 lines and +344,175 bytes in eight days = 555 lines/day, ~3,890 lines/week, ~301 KB/week.** The file is now 86 %"
  },
  {
   "id": "root-assets-02",
@@ -4170,7 +4170,7 @@
   "decides": "autonomous",
   "saving": "0 lines. One file with one order, and an append convention two concurrent sessions cannot both follow correctly by accident. This is the \"0 lines, but one fewer place for the bug\" case the brief calls",
   "gate": "low, but it is a 600 KB text move — the gate is the losslessness diff (`sort` both versions' non-blank lines and `diff`; must be empty), then `npm run check`.",
-  "claim": "the newest entry in the file — `## 2026-09-03 — the viewer stops letting go of the page, and of its own controls`, matching HEAD `72b5a1d` — is at **line 8515, the very bottom**, while line 3 is a 2026-09-02 entry. Sixteen September entries are in block 1 and two are in block 2. Two sessions working in this shared checkout on the same day appended to opposite ends of the same file, and neither was wrong, because the file does not say which end is the head. `head -30 progress.md` and `tail -30 pr"
+  "claim": "the newest entry in the file — `## 2026-09-03 — the viewer stops letting go of the page, and of its own controls`, matching HEAD `09772aa` — is at **line 8515, the very bottom**, while line 3 is a 2026-09-02 entry. Sixteen September entries are in block 1 and two are in block 2. Two sessions working in this shared checkout on the same day appended to opposite ends of the same file, and neither was wrong, because the file does not say which end is the head. `head -30 progress.md` and `tail -30 pr"
  },
  {
   "id": "root-assets-03",
@@ -4183,13 +4183,13 @@
   "decides": "autonomous (one live-DB SELECT\n  first, written below, for the `c3-thumb` half only)",
   "saving": "**420,350 tracked bytes (410 KB)**, 4 files, 6 % of everything under `public/`. 0 lines of code. Also 410 KB less to deploy to Vercel's CDN on every build.",
   "gate": "low. - `c3-thumb` needs the same live-DB check audit 1 wrote for its siblings, because grep cannot see the database and a June-era seed wrote local paths into `Photo` rows: `SELECT id, url, \"thumbUrl\"",
-  "claim": "I ran an exact-path grep for all 58 tracked `public/` files (`git grep -c -F \"/lab/crop/pano-21x9.webp\" -- ':!public' ':!docs/audit-fix'` and the same for each). These four return zero, and nothing in `src/app/lab` does a `readdir` of `public` (`git grep -n \"readdirSync\" -- src/app/lab` is empty), so there is no dynamic path in. - The three `lab/crop` files were added by `26dc483` (2026-08-27, *\"six ways to hold a photograph\"*) and **superseded the next day** by `6fb0780` (2026-08-28, *\"the crop"
+  "claim": "I ran an exact-path grep for all 58 tracked `public/` files (`git grep -c -F \"/lab/crop/pano-21x9.webp\" -- ':!public' ':!docs/audit-fix'` and the same for each). These four return zero, and nothing in `src/app/lab` does a `readdir` of `public` (`git grep -n \"readdirSync\" -- src/app/lab` is empty), so there is no dynamic path in. - The three `lab/crop` files were added by `77cb700` (2026-08-27, *\"six ways to hold a photograph\"*) and **superseded the next day** by `983dc51` (2026-08-28, *\"the crop"
  },
  {
   "id": "root-assets-04",
   "title": "38 vendored skill packs, untouched for five months, 14 of them shadowed by a live plugin",
   "file": "root-assets.md",
-  "where": "`.claude/skills/` — 53 directories, 104 tracked files, 720,956 bytes. The 38 in question all trace to one commit, `6c686cb` (2026-03-30, *\"Mega workflow update\"*), and none has been modified since: - `superpowers-*` — 14 dirs, 108,648 B - `impeccable-*` — 21 dirs, 152,102 B - `planning-with-files` — 8,636 B (see root-assets-05, which supersedes this row for it) - `VibeSec-Skill` — 24,779 B, 758 li",
+  "where": "`.claude/skills/` — 53 directories, 104 tracked files, 720,956 bytes. The 38 in question all trace to one commit, `ef8acc8` (2026-03-30, *\"Mega workflow update\"*), and none has been modified since: - `superpowers-*` — 14 dirs, 108,648 B - `impeccable-*` — 21 dirs, 152,102 B - `planning-with-files` — 8,636 B (see root-assets-05, which supersedes this row for it) - `VibeSec-Skill` — 24,779 B, 758 li",
   "phase": "relocate (or dead, for the shadowed fourteen)",
   "tier": "T2",
   "class": "structural",
@@ -4222,7 +4222,7 @@
   "decides": "autonomous",
   "saving": "~4 lines. Zero bytes. The value is that CLAUDE.md is force-fed into every session and is the owner's most personal file; a wrong number in it is a wrong number in every future session's context.",
   "gate": "none; prose. `npm run check` for form.",
-  "claim": "- `git ls-files | grep -c \"\\.test\\.mjs$\"` = **102**, not 75. The brief's own baseline says 102. The number is nine days stale and drifts every time a test lands. - `e2e/visual.spec.ts:28-67` `ROUTES` has **12** entries — landing, login, feed, directory, letters, catchups, collection, collection-class, support, birds, about, privacy — and `e2e/__screenshots__` holds **24** PNGs, which is 12 x 2. CLAUDE.md says 11. `collection-class` was added by `f08bc5e` on 2026-08-29 and the doc never followed."
+  "claim": "- `git ls-files | grep -c \"\\.test\\.mjs$\"` = **102**, not 75. The brief's own baseline says 102. The number is nine days stale and drifts every time a test lands. - `e2e/visual.spec.ts:28-67` `ROUTES` has **12** entries — landing, login, feed, directory, letters, catchups, collection, collection-class, support, birds, about, privacy — and `e2e/__screenshots__` holds **24** PNGs, which is 12 x 2. CLAUDE.md says 11. `collection-class` was added by `0d69d85` on 2026-08-29 and the doc never followed."
  },
  {
   "id": "root-assets-07",
@@ -4261,7 +4261,7 @@
   "decides": "autonomous",
   "saving": "0 bytes. One fewer script that can dirty the folder the owner looks at, and one fewer `.gitignore` line existing only to conceal a rule violation.",
   "gate": "negligible. Run nothing — the fix is a string. Gate: `npm run check` (ESLint reads `scripts/`), and the next person who runs `look.mjs` sees its shots in `e2e/.shots/edge`.",
-  "claim": "`c8d0e87` (2026-08-28) moved every screenshot consumer to `e2e/.shots/` and updated nine scripts by name — `screenshot.mjs`, `screenshot-auth.mjs`, `verify-shot.mjs`, `theme-shots.mjs`, `drive.mjs`, `map-cluster-verify.mjs`, `tour-mobile-verify.mjs`, `_dir-room-shots.mjs`, plus `scripts/README.md`. `look.mjs` was written the day before (2026-08-27) and was missed. It is the only writer left that creates a directory at the root, and CLAUDE.md's hard rule is explicit: *\"screenshots go to `e2e/.sho"
+  "claim": "`8347d4a` (2026-08-28) moved every screenshot consumer to `e2e/.shots/` and updated nine scripts by name — `screenshot.mjs`, `screenshot-auth.mjs`, `verify-shot.mjs`, `theme-shots.mjs`, `drive.mjs`, `map-cluster-verify.mjs`, `tour-mobile-verify.mjs`, `_dir-room-shots.mjs`, plus `scripts/README.md`. `look.mjs` was written the day before (2026-08-27) and was missed. It is the only writer left that creates a directory at the root, and CLAUDE.md's hard rule is explicit: *\"screenshots go to `e2e/.sho"
  },
  {
   "id": "root-assets-10",
@@ -4274,7 +4274,7 @@
   "decides": "autonomous",
   "saving": "~190 KB of local disk, zero tracked bytes. A cleaner `ls -la`, until Finder next opens a folder.",
   "gate": "none.",
-  "claim": "none is tracked (`git ls-files | grep -c DS_Store` = 0) and all are ignored by `.gitignore:10`, so git is already fully defended — this is purely what the owner sees in Finder and in `ls -la`. Audit 1 counted 19 and swept them on 2026-08-26 (`0a73211`). Nine days later there are 25. **The sweep does not hold; only ~2.3 a day of regrowth does.** Note also that `.DS_Store` regenerating inside `e2e/__screenshots__/` and `public/` is what makes them appear in casual `find`/`du` output over those fol"
+  "claim": "none is tracked (`git ls-files | grep -c DS_Store` = 0) and all are ignored by `.gitignore:10`, so git is already fully defended — this is purely what the owner sees in Finder and in `ls -la`. Audit 1 counted 19 and swept them on 2026-08-26 (`1959266`). Nine days later there are 25. **The sweep does not hold; only ~2.3 a day of regrowth does.** Note also that `.DS_Store` regenerating inside `e2e/__screenshots__/` and `public/` is what makes them appear in casual `find`/`du` output over those fol"
  },
  {
   "id": "root-assets-11",
@@ -4287,7 +4287,7 @@
   "decides": "autonomous",
   "saving": "bounds ~150 MB/week of local growth at a ~40 MB steady state; 17 MB of dead `.claude` piles immediately. Zero tracked bytes.",
   "gate": "none — the folder is disposable by its own gitignore comment (\"Screenshot scratch from the QA scripts\"). Do not delete files another session may be mid-run on; the seven-day filter handles that.",
-  "claim": "audit-1 finding 12 measured the same pile at 91 MB / 177 files / all under seven days, i.e. ~91 MB per week, and recommended a retention rule in the close-out checklist. **The folder was renamed (`c8d0e87`) and the retention rule was never adopted.** The run rate is now ~150 MB/week — 68 % higher — because the Collection rework ran twelve screenshot-heavy sessions in ten days. Related untracked piles under tracked folders, both named by audit 1 and both untouched since: `.claude/shots` (9.4 MB) "
+  "claim": "audit-1 finding 12 measured the same pile at 91 MB / 177 files / all under seven days, i.e. ~91 MB per week, and recommended a retention rule in the close-out checklist. **The folder was renamed (`8347d4a`) and the retention rule was never adopted.** The run rate is now ~150 MB/week — 68 % higher — because the Collection rework ran twelve screenshot-heavy sessions in ten days. Related untracked piles under tracked folders, both named by audit 1 and both untouched since: `.claude/shots` (9.4 MB) "
  },
  {
   "id": "root-assets-12",
@@ -4326,7 +4326,7 @@
   "decides": "autonomous",
   "saving": "274 lines, 2 files (+1 README line); the `tests` gate drops from 102 to 101 files and stops running a test whose subject is gone",
   "gate": "low. `npm run check` must stay green — the `tests` gate's floor is `MIN_TEST_FILES = 60` (`check.mjs:69`) so 101 is fine, and `scripts-ledger.test.mjs` covers both directions of the README edit. Nothi",
-  "claim": "`ae5bc9a 2026-08-27 feat: remove the hoopoe tour` — its own message says \"Also removed: isOwner, whose only caller was the admin page's tour button, and the anchors in the composer, directory, collection and Catch-ups index.\" `grep -rn \"Product tour\" src/` returns nothing; `grep -rn \"data-tour\" src/` returns nothing. The script's core reads `document.querySelector('[role=\"dialog\"][aria-label=\"Product tour\"]')` (line 107) and its main loop finds the trigger by `b.textContent?.trim() === 'hoopoe t"
+  "claim": "`3f97f8f 2026-08-27 feat: remove the hoopoe tour` — its own message says \"Also removed: isOwner, whose only caller was the admin page's tour button, and the anchors in the composer, directory, collection and Catch-ups index.\" `grep -rn \"Product tour\" src/` returns nothing; `grep -rn \"data-tour\" src/` returns nothing. The script's core reads `document.querySelector('[role=\"dialog\"][aria-label=\"Product tour\"]')` (line 107) and its main loop finds the trigger by `b.textContent?.trim() === 'hoopoe t"
  },
  {
   "id": "scripts-e2e-ci-02",
@@ -4339,7 +4339,7 @@
   "decides": "autonomous",
   "saving": "0 lines. One data-retention policy instead of two, and members keep eleven months of notifications the site promises them.",
   "gate": "low to change; the *consequence* of the current state is medium and ongoing. No test covers this — nothing in `npm run check` reads workflow arguments, and `ci-parity.test.mjs` deliberately scopes its",
-  "claim": "`prune.mjs`'s own banner, verbatim: *\"ONE policy, not two. The default used to be 30 days while src/lib/retention.ts deleted the same table at KEEP_DAYS.notifications -- a year -- so the app documented one rule and this script quietly enforced a stricter one (bug audit M55). retention.ts is the source of truth; this matches it.\"* `git log -S\"DEFAULT_DAYS = 365\" -- scripts/ops/prune.mjs` → `d77197a 2026-08-21`. `git log -S\"prune.mjs --days 30\" -- .github/workflows/snapshot.yml` → `6adb61c 2026-08"
+  "claim": "`prune.mjs`'s own banner, verbatim: *\"ONE policy, not two. The default used to be 30 days while src/lib/retention.ts deleted the same table at KEEP_DAYS.notifications -- a year -- so the app documented one rule and this script quietly enforced a stricter one (bug audit M55). retention.ts is the source of truth; this matches it.\"* `git log -S\"DEFAULT_DAYS = 365\" -- scripts/ops/prune.mjs` → `a194521 2026-08-21`. `git log -S\"prune.mjs --days 30\" -- .github/workflows/snapshot.yml` → `103a32b 2026-08"
  },
  {
   "id": "scripts-e2e-ci-03",
@@ -4378,7 +4378,7 @@
   "decides": "owner",
   "saving": "~500-576 lines from the largest file in `scripts/`, which drops from 727 to ~150",
   "gate": "low — nothing runs `drive.mjs` except a human with a scenario name, and an unknown name already exits 1 with the list of options. Gate: `node scripts/qa/drive.mjs` (no argument) prints the surviving l",
-  "claim": "this is the file my charter's question — \"which of these were discovery probes that should have died?\" — is really about. `git log -S\"async <name>(\"` dates every scenario to the session that asked its question: `slide`, `create`, `profile`, `houses`, `places`, `poll` all land on **2026-07-25** (`1875992 docs: record the owner review decisions and add a QA interaction harness`, plus two same-day fix commits); `focusStates`, `confirmDelete` and `wells` on **2026-08-29**; `dateField` on **2026-08-3"
+  "claim": "this is the file my charter's question — \"which of these were discovery probes that should have died?\" — is really about. `git log -S\"async <name>(\"` dates every scenario to the session that asked its question: `slide`, `create`, `profile`, `houses`, `places`, `poll` all land on **2026-07-25** (`92c06aa docs: record the owner review decisions and add a QA interaction harness`, plus two same-day fix commits); `focusStates`, `confirmDelete` and `wells` on **2026-08-29**; `dateField` on **2026-08-3"
  },
  {
   "id": "scripts-e2e-ci-06",
@@ -4404,7 +4404,7 @@
   "decides": "owner (it is cited in a lab room's UI)",
   "saving": "90 lines / 1 file if retired; 0 lines if repaired, and one lab room stops lying",
   "gate": "low. Nothing automated runs it. Gate for (a): run it and confirm a real table of control boxes comes out; for (b), `scripts-ledger.test.mjs` and a read of the three lab files.",
-  "claim": "`grep -rn \"data-tour\" src/` returns **nothing** — every anchor went in `ae5bc9a 2026-08-27 feat: remove the hoopoe tour`. The probe's `page.evaluate` starts `const anchor = document.querySelector('[data-tour=\"directory-search\"]'); if (!anchor) return null;`, and its caller prints `${s.label}: toolbar not found` and continues. So it now runs clean, exits 0, and produces twelve \"toolbar not found\" lines instead of the measurement table — the failure mode this repo hates most, a tool that reports s"
+  "claim": "`grep -rn \"data-tour\" src/` returns **nothing** — every anchor went in `3f97f8f 2026-08-27 feat: remove the hoopoe tour`. The probe's `page.evaluate` starts `const anchor = document.querySelector('[data-tour=\"directory-search\"]'); if (!anchor) return null;`, and its caller prints `${s.label}: toolbar not found` and continues. So it now runs clean, exits 0, and produces twelve \"toolbar not found\" lines instead of the measurement table — the failure mode this repo hates most, a tool that reports s"
  },
  {
   "id": "scripts-e2e-ci-08",
@@ -4482,7 +4482,7 @@
   "decides": "autonomous",
   "saving": "-1 line (it grows). Restores the tool's stated contract and puts an automated eye on the route that replaced the tour.",
   "gate": "low. Gate: the next `npm run verify:crawl` reports 200s for the new entries. Do not run it in an audit session — it signs in and writes presence telemetry.",
-  "claim": "the array holds 20 destinations. `find src/app -name page.tsx` at HEAD shows `(main)/guide` and `(main)/guide/[area]`, shipped 2026-08-27 (`503a00a feat(guide): the guide ships, and the title is the way in`) as the replacement for the removed tour. Neither is crawled. The comment above the array (lines 40-43) explicitly instructs *\"Cross-check against `ls src/app/(main)` when adding: /birds, /pick-bird and /welcome had each shipped without being added here\"* — the same failure, one route later, "
+  "claim": "the array holds 20 destinations. `find src/app -name page.tsx` at HEAD shows `(main)/guide` and `(main)/guide/[area]`, shipped 2026-08-27 (`56c20fb feat(guide): the guide ships, and the title is the way in`) as the replacement for the removed tour. Neither is crawled. The comment above the array (lines 40-43) explicitly instructs *\"Cross-check against `ls src/app/(main)` when adding: /birds, /pick-bird and /welcome had each shipped without being added here\"* — the same failure, one route later, "
  },
  {
   "id": "scripts-e2e-ci-14",

@@ -56,7 +56,7 @@ config and e2e specs are argued line by line. But four things rotted in the ten 
 closed and nothing noticed:
 
 1. **364 lines of scripts guard features that were deleted on 2026-08-27.** `feat: remove the
-   hoopoe tour` (ae5bc9a) took out every `data-tour` attribute and the "hoopoe tour" button.
+   hoopoe tour` (3f97f8f) took out every `data-tour` attribute and the "hoopoe tour" button.
    `tour-mobile-verify.mjs` (248) still clicks that button and would exit 2 INCONCLUSIVE after
    four retries; its 26-line test still runs inside `npm run check` every day, keeping the corpse
    warm. `_dir-chrome-probe.mjs` (90) still selects `[data-tour="directory-search"]` and would
@@ -110,7 +110,7 @@ strengthened by phase9 actually rotting.
   `scripts/qa/local-base-url.test.mjs:42-43`
 - **Phase**: dead
 - **Tier**: T1     **Class**: structural     **Decides**: autonomous
-- **Evidence**: `ae5bc9a 2026-08-27 feat: remove the hoopoe tour` — its own message says
+- **Evidence**: `3f97f8f 2026-08-27 feat: remove the hoopoe tour` — its own message says
   "Also removed: isOwner, whose only caller was the admin page's tour button, and the anchors in
   the composer, directory, collection and Catch-ups index." `grep -rn "Product tour" src/` returns
   nothing; `grep -rn "data-tour" src/` returns nothing. The script's core reads
@@ -141,8 +141,8 @@ strengthened by phase9 actually rotting.
   references either file (`grep -rn tour-mobile-verify` outside `scripts/` and the audit folders:
   zero hits).
 - **Confidence**: high. The one thing that would change my mind: if the owner intends to bring the
-  tour back. He does not — `ae5bc9a`'s message records the decision as final and says the removal
-  is "total rather than a flag", and `/guide` shipped as its replacement (`503a00a`).
+  tour back. He does not — `3f97f8f`'s message records the decision as final and says the removal
+  is "total rather than a flag", and `/guide` shipped as its replacement (`56c20fb`).
 - **Notes**: this is also the resolution of an audit-1 open owner decision ("the member tour"):
   the tour was removed, so the decision is closed and only its tooling survives. The test file is
   a good illustration of a real hazard in this repo's rule-test pattern — a source-reading pin
@@ -161,8 +161,8 @@ strengthened by phase9 actually rotting.
   30 days while src/lib/retention.ts deleted the same table at KEEP_DAYS.notifications -- a year --
   so the app documented one rule and this script quietly enforced a stricter one (bug audit M55).
   retention.ts is the source of truth; this matches it."* `git log -S"DEFAULT_DAYS = 365" --
-  scripts/ops/prune.mjs` → `d77197a 2026-08-21`. `git log -S"prune.mjs --days 30" --
-  .github/workflows/snapshot.yml` → `6adb61c 2026-08-19`, never touched since. So the M55 fix
+  scripts/ops/prune.mjs` → `a194521 2026-08-21`. `git log -S"prune.mjs --days 30" --
+  .github/workflows/snapshot.yml` → `103a32b 2026-08-19`, never touched since. So the M55 fix
   changed the default and left the caller passing the old number. The workflow step is even
   *named* `Prune notifications older than 30 days`. It runs nightly at 00:10 UTC. Every night it
   deletes every notification between 30 and 365 days old, which the retention policy says members
@@ -310,7 +310,7 @@ strengthened by phase9 actually rotting.
 - **Evidence**: this is the file my charter's question — "which of these were discovery probes that
   should have died?" — is really about. `git log -S"async <name>("` dates every scenario to the
   session that asked its question: `slide`, `create`, `profile`, `houses`, `places`, `poll` all
-  land on **2026-07-25** (`1875992 docs: record the owner review decisions and add a QA interaction
+  land on **2026-07-25** (`92c06aa docs: record the owner review decisions and add a QA interaction
   harness`, plus two same-day fix commits); `focusStates`, `confirmDelete` and `wells` on
   **2026-08-29**; `dateField` on **2026-08-30**. Every one names a specific past question in its
   own docblock — `slide` measures a landing curve that shipped, `create` re-tests a Prisma
@@ -396,7 +396,7 @@ strengthened by phase9 actually rotting.
 - **Phase**: dead
 - **Tier**: T2     **Class**: structural     **Decides**: owner (it is cited in a lab room's UI)
 - **Evidence**: `grep -rn "data-tour" src/` returns **nothing** — every anchor went in
-  `ae5bc9a 2026-08-27 feat: remove the hoopoe tour`. The probe's `page.evaluate` starts
+  `3f97f8f 2026-08-27 feat: remove the hoopoe tour`. The probe's `page.evaluate` starts
   `const anchor = document.querySelector('[data-tour="directory-search"]'); if (!anchor) return
   null;`, and its caller prints `${s.label}: toolbar not found` and continues. So it now runs
   clean, exits 0, and produces twelve "toolbar not found" lines instead of the measurement table —
@@ -526,10 +526,10 @@ strengthened by phase9 actually rotting.
     the two whose whole point was to become visible locally instead of CI-only. The gate's own
     output names them (`check-baseline.txt`: "Dependency advisories", "Security audit status").
   - **:50** `verify:crawl` — the list is hand-maintained by design, and `/guide` (shipped
-    2026-08-27, `503a00a`) is not in it. See finding 13.
+    2026-08-27, `56c20fb`) is not in it. See finding 13.
   - **:79** `sweep-stranded-originals.mjs` — the line ends *"Run once now and once after the
     staging change deploys, then delete it and this line."* The staging change landed in the same
-    commit (`04c90a2 2026-08-28`) and a push is a deploy, so the second run's precondition passed
+    commit (`61c0b7e 2026-08-28`) and a push is a deploy, so the second run's precondition passed
     a week ago. Either it has been run twice and both should go, or it has not and somebody owes
     it a run. The line as written cannot tell you which.
   - **:116** `protocol-audit.mjs` — *"Currently reports real findings."* It does not:
@@ -644,7 +644,7 @@ strengthened by phase9 actually rotting.
 - **Phase**: hygiene
 - **Tier**: T1     **Class**: cheap     **Decides**: autonomous
 - **Evidence**: the array holds 20 destinations. `find src/app -name page.tsx` at HEAD shows
-  `(main)/guide` and `(main)/guide/[area]`, shipped 2026-08-27 (`503a00a feat(guide): the guide
+  `(main)/guide` and `(main)/guide/[area]`, shipped 2026-08-27 (`56c20fb feat(guide): the guide
   ships, and the title is the way in`) as the replacement for the removed tour. Neither is crawled.
   The comment above the array (lines 40-43) explicitly instructs *"Cross-check against
   `ls src/app/(main)` when adding: /birds, /pick-bird and /welcome had each shipped without being
@@ -851,7 +851,7 @@ strengthened by phase9 actually rotting.
   `@prisma/config` ships depending on 8 — an override that outlives its reason is a pin nobody
   remembers making."* `package.json` today: `browserslist ^4.28.8`, `deepmerge-ts ^8.0.2`,
   `mysql2 ^3.24.3`, `postcss-selector-parser ^7.1.5`, `fast-uri ^3.1.7` — **five**. Four arrived
-  after the paragraph was written, the newest in `a13a8a9 build(deps): close four fast-uri
+  after the paragraph was written, the newest in `6918a0f build(deps): close four fast-uri
   advisories with an override` (HEAD~1). Each is presumably an advisory response, but only one has
   its reason and its exit condition written down, and the document's own rule is that an override
   without a stated exit is a pin nobody remembers making. Four of five are now exactly that.
@@ -1089,7 +1089,7 @@ Verified intentional. Do not re-litigate.
   root folder is gone. `e2e/.output` holds only `.last-run.json` today.
 - **Finding 10 (baseline history)** — WORSE, as predicted: 63 MB → 101 MB, 15 → 39 commits, in ten
   days (my finding 20).
-- **Open owner decision: "the member tour"** — RESOLVED by `ae5bc9a 2026-08-27`, the tour was
+- **Open owner decision: "the member tour"** — RESOLVED by `3f97f8f 2026-08-27`, the tour was
   removed and `/guide` replaces it. Its tooling was not removed (my findings 01 and 07).
 
 ## For other lenses

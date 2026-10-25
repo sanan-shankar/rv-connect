@@ -15,9 +15,9 @@ Report: `work/agents/directory-profile.md`. See `_header.md`.
 
 ## Specs and context
 `docs/spec/directory.md`, `docs/spec/profile.md`, `docs/spec/person-row-audit.md`,
-`docs/spec/avatars.md` (skim). Commits: `16758d27`/`93d4ed1c` (Get in touch becomes the calling
-card), `bcec4cdc`/`ff67fb46` (the .vcf), `2c6c33fb` (the grid re-forms as one wave), `efb95a3e`,
-`762da94b`, `467cb72e`, `40791570` (a member's photograph never falls back to their bird).
+`docs/spec/avatars.md` (skim). Commits: `38709987`/`4225b518` (Get in touch becomes the calling
+card), `ce61b1af`/`324dc23d` (the .vcf), `816da52a` (the grid re-forms as one wave), `c543b037`,
+`fd8e2df4`, `108b793b`, `7a5d2135` (a member's photograph never falls back to their bird).
 
 ## Leads from the orchestrator
 - `raw/db-statements-live.json`: two `Post` COUNTs per profile view (17,445 and 17,444 calls);

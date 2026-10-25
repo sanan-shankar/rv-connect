@@ -140,9 +140,9 @@ the reverse: three things the spec promises that the code no longer has or never
 - **Phase**: dedupe (with a placeholder half: the batch bar can only appear on a list that is no
   longer the queue)
 - **Tier**: T3     **Class**: structural     **Decides**: owner
-- **Evidence**: Two commits two days apart. `65c5e94` (2026-08-28, "a page of the photo queue
+- **Evidence**: Two commits two days apart. `cc86225` (2026-08-28, "a page of the photo queue
   clears in one press") added +143 lines to content-list and +42 to collection/actions: the tick
-  set, the batch bar, `approvePhotos`. `076be8c` (2026-08-30, "a room for reviewing photographs,
+  set, the batch bar, `approvePhotos`. `6a39f88` (2026-08-30, "a room for reviewing photographs,
   one at a time and big") built `/admin/review`, removed the `pending` option from
   `TYPE_OPTIONS`, and had the content page redirect `?type=pending` to the room -- but touched
   content-list by only +28/-18 lines and left every approval control in place. The spec was
@@ -158,7 +158,7 @@ the reverse: three things the spec promises that the code no longer has or never
   (`declinePhoto` is also called by `review/actions.ts:133`, so it stays). Retiring the controls
   makes both `approvePhoto` and `approvePhotos` dead.
   A second problem rides with it. `approveChosen` (content-list.tsx:130-144) was written two days
-  AFTER `useAdminAct` landed (`0cada95`, 2026-08-26) and hand-rolls the hook's job without either
+  AFTER `useAdminAct` landed (`16705e7`, 2026-08-26) and hand-rolls the hook's job without either
   of its two safeguards: it calls `approvePhotos` directly rather than through `callAction`, and
   `setApproving(false)` is a trailing statement, not a `finally`. A rejected call (network drop,
   a thrown P-error) leaves `approving` true and the "Approve N" button disabled for the rest of
@@ -217,7 +217,7 @@ the reverse: three things the spec promises that the code no longer has or never
   branches in admin-content-query.ts dead by control flow, not by taste. The comment at
   admin-content.ts:33-35 says "`pending` is still UNDERSTOOD by readContentFilters below, and the
   page redirects it" -- but the page redirects on the raw search param, so the reader's
-  understanding is never consulted. `git log`: the option was removed in `076be8c` (2026-08-30);
+  understanding is never consulted. `git log`: the option was removed in `6a39f88` (2026-08-30);
   the branches survived it.
 - **What to do**: In admin-content.ts drop `"pending"` from `ContentType` (:17) and `TYPES` (:54)
   and shrink the :24-35 comment to two lines ("Reviewing photographs moved to /admin/review on
@@ -330,7 +330,7 @@ the reverse: three things the spec promises that the code no longer has or never
   goes out on the next page load."). `MailCard` differs only in omitting the recipient address
   and the Clear button, and in `useAdminAct({ onDone })` where `onDone` is `router.refresh()` --
   which is what the hook does by default. Audit 1 already merged the tone map between these two
-  files (`a987cbc`); the row itself was left.
+  files (`944ecd7`); the row itself was left.
 - **What to do**: In `people/[id]/page.tsx` add `to: true` to the mail select and map rows to
   `MailRow` (`personId: user.id, personName: user.name`). Replace `MailCard`'s body with
   `<MailRows rows={mail} showActions />` inside the existing `AdminSection` (keep the empty-state
@@ -493,7 +493,7 @@ the reverse: three things the spec promises that the code no longer has or never
 
 ### admin-analytics-11 - `publish()` in `admin-counts.tsx` hand-lists the keys it compares and has already fallen behind the interface
 - **Where**: `src/components/admin/admin-counts.tsx:51-61`; `src/lib/admin.ts:179-189`
-  (`AdminCounts`, which gained `photos` in `076be8c`).
+  (`AdminCounts`, which gained `photos` in `6a39f88`).
 - **Phase**: hygiene
 - **Tier**: T1     **Class**: cheap     **Decides**: autonomous
 - **Evidence**: The value-compare checks `waiting, messages, reports, people` and not `photos`.
@@ -639,7 +639,7 @@ Things that look like bloat and are verified intentional; do not re-litigate:
   for seven DIFFERENT tables; finding 03 is confined to fan-outs on ONE table, where it does not.
 - **`requireAdminPage()` on all fourteen pages on top of the layout.** Pinned by
   `gate-coverage.test.mjs` ("every /admin page checks the role itself", B-024). The per-page
-  comment was already cut to one line in audit 1 (`ae9df23`).
+  comment was already cut to one line in audit 1 (`1213050`).
 - **Fourteen `loading.tsx` files.** Framework convention; twelve are five-line `AdminSkeleton`
   wrappers. The audit log's bespoke one was RE-REFUTED at audit-1 fix time (its real shape is two
   bordered lists with no avatar) and the review room's bespoke one (`review/loading.tsx:1-9`)
@@ -685,20 +685,20 @@ Things that look like bloat and are verified intentional; do not re-litigate:
 
 ## Audit-1 carry-overs in this territory
 
-- `admin-analytics-01/02` (dead `loadSupport`, eight unread fields): **done** (`dbeda7e`); no
+- `admin-analytics-01/02` (dead `loadSupport`, eight unread fields): **done** (`5ec1092`); no
   unread field remains.
 - `admin-analytics-03` (`countMembers`, `loadUsageBreakdowns`): **done**; both call sites verified.
-- `admin-analytics-04` (`useAdminAct`): **done** (`0cada95`, plus `44e2b77` widening the return
+- `admin-analytics-04` (`useAdminAct`): **done** (`16705e7`, plus `5ea81da` widening the return
   type); nine instances in five files. One new hand-rolled handler has appeared since (finding 01).
-- `admin-analytics-05` (`AdminFilterBar`): **done** (`d16746f`); both lists use it.
+- `admin-analytics-05` (`AdminFilterBar`): **done** (`4fe37a0`); both lists use it.
 - `admin-analytics-06` (worklist pair): **never compiled into the plan; still true** (finding 06).
 - `admin-analytics-07` (dead exports): partly done; `AdminSectionDef` still exported (finding
   12f); `SESSION_GAP_MIN` deliberately kept.
-- `admin-analytics-08` (Catch-up status maps): **done** (`7d6ae13`, `catchup-status.ts`).
+- `admin-analytics-08` (Catch-up status maps): **done** (`f21a153`, `catchup-status.ts`).
 - `admin-analytics-09` (audit skeleton): **re-refuted at fix time**; not re-proposed.
-- `admin-analytics-10` (thread member select): **done** (`fe9eaf6`, `THREAD_MEMBER_SELECT`).
-- `admin-analytics-11` (`MAIL_TONE`): **done** (`a987cbc`); the row itself was not (finding 05).
-- `admin-analytics-12/13` (hygiene, B-024 comment): **done** (`18e2f0d`, `ae9df23`).
+- `admin-analytics-10` (thread member select): **done** (`c4936ba`, `THREAD_MEMBER_SELECT`).
+- `admin-analytics-11` (`MAIL_TONE`): **done** (`944ecd7`); the row itself was not (finding 05).
+- `admin-analytics-12/13` (hygiene, B-024 comment): **done** (`4e3d9bb`, `1213050`).
 - Owner decision "Compare tab": still open, unchanged (above).
 - Owner decision "four kinds of telemetry": `@vercel/analytics` was removed 2026-08-26
   (spec §9.9 records it); three remain (Visit, PostHog, MetricSnapshot). Moot.

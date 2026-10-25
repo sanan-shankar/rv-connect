@@ -2,7 +2,7 @@
 
 Verifier: catchups-b. Charter: Catch-ups (rounds, prefs, shelf, bin, succession); a
 simplification that drops a guard is a refutation.
-HEAD at verification: `74cc61a fix(retention): notifications are kept 30 days, everywhere`.
+HEAD at verification: `0cecf11 fix(retention): notifications are kept 30 days, everywhere`.
 Working tree: only `docs/audit-fix/README.md` and `progress.md` modified (someone else's WIP,
 neither in my territory). No source file I read has uncommitted edits.
 

@@ -13,9 +13,9 @@ Report: `work/agents/shell-ui-guide.md`. See `_header.md`.
 
 ## Specs and context
 `docs/spec/DESIGN-SYSTEM.md` (all of it), `docs/spec/guide.md`, `docs/spec/apple-edge-light.md`.
-Commits: `9c018561` (the header glass rests in the bell's circle and opens as a pill), `d632b8f3`,
-`efb95a3e` (feed bell in the top bar), `0651abd3`, `334d7907` (back closes overlays),
-`c2ac10f4`.
+Commits: `7bc08401` (the header glass rests in the bell's circle and opens as a pill), `1be31066`,
+`c543b037` (feed bell in the top bar), `df5f1504`, `44a1ac87` (back closes overlays),
+`dba738dc`.
 
 ## Leads from the orchestrator
 - `globals.css`: audit 2 found no dead tokens; three weeks of work since. Grep every `--token` for

@@ -125,7 +125,7 @@ function SelectItem({
         // Menu-material row: --radius-sm (8.8px, concentric with the 12px panel
         // via its 4px inset).
         //
-        // NO min-height. `min-h-9` arrived here in 74feaa2 and took the row from
+        // NO min-height. `min-h-9` arrived here in 380c454 and took the row from
         // its natural 28px (py-1 on a 20px line box) to 36px, the "really
         // stretched" menus the owner asked to have back at the previous size.
         // Removed from DropdownMenuItem the same day; removed here so the two

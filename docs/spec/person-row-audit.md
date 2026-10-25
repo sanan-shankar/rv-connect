@@ -54,7 +54,7 @@ hand-typed pixel values rather than size tokens.
 
 ## 3. Two bugs the audit turned up
 
-**3.1 is FIXED (`07e28d8`). 3.2 was fixed and then REVERTED by the owner the same day**, and is
+**3.1 is FIXED (`119c32e`). 3.2 was fixed and then REVERTED by the owner the same day**, and is
 now a recorded exception rather than an outstanding bug. Both are kept here with their diagnosis,
 because each explains a trap the next person can fall into. The sweep in section 4 is still not
 started.
@@ -147,7 +147,7 @@ Retire the hand-typed pixel values (34, 36) in favour of the tokens (`xs` 28, `s
 
 ## 5. Order, and what it costs
 
-1. ~~Fix §3.1~~ **Done** (`07e28d8`).
+1. ~~Fix §3.1~~ **Done** (`119c32e`).
 2. ~~Fix §3.2~~ **Cancelled.** Tried, reverted, and now a recorded exception. Do not revisit.
 3. Build the three wrappers, convert surface by surface, screenshotting each.
 4. Delete the direct `IdentityRow` calls and the bespoke `ProfileCard` lockup.

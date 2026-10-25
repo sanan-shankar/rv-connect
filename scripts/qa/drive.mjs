@@ -44,7 +44,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
  * Open your own profile and press "Edit profile".
  *
  * Both scenarios below used to go to `/settings`, which stopped existing when
- * the letterhead profile absorbed the editors (22b4b6c). They 404'd and then
+ * the letterhead profile absorbed the editors (d03b053). They 404'd and then
  * failed on a missing selector, which reads like a broken control rather than
  * a dead route.
  */

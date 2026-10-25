@@ -4,7 +4,7 @@ Charter T13: every `src/lib` file no other charter names (found by elimination: 
 lines), plus the config surface (`next.config.ts`, `tsconfig.json`, `eslint.config.mjs`,
 `postcss.config.mjs`, `components.json`, `vercel.json`, `prisma.config.ts`, `package.json` scripts
 and overrides, `.mcp.json`, `.github/**`, `.gitignore`, `src/instrumentation*.ts`, `src/types/**`).
-Date 2026-09-24, HEAD `70570bcd`. Audit-only.
+Date 2026-09-24, HEAD `495ecdd2`. Audit-only.
 
 ## Coverage
 - Elimination list (56 lib files): append-page, collection-viewer-facts, content-view, db-text,

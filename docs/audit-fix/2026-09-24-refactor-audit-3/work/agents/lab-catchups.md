@@ -7,7 +7,7 @@ table. For each room: what it is, when it was made, which shipped surface its ve
 the shipped copy diverged (history) or is the same code (a clone, and which way the import should go),
 whether shipped code imports it, what its fixtures weigh, what knip says, and what the lab costs.
 Archive candidates go to the owner as questions with "keep" as the default. Audit-only; nothing in
-the tree was changed. Date: 2026-09-24, HEAD `70570bcd`.
+the tree was changed. Date: 2026-09-24, HEAD `495ecdd2`.
 Files in territory: 61 (59 under `src/app/lab/catchups/` + 2 lab files) plus the table and two
 planning docs; read fully: 17; read at classification depth: the other 44 (see Coverage).
 
@@ -275,7 +275,7 @@ owner's call, put to him below with "keep" as the default.
 - **Evidence**: `raw/knip-repo-plus-lab.txt` lines 34-36, 48-50, 211. Each symbol occurs once in its
   own file (the declaration) and nowhere in `src`, `scripts` or `e2e` (the `<Contents b={b} />` at
   `_pages.tsx:540` is that file's own local component). History: `git log -G"<Contents[ />]"` last
-  touched 677d177d (2026-09-07); `VIEWPORT_WIDTH` lost its last reader in 98175b44 (2026-09-07, the
+  touched aa07c4b5 (2026-09-07); `VIEWPORT_WIDTH` lost its last reader in 1c3d7bbf (2026-09-07, the
   Screens tab's deletion); `<Picture` and `<Own` were never rendered. `raw/tsc-unused.txt`:
   `wall/_shapes.tsx(255,48): 'g' is declared but its value is never read`.
 - **What to do**: delete the listed ranges and the orphaned import; rename the reduce parameter to
@@ -360,8 +360,8 @@ owner's call, put to him below with "keep" as the default.
   `editable` prop and read-only branch in `_lab-client.tsx:38,194,220,244-248,306-309`.
 - **Phase**: placeholder
 - **Tier**: T2     **Class**: structural     **Decides**: autonomous
-- **Evidence**: the bypass is from 84f64abe (2026-07-30), when `/lab` was open to anyone. Since
-  b64e44aa (2026-08-20, security Phase 6) the lab layout returns `notFound()` for any non-admin in
+- **Evidence**: the bypass is from 7d9b4543 (2026-07-30), when `/lab` was open to anyone. Since
+  a95c61fd (2026-08-20, security Phase 6) the lab layout returns `notFound()` for any non-admin in
   every environment (`src/app/lab/layout.tsx:16-19`). So the page-side check can never be false for
   anyone who renders `/lab`, and the action-side bypass is now the one path that writes
   `LabRoomState` without a session, on a dev server whose database is production's.
@@ -403,7 +403,7 @@ owner's call, put to him below with "keep" as the default.
 - **Phase**: dedupe
 - **Tier**: T2     **Class**: structural     **Decides**: autonomous
 - **Evidence**: `_media.ts:30-35` calls itself "a lab-side stand-in for work the rooms will do
-  properly"; that work shipped as phase 10 (286820f7, 2026-09-14: a pure link grammar in
+  properly"; that work shipped as phase 10 (5a332878, 2026-09-14: a pure link grammar in
   `link-preview-core.ts`, the resolver with its `LinkPreview` table and re-hosted images). Two things
   follow. (1) On the live path the lab resolver is inert or wrong: `_data.ts:195-199` records that "a
   link the real loader resolved is now taken OUT of `e.body`", so the wave scans bodies that no longer
@@ -460,10 +460,10 @@ owner's call, put to him below with "keep" as the default.
 - **Phase**: hygiene
 - **Tier**: T1     **Class**: cheap     **Decides**: autonomous
 - **Evidence**: `settings/_room.tsx:16-25` imports everything from `../_settings` (the lab's own
-  1,226-line file). b94677ce (2026-09-09 12:41) created `settings-surface.tsx` (1,191 lines at birth)
-  as a transplant and never touched the room, whose last commit is b49a0552 (02:17 the same day). They
-  have diverged since: d422de66 (2026-09-15) moved the shipped surface to the shared `BottomSheet`;
-  334d7907 (back closes overlays); the shipped surface offers three rhythms and the room four
+  1,226-line file). e8307e39 (2026-09-09 12:41) created `settings-surface.tsx` (1,191 lines at birth)
+  as a transplant and never touched the room, whose last commit is 3290d221 (02:17 the same day). They
+  have diverged since: 3be6ae75 (2026-09-15) moved the shipped surface to the shared `BottomSheet`;
+  44a1ac87 (back closes overlays); the shipped surface offers three rhythms and the room four
   (`settings-surface.tsx:52-58` says so itself). 346 of `_settings.tsx`'s 1,227 lines are verbatim
   clones of the shipped file (28 %). The lab's own claims (`settings/page.lab.tsx:8-10`,
   `_rail.tsx:23-28`) are about the lab spine and the lab room sharing `_settings.tsx`, and are true.
@@ -484,7 +484,7 @@ owner's call, put to him below with "keep" as the default.
   `sketches/_list.tsx:33-38` ("a panel is a heading, a state line and the Edition's own contents").
 - **Phase**: hygiene
 - **Tier**: T1     **Class**: cheap     **Decides**: autonomous
-- **Evidence**: `_harness.tsx:51-58` says the stills and the Screens tab are gone (98175b44,
+- **Evidence**: `_harness.tsx:51-58` says the stills and the Screens tab are gone (1c3d7bbf,
   2026-09-07); the views are `phone|laptop` (`_harness.tsx:44-49`); navigators B and C are deleted
   (`_navigator.tsx:37-38`); the list draws photograph cards (`_list.tsx:93-160`). The other seven
   Catch-ups registry notes match their rooms (checked each against its page).
@@ -538,7 +538,7 @@ owner's call, put to him below with "keep" as the default.
   why" you picked the run, and move the other two (about 6,050 lines); (d) move all three (about
   7,700 lines).
 - *If you don't reply*: (a), keep all three.
-  `[sketches -> 5e688bb4, b94677ce, 5eccd80d; settings -> b94677ce; wall -> 14c1b096, 5eccd80d;
+  `[sketches -> 69da2844, e8307e39, 21a837e3; settings -> e8307e39; wall -> 09e443d2, 21a837e3;
   do lab-catchups-07 first; lab-catchups-05 and -12 apply only if kept]`
 
 **2. The settings room: the record of what you signed off, or a window onto the real settings?**
@@ -714,14 +714,14 @@ owner's call, put to him below with "keep" as the default.
   1,664); settings 1,451 incl. `_settings.tsx` 1,226; wall 1,669; voice 1,688; vote 1,213; capsule
   1,043; magazine 981 (+ fixtures 18,698 incl. `corpus.ts`, + engine `src/lib/magazine` 2,692,
   + printer 215, + `magazine.md` 783); swipe 277; shared fixture `pressure.ts` 407.
-- **Made / last touched / shipped as**: sketches 2026-09-06 / 09-14 / list 5e688bb4 (09-08), home
-  b94677ce (09-09), reader 5eccd80d (09-10). settings 09-09 / 09-09 / b94677ce (09-09). wall 09-09 /
-  09-14 / run 14c1b096 (09-09) + `photo-run.tsx` 5eccd80d (09-10). swipe 09-09 / 09-09 / instrument,
-  V2/V3 open. voice, vote, capsule 09-14 / 09-14 / owner-gated (plumbing a8f4ea6f, 6e663ba5,
-  76aac5ac, all on origin/main). magazine 09-14 / 09-14 / M1 done, M2 waiting on him.
+- **Made / last touched / shipped as**: sketches 2026-09-06 / 09-14 / list 69da2844 (09-08), home
+  e8307e39 (09-09), reader 21a837e3 (09-10). settings 09-09 / 09-09 / e8307e39 (09-09). wall 09-09 /
+  09-14 / run 09e443d2 (09-09) + `photo-run.tsx` 21a837e3 (09-10). swipe 09-09 / 09-09 / instrument,
+  V2/V3 open. voice, vote, capsule 09-14 / 09-14 / owner-gated (plumbing 5f2de4ac, 5d8d52cb,
+  889ea41e, all on origin/main). magazine 09-14 / 09-14 / M1 done, M2 waiting on him.
 - **Commits** touching `src/app/lab/catchups/`: 36; last 2026-09-14; 8 were shipped changes rippling
-  into the lab (d81a7db9 the Round -> Edition rename touched 12 lab files; 782d9f7b, 02f9302f,
-  5e688bb4, 41a73a73, 40791570, 286820f7, 6e663ba5).
+  into the lab (e875a2e7 the Round -> Edition rename touched 12 lab files; 6148c5e6, b6b38f95,
+  69da2844, afe4d367, 7a5d2135, 5a332878, 5d8d52cb).
 - **Biggest files**: `_settings.tsx` 1,226; `sketches/_home.tsx` 970; `wall/_shapes.tsx` 938;
   `sketches/_reader.tsx` 760; `voice/_recorder.tsx` 728; `magazine/_pages.tsx` 611;
   `sketches/_parts.tsx` 595; `sketches/_navigator.tsx` 526. Fixtures: `wall-300.json` 5,631;

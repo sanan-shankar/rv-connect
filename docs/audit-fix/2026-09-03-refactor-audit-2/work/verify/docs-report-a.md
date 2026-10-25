@@ -1,6 +1,6 @@
 # docs-report-a — adversarial verification (docs-01 … docs-11)
 
-Verifier: `docs-report-a`. Date: 2026-09-04. HEAD at verification: `74cc61a`
+Verifier: `docs-report-a`. Date: 2026-09-04. HEAD at verification: `0cecf11`
 ("fix(retention): notifications are kept 30 days, everywhere").
 Parent report: `work/agents/docs.md`. Method: read-only; every claim re-derived from the
 tree at HEAD with `grep`/`sed`/`stat`/`git ls-files`. No builds, no browser, no database.
@@ -8,7 +8,7 @@ tree at HEAD with `grep`/`sed`/`stat`/`git ls-files`. No builds, no browser, no 
 Working tree state seen (someone else's WIP, audited around):
 `docs/audit-fix/README.md` and `progress.md` are both **modified**; the audit-2 folder is
 untracked. `docs/SECURITY.md` — which the parent report saw dirty — has since been
-COMMITTED as `74cc61a`, so the 30-day notification retention is now HEAD, not WIP.
+COMMITTED as `0cecf11`, so the 30-day notification retention is now HEAD, not WIP.
 
 Headline: **0 refuted outright; 8 of 11 need a correction.** The two corrections that
 matter are (a) docs-02's "never existed" is too strong — the 1600px/q80 row IS a live code
@@ -166,7 +166,7 @@ Verdict: **confirmed-with-correction**.
   `hand-run-passes.md` is bolded read-before-working in CLAUDE.md ✓.
 - Planning bullet `:28-30` names 4 files; disk holds **15** (8 files + 3 campaign folders:
   `collection-rework/` 4, `collection-scrubber/` 2, `class-collection/` 1) ✓.
-- `git log -1 -- docs/README.md` → **2026-08-26** `5be3952` ✓, the very day it claims to
+- `git log -1 -- docs/README.md` → **2026-08-26** `0294dae` ✓, the very day it claims to
   have been verified.
 
 Verdict: **confirmed** (line range 22-27, not 22-25).

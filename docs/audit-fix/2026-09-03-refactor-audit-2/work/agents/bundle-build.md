@@ -41,7 +41,7 @@ the raw outputs listed under Coverage.
   beyond what the analyzer names.
 - Uncommitted edits seen (someone else's WIP): `src/components/common/image-viewer.tsx` is
   modified in the working tree (`git status` at session start). I did not open it; my numbers
-  come from the HEAD build (`72b5a1d`), which the scratch worktree was built from.
+  come from the HEAD build (`09772aa`), which the scratch worktree was built from.
 
 ## Summary
 
@@ -339,7 +339,7 @@ Sentry wrapper, or the DemoBar split, and I re-checked all three against the cur
   house-chain-editor 3.6, avatar-crop-dialog 3.4, onboarding-flow 2.6, attach-image-dialog 2.6,
   houses-step 2.4, photo-step 2.1), the houses-chain + Popover chunk 29.5 KB. The letterhead
   already defers this exact picker (`src/components/profile/letterhead-profile.tsx:128`,
-  session 8's `d68d923`, "LocationPicker ... each through next/dynamic behind the gate each
+  session 8's `7517103`, "LocationPicker ... each through next/dynamic behind the gate each
   already had"), so the pattern, the loading state and the verification are known.
 - **What to do**: in `register-step.tsx` replace the static import with
   `const LocationPicker = dynamic(() => import("@/components/common/location-picker").then(m =>
@@ -679,13 +679,13 @@ Sentry wrapper, or the DemoBar split, and I re-checked all three against the cur
 
 ## Audit-1 carry-overs in this territory
 
-- bundle-build-01 (posthog defer): **done** (`b8010bc`), confirmed off the critical path above.
-- bundle-build-02 (LazyMotion + `m`): **done** (`8314f24`), holds; the LazyMotion core is 49.1 KB
+- bundle-build-01 (posthog defer): **done** (`19a8a25`), confirmed off the critical path above.
+- bundle-build-02 (LazyMotion + `m`): **done** (`b9aeab0`), holds; the LazyMotion core is 49.1 KB
   raw / 27.6 KB gz in the root set, matching session 7's "49 KB, not 15-30"; the barrel import
   left behind is this report's 01.
-- bundle-build-03 step 1 (atlas fetched): **done** (`b899d1a`) for the shipped map; the lab copy
+- bundle-build-03 step 1 (atlas fetched): **done** (`ad53bab`) for the shipped map; the lab copy
   still compiles the JSON (lab lens). Step 2 (dynamic map): **owner-declined, unchanged**.
-- bundle-build-04 (404 bird): **done** (`36288fa` + the `one-hoopoe-guard` move); /privacy 630 KB
+- bundle-build-04 (404 bird): **done** (`d7a0a15` + the `one-hoopoe-guard` move); /privacy 630 KB
   carries no puppet.
 - bundle-build-05 (TypeScript on deploy): **owner-declined in session 7; unchanged; not
   reopened** (07 explains the lab's share for completeness only).
@@ -699,15 +699,15 @@ Sentry wrapper, or the DemoBar split, and I re-checked all three against the cur
 - bundle-build-09 (lab in prod): **owner decision, still open**; 07 restates it with the cold/warm
   nuance and the CSS number.
 - bundle-build-10 (bird sprite): **open, untouched** (no sprite commit, nothing in `public/`).
-- bundle-build-11 (dialog deferral): **done** (`a6be05b`, `d68d923`) with the latch; the two
+- bundle-build-11 (dialog deferral): **done** (`78799d3`, `7517103`) with the latch; the two
   catch-ups dialogs skipped with reason; unchanged.
-- bundle-build-12 (feed photo sizing): **done** (`b87b75e`, `b2216d5`); session 7's "if a future
+- bundle-build-12 (feed photo sizing): **done** (`a13774a`, `cea5b6b`); session 7's "if a future
   session wants one number to care about it is image bytes" still stands and is outside this
   lens's JavaScript arithmetic.
 - Landing showcase family: **still switched off** (`SHOW_SHOWCASE` comment in `src/app/page.tsx`),
   knip lists five files; `showcase-shot.tsx`, `perching-birds.tsx` and `ambient-leaves.tsx` are
   reachable only from `showcase.tsx` and two lab landings, so they cost shipped pages nothing.
-- Vercel Analytics vs PostHog: **resolved** (Vercel Analytics removed, `bd7da7d`).
+- Vercel Analytics vs PostHog: **resolved** (Vercel Analytics removed, `15c4f4c`).
 
 ## For other lenses
 

@@ -3,7 +3,7 @@
 Territory reader T10: the signed-out landing page, the hoopoe mascot (the rig, its controller, the
 cross-page flight, the moments), the 50 hashable (+1 reserved) bird avatars and the images and
 scripts behind them. Audit-only; the only file written is this one. Date: 2026-09-24, HEAD
-`70570bcd`. Files in territory: 52 source files (+ 3 read-only scripts, 1 test I also own, 116
+`495ecdd2`. Files in territory: 52 source files (+ 3 read-only scripts, 1 test I also own, 116
 tracked images); read fully: all 52 source files, all 3 scripts, both specs, plus the out-of-charter
 files my findings touch (`bird-avatar.tsx`, `auth-panel.tsx` head and `AuthHeading`,
 `auth-first-frame.tsx` imports, `get-in-touch.tsx:150-280`, `sidebar.tsx:505-560`,
@@ -372,11 +372,11 @@ for the logo egg (it no longer uses the rig at all), A17's `ring` (no shipped ca
   `played` stays `false`, and `useHoopoeLife(h, solo && played, lookAt)` (`:113`) never starts. The
   bird sits there breathing and blinking (the rig's own idle), which is why it looks alive enough to
   pass a glance. The shape predates `MomentStage` (every moment wrote it inline on 2026-07-06;
-  `git show 7a55fa25^:src/components/mascot/moments/no-results-hoopoe.tsx`). The owner approved these
+  `git show f63bc3ee^:src/components/mascot/moments/no-results-hoopoe.tsx`). The owner approved these
   moments in `/lab/mascot-moments`, whose own `useAutoplay` copy (`page.lab.tsx:354-380`, jscpd pairs
   it with `moment-hoopoe.tsx:48-60`) observes a stage that is always rendered (`:428-438`), so it
   plays there and only there. The 2026-08-26 refactor's check ("moves through 30 distinct poses",
-  `7a55fa25`) would also be satisfied by breathing and blinking.
+  `f63bc3ee`) would also be satisfied by breathing and blinking.
 - **What to do**: render the stage div always and gate only the bird, as `ContributedHoopoe` does:
   `return <div ref={stageRef} aria-hidden className={className}>{solo && <Hoopoe ref={ref} size={size} />}</div>;`.
   Do not add `solo` to the hook's deps instead: that works, but leaves two stage shapes where one is
@@ -598,7 +598,7 @@ for the logo egg (it no longer uses the rig at all), A17's `ring` (no shipped ca
   - `moments/messages-empty-hoopoe.tsx:8-10` ("on desktop where the sidebar resident holds the
     one-hoopoe slot": it only holds it after 90-120 s of idle).
   - `moments/logo-easter-egg-hoopoe.tsx:30-33` ("the peek (its geometry and the edge-light filter)"):
-    the edge light came out in `86447f73`.
+    the edge light came out in `9ca07075`.
   - `moments/celebration-signals.tsx:11` and `celebration-detector.tsx:68` ("currently just /feed"):
     `/welcome` too.
   - `sidebar-hoopoe.tsx:23-26` names "the landing scroll companion" among the birds the guard covers.
@@ -737,7 +737,7 @@ mascot.md "Open follow-ups: Proportions")*
 - **`ResidentHoopoe` leaving the one-hoopoe guard to its callers.** All three callers use `solo` for their
   own layout too (`almost-ready.tsx:69,89,99`, `completion-card.tsx:45`), so the guard cannot move inside.
 - **`hoopoe-geometry.ts` living in `src/lib/`.** Audit 2's G9 wanted it relocated as build-and-lab-only
-  tooling; since `eb55658c` (2026-09-17) the logo peek imports it at runtime, lazily. Its place is right now.
+  tooling; since `7fab0995` (2026-09-17) the logo peek imports it at runtime, lazily. Its place is right now.
 - **The icon pipeline's seam assertion at both ends** (`build-app-icon.mjs:58-66`,
   `generate-icons.mjs:67-74`): deliberate, "a silently flat Android icon is the failure this whole path
   exists to prevent". And `app-icon-safe-zone.test.mjs` decodes the shipped PNG and counts eye pixels
@@ -771,7 +771,7 @@ mascot.md "Open follow-ups: Proportions")*
 
 - **Audit 1 §4 #1 / audit 2 D2, the landing showcase**: DECLINED at audit 2 Q1 (keep, switched off).
   Still off and still 0 client bytes; 11 files / ~2,480 lines. New since: its five screenshots were
-  deleted by the owner's own `f8ef8a20` (2026-09-07), so `shots.ts:22-56` names five missing files
+  deleted by the owner's own `acdafccf` (2026-09-07), so `shots.ts:22-56` names five missing files
   (Owner decision A). Internal state if it ever ships: `trust-section.tsx:4-10,60` still has the five
   invented names and "10 people vouched"; `footer-hoopoe.tsx` still carries its own copy of the life
   cadence `use-hoopoe-life.ts` was lifted from, and a private guard query; `ambient-leaves.tsx:95`
@@ -784,7 +784,7 @@ mascot.md "Open follow-ups: Proportions")*
 - **Audit 2 -01 step 1 (the shell glyph edges, "free half")**: never made a row; OPEN; finding 02, with
   the module-graph correction.
 - **Audit 2 -02 / B2 (rig deferral)**: DONE for the sidebar (`sidebar-hoopoe.tsx:55-58`); MOOT for the
-  logo egg (since `eb55658c` it draws `LogoPeek`, no rig); the moments half is bundle-build-02 (with
+  logo egg (since `7fab0995` it draws `LogoPeek`, no rig); the moments half is bundle-build-02 (with
   05's corrections); `/` is finding 01.
 - **Audit 2 -04 (`point` label), -05 (`initialExpression`)**: OPEN; finding 07.
 - **Audit 2 -06 / A17 (`BirdAvatar`'s `ring`)**: resolved by the owner (keep pixels, guard argued in
@@ -792,7 +792,7 @@ mascot.md "Open follow-ups: Proportions")*
 - **Audit 2 -07 / E8 (one-hoopoe waiters)**: OPEN in the report, closed by judgement here; finding 14
   keeps the one real line.
 - **Audit 2 -08 / G9 (`hoopoe-geometry.ts` + `edge-light.ts` out of `src/lib/`)**: never executed
-  (not on the board's G line). `hoopoe-geometry.ts` half MOOT (ships since `eb55658c`); `edge-light.ts`
+  (not on the board's G line). `hoopoe-geometry.ts` half MOOT (ships since `7fab0995`); `edge-light.ts`
   half still open (consumers: `/lab/glass-edges` and `scripts/dev/generate-icons.mjs` only; T09 owns the
   file).
 - **Audit 2 -09 (`apple-edge` scripts hard-wired to `sanan's stuff/`)**: OPEN

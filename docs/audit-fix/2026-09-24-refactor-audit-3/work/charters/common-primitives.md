@@ -12,9 +12,9 @@ Report: `work/agents/common-primitives.md`. See `_header.md`.
 
 ## Specs and context
 `docs/spec/DESIGN-SYSTEM.md` (the primitives section), `.claude/skills/liftkit-spacing/SKILL.md`.
-Commits: `d422de66` (one bottom sheet with a shared title, round X and swipe to close, 2026-09-15),
-`f9bca40f` (the toast's action button), `334d7907` (back closes a photo, dialog, sheet or drawer),
-`9c018561` (the header search pill — T09 owns the header; you own any primitive it uses).
+Commits: `3be6ae75` (one bottom sheet with a shared title, round X and swipe to close, 2026-09-15),
+`6d478b12` (the toast's action button), `44a1ac87` (back closes a photo, dialog, sheet or drawer),
+`7bc08401` (the header search pill — T09 owns the header; you own any primitive it uses).
 
 ## Leads from the orchestrator
 - The shared bottom sheet (09-15): are the sheets it replaced deleted, or still exported?

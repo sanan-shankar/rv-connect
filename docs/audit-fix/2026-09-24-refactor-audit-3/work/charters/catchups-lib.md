@@ -15,8 +15,8 @@ Report: `work/agents/catchups-lib.md`. See `_header.md`.
 
 ## Specs and context
 `docs/spec/catchups.md`, `docs/planning/catchups-rework/architecture.md` and `spec.md`. Commit
-`35b75868` ("design the magazine as a layout engine, with its corpus, room and printer") and
-`90aa745c` (the campaign close). The `*-rule.ts` + `*-rule.test.mjs` pattern is the house shape
+`3e92eb2d` ("design the magazine as a layout engine, with its corpus, room and printer") and
+`cf01fee8` (the campaign close). The `*-rule.ts` + `*-rule.test.mjs` pattern is the house shape
 for a pure rule with a pinned test — a rule module the app never imports is a finding.
 
 ## Leads from the orchestrator
@@ -32,7 +32,7 @@ for a pure rule with a pinned test — a rule module the app never imports is a 
 - The rule files (`vote-question-rule`, `time-capsule-rule`, `unattended-rule`,
   `voice-answer-rule`, `catchup-lifecycle`): which of these are imported by app code vs only by
   their own tests?
-- `group-succession.ts` and `roster.ts`: Groups "is not a feature" (docs commit `c34aae3e`), yet
+- `group-succession.ts` and `roster.ts`: Groups "is not a feature" (docs commit `7ce1da1f`), yet
   Catch-ups live on `Group`/`GroupMember`. Is the group layer earning its keep or is it a leftover
   indirection the Catch-up model could absorb? (Architecture-level; propose, do not recommend.)
 

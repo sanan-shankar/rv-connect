@@ -115,7 +115,7 @@ a level of creativity." Your checklists below are a floor, not a ceiling. Hunt.
   stylesheet ships to every page (Tailwind v4 output over ALL source, lab included).
 - **`npm run check`** = TypeScript + ESLint + shape/colour protocol + lab registry + 102
   `*.test.mjs` files + dependency advisories + security status board, 24.8 s, green at HEAD
-  `72b5a1d`. `npm run visual` = 11 routes × 2 viewports against `e2e/__screenshots__/`
+  `09772aa`. `npm run visual` = 11 routes × 2 viewports against `e2e/__screenshots__/`
   (13 MB of PNG baselines, tracked on purpose). `npm run verify:crawl` walks every route.
 - The unit tests are plain `node:test` files discovered by glob; many are "rule" tests that
   read source as text and assert a pattern (regression pins, each carrying an audit id like

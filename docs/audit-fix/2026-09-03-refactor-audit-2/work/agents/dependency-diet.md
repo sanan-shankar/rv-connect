@@ -38,7 +38,7 @@ Sentry + experiments blocks, `node_modules/shadcn/dist/tailwind.css` (95 lines).
   consumes each dependency (territory agents own it).
 - **Uncommitted edits seen**: none. `git status --short` at the time of writing shows only this
   audit's own untracked folder. The `M src/components/common/image-viewer.tsx` the session
-  started with landed as `72b5a1d` before I read anything.
+  started with landed as `09772aa` before I read anything.
 - **Not run** (hard rule 3): no build, no `npx knip`, no `npm ls`, no browser. Every number
   below comes from `du`, `stat`, `gzip -c | wc -c`, `grep` and `node -e` over files already on
   disk.
@@ -249,7 +249,7 @@ imports lives inside the gitignored generated client, which knip is configured n
 - **Tier**: T2     **Class**: structural     **Decides**: autonomous
 - **Evidence**: the allowlist entry accepts GHSA-ggr8-5vv4-36mx "deepmerge-ts stack exhaustion,
   pulled only via @prisma/config", with `clearsWhen: "prisma ships a 7.x release that bumps
-  deepmerge-ts to >=8"`. Commit `b4411f1` (2026-08-27) then added
+  deepmerge-ts to >=8"`. Commit `b069992` (2026-08-27) then added
   `"deepmerge-ts": "^8.0.2"` to `overrides`, which *forces* exactly that outcome:
   `package-lock.json` resolves `node_modules/deepmerge-ts @ 8.0.2` against `@prisma/config`'s
   exact `7.1.5` pin. The advisory therefore no longer appears in `npm audit --omit=dev`, and the
@@ -296,8 +296,8 @@ imports lives inside the gitignored generated client, which knip is configured n
 - **Phase**: hygiene (documentation drift with a real cost)
 - **Tier**: T1     **Class**: cheap     **Decides**: autonomous
 - **Evidence**: OPERATIONS §4 opens "**One `overrides` entry lives in `package.json`, and it is
-  not permanent**" and describes `deepmerge-ts` only. Since it was written, `5dbb402`
-  (2026-09-02) added `mysql2`, `postcss-selector-parser` and `browserslist`, and `a13a8a9`
+  not permanent**" and describes `deepmerge-ts` only. Since it was written, `f39d7a5`
+  (2026-09-02) added `mysql2`, `postcss-selector-parser` and `browserslist`, and `6918a0f`
   (2026-09-02, the most recent commit before this audit) added `fast-uri`. The exit condition
   for those four exists **only in the two commit messages**, and OPERATIONS' own sentence for
   why the doc exists is "an override that outlives its reason is a pin nobody remembers making"
@@ -331,7 +331,7 @@ imports lives inside the gitignored generated client, which knip is configured n
   |---|---|---|---|
   | `deepmerge-ts: ^8.0.2` | 8.0.2 (prod) | `@prisma/config` at **exact `7.1.5`** | **load-bearing.** A major bump across an exact pin — npm cannot reach 8.x without it. Keep until `@prisma/config` moves. |
   | `mysql2: ^3.24.3` | 3.24.3 (prod) | `prisma` at **exact `3.15.3`** | **load-bearing.** Same shape. Keep. |
-  | `fast-uri: ^3.1.7` | 3.1.7 (prod) | four nested `ajv` copies, all at `^3.0.1` | **floor only.** Every parent's range already admits 3.1.7; the override raises the lockfile's floor and stops a downgrade. It is in the *production* graph (via `@prisma/streams-local` → `ajv`), which is why CI went red on `a13a8a9` while the local run had passed. Keep while prisma sits in `dependencies`. |
+  | `fast-uri: ^3.1.7` | 3.1.7 (prod) | four nested `ajv` copies, all at `^3.0.1` | **floor only.** Every parent's range already admits 3.1.7; the override raises the lockfile's floor and stops a downgrade. It is in the *production* graph (via `@prisma/streams-local` → `ajv`), which is why CI went red on `6918a0f` while the local run had passed. Keep while prisma sits in `dependencies`. |
   | `browserslist: ^4.28.8` | 4.28.8 (prod) | `@babel/helper-compilation-targets ^4.24.0`, `webpack ^4.28.1` (via `@sentry/webpack-plugin`), `shadcn ^4.26.2` | **floor only.** All three ranges already admit it. Keep — it is a caret floor with three parents and costs nothing — but note it is not "forcing" anything. |
   | `postcss-selector-parser: ^7.1.5` | 7.1.5 (**dev**) | `shadcn ^7.1.0` — **the only parent** | **the weakest of the five, and dead the moment finding 01 lands.** It closed a **low**-severity advisory, and `gateVerdict` (npm-audit-gate.mjs:66) only considers `high` and `critical`, so this override has never affected the gate. Its package is dev-only, so `npm audit --omit=dev` never saw it either. It exists purely so a bare `npm audit` prints 0. |
 
@@ -369,7 +369,7 @@ imports lives inside the gitignored generated client, which knip is configured n
   `next.config.ts:353` — *"don't let sentry send me emails for each commit or deployment"*.
   Meanwhile `@sentry/cli-darwin`, the platform binary, is **34.6 MB** — the single largest
   package inside `@sentry/nextjs`'s 147.5 MB / 137-package exclusive subtree — and it is in the
-  **production** graph. The commit that added the `allowScripts` block (`cf6b482`) justified the
+  **production** graph. The commit that added the `allowScripts` block (`7877fc8`) justified the
   approval as keeping "a future npm [from] quietly drop[ping] prisma generate or Sentry's
   source-map upload"; the second half of that sentence describes something that does not happen.
 - **What to do**: two honest options.
@@ -406,7 +406,7 @@ imports lives inside the gitignored generated client, which knip is configured n
 - **Tier**: T1     **Class**: structural     **Decides**: autonomous
 - **Evidence**: audit 1's finding 06 fixed exactly this class for the runtime packages —
   `d3-selection` was being imported without being declared and was added to `dependencies` in
-  `931a4cd`. The types half was not: `alumni-map.tsx:8` typechecks only because
+  `1757b0a`. The types half was not: `alumni-map.tsx:8` typechecks only because
   `node_modules/@types/d3-selection` is hoisted to the root by `@types/d3-zoom`'s `*`
   dependency on it. `d3-selection` ships no types of its own
   (`node_modules/d3-selection/package.json` has no `types`/`typings` and no `index.d.ts`). The
@@ -583,7 +583,7 @@ imports lives inside the gitignored generated client, which knip is configured n
   (`chromium-bidi` 14.9, `puppeteer-core` 7.9, a second `zod` copy 5.0, `devtools-protocol` 3.7);
   `@playwright/test` is 3 packages / **18.1 MB** on top of `playwright-core` 13.1 MB. Both drive
   Chrome. `package.json:87-89` already tells puppeteer not to download its own browser
-  (`skipDownload: true`, audit-1 finding 16, landed as `cb3709d`), because CLAUDE.md gotcha 2
+  (`skipDownload: true`, audit-1 finding 16, landed as `47bd771`), because CLAUDE.md gotcha 2
   says the bundled Chrome is broken here and the scripts point at the real one. Playwright, by
   contrast, has working browsers and is already the engine behind `npm run visual` and
   `npm run test:e2e`.
@@ -666,7 +666,7 @@ imports lives inside the gitignored generated client, which knip is configured n
 - **Evidence**: `find . -name "*no-motion-namespace*"` returns nothing, and
   `git log --diff-filter=D --name-only -- '*no-motion-namespace*'` shows it was never deleted
   either — it was never created under that name. The test that actually exists was added in the
-  same commit as the comment (`8314f24`, "perf(motion): the app animates through `m`, features
+  same commit as the comment (`b9aeab0`, "perf(motion): the app animates through `m`, features
   load async") as `motion-namespace-rule.test.mjs`, and it does exactly what the comment claims
   (`:45-50` walks every file importing `motion/react` and fails on a stray `motion.`; `:69-71`
   asserts the LazyMotion is mounted with `domMax`).
@@ -923,25 +923,25 @@ finding 02.)
 not-finding 8 held. **Verdict: keep, server-only confirmed at 2026-09-03.**
 
 **7. `dotenv`, `pg`, `@types/d3-zoom` are in the right section now.** Audit 1 moved all three to
-`devDependencies` in `fd62729`. I re-verified: zero `src` imports of `dotenv` or `pg`; the
+`devDependencies` in `131449f`. I re-verified: zero `src` imports of `dotenv` or `pg`; the
 runtime `pg` arrives through `@prisma/adapter-pg`'s own `"pg": "^8.16.3"`, which is why
 `node_modules/pg` is marked non-dev in the lockfile. **Verdict: correct as-is.**
 
 **8. `zod` is server-only and costs the browser nothing.** Six import sites, five of them
 `zod/v4` and one type-only; all in server actions and validators. No chunk contains a zod
 signature. Its 6.0 MB is disk. **Verdict: keep.** (The `zod` vs `zod/v4` split audit 1 flagged
-was unified in `c85658f`; only the type-only import at `profile-actions.ts:28` uses the
+was unified in `0c97465`; only the type-only import at `profile-actions.ts:28` uses the
 `zod/v4` path for a type, which is consistent.)
 
 **9. `puppeteer.skipDownload: true` in `package.json` is the audit-1 fix, done.** `.puppeteerrc.cjs`
-is gone; the setting moved into `package.json:87-89` in `cb3709d`, and the owner deleted the
+is gone; the setting moved into `package.json:87-89` in `47bd771`, and the owner deleted the
 357 MB of cached Chrome on 2026-08-26. `npm run screenshot` was verified working with
 `PUPPETEER_EXECUTABLE_PATH` at that time. **Verdict: closed, nothing to do.**
 
 **10. `allowScripts` is a real npm field, not dead config.** It is not read by anything in this
 repo — I checked `scripts/`, `.github/`, `docs/` and `.npmrc` (absent) — because it is read by
 **npm itself**: npm 11 warns about install scripts outside it and npm 12 will refuse them
-(`cf6b482`). The five approvals and three denials are all justified. **Verdict: keep.** (The one
+(`7877fc8`). The five approvals and three denials are all justified. **Verdict: keep.** (The one
 inconsistency inside it is finding 06.)
 
 ---
@@ -957,7 +957,7 @@ inconsistency inside it is finding 06.)
   23.2, `@prisma/dev` 18.3, `@prisma/studio-core` 42.2, `elkjs` 7.7). **Not retried.** The new
   fact worth recording: three of the five overrides exist because of that graph
   (`deepmerge-ts` via `@prisma/config`, `mysql2` via `prisma` itself, `fast-uri` via
-  `@prisma/streams-local` → `ajv`), and it is why `a13a8a9` went red in CI while green locally.
+  `@prisma/streams-local` → `ajv`), and it is why `6918a0f` went red in CI while green locally.
   That is a cost of a decision already taken, not an argument to re-take it.
 - **`@paralleldrive/cuid2` → `randomUUID` (audit-1 finding 14): still parked.** Finding 09
   reports its state and recommends closing it as "won't do".
@@ -976,13 +976,13 @@ inconsistency inside it is finding 06.)
   `next experimental-analyze` (`package.json:22`). OPERATIONS §5 documents the change.
 - **`xlsx` (audit-1 finding 15, owner decision): resolved.** The owner decided no more
   spreadsheets are coming; the workbooks were converted to CSV and the dependency deleted
-  (`938a898`). Gone from `package.json`. **Closed.**
+  (`63a3ab2`). Gone from `package.json`. **Closed.**
 - **Puppeteer's 357 MB of cached Chrome (audit-1 owner item 3): done**, deleted by the owner
   2026-08-26.
 - **The `@auth/prisma-adapter`, `supercluster`, `d3-scale`, `@types/*` removals (audit-1 finding
-  01, 04, 07): all done** in `931a4cd`; none of those names appears in `package.json` or the
+  01, 04, 07): all done** in `1757b0a`; none of those names appears in `package.json` or the
   lockfile.
-- **`tw-animate-css` (audit-1 finding 09): removed entirely** in `add8dd2`, not just
+- **`tw-animate-css` (audit-1 finding 09): removed entirely** in `62a76f4`, not just
   re-sectioned. `globals.css` no longer imports it.
 
 ---

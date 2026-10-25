@@ -19,7 +19,7 @@ What binds you. Read CLAUDE.md, AGENTS.md, and docs/TRAPS.md before touching cod
   the message body so the history and the ledger agree. Three or four commits should cover
   what is left. Stage by name, never git add -A. Plain conventional messages, no AI
   attribution. Work on main. Do NOT push — ask first. **Seventy-four commits are unpushed**,
-  the whole of 2026-08-23 to now (997f8f0 through the last docs commit).
+  the whole of 2026-08-23 to now (ba6c6b8 through the last docs commit).
 - Verify, don't trust. `npm run check` after each fix, and confirm runtime-shaped changes
   live. The pattern that works: a throwaway probe at the repo root, run with
   `npx tsx probe-x.mts` (must be .mts), loading .env with dotenv and importing

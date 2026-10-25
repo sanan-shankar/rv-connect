@@ -4,8 +4,8 @@ Verifier charter: the admin rooms and the analytics queries. 14 finding ids
 (`admin-analytics-01..06, 09..14`, plus `data-layer-12` and `duplication-20`).
 Date: 2026-09-04. Read-only; no builds, no browser, no database.
 
-**HEAD has moved since the find phase.** The audit baseline was `72b5a1d`; HEAD is now
-`74cc61a` ("fix(retention): notifications are kept 30 days, everywhere"). That single commit
+**HEAD has moved since the find phase.** The audit baseline was `09772aa`; HEAD is now
+`0cecf11` ("fix(retention): notifications are kept 30 days, everywhere"). That single commit
 touched `.github/workflows/snapshot.yml`, `docs/OPERATIONS.md`, `docs/SECURITY.md`,
 `progress.md`, `scripts/ops/prune.mjs`, `src/app/(main)/notice/[id]/page.tsx`,
 `src/app/(policies)/privacy/page.tsx`, `src/lib/notification-reach.test.mjs`,
@@ -55,8 +55,8 @@ fix session must, in the same commit, re-point the pin at
 `changed.count === 0` shape with the same C-074/C-130 comment. Do not "fix" it by relaxing the
 regex.
 
-**CORRECTION 2 (numbers).** `git show --numstat`: `65c5e94` was **+136/−7** on content-list
-(not +143) and +42/−0 on collection/actions; `076be8c` was **+20/−8** on content-list (not
+**CORRECTION 2 (numbers).** `git show --numstat`: `cc86225` was **+136/−7** on content-list
+(not +143) and +42/−0 on collection/actions; `6a39f88` was **+20/−8** on content-list (not
 +28/−18). The substance — that the review-room commit left every approval control standing —
 is confirmed by both the numstat and that commit's own message ("The old type=pending filter is
 gone; the count on /admin/content and the worklist link both point here, and the URL

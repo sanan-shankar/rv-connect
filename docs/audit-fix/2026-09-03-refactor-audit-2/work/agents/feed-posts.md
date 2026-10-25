@@ -104,7 +104,7 @@ the fix session's SELECT to run and the owner's call (Owner decisions §B).
   and everything conditioned on them is unreachable: the `else` arm of `loadPosts` (offset
   paging for count sorts), `getTimeFilterDate`, the `Select`s, the disclosure, and the
   `sortBy === "recent" && timeFilter === "all"` halves of two guards.
-  `git log -L85,85 -- 'src/app/(main)/feed/page.tsx'` puts `showControls={false}` at `e5fc121`
+  `git log -L85,85 -- 'src/app/(main)/feed/page.tsx'` puts `showControls={false}` at `4951669`
   (2026-06-28, "feed surface matches the v2 contract") when search moved to the header pill;
   the sort/time controls have not been on screen since. ROADMAP Phase 4 says "filters behind
   disclosure" as a DoD item, so this was a product intention, not an accident -- which is why it
@@ -326,7 +326,7 @@ the fix session's SELECT to run and the owner's call (Owner decisions §B).
 - **Phase**: dedupe
 - **Tier**: T1     **Class**: structural     **Decides**: autonomous
 - **Evidence**: Audit 1's feed-posts-10 replaced `parseImageUrls` with `parseJsonArray` in this
-  file (`fd47d70`); the poll block has the identical shape (JSON.parse, Array.isArray, string
+  file (`9fe70d8`); the poll block has the identical shape (JSON.parse, Array.isArray, string
   filter, catch -> nothing) and was not in the finding. The pre-parse then decides "fewer than
   two -> no poll", the Zod schema decides `.min(2)` again, and `:236` decides `>= 2` a third
   time. The `.trim()` at `:237` runs AFTER Zod's `.min(1)`, so an option of a single space
@@ -427,7 +427,7 @@ the fix session's SELECT to run and the owner's call (Owner decisions §B).
 - **Where**: `src/app/(main)/feed/loading.tsx:7-10` ("Create post skeleton": a bordered
   `bg-card p-6` tile with an 80px shimmer); the composer at rest is a bare 44px pill with
   no tile (`create-post-form.tsx:1194-1197`, owner 2026-08-04: "get rid of the tile ... just
-  have an icon and a pill"); `loading.tsx` last touched 2026-07-30 (`d8149a5`), the pill
+  have an icon and a pill"); `loading.tsx` last touched 2026-07-30 (`6e3b10b`), the pill
   landed after.
 - **Phase**: hygiene
 - **Tier**: T1     **Class**: cheap     **Decides**: owner
@@ -476,7 +476,7 @@ the fix session's SELECT to run and the owner's call (Owner decisions §B).
   (the only `"use server"` file under `src/components/`; `git grep -l '"use server"' -- src`).
 - **Phase**: dedupe (a); relocate (b)
 - **Tier**: T2     **Class**: cheap     **Decides**: autonomous
-- **Evidence**: Session 5 shared the six-gate preamble (`vetReport`, `c5025c5`) and left the
+- **Evidence**: Session 5 shared the six-gate preamble (`vetReport`, `85b37b7`) and left the
   transaction. The two copies differ only in the `report.create` data and the catch's return
   key (`alreadyReported` vs `alreadyFlagged`). On location: every other action lives in a
   route's `actions.ts` or in `app/(main)/*.ts` beside the routes (`image-aim.ts`'s header
@@ -585,7 +585,7 @@ the fix session's SELECT to run and the owner's call (Owner decisions §B).
      one call. Keep the callbacks (they carry the key), inline the two functions.
   9. `src/lib/rich-text-editing.ts:89` -- `FORMAT_SHORTCUTS` is exported and used only inside
      the file (`raw/knip-repo-config.txt:79`, `git log -S` shows the composer stopped importing it
-     in `04133c1`). Drop the `export`.
+     in `ff85ede`). Drop the `export`.
   10. `src/components/layout/notification-bell.tsx:56-58` -- the icon map's docblock names
       `groups/actions.ts`, which no longer exists.
   11. `src/app/(main)/notifications/actions.ts:47-48` -- "no scheduled job does either" is false
@@ -731,7 +731,7 @@ is still open and still the one place a future session will read first and be mi
 - feed-posts-01 (Groups plumbing): code done (phase 2); schema `Post.groupId` + relation + index
   still present; owner decision 1 still open. Recommend closing it as "keep" formally, with
   the `EXPLAIN` note above.
-- feed-posts-02 (composer split): done, `3527e55`; hooks are 468 + 308 lines. Nothing to redo.
+- feed-posts-02 (composer split): done, `55c1198`; hooks are 468 + 308 lines. Nothing to redo.
 - feed-posts-03 (one include/serializer): done; the comment trio (feed-posts-05 here) is the
   same shape one level down.
 - feed-posts-04 (dynamic imports): done; `ReportDialog` deliberately left static, revisited in

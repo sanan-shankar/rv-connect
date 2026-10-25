@@ -23,7 +23,7 @@
 -- let's ditch that. I don't like it particularly cause it takes up real estate
 -- in the UI and I don't think anyone's gonna use it." Build phase 13 was
 -- plumbed and drawn and never wired to a screen, so nothing ever wrote a row.
--- Commits 6e663ba5 and 7f36fea9 hold the whole feature if it is wanted back,
+-- Commits 5d8d52cb and 3a4fb0e8 hold the whole feature if it is wanted back,
 -- and 2026-09-14-vote-questions.sql is the migration this one reverses.
 --
 -- MEASURED EMPTY, 2026-10-09, before this file was written:

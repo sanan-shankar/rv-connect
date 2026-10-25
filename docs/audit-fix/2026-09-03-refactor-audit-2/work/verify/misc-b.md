@@ -4,11 +4,11 @@ Verifier: misc-b. Charter: findings whose evidence names no single file — repo
 cross-cutting patterns, process claims. Every number below was recomputed from the tree, the
 raw tool output, or the read-only build; nothing is taken from a report on trust.
 
-**Tree state when I ran.** HEAD is `74cc61a` ("fix(retention): notifications are kept 30 days,
-everywhere"), i.e. TWO commits past the audit baseline `72b5a1d` that `brief-common.md` §3
+**Tree state when I ran.** HEAD is `0cecf11` ("fix(retention): notifications are kept 30 days,
+everywhere"), i.e. TWO commits past the audit baseline `09772aa` that `brief-common.md` §3
 names. `git status --short`: `M docs/audit-fix/README.md`, `M progress.md`, `?? docs/audit-fix/
 2026-09-03-refactor-audit-2/` — the peer's `M src/components/common/image-viewer.tsx` that
-several finders reported as WIP has since landed in `72b5a1d`, so `image-viewer.tsx` is clean
+several finders reported as WIP has since landed in `09772aa`, so `image-viewer.tsx` is clean
 and line-number citations against it (fresh-code-09) are valid at HEAD. Read-only throughout:
 `rg`, `sed`, `wc`, `git log/show/ls-files`, `python3`/`node -e` over files, `gzip -c | wc -c`
 over the pre-built chunks. No build, no tsc, no knip, no browser, no database.
@@ -192,14 +192,14 @@ proposed rewrite is exact. Three corrections:
 2. **The file count is wrong twice over.** Its own list already names 16 files; adding the four
    above makes **20**. "Twelve" is the audit-1 leftover number, not this one.
 3. **Four files were born after the kit, not three.** `test-kit.mjs` was added
-   `2026-08-26 68d4ad6` ("test: one preamble for the shape tests, not thirty-nine copies").
+   `2026-08-26 8623d5f` ("test: one preamble for the shape tests, not thirty-nine copies").
    Post-kit: `collection-taxonomy` 2026-08-28, `river-cursor` 2026-08-28, `river-query`
    2026-09-02 — **and `mark-centring` 2026-08-27**, which the finding itself dates as post-kit in
    its "Where" list but then leaves out of "three post-kit files". The trend it is arguing for is
    slightly stronger than it claims.
 
 Verified as stated: `river-query.test.mjs` lives at `src/components/collection/` (not `src/lib/`),
-was added `2026-09-02 bc2a789`, builds its own root at `:32-34`, and imports no kit — so the
+was added `2026-09-02 deda2a1`, builds its own root at `:32-34`, and imports no kit — so the
 suggested `../../lib/test-kit.mjs` path is correct. `catchups-core.test.mjs:728` declares
 `CATCHUP_ROOT` and uses it at `:735`, `:739`, `:853` while importing `read` from the kit at `:58`.
 `identity-row-overflow-rule.test.mjs:48` is `decomment(read(relative(ROOT, file)))`.
@@ -330,7 +330,7 @@ handful are one or two lines off. None is refuted.
     `:56-58`; `src/app/(main)/groups` no longer exists. ✔
 11. `notifications/actions.ts:47-48` "no scheduled job does either" — now false: `retention.ts:41,
     54, 188-190` deletes notifications older than 30 days. ✔ (This is the change HEAD's own
-    commit `74cc61a` made, i.e. it went stale *during* the audit.)
+    commit `0cecf11` made, i.e. it went stale *during* the audit.)
 12. `post-feed.tsx:111` (not `:112`) "Re-arms the skeleton whenever the filters, group or reload
     trigger change" — no group any more. ✔
 13. `directory-module.tsx:27-40` (not `:25-39`) — the hand-typed select and the comment "matching
@@ -363,7 +363,7 @@ Every citation lands, on the line given, except one word in the framing.
   motion array. These are six unnamed curves, which is a real and worth-fixing drift risk; they
   are not six failing rules.
 - `"rgba(24, 25, 20, 0.94)"` at `image-viewer.tsx:132` (`BACKDROP`, and identical at HEAD — the
-  peer's WIP on that file landed in `72b5a1d`) and `review-room.tsx:76` (`STAGE`). ✔
+  peer's WIP on that file landed in `09772aa`) and `review-room.tsx:76` (`STAGE`). ✔
 - The year message at `contribute-room.tsx:610` vs `review-room.tsx:199` — genuinely different
   wording for the same rule ("Use four digits for a year, or three for a decade." vs "Four
   digits for a year, three for a decade."). ✔

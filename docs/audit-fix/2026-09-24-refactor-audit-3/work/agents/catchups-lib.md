@@ -7,7 +7,7 @@ pool, the read mark, the shelf, the vote/voice rule modules, `group-succession.t
 charter swept in by name: `batch-year.ts`, `roster.ts`, `roster-rule.ts`, `voice-answer.ts`), the
 magazine engine `src/lib/magazine/**`, and the two scripts that feed it (`scripts/dev/export-catchups.mjs`,
 `scripts/dev/print-magazine.mjs`). Tests were read as the behavioural spec (T14 audits them as
-tests). Date 2026-09-24, HEAD `70570bcd`. Files in territory: 44 (29 source + 15 tests); read fully:
+tests). Date 2026-09-24, HEAD `495ecdd2`. Files in territory: 44 (29 source + 15 tests); read fully:
 29 source files and 5 test files; the other 10 tests were read for their pins (see Coverage).
 
 ## Coverage
@@ -133,7 +133,7 @@ still swallowing a docblock. Split: 16 structural, 5 cheap. Seven need the owner
 - **Evidence**: The scoped `where` matches an active Catch-up of the viewer with ANY Edition that is
   `collecting` or `answering`. That is true through the whole ~10-day live window of every Catch-up
   (3 days of questions, 7 of answers). It is true indefinitely for a batch's first Edition waiting for
-  three questions (`questionsCloseAt: null`, commit `86fb1f07` 2026-09-22; the Batch of 2023 has 39
+  three questions (`questionsCloseAt: null`, commit `eed06ee0` 2026-09-22; the Batch of 2023 has 39
   members) and for a dormant Edition (two empty question windows). When it matches, Prisma makes
   three sequential round trips: the parent query, then one per `include` (group; every Edition of
   that Catch-up). No `relationJoins`: `relationLoadStrategy` is absent from the generated 7.10.0
@@ -399,7 +399,7 @@ still swallowing a docblock. Split: 16 structural, 5 cheap. Seven need the owner
 - **Where**: `scripts/dev/export-catchups.mjs:87-98` (`kindOf`, *"`promptKind` from
   src/lib/catchups-types.ts, which this .mjs cannot import through the TS path alias"*), `:187`
   (`version: 1`), `:303-317` (the totals); `src/lib/catchups-export.ts:208-231` (`everyAnswer`,
-  `exportTotals`: no consumer anywhere since they were written in `1036a81b`, 2026-09-05), `:74`, `:87`
+  `exportTotals`: no consumer anywhere since they were written in `eddfdf98`, 2026-09-05), `:74`, `:87`
   and `:93` (`ExportedMembership`, `ExportedPref`, `ExportedImage` exported but used only inside the
   file; knip, `raw/knip-repo-plus-lab.txt:226-228`).
 - **Phase**: dedupe
@@ -458,11 +458,11 @@ still swallowing a docblock. Split: 16 structural, 5 cheap. Seven need the owner
   still holds.
 
 ### catchups-lib-12 - Delete the dead exports and types (includes audit 2 `catchups-05`)
-- **Where**: `src/lib/catchups-types.ts:221-235` (`CatchupIndexCard`: 0 consumers since `5e688bb4`,
+- **Where**: `src/lib/catchups-types.ts:221-235` (`CatchupIndexCard`: 0 consumers since `69da2844`,
   2026-09-08, "the list becomes a shelf"; it models the old index's "Start one" row).
   `src/lib/catchup-pictures.ts:146-157` (`bandKeptFraction`: its docblock says *"Exported because the
   aiming control has to say it out loud"*, but no component imports it, and since it was written in
-  `02f9302f` its only consumer has been `catchup-pictures.test.mjs:177-183`; the one aiming UI,
+  `b6b38f95` its only consumer has been `catchup-pictures.test.mjs:177-183`; the one aiming UI,
   `picture-picker-dialog.tsx`, is itself an unused file per knip). `src/lib/catchups-core.ts:106-107`
   (`REMINDER_TWO_DAYS`, `REMINDER_LAST_DAY`, *"legacy: superseded by the daily bucket"*; used only as
   example bits in `catchups-core.test.mjs:270`) and `:82` (`HOUR_MS`, exported, used only by tests).
@@ -520,7 +520,7 @@ still swallowing a docblock. Split: 16 structural, 5 cheap. Seven need the owner
 - **Tier**: T3     **Class**: structural     **Decides**: owner
 - **Evidence**: `feed/actions.ts` `deletePost` now checks only the site role
   (`post.authorId === session.user.id || session.user.role === "admin"`, ~460). `Post.groupId` was
-  dropped on 2026-09-08 (`c34aae3e`). Group and GroupMember are read by Catch-ups code, the purge,
+  dropped on 2026-09-08 (`7ce1da1f`). Group and GroupMember are read by Catch-ups code, the purge,
   the admin people merge and the demo, and nothing else (grep: 13 non-lab files). So `"admin"` on a
   membership now means exactly "Keeper", and the decoupling three docblocks defend protects nothing.
   What remains is an inconsistency. A successor chosen when someone leaves or is removed gets
@@ -548,7 +548,7 @@ still swallowing a docblock. Split: 16 structural, 5 cheap. Seven need the owner
   1. `src/lib/catchups-core.ts:37-70`: a block opened at 37 with `/* ----` that never closes until
      the `*/` meant for `askerVisible`'s docblock at 70. Its text, *"Why the runtime deps (prisma, the
      notify builders) load via dynamic import instead of a static `import` ... Do NOT convert these
-     back to static imports"*, describes code deleted by `9f9a1fd8` (2026-08-27, "split the pure engine
+     back to static imports"*, describes code deleted by `3b1a3539` (2026-08-27, "split the pure engine
      from the drivers"). Neither file contains an `import(` any more (grep), and `catchups.ts:8-16` says
      the opposite. Because the block swallows the `/**` at 52, `askerVisible` has no JSDoc in editor
      hovers. Audit 2 found exactly this (report §5: "a 14-line block in `catchups-core.ts` opened with
@@ -647,7 +647,7 @@ still swallowing a docblock. Split: 16 structural, 5 cheap. Seven need the owner
 - **Phase**: relocate
 - **Tier**: T4     **Class**: structural     **Decides**: owner
 - **Evidence**: Import trace (grep of `lib/magazine` across `src`, `scripts` and `e2e`). One commit
-  (`35b75868`, 2026-09-14), untouched since. The handover board says "M1 Magazine design | DONE" and "M2+
+  (`3e92eb2d`, 2026-09-14), untouched since. The handover board says "M1 Magazine design | DONE" and "M2+
   Magazine build | OPEN". magazine.md §8: *"Nothing after M2 starts until he has looked at a real
   Edition's PDF"*, and for M2, *"The engine moves nothing"*, so `src/lib` is its planned home.
   Handover D39: *"the magazine's existence is his wish and its schedule is ours."* What it costs today:
@@ -927,7 +927,7 @@ still swallowing a docblock. Split: 16 structural, 5 cheap. Seven need the owner
 - **runtime-perf / data-layer:** -02 and -03 (queries per page); `(index)/page.tsx:81` runs the sweep a
   second time on `/catchups` beside the layout's. `prisma/schema.prisma`'s Group comment says
   `description` and `coverImage` are "still in both databases until the owner runs
-  `2026-09-07-drop-groups-residue.sql`"; they were dropped on 2026-09-08 (`c34aae3e`; the live columns
+  `2026-09-07-drop-groups-residue.sql`"; they were dropped on 2026-09-08 (`7ce1da1f`; the live columns
   confirm it). The `GroupMember.role` comment `// "admin" | "member"` omits `"keeper"`. -04's three
   columns belong in the drop release.
 - **T14 lib-tests:** `magazine.test.mjs` lays out at least 16 Editions twice at module load, and on the

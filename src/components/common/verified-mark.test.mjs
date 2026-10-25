@@ -4,7 +4,7 @@ import test from "node:test";
 
 const verifiedMarkPath = new URL("./verified-mark.tsx", import.meta.url);
 
-/* The wording is an owner decision (abb9381): the leaf says "Verified", not
+/* The wording is an owner decision (515f20d): the leaf says "Verified", not
    "Verified member". Its padding and type metrics are not pinned here -- that
    is `npm run visual`'s job, and pinning class strings only breaks the suite
    every time someone adjusts spacing. */

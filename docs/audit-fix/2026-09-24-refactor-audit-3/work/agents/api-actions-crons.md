@@ -5,7 +5,7 @@ quartet, profile/settings and catchups 1990-2821). Findings below are verified; 
 
 Charter: T12, the SHAPE of every server action and API route (gates, validation, revalidation,
 error mapping, cross-file duplication, dead routes/actions) plus the crons. Audit-only. Date
-2026-09-24, HEAD 70570bcd.
+2026-09-24, HEAD 495ecdd2.
 
 ## Coverage
 - Territory: 18 `route.ts` (2,401 lines), 22 `"use server"` files (9,269 in the charter's list

@@ -6,7 +6,7 @@
  * character count cannot know the width, the font or where a paragraph ends,
  * so it folded a 390px phone and a 1440px desktop at the same word, and it
  * used to split the post into two paragraphs there, breaking the sentence
- * onto a new line (fixed in 81c200a0, and gone for good now that nothing is
+ * onto a new line (fixed in cf3fccb7, and gone for good now that nothing is
  * split: the whole post renders, and the fold is a clip).
  *
  * The DOM half measures; the decision is a pure function, so `node --test`

@@ -7,7 +7,7 @@ places, account deletion, theme), the dark-mode gauntlet (`/dark-mode`), the Nex
 the dev login, the data export route, the proxy, the API gate, the rate limiter, the login-attempt
 recorder, the validators, and the account purge and retention sweep. This is the security surface,
 so every proposal here only simplifies. None weakens a gate, and each names the pin it touches.
-Date 2026-09-24, HEAD `70570bcd`. Files in territory: 65 (12,029 physical lines: 6,930 code,
+Date 2026-09-24, HEAD `495ecdd2`. Files in territory: 65 (12,029 physical lines: 6,930 code,
 4,331 comment, 768 blank). Read fully: 65 of 65, plus 14 adjacent files read fully or in the part
 that mattered.
 
@@ -167,7 +167,7 @@ across three eras of its `select` (not-finding). B1 and B6 landed. E7b is still 
   the Node.js runtime". This repo is on `next@16.3.3` and uses `src/proxy.ts`. `grep -rn
   'runtime = "edge"' src` finds nothing, so no code in this app runs on edge at all.
   Independently, `src/lib/demo.ts` has no import statement today and never has: it was checked at
-  its creation (`0ea31744`), before audit 1 (`1a71625e`) and at audit 2 (`72b5a1d`). Its only
+  its creation (`40dcba9f`), before audit 1 (`7af26f7c`) and at audit 2 (`09772aa`). Its only
   environment read is `process.env.DEMO_MODE`, the same one the proxy repeats. So "that module's
   own dependencies" (origin.ts) were never an obstacle either. The only thing that reads
   `demo.ts`'s `DEMO_CLOSED_PATHS` at runtime is nothing: its sole consumer is the mirror test.
@@ -317,9 +317,9 @@ across three eras of its `select` (not-finding). B1 and B6 landed. E7b is still 
 - **Evidence**: Audit 2 row G2 ("Two systems, not three ... one decision"). The owner's reading
   table says "7 | default | (a) — all three help bubbles onto one piece of machinery, **look
   unchanged**." The fix-prompt board lists phase G as "DONE" with G1 and G7 shipped and six rows
-  parked. G2 appears in neither. `git log` shows `info-tooltip.tsx` unchanged since `7ec5b338`
+  parked. G2 appears in neither. `git log` shows `info-tooltip.tsx` unchanged since `c7170949`
   (2026-08-29), `signup-form.tsx` untouched since before 2026-09-01, and `verified-mark.tsx` moved
-  onto base-ui Tooltip on 2026-09-15 (`9430ab96`), so there are still three machines. The
+  onto base-ui Tooltip on 2026-09-15 (`ed16a2f2`), so there are still three machines. The
   shared Popover stack is expensive: B1 measured 145 KB raw off each of five routes by making it
   lazy.
 - **What to do**: Make `InfoTooltip` the one machine, and make it cheap by default using the
@@ -348,7 +348,7 @@ across three eras of its `select` (not-finding). B1 and B6 landed. E7b is still 
   dependency-free `InfoTip` to be the one
   machine, was audit 1's and audit 2's recommendation. It deletes the Popover dependency from
   the help notes, but it needs a portal and collision handling for the contribute dialog, and
-  `9430ab96` shows clipping inside dialogs is real. I prefer the direction above because the
+  `ed16a2f2` shows clipping inside dialogs is real. I prefer the direction above because the
   Popover is already a dependency of the app (the houses chain and the filters use it), so the
   one machine costs nothing new. Coordinate with bundle-build-07 so the latch is written once.
 
@@ -754,9 +754,9 @@ across three eras of its `select` (not-finding). B1 and B6 landed. E7b is still 
   limiterFor(name); if (!limiter) return ...`).
 - **Phase**: hygiene
 - **Tier**: T1     **Class**: cheap     **Decides**: autonomous
-- **Evidence**: `git log -S'Two hundred photographs' -- src/lib/rate-limit.ts` shows `6af84335`
+- **Evidence**: `git log -S'Two hundred photographs' -- src/lib/rate-limit.ts` shows `994d0b04`
   (2026-08-28), when the value became 400 (two tokens per photograph, so 200 an hour). `git log
-  -S'collectionUploads: { tokens: 1000'` shows `35bdd5b7` the next day, which added the second
+  -S'collectionUploads: { tokens: 1000'` shows `2e480d26` the next day, which added the second
   block and left the first. At 1000, the JSDoc's arithmetic is wrong (500 an hour; two hours to
   the 1,000-photograph ceiling). In a file whose rule is that every constant is argued for, a
   wrong argument is worse than none. The per-pair report dedupe shipped (SECURITY.md,
@@ -1009,10 +1009,10 @@ auto-join to your batch. None is a placeholder, and none is proposed for removal
   across three eras, not three callers.** They are all the NextAuth session callback's `select`.
   `pg_stat_statements` keys by query text, and the counters date from 2026-05-22
   (`raw/db-stats-reset.json`), so each edit to the `select` became a new row. #48 has
-  `avatarColor` beside `isBlocked` and `credentialVersion`, so it ran from 2026-08-20 (`dc062317`
-  added the kill-switch columns) to 2026-08-27 (`1ec58be3` retired `avatarColor`). #49 has
+  `avatarColor` beside `isBlocked` and `credentialVersion`, so it ran from 2026-08-20 (`c89d9738`
+  added the kill-switch columns) to 2026-08-27 (`6c7670cd` retired `avatarColor`). #49 has
   neither `avatarColor` nor `lastSeenAt`, so it ran 2026-08-27 to 2026-09-05. #21 has `lastSeenAt`
-  (`29582b36`, 2026-09-05) and is today's. #92 (21,422) and #96 (11,004) are older eras still
+  (`9cea25c9`, 2026-09-05) and is today's. #92 (21,422) and #96 (11,004) are older eras still
   (before `emailVerified` was added on 2026-08-11, and before 2026-08-20). There is nothing to
   collapse: `auth()` is `cache()`d per request and runs exactly one `select`, and every column in
   it has readers (`session.user.<field>` grep: `role` 43, `name` 25, `emailConfirmed` 10, `email`
@@ -1043,7 +1043,7 @@ auto-join to your batch. None is a placeholder, and none is proposed for removal
 - **`burnTokens` after a successful reset (`email-actions.ts:409`)** is redundant in theory: a
   reset mint already burns the older ones (`BURNS_ON_MINT.reset`), so after the claim there should
   be nothing left to burn. It is one `updateMany` on a credential path, as defence in depth. Keep it.
-- **The `never` list on the trivia `Question` type (`70570bcd`)** is the minimal mechanism. The
+- **The `never` list on the trivia `Question` type (`495ecdd2`)** is the minimal mechanism. The
   alternatives (require the guess, not just the candidate, to be five characters or more; or drop
   "folky") would break "foki" and "fokee", which the file relies on matching within one edit, or
   refuse an answer the owner asked to accept.
@@ -1093,7 +1093,7 @@ auto-join to your batch. None is a placeholder, and none is proposed for removal
 ## Audit carry-overs in this territory
 
 - **E7b / `auth-edge-02` (the Turnstile sentinel map): OPEN, and its shape has changed.** On
-  2026-09-11 (`3558e96d`) sign-in stopped refusing a tokenless attempt. `/login` now maps
+  2026-09-11 (`aa5cfdd2`) sign-in stopped refusing a tokenless attempt. `/login` now maps
   `"interaction"` to `TICK_HUMAN_BOX` immediately but holds `"blocked"` back, sends the attempt
   with a `botFailHint`, and shows `BOT_CHECK_BLOCKED` only if the server refuses
   (`login-client.tsx:136-183`). `/signup` (`signup-form.tsx:399-413`) and `/forgot-password`
@@ -1103,7 +1103,7 @@ auto-join to your batch. None is a placeholder, and none is proposed for removal
   Still true: nothing pins `TICK_HUMAN_BOX` or `BOT_CHECK_BLOCKED`
   (`scripts/qa/phase4-probe.mjs` asserts neither), so the only proof is a manual
   `TURNSTILE_DEV_CHALLENGE=1` pass on all three forms with a dev-server restart.
-- **B1 / `auth-edge-01` (the float field's Popover stack): DONE** (`7c475940`; −145 KB raw measured
+- **B1 / `auth-edge-01` (the float field's Popover stack): DONE** (`a745bb43`; −145 KB raw measured
   on `/login`, `/signup`, `/forgot-password`, `/reset-password` and `/`). Holds: `float-field.tsx:21-24`.
 - **B6 (the welcome wizard's steps lazy): DONE** (`onboarding-flow.tsx:61-69`; `/welcome`
   1,190 → 1,062 KB per bundle-build).

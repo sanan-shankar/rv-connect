@@ -241,7 +241,7 @@ label: `${i + 1}. ${s.prompt.text.length > 44 ? `${s.prompt.text.slice(0, 44).tr
 
 **5 of the 11 labels** in this Round are cut at 44 characters and end in three periods. The cut is a
 character count, so it lands mid-phrase. It has been there since the feature's first commit
-(`9c3a63c`), so it is not a recent regression.
+(`fe719fe`), so it is not a recent regression.
 
 Note also that this line prepends `${i + 1}. ` — **the question's number appears three times** on a
 phone: in the chip, in the "Q8" eyebrow above the heading, and (on desktop) in the rail. That is
@@ -713,7 +713,7 @@ I could not find a mechanism, and I looked in both places:
 
 - **The viewer cannot wrap.** [`image-viewer.tsx`](../../../src/components/common/image-viewer.tsx)'s
   `step` is `const next = i + dir; if (next < 0 || next >= count) return i;`. It has read that way
-  since the viewer's first commit (`a57cc2e`); `git log -S` on that guard returns one commit.
+  since the viewer's first commit (`240c554`); `git log -S` on that guard returns one commit.
 - **The gesture fires once per swipe.** `pinch-zoom.ts` commits on pointer-up with a single
   `if (dx < -70 || vx < -420) onStep(1); else if (dx > 70 || vx > 420) onStep(-1);`. There is no path
   that calls it twice.
@@ -802,7 +802,7 @@ to create it yourself."*
 
 ### B4 — what actually happened, in three commits
 
-**2026-07-25, `063896c`, "start a Catch-up from people, and retire Groups".** The commit message
+**2026-07-25, `6b2b391`, "start a Catch-up from people, and retire Groups".** The commit message
 records his instruction of the day, verbatim:
 
 > "Owner: for now, basically no groups, just Catch-ups, and **the Catch-up with your batch is
@@ -816,7 +816,7 @@ What shipped, in the same commit's own words:
 **A one-click add is not "automatically there."** The instruction was a default; what was built was a
 shortcut for making one by hand. That gap is the whole of ¶4, and it has been open since July.
 
-**2026-08-21, `31f84c9`, "a group with no Catch-up no longer gets a row that duplicates itself".**
+**2026-08-21, `5c6eddb`, "a group with no Catch-up no longer gets a row that duplicates itself".**
 This is the "Start one" button he remembers. Every group you were in got a row on `/catchups`, and a
 group without a Catch-up got one reading "No Catch-up here yet" with a Start one button. It was
 broken in a specific way: pressing it ran the create flow, which mints its own Group, so the prompt
@@ -839,7 +839,7 @@ removed the shortcut's broken leftovers himself. Nothing regressed; something wa
 ### B5 — the routing bug he reported is gone, and what replaced it is worse
 
 *"when you click Start one, it actually takes you to the page where you add members"* (¶4). That
-button no longer exists at all, as of `31f84c9`. There is now **no route from a batch to a Catch-up**
+button no longer exists at all, as of `5c6eddb`. There is now **no route from a batch to a Catch-up**
 anywhere in the app.
 
 What there is instead is the create page, `/catchups/new`, shot `40-create-1512.png`. Opened by a

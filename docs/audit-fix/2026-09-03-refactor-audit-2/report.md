@@ -1,12 +1,12 @@
 # Refactor audit 2 — report
 
-Audit-only session, 2026-09-03, tree at `72b5a1d`. Working files: `work/` (task plan, findings, common brief, raw tool
+Audit-only session, 2026-09-03, tree at `09772aa`. Working files: `work/` (task plan, findings, common brief, raw tool
 output, the agent reports under `agents/`, adversarial verdicts under `verify/`). This file is the deliverable; the
 agent reports are its appendices and carry the per-finding evidence, line ranges, steps, risks and gates.
 
 ## 1. Executive summary
 
-### 1a. Baseline (measured 2026-09-03 16:40–17:10 IST, tree at 72b5a1d, 146 commits after audit 1 closed)
+### 1a. Baseline (measured 2026-09-03 16:40–17:10 IST, tree at 09772aa, 146 commits after audit 1 closed)
 
 | Metric | Value | Tool |
 |---|---|---|
@@ -124,7 +124,7 @@ the `--days 30` flag in the workflow, so the override outlived its own repair.
 
 Escalated to the owner mid-audit. His answer: *"30 days is good. you can update the privacy policy to
 30 days for notifications."* So it closed in his direction — **the behaviour was right and the
-documents were wrong** — and shipped as `74cc61a`: `KEEP_DAYS.notifications` and `prune.mjs`'s default
+documents were wrong** — and shipped as `0cecf11`: `KEEP_DAYS.notifications` and `prune.mjs`'s default
 both 30, the `--days` flag deleted from the workflow so the window lives in one place, and four
 documents corrected (the privacy table and its "last updated" date, `SECURITY.md`'s retention table
 with a dated footnote, and `OPERATIONS.md`'s two mentions, which the `lib-core-config` lens caught me
@@ -214,7 +214,7 @@ Everything here works and nobody can reach it. These are the rows that move SLOC
 
 | # | What | Ids | Size |
 |---|---|---|---|
-| D1 | The feed's sort and time filters — fully implemented server-side and unreachable **since 2026-06-28**, not since the search pill: `git log -S'showControls={false}'` returns one commit, `096a034`. Take `feed-posts-01`'s steps and `dead-code-02`'s import list; drop its causal note | feed-posts-01 = dead-code-02 (corrected) | ~150 lines (the block is `:281-344`, the offset arm `:1234-1270`), 2 Prisma orderings, 3 audit-fixed bugs no member can reach |
+| D1 | The feed's sort and time filters — fully implemented server-side and unreachable **since 2026-06-28**, not since the search pill: `git log -S'showControls={false}'` returns one commit, `275ebe6`. Take `feed-posts-01`'s steps and `dead-code-02`'s import list; drop its causal note | feed-posts-01 = dead-code-02 (corrected) | ~150 lines (the block is `:281-344`, the offset arm `:1234-1270`), 2 Prisma orderings, 3 audit-fixed bugs no member can reach |
 | D2 | The landing showcase family | landing-mascot-avatars-03 + dead-code-06/07 + lab-07 | 11 files, 2,477 lines, **828 referenced by nothing at all** |
 | D3 | The Spotify link pipeline — plumbed end to end, no writer since 2026-07-25, 0 of 133 entries. **Verification adds a file the finding's list misses**: `admin/catchups/[catchupId]/page.tsx:103,281` reads `songTitle` | catchups-01 (corrected) | ~190 lines, 3 columns, one outbound fetch on a write path, one SSRF boundary that stops needing defence |
 | D4 | The second photo-review UI on `/admin/content`, two days after the review room replaced it | admin-analytics-01 | per-row buttons, batch bar, `approvePhotos` |
@@ -304,7 +304,7 @@ the shape CLAUDE.md's own memory note prescribes: one rule, one globbing test, o
 Found while auditing, out of scope, listed so they are not lost. `docs/planning/bugs.md` is their home.
 
 - **Correctness**: the Collection's quota cap follows the wrong half after a swap (`collection-02` —
-  `facts.roomLeft` is computed and never read, despite `dad5307`); the intake quota counts without
+  `facts.roomLeft` is computed and never read, despite `9affe44`); the intake quota counts without
   `scope`; the aim dialog opens Catch-up answers at 50 % instead of the saved focal point
   (`media-viewer-18`); the feed loading skeleton draws a composer tile that no longer exists; two
   analytics sparklines count drafts and hidden posts while their live tiles do not; Facebook is filed
@@ -318,7 +318,7 @@ Found while auditing, out of scope, listed so they are not lost. `docs/planning/
   says the wrong thing about why.
 - **Security / privacy**: 20 admin verbs write no audit log, three of which destroy data
   (`declinePhoto`, `dismissMail`, `adminRemovePhoto`); the account export omits `birdOverride`,
-  `showEmail` and `professionTags` (Art. 20 completeness); `snapshot.yml:77-82` (moved by `74cc61a`) interpolates
+  `showEmail` and `professionTags` (Art. 20 completeness); `snapshot.yml:77-82` (moved by `0cecf11`) interpolates
   `${{ inputs.day }}` into a shell command at `:78` and `:79` with `SUPABASE_DIRECT_URL`,
   `POSTHOG_PROJECT_ID`, `GITHUB_TOKEN` and two API keys in scope (`workflow_dispatch` is owner-only,
   so severity is genuinely low; the fix is three lines);
@@ -588,7 +588,7 @@ yours to weigh.
 | 29 | Catch-ups' `actions.ts` split (audit 1 asked; the report argues against) | catchups | record "no" |
 | 30 | `draft` status and `Catchup.title` (carried from audit 1, unchanged) | catchups | — |
 | 31 | Three off-ladder heading sizes (27 / 26 / 24 px) | duplication | bless one |
-| 53 | ~~The privacy policy's "Last updated" predates its last edit~~ | member-surfaces-09 | **done** in `74cc61a`; it had to move when the retention row changed |
+| 53 | ~~The privacy policy's "Last updated" predates its last edit~~ | member-surfaces-09 | **done** in `0cecf11`; it had to move when the retention row changed |
 | 54 | The feed's loading skeleton draws a composer card that no longer exists — member-visible for about 300 ms | feed-posts-12 | fix it; it is a skeleton lying about the page |
 | 32 | The letterhead's "keep in step" header and its lab variant | duplication + directory-profile | — |
 | 33 | "group" wording in four Catch-up refusals; the plural ternary | duplication | leave the ternary |

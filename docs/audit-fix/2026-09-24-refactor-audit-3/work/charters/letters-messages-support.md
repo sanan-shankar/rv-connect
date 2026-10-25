@@ -14,10 +14,10 @@ Report: `work/agents/letters-messages-support.md`. See `_header.md`.
 
 ## Specs and context
 `docs/spec/letters.md` (2026-09-17), `docs/OPERATIONS.md` (mail, Resend, Razorpay), the support
-section of DESIGN-SYSTEM. Commits: `0be48079`/`b3a66f7d` (300 words is the line; a short letter is
-asked whether it would rather be a post), `580f87f1` (ten letters, content), `8f1a3bc1`,
-`9f34cf8e` (leave the site's own people's payments out of the totals), `ed03e985`/`0f38fd20`
-(the bill's bar), `28c14316`, `e9cc0730`, `b884678f`.
+section of DESIGN-SYSTEM. Commits: `c7aef4d5`/`cabded49` (300 words is the line; a short letter is
+asked whether it would rather be a post), `f917fdac` (ten letters, content), `95744447`,
+`ccf23dc4` (leave the site's own people's payments out of the totals), `70106ba9`/`f50f2a68`
+(the bill's bar), `ff256789`, `a6cbcee5`, `e4bf0d88`.
 
 ## Leads from the orchestrator
 - `raw/db-tables-live.json`: `OutboundEmail` 231 rows with **27,124 seq scans**; `QueueLease` 1 row

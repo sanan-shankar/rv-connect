@@ -80,7 +80,7 @@
   "id": "T2a-01",
   "finder": "High",
   "final": "High",
-  "status": "validated (corrected); orchestrator-checked; LIKELY FIXED after the baseline by ac70bd9d \u2014 re-check",
+  "status": "validated (corrected); orchestrator-checked; LIKELY FIXED after the baseline by e49e6265 \u2014 re-check",
   "title": "Correcting a batch year leaves the member inside the wrong batch's Catch-up for ever, with no way out (7 live cases)"
  },
  {

@@ -1,7 +1,7 @@
 # shell-a — adversarial verification notes (refactor audit 2)
 
 Verifier: shell-a. Charter: app shell, common primitives, layout, mascot, landing, onboarding,
-guide, support, settings. Tree state at verification: HEAD `72b5a1d`, `git status --short`
+guide, support, settings. Tree state at verification: HEAD `09772aa`, `git status --short`
 clean except the untracked audit folder itself (no peer WIP in any file I touched).
 
 Method: read-only. Source read at HEAD; byte attribution taken from the read-only production
@@ -27,8 +27,8 @@ component-name mix-up, and three savings numbers that need restating.
   `active-filter-chips.tsx:5,36,39` go with the file; the remaining consumers are
   `pill-shell.tsx:70,132` (the definition and `facetPillClass`) and `sentence-line.tsx:6,46`,
   which stay. The `X` lucide import is `active-filter-chips.tsx:2`.
-- Freshness (5c): `git log --follow` → `active-filter-chips.tsx` last touched `b5760cb`
-  2026-08-03; `result-count.tsx` untouched since `180968d` 2026-07-18. Not in-progress work.
+- Freshness (5c): `git log --follow` → `active-filter-chips.tsx` last touched `cf1216f`
+  2026-08-03; `result-count.tsx` untouched since `f46051f` 2026-07-18. Not in-progress work.
 - Consumers of the rest of the kit still exist (so this is a two-file amputation, not a kit
   retirement): facet-select → admin content-list, admin people-list, directory-client;
   filter-popover / filter-sheet → admin-filter-bar, directory-client; sentence-line → four
@@ -53,7 +53,7 @@ Substance holds; two line ranges are wrong and would mislead a fixer.
 - `HOUSE_OPTIONS`: single occurrence in the whole tree, its own definition at
   `directory-facets.ts:14`; `HOUSES` is imported at `:11` and used nowhere else in that file,
   so both lines and the import go together. knip line 71 agrees.
-  `git log -S SortPill` → last consumer removed in `8a0ba37` 2026-08-28 (the Collection
+  `git log -S SortPill` → last consumer removed in `f01c444` 2026-08-28 (the Collection
   river), exactly as claimed.
 - "~43 lines" is fair: 37 (SortPill) + ~4 (anyItem plumbing) + 2 (`HOUSE_OPTIONS` + `HOUSES`).
 

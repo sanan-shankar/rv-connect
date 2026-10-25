@@ -178,7 +178,7 @@ that rework.
       rule at `collection/<userId>/...`. That is the folder the archive's own photographs
       live in, and an R2 rule matches a PREFIX, so it would have deleted them. See F50 and
       the new entry in `docs/TRAPS.md`.
-      What actually happened: contributions now stage under `staging/` (commit `04c90a2`),
+      What actually happened: contributions now stage under `staging/` (commit `61c0b7e`),
       the sixty originals already stranded under `collection/` were swept, and the owner
       added the rule — `expire-staging`, prefix `staging/`, delete after 7 days, enabled.
       **One thing still outstanding**: production keeps minting the OLD shape until this is
@@ -802,7 +802,7 @@ unless it says otherwise.
   is still owed and it is spec §4:** precomputed derivatives on R2, no optimiser anywhere,
   which also settles F1's billing question for good. Until then the feed and letters keep
   the optimiser they already had (a deliberate 2026-08-26 change, with measurements, commit
-  b2216d5) and Catch-ups have their bucket urls back.
+  cea5b6b) and Catch-ups have their bucket urls back.
 - **F20. The blurred bed has to be the photograph, not its thumbnail.** The first version
   used the 16px smear stored on the `Image` row, reasoning that a 26px blur destroys the
   difference anyway. It does not, and the reason is arithmetic: `object-cover` stretches a
@@ -1317,12 +1317,12 @@ session should do are D13a, F15 and F16 above.
   still tells you to POST the secret from `evaluate_script`; do not, and see F18 for the
   measurement trap that wastes the time you save.
 - **Then three corrections, all from the owner looking at the real thing** (commit
-  `91713f0`): the ceiling went to 500 (D15), Catch-ups came back off the image optimiser
+  `d43f5ca`): the ceiling went to 500 (D15), Catch-ups came back off the image optimiser
   (F19), and the blurred bed became the photograph rather than its 16px thumbnail (F20).
   One bug of my own on the way, caught by `npm run visual` rather than by me (F21).
-- **State at the end of this session.** Phases 1 and 2 shipped in four commits: `a9e0c5c`
-  (the `Image` table, both upload paths, the backfill), `07f4bdc` (`photo-layout.ts`,
-  `<PhotoFrame>`, three surfaces), `91713f0` (the three corrections). `npm run check` green
+- **State at the end of this session.** Phases 1 and 2 shipped in four commits: `64b4874`
+  (the `Image` table, both upload paths, the backfill), `d4907cc` (`photo-layout.ts`,
+  `<PhotoFrame>`, three surfaces), `d43f5ca` (the three corrections). `npm run check` green
   at 78/78, `npm run visual` 23/23, nothing pushed. Uncommitted work in the tree belonging
   to another session: `/lab/glass-edges`, `/lab/hoopoe-marks`, `scripts/dev/apple-edge/*`
   and `docs/spec/apple-edge-light.md`. **Leave all of it alone** and commit with an explicit
@@ -1424,7 +1424,7 @@ session should do is D26 to D31 and F34 to F39 above.
 - **Interrupted twice by the owner, and both were the right interruptions.** First, the
   carousel: *"why are all the photos fixed at that aspect ratio... that photo can take up
   much more space but we're not letting it??"* -- which is D21, the case the last session
-  flagged as unresolved. Shipped separately (commit `3e6d4c9`) before going back to phase
+  flagged as unresolved. Shipped separately (commit `3aeb10b`) before going back to phase
   5, because he was looking at it. The rule is now one sentence: **every photograph in a
   carousel is drawn exactly as it would have been posted on its own**, and the frame is the
   current photograph's height, interpolated across the swipe. Two fixed-shape rules were
@@ -1540,7 +1540,7 @@ The owner asked for click-by-click instructions to add the R2 lifecycle rule, wh
 F50 was found: the instruction on the board would have deleted the Collection. Detail in
 `progress.md` under the same date and in `docs/TRAPS.md`.
 
-- Collection originals stage under `staging/` (commit `04c90a2`), verified by contributing
+- Collection originals stage under `staging/` (commit `61c0b7e`), verified by contributing
   a photograph end to end and watching the staged original disappear on success.
 - `scripts/dev/sweep-stranded-originals.mjs` deleted the sixty already stranded, dry-run
   first, refusing any key a database row points at. `collection/` went 70 objects to 10;

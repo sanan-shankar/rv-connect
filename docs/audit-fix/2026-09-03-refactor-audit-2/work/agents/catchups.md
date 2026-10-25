@@ -301,7 +301,7 @@ own.
   went stale. The three stale docblocks each say a client component must not import
   `@/lib/catchups` because of "lazy-loaded Prisma/notify code paths"; `catchups.ts:40-51`
   now documents the real rule (import `./catchups-core` directly) and the paths they warn
-  about were deleted in `9f9a1fd`.
+  about were deleted in `3b1a353`.
 - **What to do**: (1) In `catchups-types.ts`: `export const CADENCES = ["biweekly", "monthly",
   "quarterly"] as const; export type Cadence = (typeof CADENCES)[number];` and the same for
   `REMINDER_MODES`/`ReminderMode` and `CATCHUP_NOTIFY_KINDS`/`CatchupNotifyKind`; delete
@@ -504,7 +504,7 @@ own.
   body=... />` followed by `{keeper && <PublishNowButton editionId />}` in a centred wrapper.
   The body differs: the home says "They all appear together the moment this Round publishes."
   and the permalink "They all appear at once when this Round publishes." Both sentences
-  entered in the same commit (`145ac49`, 2026-07-25), so neither is the corrected one; they
+  entered in the same commit (`a9ce200`, 2026-07-25), so neither is the corrected one; they
   are two drafts of one line. The wrappers differ too (`FadeRise` + `mt-[var(--space-m)]` vs
   `div.py-10` + `mt-[var(--space-l)]` + `max-w-3xl`). This is the shape audit-1's catchups-04
   and catchups-08 were about: one moment, two renderers, drifting.
@@ -678,7 +678,7 @@ own.
      back to static imports" -- the exact machinery the split deleted; the file's own header
      at 18-21 says "That workaround is gone". The block is opened with `/* ---` at 36 and never
      closed: the next `*/` is at 69, so it swallows `askerVisible`'s docblock (51-68) into
-     itself. `git blame -L36,49`: all 14 lines from `9f9a1fd`, the split commit, which moved
+     itself. `git blame -L36,49`: all 14 lines from `3b1a353`, the split commit, which moved
      the paragraph instead of deleting it.
   b. `catchups-core.ts:83`: `/** Question window: 3 days. Answer window: 7 days. Preparing
      hold: 24h. */` sits above `newInviteToken`'s docblock; the constants are at 99-103.
@@ -702,7 +702,7 @@ own.
      `<AlmostReady />`.
   f. `home/keeper-settings-dialog.tsx:5-8`, `create/cadence-control.tsx:12-17`,
      `create/create-catchup-form.tsx:19-22`: three docblocks explaining that `@/lib/catchups`
-     pulls "lazy-loaded Prisma/notify code paths" into the browser (deleted in `9f9a1fd`;
+     pulls "lazy-loaded Prisma/notify code paths" into the browser (deleted in `3b1a353`;
      folded into finding 02).
   g. `round/[editionId]/page.tsx:76`: `/** Bring one Round's status current against the
      clock, then return the fresh row. */` directly above `/* The plain read, WITHOUT
@@ -926,7 +926,7 @@ own.
 
 ## Audit-1 carry-overs in this territory
 
-- catchups-01 (dead `createCatchup`): done (`d5da4d7`); no trace remains.
+- catchups-01 (dead `createCatchup`): done (`1c98231`); no trace remains.
 - catchups-02 (gate helpers): done; two late stragglers, finding 12.
 - catchups-03 (core/engine split): first half done (`887a95f`); the prop-drill half is
   recorded as not done in the fix log and is still not done -- finding 02.
@@ -937,8 +937,8 @@ own.
   `AnswerAsker` and `HomePromptView.category` remain -- finding 13.
 - catchups-07 (date formatters): done except the index rail, which keeps a local formatter
   with its reason (`fresh-off-the-press.tsx:21-25`).
-- catchups-08 (two `NotAvailableCard`s): done (`8c600a0`); one component, two routes.
-- catchups-09 (`QuestionRow`): done (`57e06aa`).
+- catchups-08 (two `NotAvailableCard`s): done (`d5b3a10`); one component, two routes.
+- catchups-09 (`QuestionRow`): done (`57ba39e`).
 - catchups-10 (`isUniqueConstraintError`): done; `isUniqueViolation` at both sites.
 - catchups-11 (title one-liner): done; `catchupDisplayName`/`catchupSurfaceTitle` in the core.
 - catchups-12 (dead props): done before the fix session reached it.

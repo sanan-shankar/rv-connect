@@ -58,7 +58,7 @@ fill centred in `0 0 32 32`, negative-space eye = disc colour, `birdFor` hash un
   (inherent to mono silhouettes; colour carries differentiation there); eagle #42 is the least elegant.
 
 
-## Session 2026-06-27 — Fork 4: preview-parity fixes (committed fd343e2, 819bc30)
+## Session 2026-06-27 — Fork 4: preview-parity fixes (committed 268b151, 8404a4f)
 Owner was seeing the real (main) app diverge from /preview/v2 AND several "broken" things that
 were actually a STALE .next cache serving old CSS. Key learning reinforced: when the UI looks wrong,
 too-small, or an animation "does not work", suspect the .next cache FIRST. Always clear .next
@@ -77,7 +77,7 @@ Fixes this session (all verified at runtime + screenshot, tsc clean):
 - Feed heading confirmed 30px Libre Baskerville (matches preview; the "super small" was stale cache).
 - Hoopoe (login): FLIPPED per owner. Eyes now OPEN while the password is hidden and COVER when
   revealed (was the reverse). Removed the intro timer (`intro` state + useEffect); the component's
-  own blink/settle still plays on mount. Verified eye opacity hidden=1 / shown=0. (commit e277db0)
+  own blink/settle still plays on mount. Verified eye opacity hidden=1 / shown=0. (commit 6708e87)
 - Pushed `redesign` to GitHub (origin = github.com/sanan-shankar/rv-alumni) as the MVP checkpoint.
   Owner called this "a good MVP". Deploy (Render) still pending; deployed Vercel site is still old code.
 Still open / next: more micro-delights beyond the existing bell/like/hoopoe/bookmark (avatar
@@ -404,7 +404,7 @@ profile, directory. Login is light + warm. Old top navbar + glassmorphism + dark
 - VERIFIED local untouched: tsc 0 errors, dev serves, datasource still sqlite, feed works (screenshot-92), the
   prepare script no-ops on file: URL. Moved leftover .next-stale out of the repo (rm -rf blocked; used mv).
   gitignored .claude/gsd-core + node_modules + .next-stale.
-- COMMITTED to a new branch `redesign` (commit 21eb32f, 111 files, NO push, NO AI attribution per CLAUDE.md).
+- COMMITTED to a new branch `redesign` (commit f8256fa, 111 files, NO push, NO AI attribution per CLAUDE.md).
   Excluded .claude/ (reinstallable GSD tooling w/ node_modules) and Inspiration/. Secrets (.env.local) + dev.db
   are gitignored and were not committed.
 
@@ -447,14 +447,14 @@ profile, directory. Login is light + warm. Old top navbar + glassmorphism + dark
   red (#E03A33, no color transition) and the hoopoe has a real spring + on-load peek IN CODE. The
   owner's "it looks broken" was almost certainly a STALE dev-server render. Lesson: trust screenshots
   + code, never the docs/planning/FEEDBACK_CHECKLIST.md [x] marks.
-- Wave B P1 cleanup (committed bd3b0f3 b048119 4f23991 e22e795): fixed landing hydration runtime error
+- Wave B P1 cleanup (committed c42f9bc 46725ad 0a863b4 8b80f3a): fixed landing hydration runtime error
   (showcase parallax), replaced glassmorphism landing Sign-in with solid leaf-green, deleted live-DB
   "asdfasdf" junk group + seeded 3 real groups, varied the 12 Collection tiles.
-- Wave C Groups (committed 2e94a07..6f6a111, verified): Group.visibility public/private + coverImage +
+- Wave C Groups (committed 7c19087..ddc3fe5, verified): Group.visibility public/private + coverImage +
   GroupInvite; organizer role shown as "Keeper"; create + browse + join (public auto / private invite)
   + @-invite via notifications; group page reuses shared FeedColumn (Composer+PostFeed+PostCard),
   groupId leak-guarded.
-- Wave C Letters long-form (was ~90% built; completed + verified 4751fd3 fe0c658 e41199b): Post.kind
+- Wave C Letters long-form (was ~90% built; completed + verified 97ec433 d67dc14 9664cd0): Post.kind
   "letter" + title via shared composer; compact LETTER card in feed; editorial /letters/[id] read view;
   /letters list; now allowed in group feeds + editable; seeded. Distinct from Catch-ups.
 - Logo: /preview/logo = first-pass three-peaks (outline + solid-white-fill + gradient). Real app still
@@ -470,18 +470,18 @@ was cache-based). Wrote docs/planning/PUNCHLIST.md (1 P0, 7 P1, 25 P2) + docs/co
 openable reference).
 
 EXECUTED (sequential on redesign, each tsc-clean + committed):
-- 03d09f4 B-FOUNDATION: bg #E9E6DD, tree overlay 0.08, real photo avatars in feed select, three-peaks
+- 8fe5b62 B-FOUNDATION: bg #E9E6DD, tree overlay 0.08, real photo avatars in feed select, three-peaks
   logo (peaks-mark, outline+solid variants, summit ~54%), bookmark cinnamon sweep+pop, bell keyframe, card primitive de-glassed.
-- 47191af B-PROFILE: P0 own-profile null-group crash guard + admin tools warm restyle.
-- 254754c B-AUTH: hoopoe branched tail + rounded crest + intro blink/settle, server-side trivia gate,
+- a812086 B-PROFILE: P0 own-profile null-group crash guard + admin tools warm restyle.
+- a1ab528 B-AUTH: hoopoe branched tail + rounded crest + intro blink/settle, server-side trivia gate,
   dropped admissionNumber from SIGNUP (kept in profile/settings), removed dead /verify + Forgot link.
-- ab33379 B-DIRECTORY: filters re-filter the live map, city normalize, case-insensitive search, load-more.
-- c1fab47 B-CONTENT: rail avatar overrides, group batch-add notification + browse empty state, letter title fallback, collection seed variety.
-- 236cf88 B-COPY-DELIGHT: removed About em dash (+3 more found), real bell-shake on unread increment, deleted dead landing-client.tsx, corrected 2 false [x] claims.
-- 5a3cee3 B-SETTINGS-PROFILE: Sharp->WebP avatar upload in Edit Profile (with remove-photo fallback).
+- 9df2f5c B-DIRECTORY: filters re-filter the live map, city normalize, case-insensitive search, load-more.
+- 6060aeb B-CONTENT: rail avatar overrides, group batch-add notification + browse empty state, letter title fallback, collection seed variety.
+- b764b72 B-COPY-DELIGHT: removed About em dash (+3 more found), real bell-shake on unread increment, deleted dead landing-client.tsx, corrected 2 false [x] claims.
+- fac2074 B-SETTINGS-PROFILE: Sharp->WebP avatar upload in Edit Profile (with remove-photo fallback).
 
 REGRESSION caught in my verification pass (agents could not screenshot; bundled Chrome broken):
-- 06bae15 fix: the foundation+content agents added `avatarSpecies: true` to Prisma selects, but it is
+- 5956f70 fix: the foundation+content agents added `avatarSpecies: true` to Prisma selects, but it is
   NOT a User column (species derives from id). This 500'd feed + profile post loads. Removed from
   feed/actions.ts, feed-rail.tsx, post-card.tsx. Verified: profile posts load, feed clean, zero runtime errors.
 
@@ -497,7 +497,7 @@ community vouching, profile-completion depth (house-per-year, sections, memory p
 facets/gazetteer + live map search, delight beats beyond bell (chirp, loading scene), password reset,
 invite-only enforcement, deploy to Render + Postgres.
 
-## Fork 3 (cont.) — preview-fidelity pass (2026-06-27), committed 5626686
+## Fork 3 (cont.) — preview-fidelity pass (2026-06-27), committed 0c51729
 Owner feedback on the built app vs /preview/v2. Verified (screenshots + tsc clean):
 - HOOPOE root cause = the global @media(prefers-reduced-motion:reduce) block in globals.css killed ALL
   transitions; removed it so hoopoe + bell-shake + like-pop animate regardless of OS reduce-motion
@@ -516,7 +516,7 @@ Owner feedback on the built app vs /preview/v2. Verified (screenshots + tsc clea
 
 ## Fork 3 (cont.) — header/tiles fidelity + tree-fixed + session wrap (2026-06-27)
 Verified live after a clean .next clear + restart (routes 200, bell-rule present, bell anim=bell on hover,
-tree background-attachment=fixed). Committed 0002bfc / 2c61898 / 7add1e3:
+tree background-attachment=fixed). Committed 1f12962 / 32bcddc / 18f97eb:
 - Landing hero new title+subtitle, one line each on desktop.
 - Tree pinned with bg-fixed (stationary + natural scale; was stretched to scroll height -> looked zoomed).
 - Feed header now matches preview: "Feed" not bold (30px), subtitle one line, search/bell/New-post 40px,

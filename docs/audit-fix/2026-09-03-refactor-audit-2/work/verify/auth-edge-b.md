@@ -1,8 +1,8 @@
 # auth-edge-b - adversarial verification notes
 
 Verifier charter: auth, the proxy, API routes, email, the sign-in surfaces. Read-only.
-Tree state when verified: HEAD `74cc61a` ("fix(retention): notifications are kept 30 days,
-everywhere") -- note this is LATER than the `72b5a1d` the find phase measured against.
+Tree state when verified: HEAD `0cecf11` ("fix(retention): notifications are kept 30 days,
+everywhere") -- note this is LATER than the `09772aa` the find phase measured against.
 `git status --short`: only `docs/audit-fix/README.md`, `progress.md` (someone else's WIP) and
 the untracked audit folder. **No file I judged has uncommitted edits.**
 
@@ -239,7 +239,7 @@ event names and four patch shapes byte-identical.
 `src/lib/email.ts` is 253 lines; `:250-253` is the four-line comment; there is no re-export
 statement anywhere in the file. `maskEmail` is imported normally at `:3` and used at `:159`.
 `git log -S 'export { maskEmail }' -- src/lib/email.ts` returns the two commits named:
-`fa99bd2` (added it) and `e23e80c` "refactor(lib): remove dead exports the audit proved
+`5be9c54` (added it) and `1106261` "refactor(lib): remove dead exports the audit proved
 unreferenced" (removed the statement, left the prose). T1, delete 4 lines.
 
 ## lib-core-config-15 - three one-line config no-ops

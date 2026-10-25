@@ -5,7 +5,7 @@ import test from "node:test";
 const sidebarPath = new URL("./sidebar.tsx", import.meta.url);
 
 /* The Support row's icon has moved twice: PiggyBank, then Lucide's
-   HeartHandshake, then Phosphor's Tree (owner, 2026-07-18, commit a2279ff
+   HeartHandshake, then Phosphor's Tree (owner, 2026-07-18, commit bc4455e
    "changed support icon"). A tree, because Support is about the valley
    itself rather than a transaction, and PiggyBank in particular read as a
    donation box.

@@ -43,8 +43,8 @@ read fully: 21 files (~3,300 lines); every one of the 48 `page.tsx` header-sampl
 - **Uncommitted edits seen (someone else's WIP)**: `git status --short src/app/lab public/lab
   scripts/qa/lab-audit.mjs` is **clean**. The tree's one dirty file is
   `src/components/common/image-viewer.tsx`, which is a peer's work outside my territory and
-  which I did not read or judge. Everything I judged is HEAD's version (`a13a8a9`; the
-  measured builds are at `72b5a1d`).
+  which I did not read or judge. Everything I judged is HEAD's version (`6918a0f`; the
+  measured builds are at `09772aa`).
 - **Not run**: no build, no tsc, no knip, no browser, no database, no script under `scripts/`.
   Every number below is either read out of `work/raw/`, read off the two production builds
   the orchestrator left in `.scratch/`, or computed by a `node -e` one-liner over files on
@@ -88,7 +88,7 @@ client-reference manifests), but every cold Vercel build fetches them from Googl
 **The cheapest real win, and it is one line of `package.json`: `world-atlas` is still a
 production dependency (7.9 MB installed) and the only file in the repo that imports it is
 `src/app/lab/directory/_maps.tsx`.** Audit 1 fixed the shipped map to fetch the atlas as a
-static file instead of compiling 105 KB of coastline JSON into the bundle (`b899d1a`); the lab
+static file instead of compiling 105 KB of coastline JSON into the bundle (`ad53bab`); the lab
 room that prototyped that map kept the old import. So the lab is now a museum of the exact
 antipattern the shipped file's comment documents as wrong, and it is holding a runtime
 dependency alive on its own (lab-13).
@@ -103,14 +103,14 @@ autonomous item is about **90 lines**. The value is in one dependency, bytes, se
 corrected index.
 
 **What audit 1 left that is now moot**: its lab-02 (110 lines of dead kit exports) shipped as
-`09f5ebe`. Its lab-03 shipped **two of four** - the two that did not are still wrong and are
+`4cfeb86`. Its lab-03 shipped **two of four** - the two that did not are still wrong and are
 now *more* wrong, because the symbol one of them names was deleted by the other fix (lab-09).
 
 ## The 48 rooms
 
 The charter's first required answer. **Lines** = total lines of every file in that room's own
 directory (not recursive; a parent excludes its children's rows). **Last** = the most recent
-commit touching that directory; `07-30` means the `/preview`→`/lab` migration commit `a4f33de`
+commit touching that directory; `07-30` means the `/preview`→`/lab` migration commit `69bbaa5`
 itself, i.e. **the room has not been changed since the day it moved**. **Leak** = does any
 shipped file import this room (answer is "no" for all 48; the column records the reverse
 direction, what the room reaches into). **Data** = does the room touch a database, an API or
@@ -226,7 +226,7 @@ Aviary half of support-ideas.
   `src/app/lab/layout.tsx:16-18` (admin-only, `notFound()` for everyone else).
 - **Phase**: architecture
 - **Tier**: T4     **Class**: structural     **Decides**: owner
-- **Evidence**: the orchestrator built the repo twice at `72b5a1d`, once whole
+- **Evidence**: the orchestrator built the repo twice at `09772aa`, once whole
   (`.scratch/audit2-build/`) and once with `src/app/lab` and `public/lab` moved outside the
   worktree (`.scratch/audit2-build-nolab/`, setup log `raw/build-nolab-setup.txt`). Every
   figure below is a `stat`/`du` on those two trees or a line out of the two build logs. The
@@ -470,14 +470,14 @@ Aviary half of support-ideas.
   `package.json` line. **There is exactly one importer of this package in the entire repo and
   it is a lab room.**
 
-  `alumni-map.tsx:82-101` is the fix audit 1 shipped as `b899d1a`, and its comment is the
+  `alumni-map.tsx:82-101` is the fix audit 1 shipped as `ad53bab`, and its comment is the
   argument, verbatim: *"`import worldData from 'world-atlas/countries-110m.json'` compiled
   105 KB of JSON into a JavaScript module and put it in the first load of the heaviest route in
   the app - parsed on the main thread before /directory could become interactive, and
   re-downloaded on every deploy because the chunk hash moves with the build even though the
   coastlines do not."* The shipped page was fixed; the lab room that prototyped that very map
   was not, so the lab is now carrying the exact antipattern the shipped code documents as
-  wrong. That reads as an oversight in `b899d1a`, not a decision.
+  wrong. That reads as an oversight in `ad53bab`, not a decision.
 
   The consequences, measured: `node_modules/world-atlas` is **7.9 MB** and is a *runtime*
   dependency, so it is installed on every Vercel build. `/lab/directory`'s heaviest chunk is
@@ -547,7 +547,7 @@ Aviary half of support-ideas.
   - `/lab/type` is registered `status: "archived"` (`_registry.ts:279`), and its verdict never
     shipped: the app still loads Libre Baskerville + Source Sans 3 as statics from
     `src/app/layout.tsx`, which is precisely what the room argues against. `git log` puts its
-    last change at 2026-08-03 (`45531f9`, a repo-wide a11y sweep, not a design change).
+    last change at 2026-08-03 (`a110e53`, a repo-wide a11y sweep, not a design change).
     `/lab/craft` is also `archived`, last touched by the same sweep.
   - knip lists nine of the ten exports in `_fonts.ts` as unused
     (`raw/knip-repo-config.txt:49-58`): `libre`, `sourceSans`, `fraunces`, `newsreader`,
@@ -640,7 +640,7 @@ Aviary half of support-ideas.
 - **Confidence**: high - I grepped every one of the 48 across all of `src/app/lab` and inside
   its own file. The one thing that would change my mind: a room added between this audit and
   the fix importing one of them; re-run the grep first.
-- **Notes**: audit 1 did this exact sweep once (`lab-02`, shipped as `09f5ebe`, 110 lines) and
+- **Notes**: audit 1 did this exact sweep once (`lab-02`, shipped as `4cfeb86`, 110 lines) and
   the list has regrown to 48 in ten days because new rooms export their internals by reflex.
   That is a signature-5 pattern (over-abstraction by habit), and the durable fix is not another
   sweep - it is one line in `docs/spec/lab-voice.md`'s pre-registration checklist:
@@ -724,7 +724,7 @@ Aviary half of support-ideas.
   this is downstream of a decision the owner has not made.
 - **Notes**: there is a fourth, smaller instance in the other direction:
   `src/app/lab/profiles/_profile-avatar.tsx` (185 lines) was **moved into** the lab by audit 1
-  (`0e4a264`) precisely because only lab imported it. That worked and nothing broke, which is
+  (`f1146a6`) precisely because only lab imported it. That worked and nothing broke, which is
   the precedent for doing the same to `showcase-shot.tsx`.
 
 ---
@@ -785,14 +785,14 @@ Aviary half of support-ideas.
   2. `spine-marker/page.tsx:6-7` - *"Not linked from anywhere (including `_kit.tsx`'s `ROOMS`
      registry) on purpose."* This was already doubly wrong at audit 1 (the room HAS a registry
      row at `_registry.ts:296`, and `ROOMS` lived in `_second-look-kit.tsx`, not `_kit.tsx`).
-     It is now **triply** wrong: audit 1's own `lab-02` fix (`09f5ebe`) **deleted `ROOMS`
+     It is now **triply** wrong: audit 1's own `lab-02` fix (`4cfeb86`) **deleted `ROOMS`
      entirely**, so the comment now names a symbol that does not exist anywhere in the repo.
   3. `_registry.ts:360` - `/lab/hoopoe-marks` is described as **"Ten identity directions ...
      crest, profile head, face, feather, roundel, wing bars, monogram, extreme crop."** The
      room's `MARKS` array holds **seven** entries with the keys `fan`, `fan-bled`, `peek`,
      `rising`, `portrait`, `shoulder`, `onecolour`, and the page's own header says *"Seven
      marks"*. There is no roundel, no wing-bar mark and no monogram in the room. The registry
-     is describing the room as it stood before `273c969` rebuilt it on 2026-08-27. This is the
+     is describing the room as it stood before `f81d060` rebuilt it on 2026-08-27. This is the
      worst of the three, because the registry is the one page the owner reads to decide which
      room to open.
 - **What to do**: four string edits, no behaviour change. (1) "68 findings". (2) delete the
@@ -956,7 +956,7 @@ left. `groups-rethink` (1,571 lines, 5 routes): *"The Groups feature was removed
 entirely, so this whole tree is superseded."* And `logos` (121 lines): *"Valley + hills won and
 is now PeaksMark, documented live at /lab/logo."* Those two are the only ones where the file
 and the index agree there is nothing more to learn. There is also precedent both ways: you
-deleted `/lab/guide` outright on 2026-08-28 (`025a262`), so the archive rule is not absolute.
+deleted `/lab/guide` outright on 2026-08-28 (`acef992`), so the archive rule is not absolute.
 **Recommendation: keep everything archived rather than deleted, which is the retirement path
 you designed, and revisit only if you take the demo exclusion above, where a retained room
 costs nothing anyway.** Whatever you decide should be your word, not an audit's.
@@ -1051,7 +1051,7 @@ because its revival instructions depend on where it lives.** (lab-07)
 - **`lab-01` (where the lab ships)** - open; its estimate ("~10-15 s of the 45.6 s build") is
   now measured at ~12 s of 42 s, and its "~5 MB artifact" at ~9.7 MB. Direction confirmed,
   magnitude bigger.
-- **`lab-02` (110 lines of dead kit exports)** - **done**, `09f5ebe`. `ROOMS`, `useToggles`,
+- **`lab-02` (110 lines of dead kit exports)** - **done**, `4cfeb86`. `ROOMS`, `useToggles`,
   `T`, `PROSE`, `CODE`, `AmbientLayer`, `RouteLink` are all gone from both kits. The list has
   regrown to 48 (lab-05), which is a process problem, not a regression.
 - **`lab-03` (four stale self-descriptions)** - **half done**. `actions.ts`'s publicPaths claim

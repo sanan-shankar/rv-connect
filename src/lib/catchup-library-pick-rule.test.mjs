@@ -14,7 +14,7 @@ import { balancedBody } from "./test-fn-body.mjs";
  *
  *  The dropped id had a working double before the 2026-09-09 home rework
  *  -- `console-collecting.tsx` + `library-picker-dialog.tsx`, deleted in
- *  b94677ce, whose `onPick(text, category)` fed the same call -- so this
+ *  e8307e39, whose `onPick(text, category)` fed the same call -- so this
  *  pins the id's path through the CURRENT ask box rather than trusting
  *  the wiring by eye a second time.
  * ------------------------------------------------------------------ */

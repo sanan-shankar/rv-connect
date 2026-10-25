@@ -50,7 +50,7 @@ rest. Read the agent entry AND the §3 corrections for every item before touchin
       One row (#10 Profession) had already been executed by the phase-1a session as a
       one-off while the owner's answer was live — not redone.
 - [x] Phase 3 — dedupe at lib level — **done 2026-08-26**, 21 commits. All 14 rows executed
-      (lib-tests-02 had already landed as `9cee0d5`). Two pieces deliberately deferred with
+      (lib-tests-02 had already landed as `7b55326`). Two pieces deliberately deferred with
       reasons: shell-primitives-09's utils.ts module split belongs to phase 5's measurement,
       and lib-tests-01's optional `section()` migration is not safe as a sweep. See session 4.
 - [x] Phase 4 — dedupe at component/route level — **done 2026-08-26** over two sessions,
@@ -87,7 +87,7 @@ rest. Read the agent entry AND the §3 corrections for every item before touchin
       re-refuted at fix time with three reasons (see session 10). cuid2 → randomUUID stays
       parked as the plan itself says.
 - [x] Close-out — **done 2026-08-27 (session 10)**. Report §1b carries a measured column
-      taken at `033ea43` against the baseline commit extracted to a scratch tree and
+      taken at `e8ef748` against the baseline commit extracted to a scratch tree and
       measured by the SAME tool invocation, so the comparisons are like-for-like. Headlines:
       **−8.00 MB tracked** (37.89 → 29.89, net of this audit's own 19,355 lines of markdown),
       **−10 dependencies**, **−4 models / −9 columns / −3 indexes** live on both databases,
@@ -185,16 +185,16 @@ leave a half-item uncommitted without describing its exact state in the session 
 ### 2026-08-26 — session 1 (phase 1a)
 
 **Done** (in order; every item pre-flighted at HEAD per rule 4):
-bug-lead filing → `1639bba` · ui/badge+ui/tabs → `a88ff68` · 23 shadcn sub-primitives →
-`a8486d9` · utils.ts dead trio → `747297e` · updateUserProfile → `d5da4d7` · createCatchup
-→ `6ae9d98` · loadSupport + 8 analytics fields → `b301cc4` · legacy mono avatar path
-(734→118 lines) → `f8094ac` · dead-with-a-test trio → `aebeb88` · house-spans year-row
-library → `d960b45` · ProfileAvatar→lab + directory sort stub → `0e4a264` · auth
-metadata-only layouts → `99dcc4e` · globals.css dead tokens → `bdfadf4` ·
-LOGIN_TRANSITION_FLAG → `17fcfeb` · tour `enabled` → `5ec94b2` · flight `speed` →
-`a4f89cb` · bindPassword/parallel/EASE_POP → `71e6c70` · lib dead exports →
-`e23e80c` · component dead props → `2ecb5f2` · lab kit exports → `09f5ebe` · de-export
-sweep → `2f43a3d`.
+bug-lead filing → `e7010ea` · ui/badge+ui/tabs → `86d2586` · 23 shadcn sub-primitives →
+`fde4dc0` · utils.ts dead trio → `9dae6b9` · updateUserProfile → `1c98231` · createCatchup
+→ `e67bfe5` · loadSupport + 8 analytics fields → `c40f5ec` · legacy mono avatar path
+(734→118 lines) → `a7f11ea` · dead-with-a-test trio → `3bb81d3` · house-spans year-row
+library → `b909298` · ProfileAvatar→lab + directory sort stub → `f1146a6` · auth
+metadata-only layouts → `2654f6c` · globals.css dead tokens → `43938f7` ·
+LOGIN_TRANSITION_FLAG → `e1f4d72` · tour `enabled` → `a53d5dc` · flight `speed` →
+`8f5f1cf` · bindPassword/parallel/EASE_POP → `f1afa5d` · lib dead exports →
+`1106261` · component dead props → `8922ad8` · lab kit exports → `4cfeb86` · de-export
+sweep → `55aefdf`.
 
 **Where the audit was wrong, and what was done instead** (rule 4 outcomes):
 - `ContactKind` (dead-code-11, "P") — **re-refuted**: `contacts-editor.tsx:42` imports it.
@@ -273,17 +273,17 @@ file there explaining each and how to recover it. xlsx: **no more spreadsheets a
 so the workbooks were converted to CSV and the dependency deleted (below).
 
 **Done** (in order; every item pre-flighted at HEAD per rule 4):
-QR pipeline → `01b069d` · asset eviction (WhatsApp + overflow + brand PNG) → `5258628` ·
-dead collection images + gen/ → `77dc9da` · six dead deps out, three borrowed ones listed,
-dev-login via next-auth/jwt → `931a4cd` · prisma family aligned + shadcn/pg/dotenv/@types
-re-sectioned → `fd62729` · next + eslint-config-next to 16.3.3 → `6411d77` · puppeteer
-skipDownload → `cb3709d` · crawl.mjs profile rows → `b97dc24` · tsbuildinfo relocation →
-`4cf744d` · .gitignore trim + .DS_Store sweep → `0a73211` · README + AGENTS.md → `fe57798` ·
-six dead doc pointers + profile.md banner + ROADMAP notes → `3c398a1` · progress.md June/July
-archive → `827e650` · zod/v4 + @types/node 24 + dead vitals CSP → `c85658f` · SECURITY probe
-range + OPERATIONS snapshot.yml section → `0a3b7ef` · drive.mjs dead route → `04faee1` ·
-popover onto menu material (+ tw-animate-css out) → `add8dd2` · roster CSV + xlsx out →
-`938a898`.
+QR pipeline → `4a8a844` · asset eviction (WhatsApp + overflow + brand PNG) → `b6598f1` ·
+dead collection images + gen/ → `62f4701` · six dead deps out, three borrowed ones listed,
+dev-login via next-auth/jwt → `1757b0a` · prisma family aligned + shadcn/pg/dotenv/@types
+re-sectioned → `131449f` · next + eslint-config-next to 16.3.3 → `27a92f1` · puppeteer
+skipDownload → `47bd771` · crawl.mjs profile rows → `a4501e3` · tsbuildinfo relocation →
+`f291a1e` · .gitignore trim + .DS_Store sweep → `1959266` · README + AGENTS.md → `35772a5` ·
+six dead doc pointers + profile.md banner + ROADMAP notes → `dd26019` · progress.md June/July
+archive → `4300d47` · zod/v4 + @types/node 24 + dead vitals CSP → `0c97465` · SECURITY probe
+range + OPERATIONS snapshot.yml section → `36f83a2` · drive.mjs dead route → `5edcbbb` ·
+popover onto menu material (+ tw-animate-css out) → `62a76f4` · roster CSV + xlsx out →
+`63a3ab2`.
 
 **Where the audit was wrong, and what was done instead** (rule 4 outcomes):
 - **dependency-diet-02 (prisma → devDependencies): part re-refuted, NOT executed.**
@@ -303,7 +303,7 @@ popover onto menu material (+ tw-animate-css out) → `add8dd2` · roster CSV + 
   the **literal** relative path, not a computed one.
 - **root-docs-assets-10**: `docs/README.md` was already correct (the audit-fix reorganisation
   fixed it). CLAUDE.md's half was closed later in the session, once the owner said his own
-  uncommitted edit could ride along — `1178e4a`.
+  uncommitted edit could ride along — `855eafe`.
 - **root-docs-assets-06 (progress.md archive)**: the file is not chronological — lines 1–467
   are a newest-first head block, then the full chronology. June and July happen to be one
   contiguous run (468–1348), so only those moved; August is the live month. Proved lossless by
@@ -319,7 +319,7 @@ popover onto menu material (+ tw-animate-css out) → `add8dd2` · roster CSV + 
   missing profile answers **200** with the app shell, so two rows printed `OK 200` for blank
   pages. Ids now come from the database; each profile row must render that person's name.
   Negative-tested.
-- `drive.mjs`: the houses and places scenarios drove `/settings`, gone since `22b4b6c`. Both
+- `drive.mjs`: the houses and places scenarios drove `/settings`, gone since `d03b053`. Both
   repointed at the member's own profile; the houses scenario now asserts the popover is really
   on screen. This is what verified the popover change.
 
@@ -352,9 +352,9 @@ The bundled-Chrome claim was re-proved by launching it (it dies), not taken on t
   masked all of `main` was discarded after looking at the result — a sidebar and a magenta
   rectangle. Failure was re-proved by swapping a baseline. **`/collection` is deliberately NOT
   live-masked**; if full coverage of the four is ever wanted back, the answer is seeded content,
-  not a bigger mask. → `900546f`
+  not a bigger mask. → `85b0cff`
 - **CLAUDE.md's spec list gained `admin`**, committed with his own uncommitted wording tweak at
-  his say-so, so root-docs-assets-10 is fully closed. → `1178e4a`
+  his say-so, so root-docs-assets-10 is fully closed. → `855eafe`
 
 **Awaiting owner**:
 1. Sighting session 1's `gate-coverage.test.mjs` widening (nothing to decide; a security test
@@ -363,7 +363,7 @@ The bundled-Chrome claim was re-proved by launching it (it dies), not taken on t
    recursive deletes outside the repo, so clearing that folder is his to run.
 
 **State left**: clean — every file I touched is committed, `CLAUDE.md` included (the owner
-released his own uncommitted edit to ride with it). `c095f4c fix(lab): ...` landed mid-session from another session in
+released his own uncommitted edit to ride with it). `2b8f1f6 fix(lab): ...` landed mid-session from another session in
 this same tree; untouched.
 
 **Next session**: phase 2 (placeholders, flags, Groups residue). It needs owner input first —
@@ -388,14 +388,14 @@ still his before launch · tour stays **demo-only and lazy-loaded**, not armed f
 About page **keeps the joke** as-is · LogoFact **deleted** · /donate **redirects**.
 
 **Done** (every item pre-flighted at HEAD per rule 4):
-`insensitive` unconditional + 2 copies → `92b28c9` · /donate → proxy redirect → `9714b09` ·
-LogoFact deleted, Brand absorbs its aria-label + nowrap → `76624d1` · landing showcase
-decoupled to showcase.tsx → `a808af8` · tour UI lazy-loaded → `d698bf2` · tour
-catchups-explainer anchor restored → `0419828` · dead group_invite bell glyph → `89ee007` ·
-letters group branches → `1903525` · Groups feed plumbing → `a54d7b9` · skeletons mocking
-retired pages → `34a77b4` · stale-comment batch → `c6057ea` · /notice retirement dated →
-`4219a1d`.
-Phase 3, out of order: gate-coverage adopts balancedBody → `9cee0d5`.
+`insensitive` unconditional + 2 copies → `33d52c1` · /donate → proxy redirect → `17e611b` ·
+LogoFact deleted, Brand absorbs its aria-label + nowrap → `a9886db` · landing showcase
+decoupled to showcase.tsx → `7d0e5e4` · tour UI lazy-loaded → `e285c5a` · tour
+catchups-explainer anchor restored → `b246f51` · dead group_invite bell glyph → `c45b922` ·
+letters group branches → `f1442fc` · Groups feed plumbing → `fa0f55f` · skeletons mocking
+retired pages → `e2384e6` · stale-comment batch → `c6057ea` · /notice retirement dated →
+`bc634a1`.
+Phase 3, out of order: gate-coverage adopts balancedBody → `7b55326`.
 
 **Where the audit was wrong, or thinner than the tree** (rule 4 outcomes):
 - **lib-tests-02's suggested regex would have re-broken a security sweep.** It says to call
@@ -425,7 +425,7 @@ Phase 3, out of order: gate-coverage adopts balancedBody → `9cee0d5`.
 **Verification**: `npm run check` ✓ green before every commit and at session end (TS, ESLint,
 protocol, lab registry 42, unit 75/75). `npm run visual` ✓ **23/23** — the eight
 data-drift failures sessions 1 and 2 both hit are gone; another session masked them in
-`900546f` mid-session. `npm run verify:crawl` ✓ 17/17.
+`85b0cff` mid-session. `npm run verify:crawl` ✓ 17/17.
 Proved rather than asserted, where a claim was load-bearing: the showcase move is lossless
 (rendered old-flag-on vs new-showcase-on and diffed the whole 4,701px document — identical
 height, headings, all five shot alts, all ten links); the sidebar rail is pixel-identical
@@ -452,7 +452,7 @@ committing, not after.
 
 **State left**: clean — every file I touched is committed.
 
-**Next session**: phase 3 (dedupe at lib level). `9cee0d5` already did lib-tests-02; the big
+**Next session**: phase 3 (dedupe at lib level). `7b55326` already did lib-tests-02; the big
 remaining piece is lib-tests-01, the shared test kit. Two things learned while starting it
 and then backing out: all 38 ROOT/read preamble copies are in `src/lib`, so a kit at
 `src/lib/test-kit.mjs` shares their depth exactly; and the three `hasLoneSurrogate` copies
@@ -467,17 +467,17 @@ decommenting and every such file needs its assertions re-run, not just typecheck
 reason (below). Every item pre-flighted at HEAD per rule 4.
 
 **Done** (in order):
-test kit + 39 preamble copies → `68d4ad6` · weak `decomment` retired → `5caaa92` · walk ×7 +
-hasLoneSurrogate ×3 + hygiene trio → `fa4863b` · spelling-pin cohort trimmed, tour-provider
-test deleted, landing-auth-ui → layout/sidebar-support-icon → `12d1fd5` · knip.jsonc +
-OPERATIONS §8 → `fe51a6c` · escapeLike one-home → `20af678` · readMinutes + plainExcerpt →
-`5cf90cc` · links schema + displayEmail normalisation → `64f8297` · prisma-errors adoption +
-isMissingTable → `f950d6e` · localStorage kit → `7b1ba04` · fnv1a shared → `352ebe4` · one
-date voice → `c7f3c73` · IDENTITY/AUTHOR_CARD selects + directory PERSON_SELECT → `ab82f30` ·
-profile omits the password hash → `cb7dcc5` · MIN_PASSWORD + gazeFor → `2630812` · composer
-adopts rich-text-editing → `04133c1` · parseImageUrls → parseJsonArray → `fd47d70` · loadPosts
-/loadSavedPosts share include+serializer → `96dc9d6` · requireVerifiedMember composes Stage 1
-→ `89315d9` · claimToken → `d3b1b79` · splitCountryCode → `ffb3ae8`.
+test kit + 39 preamble copies → `8623d5f` · weak `decomment` retired → `0a2c362` · walk ×7 +
+hasLoneSurrogate ×3 + hygiene trio → `e4a7655` · spelling-pin cohort trimmed, tour-provider
+test deleted, landing-auth-ui → layout/sidebar-support-icon → `64e9120` · knip.jsonc +
+OPERATIONS §8 → `e04ecb7` · escapeLike one-home → `1bd9dbc` · readMinutes + plainExcerpt →
+`8a4d40f` · links schema + displayEmail normalisation → `6ed6f8f` · prisma-errors adoption +
+isMissingTable → `5a10007` · localStorage kit → `e37870d` · fnv1a shared → `eba29e7` · one
+date voice → `14d5309` · IDENTITY/AUTHOR_CARD selects + directory PERSON_SELECT → `c8b6d63` ·
+profile omits the password hash → `1b1772f` · MIN_PASSWORD + gazeFor → `a57a684` · composer
+adopts rich-text-editing → `ff85ede` · parseImageUrls → parseJsonArray → `9fe70d8` · loadPosts
+/loadSavedPosts share include+serializer → `de9be54` · requireVerifiedMember composes Stage 1
+→ `c6f6be0` · claimToken → `9848a2b` · splitCountryCode → `594c6b7`.
 
 **Where the audit was wrong, or thinner than the tree** (rule 4 outcomes):
 - **The weak/strong `decomment` split was worse than "they can disagree".** Measured over 592
@@ -565,17 +565,17 @@ directory, /lab, a Catch-up home and a published Round read on screen; the compo
 and plain-paste driven in a real browser; a draft written to localStorage and restored on
 reload; /lab applying all 20 archive overrides (proving the wrapper did not fail open).
 
-**A mistake worth knowing about**: `5cf90cc` (the readMinutes commit) also contains an
+**A mistake worth knowing about**: `8a4d40f` (the readMinutes commit) also contains an
 in-progress version of THIS section, because a `git add $(git diff --name-only)` swept it in.
 Rule 3 says stage by name and I did not, twice. The end state is correct — this entry replaces
-it — but a revert of `5cf90cc` would take a stale handover entry with it.
+it — but a revert of `8a4d40f` would take a stale handover entry with it.
 
 **Awaiting owner** (unchanged from session 3, plus nothing new):
 1. **The public landing still links to no Privacy / Terms / Guidelines** (security audit H12).
 2. Session 1's `gate-coverage.test.mjs` widening is still unsighted.
 3. ~~~357 MB of unused Puppeteer Chrome in `~/.cache/puppeteer`.~~ **DONE — the owner
    deleted it 2026-08-26.** Nothing depended on it: `.puppeteerrc.cjs` (session 2's
-   `cb3709d`) already sets `skipDownload`, so it cannot come back, and Playwright keeps
+   `47bd771`) already sets `skipDownload`, so it cannot come back, and Playwright keeps
    its own browsers in `~/Library/Caches/ms-playwright`, untouched. Re-verified after the
    delete, one at a time: `verify:shot /about` 200, `verify:crawl` 17/17, `npm run visual`
    green, and — the check that mattered — `npm run screenshot` with PUPPETEER_EXECUTABLE_PATH
@@ -607,16 +607,16 @@ not phase 4.
 This is part 1: the plan allowed two sessions for phase 4 and it needs them.
 
 **Done** (in order):
-auth flight machinery → `0dd055a` · AuthPhotoPanel → `76d999e` · PasswordField adopted →
-`da091ca` · bug lead filed → `529c5fd` · Keeper gates 14→2 → `5fba13b` · EDITION_COLUMNS +
-aggregate destructure → `146ba8a` · published-Round loader → `47433ba` · title helpers →
-`8c600a0` · NotAvailableCard → `57e06aa` · QuestionRow → `2d09e6e` · photo-intake prep →
-`04993fb` · MomentStage → `7a55fa2` · LetterDeskSkeleton → `e12a505` · viewer byline →
-`1947c59` · useWideViewport → `f48062f` · appendUnseen adopted → `4ef5a6e` ·
-useHeartToggle/useBookmarkToggle → `3f004d3` · handover → `86c6439` · ui/skeleton retired for
-the warm shimmer → `a6d57c5` · bell variants collapsed → `e13d191` · report preamble →
-`c5025c5` · the transition-property sweep → `e83f39f` · place-search clamp → `ccbfc37` ·
-Sentry branches + prisma.config signpost → `9c12779` · shared places transaction → `329ef62`.
+auth flight machinery → `e8cd77f` · AuthPhotoPanel → `51fb17a` · PasswordField adopted →
+`20f36db` · bug lead filed → `8d15f7f` · Keeper gates 14→2 → `acda10b` · EDITION_COLUMNS +
+aggregate destructure → `6ec083a` · published-Round loader → `ac3b6c0` · title helpers →
+`d5b3a10` · NotAvailableCard → `57ba39e` · QuestionRow → `ce40d9f` · photo-intake prep →
+`db774e6` · MomentStage → `f63bc3e` · LetterDeskSkeleton → `21d609e` · viewer byline →
+`e3d791f` · useWideViewport → `eba223d` · appendUnseen adopted → `12215e5` ·
+useHeartToggle/useBookmarkToggle → `380a225` · handover → `a355677` · ui/skeleton retired for
+the warm shimmer → `0a412c9` · bell variants collapsed → `872016e` · report preamble →
+`85b37b7` · the transition-property sweep → `1a059e6` · place-search clamp → `a5769f7` ·
+Sentry branches + prisma.config signpost → `0c7529f` · shared places transaction → `bfc4909`.
 
 **Where the audit was wrong, or thinner than the tree** (rule 4 outcomes):
 - **catchups-12 is already done** — all four pieces (`keeperName`, `initialPeople`,
@@ -742,7 +742,7 @@ importers are uncommitted on disk and a grep will not see them — nothing here 
    `export const maxDuration`.
 3. The probe/dev-script kits (duplication-07/08 + scripts-e2e-ci-06).
 4. email-queue's duplicated doc block + its misplaced one (lib-core-config-05). The
-   instrumentation and prisma.config halves of that row are already done, in `9c12779`.
+   instrumentation and prisma.config halves of that row are already done, in `0c7529f`.
 5. The avatar-upload hook (directory-profile-12). Its real payoff is a behaviour gap, not
    lines: photo-step shrinks an undecodable file in-browser (B-030) and the letterhead does
    not, so the same phone HEIC can hit Vercel's body cap from the profile today.
@@ -771,12 +771,12 @@ Next session: <the single next thing>
 pre-flighted at HEAD per rule 4.
 
 **Done** (in order):
-mail tone map → `a987cbc` · Catch-up chip vocabulary → `7d6ae13` · admin hygiene batch →
-`18e2f0d` · B-024 comment ×12 → `ae9df23` · analytics query trim → `dbeda7e` · thread
-contract + message window → `fe9eaf6` · useAdminAct → `0cada95` · AdminFilterBar →
-`d16746f` · api-gate + toDisplayWebp → `60e8ee0` · useAvatarUpload → `5745fa2` ·
-email-queue doc blocks → `6277a3e` · probe + dev script kits → `6763918` · scripts ledger
-gate + demo/run-sql supersession + crawl list → `c3d8a4d` · three SKILL files → `c02cfb7`.
+mail tone map → `944ecd7` · Catch-up chip vocabulary → `f21a153` · admin hygiene batch →
+`4e3d9bb` · B-024 comment ×12 → `1213050` · analytics query trim → `5ec1092` · thread
+contract + message window → `c4936ba` · useAdminAct → `16705e7` · AdminFilterBar →
+`4fe37a0` · api-gate + toDisplayWebp → `23484f7` · useAvatarUpload → `5984196` ·
+email-queue doc blocks → `6017657` · probe + dev script kits → `6d0824c` · scripts ledger
+gate + demo/run-sql supersession + crawl list → `b702b8f` · three SKILL files → `c1abc30`.
 
 **Where the audit was wrong, or thinner than the tree** (rule 4 outcomes):
 - **admin-analytics-09 is RE-REFUTED at fix time.** It says `audit/loading.tsx` should
@@ -897,8 +897,8 @@ Proved rather than asserted, wherever a claim was load-bearing:
   because each sits inside logic I did not otherwise touch.
 
 **A note on commit messages**: two exceeded the 150-word ceiling before I caught it —
-`d16746f` (174) and `0cada95` (158). They are **left over-length deliberately**: a peer's
-commit (`d703d91`) landed between them, so rewording either means rebasing over somebody
+`4fe37a0` (174) and `16705e7` (158). They are **left over-length deliberately**: a peer's
+commit (`b797126`) landed between them, so rewording either means rebasing over somebody
 else's work in a checkout with two live sessions. Same call session 3 made, same reason.
 Everything after that was word-counted BEFORE committing, which is the habit to keep.
 
@@ -913,7 +913,7 @@ Everything after that was word-counted BEFORE committing, which is the habit to 
 
 **Peer traffic**: `rv-connect-4f` worked in this tree all session on the landing → signup
 entrance (`landing-hero.tsx`, `signup-client.tsx`, `login-client.tsx`, `mascot-flight.ts`,
-`use-flight-arrival.ts`, new `signup-first-frame.tsx`) and landed `d703d91` and `2a3f0ec`
+`use-flight-arrival.ts`, new `signup-first-frame.tsx`) and landed `b797126` and `eaf4a90`
 mid-session; untouched by me. It broke `npm run check` briefly with a `react-hooks/refs`
 error in its own uncommitted file, fixed it within a minute of being told, and confirmed it
 is not touching `settings/`, `onboarding/` or `profile/`. The icon/lab/brand files still
@@ -953,11 +953,11 @@ behind it while lab stays in the app; the only lever bundle-build-08 offers is a
 lab-only stylesheet, which is real work for 2–9 KB gz. Left unmeasured, deliberately.
 
 **Done** (in order):
-Vercel Analytics out, privacy table corrected → `bd7da7d` · posthog-js deferred to idle →
-`b8010bc` · privacy visual baselines → `88b7157` · LazyMotion + `m` across 56 files, plus
-a rule test → `8314f24` · the 404's bird off every page → `36288fa` · world atlas fetched
-not compiled → `b899d1a` · the filters barrel deleted → `cf83279` · feed photos served at
-display size → `b87b75e`.
+Vercel Analytics out, privacy table corrected → `15c4f4c` · posthog-js deferred to idle →
+`19a8a25` · privacy visual baselines → `6359d7a` · LazyMotion + `m` across 56 files, plus
+a rule test → `b9aeab0` · the 404's bird off every page → `d7a0a15` · world atlas fetched
+not compiled → `ad53bab` · the filters barrel deleted → `1b3de7a` · feed photos served at
+display size → `a13774a`.
 
 **Measured, against report §1a** (raw first-load JS, production builds):
 
@@ -995,7 +995,7 @@ carry the measurement, so nobody has to re-run them):
   `(main)` layout changed nothing: **1,619 KB decoded before and after**, one fewer chunk,
   same bytes. `next/dynamic` in a Server Component (where `ssr: false` is illegal) did not
   split it. Reverted rather than keep indirection that buys zero. The tour half of that
-  row was already done in phase 2 (`d698bf2`) and is the part that carried the weight.
+  row was already done in phase 2 (`e285c5a`) and is the part that carried the weight.
 - **bundle-build-02's saving is smaller than estimated.** LazyMotion took ~37 KB/page off,
   not 90–100: the LazyMotion core measures 49 KB, where the audit assumed 15–30.
 - **bundle-build-04 needed TWO imports removed, not one.** Making not-found.tsx's `<Hoopoe>`
@@ -1085,16 +1085,16 @@ before anything stacked on them. Count BEFORE committing — `wc -w` on the mess
 
 **Peer traffic**: `rv-connect-4f` (which signs itself rv-connect-ad; same session, harness
 artifact) worked in this tree all session and committed the icon/brand/apple-edge work as
-`5be3952 feat(brand): apple logo replication` — the files that had sat uncommitted for two
+`0294dae feat(brand): apple logo replication` — the files that had sat uncommitted for two
 days. It did that on the owner's direct instruction, given after I had asked him and been
 told "I'll deal with them myself"; both are true, he dealt with them through that session.
 It also warned me that `auth-first-frame.test.mjs` pins the landing stand-in string-for-
 string against login/signup/trivia-gate, which is exactly what my `m.` rename touched —
-that test's edit rode in `8314f24`, and I strengthened it: `lastIndexOf` returning −1 would
+that test's edit rode in `b9aeab0`, and I strengthened it: `lastIndexOf` returning −1 would
 have silently sliced the wrong text and passed. `CLAUDE.md` is modified in the tree and is
 **not mine**.
 
-**Two corrections to this entry, found AFTER it was written** (both shipped: `b2216d5`):
+**Two corrections to this entry, found AFTER it was written** (both shipped: `cea5b6b`):
 
 1. **The first `sizes` I shipped was wrong, and 4K was blurry.** I hardcoded 728px, which
    is what a feed card measures on a 1440px laptop — but it is not a constant. The feed's
@@ -1152,10 +1152,10 @@ session 7 documented, because `route-js.mjs` still cannot tell an eager chunk fr
 lazy one.
 
 **Done** (in order):
-the letterhead's edit half deferred → `d68d923` · a stale Collection baseline →
-`4ee0cdf` · rich-text and phone out of `utils.ts` → `8c2a636` · the post stack's
-behind-interaction weight deferred → `a6be05b` · /collection's page 0 server-rendered →
-`7cb400f`.
+the letterhead's edit half deferred → `7517103` · a stale Collection baseline →
+`ef841a0` · rich-text and phone out of `utils.ts` → `746072f` · the post stack's
+behind-interaction weight deferred → `78799d3` · /collection's page 0 server-rendered →
+`e14851d`.
 
 **Measured** (browser, decoded JS, production build):
 
@@ -1262,7 +1262,7 @@ is blocked in this tree by design, and rightly. **Build the new string first, as
 differs, and only then open the file for writing.**
 
 **Peer traffic**: `rv-connect-d2` (the session-7 author) worked in this tree throughout
-and committed `1349eb4`, `b2216d5`, `28f019f` — a `sizes` correction for 4K screens and
+and committed `b78038e`, `cea5b6b`, `1593f9b` — a `sizes` correction for 4K screens and
 its handover note. It had `post-card.tsx` uncommitted at the moment I needed it; I
 reordered onto shell-primitives-09 and picked the post stack back up once it landed,
 rather than stage a file carrying its work. Two corrections it passed on, both worth
@@ -1275,7 +1275,7 @@ already-loaded srcset candidate**, so resize measurements need a fresh context.
 held one photograph and the live database now has two, so the route was red on both
 viewports for no commit's reason. `visual.spec.ts`'s own LIVE ROUTES note anticipates
 exactly this ("photos arrive rarely enough that its picture still means something"), so
-it was looked at and re-recorded, that route only, as its own commit (`4ee0cdf`) rather
+it was looked at and re-recorded, that route only, as its own commit (`ef841a0`) rather
 than folded into unrelated work.
 
 **State left**: clean — every file I touched is committed. A `next start` may be up on
@@ -1362,7 +1362,7 @@ migration path is a second database that will be wrong. Two of the files refuse 
 their table has gained rows since the census, which is the check that matters.
 
 **Done** (in order; every item pre-flighted at HEAD per rule 4):
-the `sizes` bug the owner named → `ba9dc1d` · both Dependabot highs → `fe96d89` · auth
+the `sizes` bug the owner named → `ff0add2` · both Dependabot highs → `fe96d89` · auth
 adapter + 3 models → `0399d37` · GroupInvite → `dac7869` · five dead columns → `1798ecd` ·
 Visit geolocation trio → `e065cf8` · SearchLog index → `69d2373` · four import cycles →
 `760ecbb` · catchups core/engine split → `887a95f`.
@@ -1430,7 +1430,7 @@ index exactly, touches no working tree) and a re-commit. **Always `git commit -F
 in this repo.** Every commit in this session after that one used a pathspec.
 
 **Peer traffic**: another session worked in this tree throughout, removing the hoopoe tour
-and building the in-app guide. It committed `cba5e25`, `af27a3e`, `ba59e92` and `6f50111`;
+and building the in-app guide. It committed `7df0125`, `af27a3e`, `1c1dc78` and `6f50111`;
 `6f50111` (the tour removal) went out on the owner's push alongside mine. Its half-applied
 state made `npm run visual` and `test:e2e` red for a while with Next's `Cannot find module
 '@/components/tour/tour-provider'` overlay on every authenticated route — read one diff PNG
@@ -1450,7 +1450,7 @@ average of 16, which took one `npm run check` from 45 s to 1,429 s.
 The gate above described a second push that was owed. It happened, and so did the DDL.
 
 **The push needed fixing first, and the fix is worth knowing.** `origin/main` and local
-`main` had diverged: origin's tip `cba5e25` was an earlier shape of the peer's lab commit
+`main` had diverged: origin's tip `7df0125` was an earlier shape of the peer's lab commit
 that also carried twelve tour-file deletions folded in, and locally that had been rewritten
 as `a36cb61` with the deletions moved into their own commit. A merge resolved cleanly and
 was then **rejected by a GitHub ruleset — "this branch must not contain merge commits"**.
@@ -1528,7 +1528,7 @@ written, which is what rule 4 is for:
   options that carry the savings — and against a ~70-line new lib module it is a net **+60
   lines** on a file the handover forbids following up with a sweep.
 
-**What the row did have, taken instead** (`0a973bc`). The file really did spell the same
+**What the row did have, taken instead** (`a5628da`). The file really did spell the same
 admin check out three times — session read, `role !== "admin"`, `"Not authorized"` — and a
 security check written three times can be fixed twice and left wrong once. One file-local
 `actingAdmin()` holds it, returning the acting admin so the reply path still has an id for
@@ -1539,7 +1539,7 @@ marked sorted, then read back — `status` closed, `adminUnread` false, one `fro
 message carrying the admin's own id. (That thread, `cmtb8zcfd000f52sgu6h8sdln`, is still
 there, closed. It is Jerry's; delete it if it bothers you.)
 
-**2. `feed-posts-02` — the composer split — DONE** (`3527e55`). 1,685 lines → 1,201, with
+**2. `feed-posts-02` — the composer split — DONE** (`55c1198`). 1,685 lines → 1,201, with
 `use-letter-persistence.ts` (468) and `use-composer-uploads.ts` (225) beside it. +209 net,
 which is the honest price of two named boundaries; this was always a move, not a cut.
 
@@ -1572,7 +1572,7 @@ which is the honest price of two named boundaries; this was always a move, not a
   200, blob preview, Post enabled only once uploading finished) and removed it again.
   `npm run visual` 23/23 — the split is invisible, which is the point.
 
-**3. The bug that only driving it could find** (`033ea43`). The crash-net key printed
+**3. The bug that only driving it could find** (`e8ef748`). The crash-net key printed
 `rv:letter-draft:anon:new`. Audit C-014 put a member id in that key precisely so a shared
 browser could not restore one person's unsaved letter into the next person's composer. The
 template was right; **the wiring was never done.** `letter-desk.tsx` did not pass
@@ -1595,8 +1595,8 @@ hard-link it with `cp -Rl`; and it will not resolve upward past the worktree's o
 so removing node_modules entirely does not work either. The numbers then come straight out
 of `.next/diagnostics/route-bundle-stats.json`, whose `firstLoadUncompressedJsBytes` is
 exactly the metric §1a recorded — no `experimental-analyze` run needed. The method matters: the baseline
-commit `1d3f996` was extracted to a scratch tree with `git archive` and measured by the SAME
-tool invocation as the tree at `033ea43`, so nothing is compared against §1a's unknown flags.
+commit `d3c4f20` was extracted to a scratch tree with `git archive` and measured by the SAME
+tool invocation as the tree at `e8ef748`, so nothing is compared against §1a's unknown flags.
 Two rows are marked not-re-measured rather than guessed — `next build`, because a production
 build shares `.next` with a dev server started at 10:01 by another session, and local disk,
 which is the owner's own move. §7.4 needed no file move: the folder already sits at the path

@@ -1,4 +1,4 @@
-# Stylesheets in .next/static/chunks (HEAD 70570bcd, 2026-09-24). gz = gzip -6. Which routes load each: from page_client-reference-manifest.js.
+# Stylesheets in .next/static/chunks (HEAD 495ecdd2, 2026-09-24). gz = gzip -6. Which routes load each: from page_client-reference-manifest.js.
 1vjuupxoge4ny.css  9453 B raw / 1090 B gz
 2n0wc4xou_xzc.css  5824 B raw / 1216 B gz
 2n2s4f1i5byh0.css  169614 B raw / 23087 B gz

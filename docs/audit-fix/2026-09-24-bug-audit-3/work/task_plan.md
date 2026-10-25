@@ -4,12 +4,12 @@
 The owner stopped the audit mid-validation to save usage and will resume in a NEW session. An INTERIM
 compilation of everything found so far is `../bug-report-3.md` (committed with this folder). A session told to
 "continue the bug audit" does this, in order:
-1. **Re-baseline.** The audit read the code at `70570bcd`. HEAD moved while it was paused (at the stop: `60b8fc16`,
-   seven commits — `ac70bd9d` "a changed batch year moves the member out of the old batch" (likely fixes
-   T2a-01/T6-02), `9ef7d821` batch Catch-ups every three months (touches T2a-*), `81bb7d11` guide chapters + a
-   once-only tour (T8b-13/T8b-16), `ca85e424` dialog close button (T8b-01's file?), `1b6e5fd3` directory city
-   panel (T6-*), `bda5571c` Collection drop box (T4b-*), `60b8fc16` chip colours). Run
-   `git log --oneline 70570bcd..HEAD` and `git diff --stat 70570bcd..HEAD -- src` and hand every validator the list
+1. **Re-baseline.** The audit read the code at `495ecdd2`. HEAD moved while it was paused (at the stop: `4eddc6f7`,
+   seven commits — `e49e6265` "a changed batch year moves the member out of the old batch" (likely fixes
+   T2a-01/T6-02), `14f77687` batch Catch-ups every three months (touches T2a-*), `46d4408f` guide chapters + a
+   once-only tour (T8b-13/T8b-16), `08d25d12` dialog close button (T8b-01's file?), `b5a87180` directory city
+   panel (T6-*), `105e056c` Collection drop box (T4b-*), `4eddc6f7` chip colours). Run
+   `git log --oneline 495ecdd2..HEAD` and `git diff --stat 495ecdd2..HEAD -- src` and hand every validator the list
    of changed files: a finding whose lines changed is re-checked, not assumed.
 2. **The throwaway account is gone** (deleted 2026-09-25 by a separate session at the owner's request — note 3 below).
    Nothing to clean. A new live pass needs a NEW throwaway, deleted in the same sitting.
@@ -30,15 +30,15 @@ compilation of everything found so far is `../bug-report-3.md` (committed with t
 
 
 **Already fixed OUTSIDE the audit, 2026-09-29/30** (the platform-health session, `docs/planning/platform-health/`).
-Validators re-check these against the fix, they do not re-find them: L3-08 / L11-01 photo backup (`5b891c92`, and
-`0cdfcaa3` adds a nightly restore rehearsal); L5-02 sign-in flood rows capped at 120/hour, and L5-08's size alarm
-(`ddae0afb`); L5-07's backup share of egress (`0cdfcaa3`; the app's share is unmeasured); L2-01 lab rooms gate
-themselves (`0dd607b1`); O-07 every database client on verified TLS (`25a9c231`); T2b-01 / L8-05 bounded meta parser
-(`47023cd2`); O-03 / T5-17 a failed session read shows the error screen, not the sign-in form (`79024643`); T3-01 and
-T3-03 (`65049ebc`). By other sessions: T3-02 (`1619d6af`), T6-02 / T2a-01 (`ac70bd9d`), T5-01 for bounced addresses
-(`8000e830`). L8-01 is OPEN as an owner decision (download converter; the options are in the platform handover).
+Validators re-check these against the fix, they do not re-find them: L3-08 / L11-01 photo backup (`7f28818c`, and
+`4487283b` adds a nightly restore rehearsal); L5-02 sign-in flood rows capped at 120/hour, and L5-08's size alarm
+(`e29823cb`); L5-07's backup share of egress (`4487283b`; the app's share is unmeasured); L2-01 lab rooms gate
+themselves (`8d35ff4e`); O-07 every database client on verified TLS (`91c07fbc`); T2b-01 / L8-05 bounded meta parser
+(`b6cbdfc0`); O-03 / T5-17 a failed session read shows the error screen, not the sign-in form (`e286daf0`); T3-01 and
+T3-03 (`592e3526`). By other sessions: T3-02 (`1439c83a`), T6-02 / T2a-01 (`e49e6265`), T5-01 for bounced addresses
+(`c41893f0`). L8-01 is OPEN as an owner decision (download converter; the options are in the platform handover).
 Not an audit finding but the real Hobby-plan killer: link prefetching, ~18 server renders per real page view
-(`c5fee5b4`); L5-01 had attributed the risk to the presence beacon and the proxy, which measurement did not bear out.
+(`19be10b0`); L5-01 had attributed the risk to the presence beacon and the proxy, which measurement did not bear out.
 
 Audit-only session. No application code changes. Report goes to
 `docs/audit-fix/2026-09-24-bug-audit-3/bug-report-3.md`, fix-prompt beside it.
@@ -125,7 +125,7 @@ relaunch an agent whose report exists. Verdicts under `work/verdicts/` likewise.
 - 09:10 BST: T7b DONE (22: 5 M, 17 L) → L6 launched. 09:22 BST: L5 DONE (12: 3 Critical L5-01/02/07, 1 High L5-08, 2 M, 6 L; the full 2k dossier) → L11 launched. Criticals' plan facts verified by the orchestrator (Supabase FREE per repo; Vercel Hobby limits fetched). In flight (7): L2, L3, L4, V-T8, L10, L6, L11. Remaining lenses: L12, L9, L7, L8. Validators all but V-T1/V-T8.
 - 09:40 BST: V-T8 DONE (0 refuted; T8b-14 and T8b-17 → High). V-T5 launched. O-07 (plaintext DB connection, High) written by the orchestrator at 09:31. In flight (7): L2, L3, L4, L10, L6, L11, V-T5.
 - 09:47 BST: L3 DONE (8: L3-08 High — media backup failing every night since 08-29, CONFIRMED by orchestrator via gh logs; L3-01/02 Medium; 5 Low). L12 launched. In flight (7): L2, L4, L10, L6, L11, V-T5, L12. Remaining lenses: L9, L7, L8.
-- **SECOND STOP — the session halted ~09:12 BST 2026-09-24 (file mtimes; my logged times ran ~35 min fast) and resumed 2026-09-27 01:57 BST on the owner's "continue".** HEAD still `70570bcd`, tree unchanged (only the two untracked audit folders). No subagent survived. On disk and COMPLETE: L4 (18 findings), L6 (16), L10 (18; its Coverage line is a stale interim note, every section is present). PARTIAL: L2 (85 lines, 0 findings), L11 (79 lines, 2 findings), V-T5 (stub). NEVER WRITTEN: L12. Relaunched 01:58 BST on opus: L2 (resume), L11 (resume), L12 (fresh), V-T5 (resume), L9, L7, L8 (fresh). Then the validators: V-T7a, V-T2, V-T4, V-T6, V-O-L1, V-T3, V-T7b, V-T9, V-L-a..d. UPDATE 02:20 BST: TestBird was ALREADY GONE on resume (removed outside the app during the stop; no audit row) — cleanup verified by SELECT; /tmp credentials file deleted.
+- **SECOND STOP — the session halted ~09:12 BST 2026-09-24 (file mtimes; my logged times ran ~35 min fast) and resumed 2026-09-27 01:57 BST on the owner's "continue".** HEAD still `495ecdd2`, tree unchanged (only the two untracked audit folders). No subagent survived. On disk and COMPLETE: L4 (18 findings), L6 (16), L10 (18; its Coverage line is a stale interim note, every section is present). PARTIAL: L2 (85 lines, 0 findings), L11 (79 lines, 2 findings), V-T5 (stub). NEVER WRITTEN: L12. Relaunched 01:58 BST on opus: L2 (resume), L11 (resume), L12 (fresh), V-T5 (resume), L9, L7, L8 (fresh). Then the validators: V-T7a, V-T2, V-T4, V-T6, V-O-L1, V-T3, V-T7b, V-T9, V-L-a..d. UPDATE 02:20 BST: TestBird was ALREADY GONE on resume (removed outside the app during the stop; no audit row) — cleanup verified by SELECT; /tmp credentials file deleted.
 - 2026-09-27 02:30 BST: L2 DONE (5: L2-01 High — /lab admin gate skipped by a crafted RSC tree, PROVED by the orchestrator as Jerry; 2 M, 2 L) → V-T2 launched. 02:45: V-T5 DONE (0 refuted; T5-02/03 → Medium; T5-17 → O-03) → V-T4 launched. In flight (7): L11, L12, L9, L7, L8, V-T2, V-T4. Validators left: V-T6, V-T7a, V-T3, V-T7b, V-T9, V-O-L1, V-L-a..d.
 - 03:00 BST: L12 DONE (9: 2 M, 7 L; L12-01 verified at source) → V-T6 launched. In flight (7): L11, L9, L7, L8, V-T2, V-T4, V-T6.
 - 03:15 BST: L11 DONE (7: L11-01 = L3-08, 2 M, 4 L; all 88 manual migrations checked) → V-T7a launched. In flight (7): L9, L7, L8, V-T2, V-T4, V-T6, V-T7a.

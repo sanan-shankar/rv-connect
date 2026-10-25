@@ -3,9 +3,9 @@
 Cross-cutting lens L08: every megabyte the repository tracks, where it came from, and what should
 not be there, should be smaller, or should live elsewhere. The frame is the owner's own sentence:
 *"Simplification is not just in code but also bloat, and effectively storage space of this
-folder."* So this report attributes both the 44.90 MB git tracks (1,632 files at HEAD `70570bcd`)
+folder."* So this report attributes both the 44.90 MB git tracks (1,632 files at HEAD `495ecdd2`)
 and the 7.5 GB the folder occupies on disk, and it attributes the +12.71 MB gained since audit 2's
-tree (`72b5a1d`, 2026-09-03) file by file. Date: 2026-09-24. Files in territory: all 1,632 tracked
+tree (`09772aa`, 2026-09-03) file by file. Date: 2026-09-24. Files in territory: all 1,632 tracked
 files were weighed; 488 were measured individually (the 24 baselines with `sips`, all 158 `public/`
 files with a reference grep each, the 139 `docs/audit-fix` files by folder, the 44 `docs/planning`
 files by size, the 104 `.claude` files by directory, the 15 root files); 22 text files were read in
@@ -29,7 +29,7 @@ read-only commands, `du`, `find`, `stat`, `sips`, `file`, `grep`, `awk`, `wc`.
   `docs/planning/collection-rework/handover.md` and `docs/planning/valley/handover.md`, the campaign
   board of audit 2's `fix-prompt.md`.
 - **Measured, not read** (the charter's own instruction for binaries): every tracked file's byte
-  count at HEAD and at `72b5a1d` (both computed from `git ls-tree -r -l`, so the brief's 44.90 MB
+  count at HEAD and at `09772aa` (both computed from `git ls-tree -r -l`, so the brief's 44.90 MB
   and 32.19 MB reproduce exactly), every blob in history (`git rev-list --objects --all | git
   cat-file --batch-check`), pixel dimensions and format of every `public/` file over 100 KB and of
   all 24 baselines, the on-disk size of every top-level and every ignored pile.
@@ -53,7 +53,7 @@ kind (`src/`, `scripts/`, `e2e/` specs, `prisma/`) is 23 % (10.4 MB). So a lens 
 every megabyte, and then the +12.71 MB the three weeks since audit 2 added.
 
 **The growth has one dominant cause and it is not sprawl.** Three Catch-up cover photographs
-committed on 2026-09-10 (`41a73a73`) are 6.47 MB, **51 % of everything gained**. They are the
+committed on 2026-09-10 (`afe4d367`) are 6.47 MB, **51 % of everything gained**. They are the
 owner's own photographs at camera resolution (4608 px wide, WebP q90) while the optimiser's top rung
 is 3840 px and no shipped surface asks for more than 2360 device pixels, so at least 768 columns of
 every frame can never reach a screen. The one place a member downloads the raw files is the picture
@@ -117,23 +117,23 @@ resized copies, and then stores 33 % more pixels than the optimiser can ever ask
 
 Pictures (the bold rows plus `landing.jpeg`, `birds/`, `icons/`, `brand/`): 25.4 MB, 56.6 %.
 
-**Where the +12.71 MB came from** (32.19 MB / 1,252 files at `72b5a1d` → 44.90 MB / 1,632 at HEAD;
+**Where the +12.71 MB came from** (32.19 MB / 1,252 files at `09772aa` → 44.90 MB / 1,632 at HEAD;
 per-file deltas computed from both trees; ±0.1 MB rounding across rows):
 
 | Contributor | MB | share of the gain |
 |---|---|---|
-| Three Catch-up covers, `public/images/catchups/` (`41a73a73`, 2026-09-10) | +6.47 | 51 % |
+| Three Catch-up covers, `public/images/catchups/` (`afe4d367`, 2026-09-10) | +6.47 | 51 % |
 | Audit 2's own folder: `work/` 3.65 + `report.md` 0.09 + `fix-prompt.md` 0.10 | +3.85 | 30 % |
 | The lab: +89 files (`valley`, `years/wall`, the Catch-ups rooms, the magazine), of which the 12 JSON fixtures +0.73 | +1.55 | 12 % |
 | `docs/planning`: `catchups-rework/` +1.45 (new), `valley/` +0.05, `collection-rework/` +0.02 | +1.51 | 12 % |
 | Non-lab code: `src/lib` +0.61 (magazine engine, Catch-up libs and tests), `src/components` +0.36, `src/app` non-lab +0.09 | +1.06 | 8 % |
-| 102 bird PNGs for the saved contact card, `public/images/birds/` (`bcec4cdc`, 2026-09-11) | +0.67 | 5 % |
+| 102 bird PNGs for the saved contact card, `public/images/birds/` (`ce61b1af`, 2026-09-11) | +0.67 | 5 % |
 | The session log's inversion: `docs/history` +1.09 (Aug moved out, Sep written there), root `progress.md` −0.56 | +0.53 | 4 % |
-| The valley heightmaps, `public/lab/valley/` (`2d3efebf`, 2026-09-16) | +0.52 | 4 % |
+| The valley heightmaps, `public/lab/valley/` (`6694288a`, 2026-09-16) | +0.52 | 4 % |
 | `prisma/migrations-manual` +0.08, `scripts` +0.07, `docs/content` +0.02, `e2e` specs +0.01 | +0.18 | 1 % |
-| Audit 1's `work/` sent to history (`9e5fbecb`, 2026-09-08; README: "72 files and 1.9 MB") | −1.9 | |
+| Audit 1's `work/` sent to history (`d69b20a5`, 2026-09-08; README: "72 files and 1.9 MB") | −1.9 | |
 | Baselines: `catchups` desktop −0.63 and mobile −0.14 after the band mask, `landing` −0.07 | −0.94 | |
-| `public/` deletions: 5 showcase shots −0.28 (`f8ef8a20`), 3 crop leftovers −0.33 and `c3-thumb` −0.09 (`2046bff1`) | −0.70 | |
+| `public/` deletions: 5 showcase shots −0.28 (`acdafccf`), 3 crop leftovers −0.33 and `c3-thumb` −0.09 (`3afc2da6`) | −0.70 | |
 | `package-lock.json` −0.11 (the audit-2 dependency cuts), `docs/spec` −0.02 | −0.13 | |
 | **Net** | **+12.71** | |
 
@@ -164,7 +164,7 @@ problem at all: the whole non-lab `src/` tree is smaller than the screenshot fol
 
 ### tracked-weight-01 - Re-export the three Catch-up covers at the optimiser's ceiling; the camera-resolution masters live in history
 - **Where**: `public/images/catchups/shaded-path.webp` (3,346,288 B, 4608x2306), `boulder-hill.webp`
-  (1,840,694 B, 4608x2303), `stone-benches.webp` (1,601,734 B, 3456x1716); all added by `41a73a73`
+  (1,840,694 B, 4608x2303), `stone-benches.webp` (1,601,734 B, 3456x1716); all added by `afe4d367`
   (2026-09-10, "his first three photographs replace the six stand-ins"). The reasoning that put them
   in at this size: `src/lib/catchup-pictures.ts:160-172`, the comment block beginning `HIS FIRST
   THREE, 2026-09-10` and `AT THEIR FULL RESOLUTION, uncropped ... WebP at q90 ... the size on disk is
@@ -204,7 +204,7 @@ problem at all: the whole non-lab `src/` tree is smaller than the screenshot fol
     (`@default("/images/catchups/shaded-path.webp")`) are untouched. The migration
     `prisma/migrations-manual/2026-09-10-catchup-pictures-his-three.sql` wrote these paths into rows;
     a same-path re-export needs no migration.
-  - The masters are not lost by overwriting: `git show 41a73a73:public/images/catchups/shaded-path.webp`
+  - The masters are not lost by overwriting: `git show afe4d367:public/images/catchups/shaded-path.webp`
     recovers any of them at any time, and the 6.47 MB of blobs stays in every clone's history
     regardless of what the tree does (see finding 10). The saving is in the checkout, the deploy
     artefact of both sites, `git grep`/`du`, and the picker's download; not in the clone.
@@ -218,7 +218,7 @@ problem at all: the whole non-lab `src/` tree is smaller than the screenshot fol
   3. Rewrite the comment block at `catchup-pictures.ts:168-172` to say the true ceiling: "3,840 px
      wide, the optimiser's top rung (next.config.ts deviceSizes), at q82; nothing shipped asks above
      2,360 device px. The camera-resolution originals are his, and git keeps the committed ones at
-     41a73a73." Keep the sentence about the crop being `object-fit: cover` plus `focus`; that is
+     afe4d367." Keep the sentence about the crop being `object-fit: cover` plus `focus`; that is
      the part that matters and it is unaffected.
   4. Do not rename the files. `src/components/landing/shots.ts:12-17` warns that `/_next/image`
      caches by URL and may serve a stale render after an in-place overwrite; here a stale render is
@@ -255,7 +255,7 @@ problem at all: the whole non-lab `src/` tree is smaller than the screenshot fol
   `workflow-find.js` 88,779, `workflow-verify.js`, `db-indexes-live.json` 51,994, `task_plan.md`,
   `brief-common.md`, `clusters-final.json`). The rule: `docs/audit-fix/README.md:24-31`, "**And when
   it closes, its `work/` folder goes.** The owner made this the rule on 2026-09-08 (refactor audit 2,
-  question 21)". The precedent: `9e5fbecb` (2026-09-08, "docs(audit1): the working notes go to git
+  question 21)". The precedent: `d69b20a5` (2026-09-08, "docs(audit1): the working notes go to git
   history, citations with them"). The campaign state: `fix-prompt.md:83-90` board, rows E and F
   `PARTIAL`, everything else `DONE`.
 - **Phase**: relocate (to history)
@@ -267,12 +267,12 @@ problem at all: the whole non-lab `src/` tree is smaller than the screenshot fol
   raw tool outputs that this audit has re-run and superseded (`raw/cloc-by-file.csv` 70 KB,
   `raw/jscpd.txt` 44 KB, `raw/knip*.txt` 4 files 77 KB, and so on). `report.md` cites `work/` 15
   times and `fix-prompt.md` 10 times; the two bug-audit-2 survivors cite it 0 times. Audit 1's
-  eviction (`9e5fbecb`) is the worked example of the citation edit the README demands.
+  eviction (`d69b20a5`) is the worked example of the citation edit the README demands.
 - **What to do**:
   1. In the commit that closes audit 2 (the same commit that marks its README row Closed and folds
      rows E7b/E8/E11/catchups-02 and docs-17..21/scripts-e2e-ci-12 into audit 3's plan, or marks
      them consciously refused): `git rm -r docs/audit-fix/2026-09-03-refactor-audit-2/work`.
-  2. Edit the 25 `work/` citations in `report.md` and `fix-prompt.md` the way `9e5fbecb` did: a
+  2. Edit the 25 `work/` citations in `report.md` and `fix-prompt.md` the way `d69b20a5` did: a
      one-line note at the top of each ("the `work/` folder went to history on <date>; recover with
      `git log --diff-filter=D -- "docs/audit-fix/2026-09-03-refactor-audit-2/work/*"`") rather
      than 25 rewrites, so the citations stay legible as history pointers.
@@ -348,8 +348,8 @@ problem at all: the whole non-lab `src/` tree is smaller than the screenshot fol
     over the backdrop. **82 % of the bytes are the one JPEG, drawn plainly or faintly.**
   - History since audit 2: `e2e/__screenshots__` went from 157 blobs / 101 MB to **225 blobs /
     127.08 MB** (+68 blobs, +26 MB) in 11 rebaseline commits. Three of them were global and
-    legitimately so (`9600932d` the brand lockup, 23 files; `bed93ca1` the sidebar mark, 18;
-    `0651abd3` the header controls, 12); the other eight touched 1-2 files. The "rebaseline only the
+    legitimately so (`097fb727` the brand lockup, 23 files; `eef41265` the sidebar mark, 18;
+    `df5f1504` the header controls, 12); the other eight touched 1-2 files. The "rebaseline only the
     routes that moved" practice audit 2 asked for is being followed (not-finding below).
   - No orphan PNG: the 12 `ROUTES` names x 2 match the 24 files exactly.
 - **What to do** (for T17 to decide; the numbers are what I can supply):
@@ -386,7 +386,7 @@ problem at all: the whole non-lab `src/` tree is smaller than the screenshot fol
   "the seven full-page routes"; that was right about the routes and wrong about the cause, which is
   why the "shoot `/privacy` at viewport height" it suggested would have saved almost nothing
   (`/privacy` is the cheapest full-page shot in the folder). The band mask on `catchups`
-  (`e2761a96`, `5e688bb4`) is what took 0.78 MB off since then, for the same reason: it replaced
+  (`a66972c0`, `69da2844`) is what took 0.78 MB off since then, for the same reason: it replaced
   photograph pixels with flat pink. The one part of the folder that is genuinely its subject is
   `/support` (the tree backdrop the route exists to watch) and `/birds` (50 glyphs); those bytes stay.
 
@@ -394,7 +394,7 @@ problem at all: the whole non-lab `src/` tree is smaller than the screenshot fol
 - **Where**: `e2e/.shots/` (ignored, `.gitignore:41`): 908 files, 518,652 KiB; 230 files older than
   seven days (131 MB); 475 files written on 2026-09-21 alone (the loading-screen series). The command:
   `package.json:15` `"shots:clean": "find e2e/.shots -type f -mtime +7 -delete; echo 'cleared
-  scratch screenshots older than a week'"`, added by `29790d82` (2026-09-07, "one scratch folder for
+  scratch screenshots older than a week'"`, added by `fa9e0d3e` (2026-09-07, "one scratch folder for
   screenshots, and a command that empties it"). The rule: CLAUDE.md, Screenshots section, "run it at
   the end of a session". The dead piles: `.claude/shots/` (9,604 KiB, 31 files, newest 2026-08-19)
   and `.claude/_disabled-gsd/` (7,548 KiB), both ignored by `.claude/*` (`.gitignore:64`), both
@@ -493,7 +493,7 @@ problem at all: the whole non-lab `src/` tree is smaller than the screenshot fol
   `catchup-pictures.ts:166` recording that the stand-ins stay "because the demo's Collection uses
   them" — which is true of the fourteen and of `c1`/`c3`, and not of these eleven. `public/lab/`
   already exists as the lab-only home (`crop/`, `valley/`, the ignored `wall/`), and the audit-2
-  finding that landed on 2026-09-05 (`2046bff1`) used exactly that distinction to delete three files.
+  finding that landed on 2026-09-05 (`3afc2da6`) used exactly that distinction to delete three files.
 - **What to do**: `git mv` the eleven to `public/lab/collection/`; update the lab references (a
   `sed` over the listed `.tsx`/`.ts` files and the twelve fixture JSONs' `"url"` fields for the
   five display names; the thumbs are named only by `viewer/page.lab.tsx:80-87`). Do not touch
@@ -525,7 +525,7 @@ problem at all: the whole non-lab `src/` tree is smaller than the screenshot fol
 - **Phase**: hygiene
 - **Tier**: T1     **Class**: cheap     **Decides**: autonomous
 - **Evidence**: audit 2's root-assets-08 named all three on 2026-09-04; the file has been edited
-  three times since (`29790d82` 09-07, `a53827c2` 09-08, `6302bae2` 09-16, per `git log --
+  three times since (`fa9e0d3e` 09-07, `d77d05f7` 09-08, `4fa9928d` 09-16, per `git log --
   .gitignore`) and each edit added or removed its own line without touching these. `git grep -ln
   "supabase link\|npx supabase\|supabase/"` still returns only `.gitignore` and audit-2 reports;
   there is no `supabase/` directory. Every other pattern has a subject on disk or a written reason:
@@ -605,7 +605,7 @@ problem at all: the whole non-lab `src/` tree is smaller than the screenshot fol
     versions (the file is now a 38 KB index); `e2e/__screenshots__` 127.08 MB / 225 blobs (24 live,
     201 superseded baselines); `docs/history/progress-2026-09.md` 64.35 MB / 151; `src/components`
     36.5 MB / 2,786; `src/app` 31.7 MB / 2,172; **`docs/contract/` 26.86 MB / 11 blobs, deleted on
-    2026-08-08 (`5bcbf611`)** — ten full-page reference PNGs of 1.4-5.9 MB each plus one; `docs/planning`
+    2026-08-08 (`5eccf9b5`)** — ten full-page reference PNGs of 1.4-5.9 MB each plus one; `docs/planning`
     25.1 MB (the Catch-ups handover alone 10.83 MB / 56 versions); `public/images` 23.8 MB / 217, of
     which `landing.jpeg` once carried the 6.2 MB master (blob `d4f8e30a`, the same bytes as the
     ignored `landing-original.jpeg`), two `WhatsApp Image 2026-05-13 ...jpeg` files 3.05 MB, and the
@@ -616,7 +616,7 @@ problem at all: the whole non-lab `src/` tree is smaller than the screenshot fol
     before compression, perhaps 100-120 MB of pack. Against that: every commit id would change, and
     this repository cites commit ids everywhere — `progress.md`'s index lines, every `docs/history`
     entry, `docs/TRAPS.md`, both audit reports, the fix prompts, dozens of source comments ("audit
-    C1-b", "`77dc9da` deleted ..."). Vercel's two projects would need a force-push each. The cost is
+    C1-b", "`62f4701` deleted ..."). Vercel's two projects would need a force-push each. The cost is
     real and permanent; the benefit is a faster `git clone` of a repository one person clones.
 - **What to do**: `git gc` (plain; not `--aggressive`, not `--prune=now`) once, in a quiet moment
   when no other session is mid-commit; it is non-destructive and reversible in the sense that it
@@ -773,7 +773,7 @@ problem at all: the whole non-lab `src/` tree is smaller than the screenshot fol
   ~88 KB a week — a third of the rate audit 2 measured on the old root file. Its 151 rewrites are a
   `.git` matter (finding 10), not a tracked-weight one.
 - **Root `progress.md` (492 lines, 38,544 B).** Audit 2's 600 KB headline, closed by the 2026-09-07
-  inversion (`25bf7033`); `scripts/qa/progress-log.test.mjs` keeps it an index.
+  inversion (`6c761dcd`); `scripts/qa/progress-log.test.mjs` keeps it an index.
 - **`package-lock.json` (431,593 B, 83 % of the root's tracked bytes).** Generated, root-pinned,
   and 110 KB smaller than at audit 2 thanks to the dependency cuts. A fact, not a finding.
 - **The twelve magazine fixtures (733 KB).** Their size is their purpose: `wall-300.json` is a
@@ -796,11 +796,11 @@ problem at all: the whole non-lab `src/` tree is smaller than the screenshot fol
 ## Audit carry-overs in this territory
 
 - **root-assets-01 and -02 (progress.md's size and its two chronologies): DONE**, 2026-09-07
-  `25bf7033`, by inverting the convention (index at the root, full entries in `docs/history/`,
+  `6c761dcd`, by inverting the convention (index at the root, full entries in `docs/history/`,
   `progress-log.test.mjs` enforcing). Root file 600 KB → 38.5 KB. Audit 2's owner decision 1 was
   answered with its option (c).
-- **root-assets-03 (four dead binaries, 410 KB): DONE**, `2046bff1` 2026-09-05. The five landing
-  showcase shots (283 KB) also went, `f8ef8a20` 2026-09-07 — but the code that names them stayed
+- **root-assets-03 (four dead binaries, 410 KB): DONE**, `3afc2da6` 2026-09-05. The five landing
+  showcase shots (283 KB) also went, `acdafccf` 2026-09-07 — but the code that names them stayed
   (see "For other lenses", landing).
 - **root-assets-04, -05, -12 (imported skill packs, `planning-with-files`, four uncited agents):
   OPEN, unchanged.** 52 skill dirs today (audit 2 counted 53), 0.65 MB, the 38 March imports
@@ -819,7 +819,7 @@ problem at all: the whole non-lab `src/` tree is smaller than the screenshot fol
   writes `e2e/.shots/edge`; the `.tmp-shots/` ignore line is gone.
 - **root-assets-10 (`.DS_Store`): 28 today; accept**, as audit 2 recommended.
 - **root-assets-11 (a retention rule for `e2e/.shots`; delete the two `.claude` piles): PARTIAL
-  and decayed.** The command exists (`shots:clean`, `29790d82`); nothing runs it; the pile is 3.4x
+  and decayed.** The command exists (`shots:clean`, `fa9e0d3e`); nothing runs it; the pile is 3.4x
   audit 2's; the two `.claude` piles are still there. Finding 05.
 - **root-assets-13 (`.scratch/` 3.3 GB): DONE**, gone from disk.
 - **Audit 1 owner decision 1 (the landing showcase): the assets were deleted 2026-09-07 while the
@@ -884,7 +884,7 @@ problem at all: the whole non-lab `src/` tree is smaller than the screenshot fol
   `valley-terrain.mjs` 60; `print-magazine.mjs` 30; `corpus.ts` 60; `magazine.test.mjs` 40; the
   migration 40; three campaign handovers' heads and boards ~120; the audit-2 board 80; assorted
   excerpts ~140). Files measured individually: 488. Commands run: ~60, all read-only.
-- **Tracked**: 44.90 MB / 1,632 files at `70570bcd`; 32.19 MB / 1,252 at `72b5a1d`; +12.71 MB /
+- **Tracked**: 44.90 MB / 1,632 files at `495ecdd2`; 32.19 MB / 1,252 at `09772aa`; +12.71 MB /
   +380 files (499 added, 119 deleted). By extension: 507 tsx, 302 ts, 237 md, 201 mjs, 135 png,
   88 sql, 56 txt, 39 webp, 32 json, 6 svg, 6 css, 5 js, 4 yml, 2 yaml, 2 mts, 1 jpeg. Pictures
   (png+webp+jpeg+svg) 25.4 MB = 56.6 %; markdown 8.6 MB = 19 %; code 10.4 MB = 23 %.

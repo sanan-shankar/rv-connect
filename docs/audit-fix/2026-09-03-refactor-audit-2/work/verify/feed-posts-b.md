@@ -1,6 +1,6 @@
 # feed-posts-b - adversarial verification notes
 
-Verified at HEAD `74cc61a` (one commit past the audit baseline `72b5a1d`; `74cc61a` is a
+Verified at HEAD `0cecf11` (one commit past the audit baseline `09772aa`; `0cecf11` is a
 notification-retention fix that touches none of these files). Working tree: `docs/audit-fix/README.md`
 and `progress.md` are modified by somebody else; none of my territory files carry uncommitted edits.
 Read-only throughout: no build, no tsc, no browser, no database. Byte attribution came from the
@@ -30,8 +30,8 @@ a browser.
 `expanded ? "card-elevated border-border bg-card" : "border-transparent bg-transparent"`, under the
 owner quote at :1194-1204 ("get rid of the tile ... just have an icon and a pill").
 
-Dates check out: `git log -1 -- feed/loading.tsx` = `d8149a5 2026-07-30`; `git log -S'get rid of the
-tile'` = `72aa7f6 2026-08-04 feat(feed): the collapsed composer is a bird and a pill, no tile`. The
+Dates check out: `git log -1 -- feed/loading.tsx` = `6e3b10b 2026-07-30`; `git log -S'get rid of the
+tile'` = `aad4aa5 2026-08-04 feat(feed): the collapsed composer is a bird and a pill, no tile`. The
 skeleton predates the pill by five days.
 
 The missing header/rail is real and stronger than the finding says. `feed/page.tsx:67-80` renders a

@@ -1,12 +1,12 @@
 # auth-edge-a — adversarial verification notes
 
-Verifier: `auth-edge-a`. Date: 2026-09-04. Tree HEAD at verification: **`74cc61a`**
+Verifier: `auth-edge-a`. Date: 2026-09-04. Tree HEAD at verification: **`0cecf11`**
 ("fix(retention): notifications are kept 30 days, everywhere"), one commit past the
-`72b5a1d` the find phase measured. That commit touches `scripts/ops/prune.mjs`,
+`09772aa` the find phase measured. That commit touches `scripts/ops/prune.mjs`,
 `src/lib/retention.ts`, `src/lib/post-notifications.ts`, `src/app/(main)/notice/[id]/page.tsx`,
 `src/app/(policies)/privacy/page.tsx`, `src/lib/notification-reach.test.mjs` and three docs —
 **nothing in this cluster's territory**, so every line number below was re-derived at
-`74cc61a` and is directly usable.
+`0cecf11` and is directly usable.
 
 Uncommitted work in the tree at verification time: `docs/audit-fix/README.md` (M),
 `progress.md` (M), and the untracked audit folder. No source file in this territory has
@@ -149,7 +149,7 @@ Verdict: confirmed in substance, with those three corrections written into the s
 
 Confirmed. The one thing I could not settle read-only is whether anyone ever *measured* a
 stutter on the second flight that only this mount fixed — `git log -S HoopoeWarmup` puts it in
-`36e17cd` with no measurement, as the finder says, and the component's own 39-line header
+`a335156` with no measurement, as the finder says, and the component's own 39-line header
 argues the landing case only. If the orchestrator wants belt-and-braces, this is the one item
 in the cluster worth an `unverifiable-needs-browser` follow-up *after* the change, not before:
 land → Sign in → back → Sign in at 1440 and at 390, watching the second fly-in.

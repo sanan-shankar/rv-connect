@@ -3,9 +3,9 @@
 Verifier charter: image pipeline, storage, the viewer, photo layout, avatars. Byte and
 dimension numbers ARE the claim.
 
-**Tree state at verification**: HEAD = `72b5a1d`, working tree clean except the untracked
+**Tree state at verification**: HEAD = `09772aa`, working tree clean except the untracked
 audit folder itself. `src/components/common/image-viewer.tsx` was shown modified in the
-session-start snapshot; that work has since been committed as `72b5a1d`, so every line
+session-start snapshot; that work has since been committed as `09772aa`, so every line
 number below is read against committed HEAD, not against somebody's WIP.
 
 Method: read every named file at HEAD, re-ran every grep, re-measured every byte figure
@@ -102,7 +102,7 @@ calls it "the one-off for everything that predates the table (2026-08-27). Safe 
 safe to interrupt"; `bytesFor` is at `:91-96` and jscpd confirms the clone
 `dev/backfill-image-dimensions.mjs [91:1 - 96:2] (6 lines, 81 tokens)` ↔
 `dev/tag-photos-pick.mjs [122:1 - 127:2]`, which I read side by side and they are byte-identical
-including the two-line docblock. `git log` shows one commit (`a9e0c5c`), i.e. it has never been
+including the two-line docblock. `git log` shows one commit (`64b4874`), i.e. it has never been
 touched since it landed.
 
 But **whether its job is done is a live-database question** and cannot be settled here — the
@@ -239,7 +239,7 @@ Read `image.ts` top-down: `/**` at **33** opens "The most pixels this app will S
 re-encoded image", closes ` */` at **49**; `toDisplayWebp`'s docblock opens at **50** ("The
 display copy of an uploaded photograph: uprighted, boxed to 1920, WebP at 80") and its body runs
 **63-69**; `export const MAX_STORED_PIXELS = 40_000_000;` is at **71**. Exactly the juxtaposition
-described. `git log -1 60e8ee0` → "2026-08-26 refactor(api): one door per kind of route, and a
+described. `git log -1 23484f7` → "2026-08-26 refactor(api): one door per kind of route, and a
 test that they use it" ✓.
 
 The proposed replacement sentence is factually right: `grep -rn toDisplayWebp src` (excluding
@@ -298,13 +298,13 @@ Diagnosis and every location confirmed at HEAD:
   `addEventListener("pointerdown", nudge`. Extracting the hook breaks all four unless the
   regexes move in the same commit, exactly as the finding says.
 
-**REFUTED sub-claim: `IDLE_MS` did not change in `72b5a1d`, and has never been 2,600.**
+**REFUTED sub-claim: `IDLE_MS` did not change in `09772aa`, and has never been 2,600.**
 `git log --oneline -S"IDLE_MS = " -- src/components/common/image-viewer.tsx` returns a single
-commit, `d84b34c` (2026-08-28, "feat(viewer): the photograph takes the screen, and the caption is
+commit, `ca90145` (2026-08-28, "feat(viewer): the photograph takes the screen, and the caption is
 not a panel"), and `git log -L150,150` shows that commit introducing `+const IDLE_MS = 3600;`.
 `git log -S"2600" -- src/components/common/image-viewer.tsx` returns **nothing**, and `grep -rn
 "2600"` over `progress.md`, `docs/spec/` and `src/components/common/` returns nothing. The
-`72b5a1d` diff touches `IDLE_MS` only at its single read site (`:437`). So the paragraph
+`09772aa` diff touches `IDLE_MS` only at its single read site (`:437`). So the paragraph
 beginning "Separately, `IDLE_MS` moved from 2.6 s to 3.6 s in the same commit" is wrong, and the
 instruction "add one line to `IDLE_MS`'s comment saying when and why it became 3.6 s (or put it
 back to 2.6 s)" must be dropped from the fix — putting it "back" to 2,600 would be a regression

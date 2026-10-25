@@ -7,7 +7,7 @@ settings' theme cluster (dark gauntlet, nightfall, lights-on, theme actions), ab
 (door, layer, overlay, kit, the chapters barrel), the PWA install tile and prompt, the demo
 bar, the policies group, the account export, the Razorpay and Resend webhooks, and the small
 libs behind them (razorpay, contribution-state, account-purge, theme, guide-areas,
-guide-open, local-storage, wordle). Date: 2026-09-03, at HEAD `72b5a1d`. Files in territory:
+guide-open, local-storage, wordle). Date: 2026-09-03, at HEAD `09772aa`. Files in territory:
 73 (30 app route/loading files, 3 API routes, 30 components, 10 lib files) plus 7 test files;
 read fully: 80 of 80. Neighbours read for the pairing questions (not audited): the admin
 messages half (4 files), `admin-threads.ts` / `admin-threads-server.ts`, `page-header.tsx`,
@@ -288,7 +288,7 @@ charter questions are given inline and collected at the end of the Not-findings 
 - **Tier**: T1     **Class**: cheap     **Decides**: autonomous
 - **Evidence**: audit 1's member-surfaces-11 said "rename `setTheme` to `setThemePreference`,
   delete the alias and its 11-line comment". The fix session instead de-exported `setTheme` as
-  part of the ~55-symbol de-export sweep (commit `2f43a3d`) and widened
+  part of the ~55-symbol de-export sweep (commit `55aefdf`) and widened
   `gate-coverage.test.mjs` to read every async function so the private one kept its inherited
   gate (fix-prompt lines 210-215). The wrapper and its comment are still there, now describing
   a private function and a public one that does nothing but call it. Both callers
@@ -349,7 +349,7 @@ charter questions are given inline and collected at the end of the Not-findings 
   one person and is private")
 - **Phase**: hygiene (docs)
 - **Tier**: T1     **Class**: cheap     **Decides**: autonomous
-- **Evidence**: `find src/app -name "@modal" -o -name "(..)*"` finds nothing. Commit `820762a`
+- **Evidence**: `find src/app -name "@modal" -o -name "(..)*"` finds nothing. Commit `1d2f264`
   (2026-08-27, "perf(guide): take the route out of the press, and the address with it")
   replaced the intercepting route with the `guide-open.ts` external store and the
   `GuideLayer` in the `(main)` layout; `guide-open.ts:1-27` records the two measured failures
@@ -378,7 +378,7 @@ charter questions are given inline and collected at the end of the Not-findings 
 - **Phase**: hygiene
 - **Tier**: T1     **Class**: cheap     **Decides**: owner (it is a legal document's date; the
   edit itself is trivially autonomous)
-- **Evidence**: `git log -- "src/app/(policies)/privacy/page.tsx"` shows `bd7da7d` on
+- **Evidence**: `git log -- "src/app/(policies)/privacy/page.tsx"` shows `15c4f4c` on
   2026-08-26 ("refactor(analytics): one analytics tool, not two") changed the processors table
   row from "PostHog and Vercel Analytics" to "PostHog". The document still says "Last updated
   20 August 2026", and its own "Changes" section promises "the date at the top always says
@@ -580,7 +580,7 @@ charter questions are given inline and collected at the end of the Not-findings 
 ## Owner decisions
 
 **The About page still says "indefinitely procrastinated", and it is a month later and closer
-to release.** `src/app/(main)/about/page.tsx` is unchanged since 2026-08-03 (`1d7294b`, "removed
+to release.** `src/app/(main)/about/page.tsx` is unchanged since 2026-08-03 (`bde2d35`, "removed
 about section slop"), the sidebar's seventh row (`sidebar.tsx:72`) still points at it, and
 `docs/spec/guide.md` section 9 flags it independently: "It needs something to say, or it needs
 deleting." Audit 1 filed this as owner decision 3 and recommended three short paragraphs; that
@@ -711,7 +711,7 @@ proposed; recorded so the question is not asked a third time.
 - **`MIN_RUPEES` duplicated client-side is deliberate** (`support-contribute.tsx:47-50`).
 - **`support/page.tsx`'s inline `<style>` keyframe** (`support-sway`, 6 lines) is neutral:
   moving it to `globals.css` adds to the 233 KB stylesheet every page loads. Left.
-- **`local-storage.ts` is the written-once version of three copies** (`7b1ba04`); two consumers
+- **`local-storage.ts` is the written-once version of three copies** (`e37870d`); two consumers
   today (`use-letter-persistence.ts`, `mascot/moments/one-shot.ts`). Kept.
 - **The `(read)` route group under `letters/[id]` exists for `loading-boundary-rule.test.mjs`:**
   without it `[id]/loading.tsx` would shadow `[id]/edit/loading.tsx`. Not a stray group.

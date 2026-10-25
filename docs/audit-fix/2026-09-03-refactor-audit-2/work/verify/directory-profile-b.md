@@ -1,8 +1,8 @@
 # directory-profile-b - adversarial verification
 
 Cluster: the directory, member profiles, the map, profession tags.
-Verified at HEAD `74cc61a` (the find phase ran at `72b5a1d`; the only commit between them is
-`74cc61a fix(retention): notifications are kept 30 days, everywhere`, which touches none of
+Verified at HEAD `0cecf11` (the find phase ran at `09772aa`; the only commit between them is
+`0cecf11 fix(retention): notifications are kept 30 days, everywhere`, which touches none of
 these files). Working tree: only `docs/audit-fix/README.md` and `progress.md` are modified,
 plus this audit's untracked folder. **No file in this cluster has uncommitted edits.**
 
@@ -236,12 +236,12 @@ The skeleton's own contract at `:1-6`: "The skeleton is the page with the ink dr
 than a rough sketch of it, so nothing re-corners, re-pads or jumps."
 
 History checks out. `git log -- .../profile/[id]/loading.tsx` last touches it at
-`22b4b6c feat(profile): ship the letterhead as everyone's profile`. Audit 1 raised the same two
+`d03b053 feat(profile): ship the letterhead as everyone's profile`. Audit 1 raised the same two
 lines (`2026-08-25-refactor-audit-1/work/findings-index.json:1436` names
 `profile/[id]/loading.tsx:30-31` and `directory/loading.tsx:11-21`). The audit-1 skeleton commit
-`34a77b4 fix(loading): skeletons that stand where the page actually lands` covered /dark-mode,
+`e2384e6 fix(loading): skeletons that stand where the page actually lands` covered /dark-mode,
 /letters, /collection and /reach-out — **not** this one. The directory half was fixed separately
-by `e8c0b6a feat(directory): the map opens where the owner framed it, without the jump`, on the
+by `5d9e953 feat(directory): the map opens where the owner framed it, without the jump`, on the
 owner's own report, so `directory/loading.tsx` is indeed correct today. Delete 30-31.
 
 Verdict: **confirmed**.

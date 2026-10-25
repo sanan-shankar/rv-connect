@@ -3,10 +3,10 @@
 Verifier: cluster `lab`. Charter: `src/app/lab` and `public/lab`; `check.mjs` fails on an
 unregistered room, so a delete must take its registry line with it.
 
-Tree state when I verified: HEAD `74cc61a` ("fix(retention): notifications are kept 30 days,
-everywhere") — **the find phase measured `72b5a1d`, so HEAD has moved two commits**. Nothing in
+Tree state when I verified: HEAD `0cecf11` ("fix(retention): notifications are kept 30 days,
+everywhere") — **the find phase measured `09772aa`, so HEAD has moved two commits**. Nothing in
 that delta touches `src/app/lab`, `public/lab`, `package.json` or the font files (checked:
-`git log --oneline 72b5a1d..HEAD -- src/app/lab public/lab package.json` is empty), so every
+`git log --oneline 09772aa..HEAD -- src/app/lab public/lab package.json` is empty), so every
 line number and byte figure below is valid at HEAD.
 
 Uncommitted work in the tree that is not mine: `docs/audit-fix/README.md`, `progress.md`
@@ -69,7 +69,7 @@ Verified at HEAD:
 
 **Sub-claim split.** The three crop files and the three untracked files are settled here and
 need nothing further. `c3-thumb.webp` is settled *statically* (0 code references, unreferenced
-since `c559d3e`, 2026-06-28) but the finding writes its own DB gate, and I may not run it, so
+since `9c3fe15`, 2026-06-28) but the finding writes its own DB gate, and I may not run it, so
 I have filed that half as `unverifiable-needs-db`. The SELECT the fix session must run, on
 **both** databases, is the one in the finding:
 
@@ -82,7 +82,7 @@ WHERE "thumbUrl" LIKE '%/images/collection/c3-thumb%'
 ## media-viewer-08 — three orphan crop specimens (overlaps dead-code-06)
 
 Confirmed exactly. 38,124 + 153,150 + 141,394 = **332,668 B**, the finding's figure to the byte.
-Both commits check out: `26dc483` added them (2026-08-27), `6fb0780` rewrote the room around
+Both commits check out: `77cb700` added them (2026-08-27), `983dc51` rewrote the room around
 the eleven shapes the next day without `git rm`-ing the old set.
 
 **Overlap ruling (dead-code-06 vs media-viewer-08).** They agree on the facts and neither
@@ -262,7 +262,7 @@ Confirmed, three cite errors.
   both builds and md5-identical** (`ae5f191a4000cc806bf6e37456ceab29`). That is a stronger
   check than the finding ran (it compared sizes) and it passes.
 - knip cite `raw/knip-repo-config.txt:49-58` — **exact**, those are the ten `_fonts.ts` lines.
-- Both rooms are `status: "archived"`, last touched by `45531f9` (2026-08-03,
+- Both rooms are `status: "archived"`, last touched by `a110e53` (2026-08-03,
   "feat(a11y): one focus outline, everywhere") — confirmed by `git log -1 --date=short`.
 - `src/app/layout.tsx:12-22` loads Libre Baskerville with `weight: ["400","700"]` and
   Source Sans 3 with `weight: ["400","500","600","700"]` and no `style`, so the room's argument
@@ -344,13 +344,13 @@ All three drifts confirmed; one line number wrong.
 2. `spine-marker/page.tsx:6-7` — *"Not linked from anywhere (including `_kit.tsx`'s `ROOMS`
    registry) on purpose."* Confirmed, and confirmed triply wrong: `grep -rn "ROOMS" src`
    returns **only this comment**, so the symbol does not exist anywhere in the repo
-   (`09f5ebe` = "refactor(lab): delete the kit exports no room imports").
+   (`4cfeb86` = "refactor(lab): delete the kit exports no room imports").
    **Correction:** the spine-marker registry row is at **`_registry.ts:271`**, not `:296`.
 3. `_registry.ts:360` — *"Ten identity directions … crest, profile head, face, feather,
    roundel, wing bars, monogram, extreme crop."* The room's `MARKS` array has **seven** keys
    (`fan`, `fan-bled`, `peek`, `rising`, `portrait`, `shoulder`, `onecolour`) and
    `hoopoe-marks/page.tsx:4` opens *"Seven marks built out of the mascot's own parts"*.
-   `273c969` ("fix(brand): every mark sits dead centre…") is the most recent rebuild.
+   `f81d060` ("fix(brand): every mark sits dead centre…") is the most recent rebuild.
    Confirmed. The `href` row is `:356`; `:360` is the note line, as cited.
 
 The gate reasoning is right: `scripts/qa/lab-audit.mjs` reads `href:` values and page files
@@ -394,8 +394,8 @@ The facts hold; the characterisation of one file does not.
 - `src/app/lab/.DS_Store` exists on disk, gitignored and untracked. dead-code-06's sweep was
   scoped to `public/`, so it is not in anyone's list. Same one-command cleanup.
 - Knip's `H` re-export in `_parts.tsx:25` (see lab-06).
-- HEAD has moved from `72b5a1d` to `74cc61a` since the find phase.
-  `git log 72b5a1d..HEAD -- src/app/lab public/lab package.json` is empty, so nothing in this
+- HEAD has moved from `09772aa` to `0cecf11` since the find phase.
+  `git log 09772aa..HEAD -- src/app/lab public/lab package.json` is empty, so nothing in this
   cluster is stale.
 
 ## Things this cluster cannot settle without a browser or a database

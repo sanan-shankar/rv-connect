@@ -6,7 +6,7 @@ image viewer and its chrome, pinch-zoom, the carousel, the frame, the rows layou
 hooks, the avatar crop dialog and upload hook, the three photo surfaces that open the viewer
 (letters, catch-up answers, the catch-up photo wall), and the lib that turns bytes into WebP and
 URLs into CDN paths (image.ts, image-cdn.ts, image-downscale.ts, image-record.ts,
-image-purge.ts, storage.ts) with their tests. Date: 2026-09-03, at HEAD `72b5a1d`. Files in
+image-purge.ts, storage.ts) with their tests. Date: 2026-09-03, at HEAD `09772aa`. Files in
 territory: 29 source/test files (6,093 lines) plus 14 tracked webp under `public/lab/crop/`;
 read fully: 29 of 29 source files, every line.
 
@@ -33,14 +33,14 @@ read fully: 29 of 29 source files, every line.
   export list, `photo-step.tsx` (whole), `letterhead-profile.tsx` 138-152/400-432/1450-1475,
   the three lab pages that import the viewer (headers), `docs/spec/media.md` (whole),
   `docs/TRAPS.md` "Serving images", `docs/planning/collection-rework/spec.md` sections 4-5,
-  the handover's `/lab/crop` close-out lines, the `progress.md` entry for `72b5a1d`, and the
-  `72b5a1d` diff itself.
+  the handover's `/lab/crop` close-out lines, the `progress.md` entry for `09772aa`, and the
+  `09772aa` diff itself.
 - Skimmed: `docs/spec/avatars.md` (grep only: it has no crop section; the only crop sentence is
   line 379, superseded. The avatar crop dialog's spec IS its own header, "owner item 13").
 - Not read: nothing in territory.
 - Uncommitted edits seen: none in territory. The conversation-start snapshot listed
   `src/components/common/image-viewer.tsx` as modified; by the time I read it,
-  `git status --short` was clean for that path and HEAD was still `72b5a1d`, so whichever
+  `git status --short` was clean for that path and HEAD was still `09772aa`, so whichever
   session had it open had either committed nothing new or reverted its edit. Everything below
   is judged against the committed file.
 
@@ -79,7 +79,7 @@ The biggest structural findings, in their honest units:
 
 Structural-vs-cheap split: 8 structural (01-04, 06, 10, 12, 18) and 10 cheap (05, 07-09, 11,
 13-17); about 20 KB of tracked+deployed bytes are simply dead (three orphan lab specimens,
-332 KB). What surprised me: today's viewer fix (`72b5a1d`) is sound at the root (the body lock
+332 KB). What surprised me: today's viewer fix (`09772aa`) is sound at the root (the body lock
 never worked; the html lock does) but the chrome-idle mechanism it extended is now three effects,
 a ref, an interval, a tri-state and a `:hover` poll for one idea, and the fix quietly moved
 `IDLE_MS` from 2.6 s to 3.6 s inside a bug commit. Nothing audit 1 left open touches these files.
@@ -166,7 +166,7 @@ The charter's explicit questions are answered in a block after the findings.
   (Turbopack's chunk groups are per entry; I could not confirm why letters gets one chunk and
   feed gets two from the same two-site pattern).
 - **Notes**: for the bundle lens. Related: `pinch-zoom.ts` imports `animate` and `useMotionValue`
-  from `motion/react` while the app animates through `LazyMotion`/`m` (commit 8314f24); if
+  from `motion/react` while the app animates through `LazyMotion`/`m` (commit b9aeab0); if
   `animate` is not already in a shared chunk it rides inside each viewer copy. The chunk sizes
   (16 KB for viewer+pinch) suggest it is shared, but the bundle lens should confirm.
 
@@ -201,7 +201,7 @@ The charter's explicit questions are answered in a block after the findings.
 ### media-viewer-04 - The Collection stores three different encodes depending on which door a photograph came through; the app has five server recipes in four files
 - **Where**: `src/app/(main)/collection/actions.ts:339-342` (FormData fallback: `.resize(1600,
   1600, { fit: "inside", withoutEnlargement: true }).webp({ quality: 80 })`, unchanged since
-  `21eb32f` 2026-06-27); `src/app/(main)/collection/actions.ts:585-611` (direct path:
+  `f8256fa` 2026-06-27); `src/app/(main)/collection/actions.ts:585-611` (direct path:
   `storedResizeBox` + `COLLECTION_WEBP_QUALITY` = 100, full resolution, decided 2026-09-02);
   `src/lib/collection-intake.ts:105-129` (composer tick: `putImage(original, ...)` copies the
   feed's already-encoded 1920px q80 bytes as-is); `src/lib/image.ts:63-69` (feed/letters/
@@ -252,7 +252,7 @@ The charter's explicit questions are answered in a block after the findings.
 
 ### media-viewer-05 - Say at `toDisplayWebp` whose recipe it is, and put `MAX_STORED_PIXELS` back under its own docblock
 - **Where**: `src/lib/image.ts:33-49` (the 40MP docblock), `50-69` (`toDisplayWebp`, inserted
-  between the docblock and its constant by `60e8ee0`, 2026-08-26), `71` (`export const
+  between the docblock and its constant by `23484f7`, 2026-08-26), `71` (`export const
   MAX_STORED_PIXELS`). The sentence that would have stopped both hallucinations lives at
   `docs/TRAPS.md:163-176` and `src/lib/image-cdn.ts:32-34`, not on the function.
 - **Phase**: hygiene
@@ -348,7 +348,7 @@ The charter's explicit questions are answered in a block after the findings.
   (153,150 B), `public/lab/crop/phone-9x16.webp` (141,394 B).
 - **Phase**: dead
 - **Tier**: T1     **Class**: structural     **Decides**: autonomous
-- **Evidence**: added by `26dc483` (2026-08-27, "six ways to hold a photograph"); `6fb0780`
+- **Evidence**: added by `77cb700` (2026-08-27, "six ways to hold a photograph"); `983dc51`
   (2026-08-28, "the crop room shows what we do") replaced the room's specimen set with the eleven
   `shape-*.webp` files, whose paths are the only ones in `src/app/lab/crop/_specimens.ts`. A
   grep for the three names across `src`, `docs`, `e2e`, `scripts` and `public` finds them only
@@ -365,11 +365,11 @@ The charter's explicit questions are answered in a block after the findings.
 - **Where**: `src/components/common/image-viewer.tsx:227-232` (tri-state), `244` (`lastNudge`),
   `279-282` (`onTapPhoto` toggles), `396-416` (nudge listeners: pointermove, wheel, keydown),
   `418-440` (400 ms interval: focus check, `:hover` poll behind `matchMedia("(hover: hover)")`,
-  time check), `150` (`IDLE_MS` 2600 -> 3600 in `72b5a1d`), plus five `data-viewer-chrome`
+  time check), `150` (`IDLE_MS` 2600 -> 3600 in `09772aa`), plus five `data-viewer-chrome`
   marks (625, 639, 651, 695) and one `data-viewer-scroll` (742). Scroll lock: `321-342`.
 - **Phase**: architecture (hygiene edge)
 - **Tier**: T2     **Class**: structural     **Decides**: autonomous
-- **Evidence**: the charter asked whether `72b5a1d` is a patch on a patch. Verdict, in two
+- **Evidence**: the charter asked whether `09772aa` is a patch on a patch. Verdict, in two
   halves. (a) The page-behind fix is the ROOT cause corrected, not a patch: `document.body.style
   .overflow = "hidden"` never reached the viewport because `globals.css` clips `<html>`
   sideways, so the lock was a no-op for a fortnight; moving it to `documentElement` is the right

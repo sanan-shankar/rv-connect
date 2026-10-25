@@ -1,7 +1,7 @@
 # directory-profile-a - adversarial verification notes
 
 Verifier for cluster `directory-profile-a` (the directory, member profiles, the map, profession
-tags). HEAD at time of verification: `74cc61a fix(retention): notifications are kept 30 days,
+tags). HEAD at time of verification: `0cecf11 fix(retention): notifications are kept 30 days,
 everywhere`. Working tree carried only `docs/audit-fix/README.md`, `progress.md` (modified) and
 the untracked audit-2 folder -- no uncommitted edits in any source file I read.
 
@@ -181,7 +181,7 @@ Verdict: confirmed.
 
 - `grep -rn HOUSE_OPTIONS src scripts e2e prisma` returns exactly one line: its own definition
   at `src/lib/directory-facets.ts:14`. knip agrees (`raw/knip-repo-config.txt:71`).
-- `git log -S HOUSE_OPTIONS -- src/components/directory/directory-client.tsx` names `37e6f32
+- `git log -S HOUSE_OPTIONS -- src/components/directory/directory-client.tsx` names `c5ab73d
   feat(directory): one chrome row, search on the title line, Profession for House` as the commit
   that removed the last consumer. Exact.
 - `TYPE_OPTIONS` has one importer, `directory-client.tsx:18`, used at `:354` and `:465`. The

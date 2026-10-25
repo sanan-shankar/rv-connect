@@ -1,6 +1,6 @@
 # tooling-a — adversarial verification (refactor audit 2)
 
-HEAD verified against: `72b5a1d` ("fix(viewer): the chrome stays under a resting cursor…").
+HEAD verified against: `09772aa` ("fix(viewer): the chrome stays under a resting cursor…").
 Working tree clean except the untracked audit folder itself (`git status --short` → only
 `?? docs/audit-fix/2026-09-03-refactor-audit-2/`). No other session's WIP touched my files.
 
@@ -66,7 +66,7 @@ tsc, no knip, no browser, no database, no script execution.
   is the accurate pair).
 - The `:481` ternary `input.key.startsWith("staging/") ? "staging" : "collection"` exists
   only for the second root. Confirmed.
-- The staging change is `04c90a2` (2026-08-28) "fix(uploads): a contribution's original
+- The staging change is `61c0b7e` (2026-08-28) "fix(uploads): a contribution's original
   stages outside the archive folder". Confirmed by `git log -1`.
 - **The first run happened; the second has not been recorded.** `progress.md:2144` records
   the first sweep ("deleted the sixty … `collection/` went from 70 objects to 10") and
@@ -143,9 +143,9 @@ The core claim holds, and I could reproduce every step of it:
 - `scripts/qa/npm-audit-gate.mjs:23-32` is the `ALLOWLIST` with its single
   `GHSA-ggr8-5vv4-36mx` entry and `clearsWhen: "prisma ships a 7.x release that bumps
   deepmerge-ts to >=8"`.
-- `package.json:27` is `"deepmerge-ts": "^8.0.2"` inside `overrides`. `b4411f1` (2026-08-27,
+- `package.json:27` is `"deepmerge-ts": "^8.0.2"` inside `overrides`. `b069992` (2026-08-27,
   "chore(deps): close the two Dependabot highs without downgrading Prisma") added it —
-  `git show b4411f1 -- package.json` contains `+ "deepmerge-ts": "^8.0.2"`.
+  `git show b069992 -- package.json` contains `+ "deepmerge-ts": "^8.0.2"`.
 - `package-lock.json` has exactly **one** `deepmerge-ts` node, `node_modules/deepmerge-ts @
   8.0.2`, while `node_modules/@prisma/config @ 7.10.0` still declares `"deepmerge-ts":
   "7.1.5"`. The override is doing the forcing.

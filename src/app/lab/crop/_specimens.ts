@@ -18,7 +18,7 @@
  *  registry row once the layout rules are settled. "These files" means the
  *  eleven shape-*.webp fixtures SPECIMENS lists below and nothing else:
  *  pano-21x9, phone-9x16 and grainy-420 were this room's first cut, were
- *  superseded the next day by 6fb0780, and went on 2026-09-05.
+ *  superseded the next day by 983dc51, and went on 2026-09-05.
  * ------------------------------------------------------------------ */
 
 export type Specimen = {

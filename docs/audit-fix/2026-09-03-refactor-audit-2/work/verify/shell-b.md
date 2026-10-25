@@ -1,9 +1,9 @@
 # shell-b — adversarial verification (refactor audit 2)
 
-HEAD at verification: `74cc61a fix(retention): notifications are kept 30 days, everywhere`.
+HEAD at verification: `0cecf11 fix(retention): notifications are kept 30 days, everywhere`.
 Working tree clean except the untracked audit folder itself (`git status --short` → only
 `?? docs/audit-fix/2026-09-03-refactor-audit-2/`). Note: the findings were written against
-`72b5a1d`; two commits have landed since and neither touches my files.
+`09772aa`; two commits have landed since and neither touches my files.
 
 Read-only throughout: grep/sed/wc/ls/python over the tree, `gzip -c | wc -c` over the
 read-only build at `.scratch/audit2-build/.next/`, and `route-bundle-stats.json`. No build,

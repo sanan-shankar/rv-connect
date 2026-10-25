@@ -399,7 +399,7 @@ no longer means much. Structural-vs-cheap: 01, 02, 04 are structural; the rest c
 - **Where**:
   - `src/components/common/pinch-zoom.test.mjs:41-55` (`the swipe kept the numbers it was tuned
     with`): pins the literals `SWIPE_FOLLOW = 0.14`, `SWIPE_DISTANCE = 70`, `SWIPE_VELOCITY =
-    420` as source text. Born 2026-09-02 with the gesture rewrite (`122ac26`); its own message
+    420` as source text. Born 2026-09-02 with the gesture rewrite (`c53ec62`); its own message
     says why it was written: "Moving the swipe off Motion's drag was a gesture rewrite, not a
     re-tuning: these three ... carry over verbatim." That is a proof that the rewrite carried
     the numbers -- the fix session's own check -- and it stays green until somebody re-tunes,
@@ -419,7 +419,7 @@ no longer means much. Structural-vs-cheap: 01, 02, 04 are structural; the rest c
 - **Phase**: dead (the first two) / architecture (the third)
 - **Tier**: T1 / T4     **Class**: cheap / structural     **Decides**: autonomous for the first
   two; owner for auth-first-frame (see Owner decisions)
-- **Evidence**: quoted; `git log -1 -- src/components/common/pinch-zoom.test.mjs` = `122ac26
+- **Evidence**: quoted; `git log -1 -- src/components/common/pinch-zoom.test.mjs` = `c53ec62
   2026-09-02 feat(viewer): the photograph can be pinched open`.
 - **What to do**: delete the pinch-zoom constants test (the other five in that file pin
   mechanisms -- `touch-none`, no Motion `drag`, non-passive wheel, the 1:1 ceiling -- and stay).
@@ -609,7 +609,7 @@ Looked like bloat, verified intentional; do not re-litigate:
   fetches every column the rule reads", could become a type in the auth lens's territory; noted
   below.)
 - **`catchups-core.test.mjs` at 874 lines** -- it is `catchups.test.mjs` renamed on 2026-08-27
-  (`9f9a1fd`, the pure-engine split); audit 1 already judged it earned and nothing has changed
+  (`3b1a353`, the pure-engine split); audit 1 already judged it earned and nothing has changed
   except the name.
 - **`photo-layout.test.mjs` (501 lines, 729 triples x 3 columns)** -- 30 ms; the brief's own
   words ("all kinds of combinations of aspect ratios in the same post") are the reason.
@@ -649,15 +649,15 @@ Looked like bloat, verified intentional; do not re-litigate:
 
 ## Audit-1 carry-overs in this territory
 
-- **lib-tests-01 (shared kit)**: done (`68d4ad6`, `5caaa92`, `fa4863b`). Its optional "phase 2"
+- **lib-tests-01 (shared kit)**: done (`8623d5f`, `0a2c362`, `e4a7655`). Its optional "phase 2"
   (migrate the slice-to-next-export extractors to a kit `section()`) was deferred at fix time
   and is still open; the population grew from 12 files to 25 (lib-tests-04 here).
-- **lib-tests-02 (gate-coverage adopts balancedBody)**: done (`9cee0d5`).
-- **lib-tests-03 (spelling-pin cohort)**: done (`12d1fd5`); the survivors are one-decision files.
+- **lib-tests-02 (gate-coverage adopts balancedBody)**: done (`7b55326`).
+- **lib-tests-03 (spelling-pin cohort)**: done (`64e9120`); the survivors are one-decision files.
 - **lib-tests-04 (tour-mobile-verify trimmed to the four security pins)**: done.
-- **lib-tests-05 (escapeLike one home)**: done (`20af678`, two of three moved, third dropped as a
+- **lib-tests-05 (escapeLike one home)**: done (`1bd9dbc`, two of three moved, third dropped as a
   duplicate -- correct).
-- **lib-tests-06 (knip entries)**: done as `knip.jsonc` (`fe51a6c`).
+- **lib-tests-06 (knip entries)**: done as `knip.jsonc` (`e04ecb7`).
 - **lib-tests-07 (hygiene trio)**: done except the `walk` copy in `email-normalization-rule`,
   which the fix log itself flagged as left behind (lib-tests-07 here).
 - **lib-tests-08 (survival rule + gate)**: CLAUDE.md clause landed; the gate did not; see Owner

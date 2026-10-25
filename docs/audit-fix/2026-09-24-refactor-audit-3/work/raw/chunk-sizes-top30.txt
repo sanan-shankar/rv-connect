@@ -1,4 +1,4 @@
-# Top-30 client chunks in .next/static/chunks by raw bytes (HEAD 70570bcd, 2026-09-24). gz = gzip -6. 'eager' = routes whose first load includes it.
+# Top-30 client chunks in .next/static/chunks by raw bytes (HEAD 495ecdd2, 2026-09-24). gz = gzip -6. 'eager' = routes whose first load includes it.
 # 311 JS chunks, 8094 KB raw / 2727 KB gz in total.
    429 KB    128.7 KB gz  1h284jke63n28.js           eager on   2 route(s): /lab/catchups/sketches, /lab/catchups/capsule
    245 KB     79.3 KB gz  24740q0lmcv1n.js           eager on   0 route(s) (lazy-only)

@@ -8,7 +8,7 @@ because the charter names them, the primitives that physically live in T09's and
 callers, props, adoption, and who hand-rolls them instead. For every primitive I counted callers across
 `src/`, lab included, with a JSX-tag parser (a `node -e` over the files, not a line grep, so
 multi-line tags count) and re-grepped the lab before calling any prop unused. Date 2026-09-24, HEAD
-`70570bcd`. Files in territory: 50 (45 under `common/`, 5,299 lines; 5 named primitives elsewhere,
+`495ecdd2`. Files in territory: 50 (45 under `common/`, 5,299 lines; 5 named primitives elsewhere,
 787 lines). Read fully: 50.
 
 ## Coverage
@@ -100,7 +100,7 @@ handed to that lens below).
 - **Where**:
   - `src/components/common/info-tooltip.tsx:23-83` (`InfoTooltip`: base-ui Popover with hand-wired hover and tap). It has one caller in the whole tree, `float-field.tsx:283` inside `FloatArea`, and `FloatArea` has one caller, `collection/photo-questions.tsx:159`.
   - `src/components/auth/signup-form.tsx:31-145` (`useHoverCapable` + `InfoTip`: a hand-rolled bubble with its own matchMedia, a `useLayoutEffect` repositioner, outside-click and Escape listeners, and an `m.div role="tooltip"`), used at `:538` ("Still at Rishi Valley?", `fit`) and `:568` ("What does batch mean?").
-  - `src/components/common/verified-mark.tsx:50-114` (`VerifiedMarkInner`: base-ui **Tooltip**, portalled since `9430ab96`, 2026-09-15). It is the only file in the repo importing `@base-ui/react/tooltip` (`grep -rln "@base-ui/react/tooltip" src` returns 1).
+  - `src/components/common/verified-mark.tsx:50-114` (`VerifiedMarkInner`: base-ui **Tooltip**, portalled since `ed16a2f2`, 2026-09-15). It is the only file in the repo importing `@base-ui/react/tooltip` (`grep -rln "@base-ui/react/tooltip" src` returns 1).
 - **Phase**: dedupe
 - **Tier**: T3     **Class**: structural     **Decides**: autonomous (the owner already answered: audit-2 `fix-prompt.md:361`, Q7, "(a) — all three help bubbles onto one piece of machinery, **look unchanged**. Not the plain browser box.")
 - **Evidence**: Q7 is at `fix-prompt.md:153-158` (rows G2 and #7). The board (`:90`) lists G1 and G7 shipped and G3-G6/G10/G11 parked; G2 appears nowhere, and no commit touched it (`git log -S"function InfoTip" -- src/components/auth/signup-form.tsx` shows only the 2026-07-04 creation and a 2026-07-18 edit). So today there are still three machines: base-ui Popover (InfoTooltip), base-ui Tooltip (VerifiedMark, which replaced its hand-rolled label on 09-15 to stop clipping) and signup's hand-rolled InfoTip. On bytes, bundle-build-07 measured the Tooltip stack at ~10 KB raw / ~3.5 KB gz eager on `/profile/[id]` and `/directory`. VerifiedMark renders only there: `directory/profile-card.tsx:110` (through `directory-grid.tsx`, inside `directory-client.tsx`) and `profile/letterhead-profile.tsx:974,995`. Both routes already import base-ui Popover statically (`directory-client.tsx:13` imports FilterPopover; `letterhead-profile.tsx:57-61` imports `ui/popover`).
@@ -275,7 +275,7 @@ handed to that lens below).
 - **Tier**: T1     **Class**: structural     **Decides**: autonomous
 - **Evidence**:
   - `grep -rn "house-options" src` finds the file itself and `house-chain-editor.tsx:36`.
-  - It was shared with `HousePicker` until `1906c68b` (2026-09-07, owner Q17: "delete the whole house picker lab"). Since then it has been a profile component living in `common/` and reaching back into `profile/` for its colours. That is the only `common/` → feature-folder import in my territory.
+  - It was shared with `HousePicker` until `348716e2` (2026-09-07, owner Q17: "delete the whole house picker lab"). Since then it has been a profile component living in `common/` and reaching back into `profile/` for its colours. That is the only `common/` → feature-folder import in my territory.
   - The fallback, `tintIndexFor?.(h) ?? (selected ? picked : 0)` ("what a caller without a chain beside it would want"), served the deleted picker. The editor's `tintIndexFor` (`house-chain-editor.tsx:159-169`) returns a `number` on every path.
 - **What to do**:
   - `git mv src/components/common/house-options.tsx src/components/profile/house-options.tsx` and fix the one import.
@@ -293,7 +293,7 @@ handed to that lens below).
   - `:91` (`transform: \`translateY(${IDENTITY_COPY_NUDGE_Y_PX}px)\``).
 - **Phase**: placeholder
 - **Tier**: T1     **Class**: structural     **Decides**: autonomous
-- **Evidence**: `git log -S'IDENTITY_COPY_NUDGE_Y_PX'` finds one commit, `b2110669` (2026-07-03), which added it at `0`; it has never held any other value. The result is an inline `transform: translateY(0px)` on the text column of every IdentityRow, on 8 shipped surfaces (feed posts, comments, letters, the viewer byline, the rails, admin). It moves nothing, but it still creates a stacking context and a containing block for fixed-position descendants.
+- **Evidence**: `git log -S'IDENTITY_COPY_NUDGE_Y_PX'` finds one commit, `d9c5f9f3` (2026-07-03), which added it at `0`; it has never held any other value. The result is an inline `transform: translateY(0px)` on the text column of every IdentityRow, on 8 shipped surfaces (feed posts, comments, letters, the viewer byline, the rails, admin). It moves nothing, but it still creates a stacking context and a containing block for fixed-position descendants.
 - **What to do**: delete the constant and the `transform` entry, and keep `gap: IDENTITY_STACK_GAP_PX`. Reword `:8` to name the one number that remains.
 - **Saving**: −3 lines; one stacking context per rendered identity row.
 - **Risk & gate**: low. `npm run visual` (the feed, letters and collection baselines all render identity rows). `src/lib/identity-row-overflow-rule.test.mjs` is unaffected.
@@ -318,7 +318,7 @@ handed to that lens below).
 - **Phase**: hygiene
 - **Tier**: T1     **Class**: cheap     **Decides**: autonomous
 - **Evidence**:
-  - The two variants are one constant. The letterhead's ternary has compiled to the same classes since it was written (`c7e95407`, 2026-08-07, when both were already `CANOPY_FILL`). "Done" and "Edit profile" look identical by construction, while the code reads as if they differ.
+  - The two variants are one constant. The letterhead's ternary has compiled to the same classes since it was written (`ab3d8d54`, 2026-08-07, when both were already `CANOPY_FILL`). "Done" and "Edit profile" look identical by construction, while the code reads as if they differ.
   - base-ui's Button already emits `type="button"` for native buttons (`node_modules/@base-ui/react/use-button/useButton.js:82-84`, merged under the caller's props).
   - The base class already carries `rounded-full` (`button.tsx:72`). DESIGN-SYSTEM §3 says: "Fix this in the shared Button primitive so it is the default for every variant — not something each caller has to remember".
   - Tag-parser counts: `type="button"` 29 shipped + 12 lab; `rounded-full` in a Button className 21 shipped + 3 lab.
@@ -374,7 +374,7 @@ handed to that lens below).
 - **Saving**: ~−24 code lines, ~−26 comment lines, 7 off-protocol focus rings.
 - **Risk & gate**: low. `npm run check`. Check `/directory` and `/admin/people` filters at 1440 (popover) and 390 (sheet), and Tab through the pills and presets to see the leaf ring. `npm run visual` (the directory baseline masks the map, not the toolbar).
 - **Confidence**: high.
-- **Notes**: the kit itself (8 files for two consumer surfaces) is not bloat. `FacetSearchSelect` and `RangeFacetPill` each have one caller, but they are the kit's documented variants, and the directory plus three admin lists all use the kit. Audit 2's two orphan files (`active-filter-chips.tsx`, `result-count.tsx`) were deleted in `d9adbca8`; `docs/spec/admin.md:425` still names `ResultCount`.
+- **Notes**: the kit itself (8 files for two consumer surfaces) is not bloat. `FacetSearchSelect` and `RangeFacetPill` each have one caller, but they are the kit's documented variants, and the directory plus three admin lists all use the kit. Audit 2's two orphan files (`active-filter-chips.tsx`, `result-count.tsx`) were deleted in `fc0d541e`; `docs/spec/admin.md:425` still names `ResultCount`.
 
 ### common-primitives-15 - `BookmarkButton`: take its SVG id from `useId()` instead of a required prop
 - **Where**: `src/components/common/bookmark-button.tsx:34,40-41` (`id: string`, "Unique per instance: namespaces the SVG clipPath id so multiple cards don't collide") and `:91,101` (`bm-${id}`). Callers: `posts/post-card.tsx:695`, `letters/letter-engagement.tsx:77`, and in the lab `_variant-dossier.tsx:439`, `_variant-broadsheet.tsx:495`, `_variant-terrace.tsx:484`.
@@ -389,7 +389,7 @@ handed to that lens below).
 ### common-primitives-16 - Correct the primitives' docblocks that describe callers, colours or files that are gone
 - **Where**:
   - `love-button.tsx:42-43` names "feed posts, comments, the Collection, group posts"; Groups have been removed.
-  - `love-button.tsx:49` says "Per DESIGN-SYSTEM sec. 7 / PUNCHLIST"; PUNCHLIST.md was folded into bugs.md in `44579fb4` (2026-07-02).
+  - `love-button.tsx:49` says "Per DESIGN-SYSTEM sec. 7 / PUNCHLIST"; PUNCHLIST.md was folded into bugs.md in `ea442e37` (2026-07-02).
   - `share-button.tsx:10` and `bookmark-button.tsx:8` also say "group posts".
   - `bookmark-button.tsx:116-120` tunes the stroke against "16px Lucide icons at strokeWidth 2". The siblings are now Phosphor 18px `ShareFat` and `ChatCircle` regular; the value still lands at ~1.1px either way.
   - `motion.tsx:7` says "Light-mode app"; dark mode shipped on 2026-08-02.
@@ -398,7 +398,7 @@ handed to that lens below).
   - `use-user-search.ts:4-5` says "every ... field" (see -04).
   - `confirm-dialog.tsx:16` says "The one confirmation in the panel". It has 12 call sites in 7 files, across posts, letters, the Collection, profile and admin.
   - `location-picker.tsx:40-42` says "signup, the profile's cities pen and the admin person page all hand it the same two props". The caller is the onboarding register step, not signup, and callers pass four or five props.
-  - `verified-mark.tsx:16-23` gives the portal's rationale in terms of IdentityRow and the post card. The leaf left post bylines the same day (`69293b5f`) and now draws on directory cards and the profile letterhead. Keep the portal; update the sentence.
+  - `verified-mark.tsx:16-23` gives the portal's rationale in terms of IdentityRow and the post card. The leaf left post bylines the same day (`2c3a761b`) and now draws on directory cards and the profile letterhead. Keep the portal; update the sentence.
   - `bird-avatar.tsx:22-23` lists four sizes. Shipped callers also pass 22, 30, 32, 34, 36, 44, 72 and 80 as numbers.
   - `ui/sonner.tsx:16`: the fallback in `var(--color-leaf, var(--primary))` can never apply.
   - `ui/sonner.tsx:36` and `:44` set the 12px radius twice, once as Sonner's `--border-radius` and once inline.
@@ -446,8 +446,8 @@ handed to that lens below).
 - `useClosingDialog` has one caller but is a generic hook. `letters/drafts-strip.tsx` should adopt it (bug lens, below).
 - The 30 hand-built `/profile/${id}` hrefs: a helper would add a docblock and 30 imports for 0 lines saved.
 - `bird-adjust.json` is 257 pretty-printed lines, generated by `scripts/dev/centroid.mjs` and bundled minified. Reformatting it would only game cloc.
-- The bottom-sheet consolidation (`d422de66`) is complete in shipped code. Every rising panel is `BottomSheet`, and no hand-rolled bottom panel survives outside `ui/sheet.tsx`: `grep -E "fixed inset-x-0 bottom-0|rounded-t-(xl|2xl|\[)"` finds only `ui/card.tsx` and the landing's leaf pile. The replaced implementations were deleted, not left exported (settings-surface −187 lines, guide-overlay −90, filter-sheet rewritten). `SheetContent` stays for the two side drawers (the sidebar and the map's city list). The lab's own copies (`catchups/_settings.tsx`, the sketches) belong to the lab lenses.
-- The toast wiring (`ui/sonner.tsx` plus `globals.css:647-690`): `cn-toast` is the hook the f9bca40f rules key on, and the four-selector specificity is explained (Sonner injects its stylesheet after ours).
+- The bottom-sheet consolidation (`3be6ae75`) is complete in shipped code. Every rising panel is `BottomSheet`, and no hand-rolled bottom panel survives outside `ui/sheet.tsx`: `grep -E "fixed inset-x-0 bottom-0|rounded-t-(xl|2xl|\[)"` finds only `ui/card.tsx` and the landing's leaf pile. The replaced implementations were deleted, not left exported (settings-surface −187 lines, guide-overlay −90, filter-sheet rewritten). `SheetContent` stays for the two side drawers (the sidebar and the map's city list). The lab's own copies (`catchups/_settings.tsx`, the sketches) belong to the lab lenses.
+- The toast wiring (`ui/sonner.tsx` plus `globals.css:647-690`): `cn-toast` is the hook the 6d478b12 rules key on, and the four-selector specificity is explained (Sonner injects its stylesheet after ours).
 - `FeedColumn` and `ContentColumn` each mount once by design (DESIGN-SYSTEM §9; "one spine").
 - `"use client"` on the seven hook-only modules is redundant but harmless, with no bundle effect.
 - `ConfirmDialog`'s `description` is optional although all 12 callers pass it. Its docblock defends the optionality (Carbon's rule, 2026-08-29).
@@ -458,11 +458,11 @@ handed to that lens below).
 - `ResponsiveDialog` (catchups-ui-25 asked me where it lives). Keep it local in `components/catchups/home/`: its two callers are both there, and the house editor's switch is popover-or-sheet, a different frame. Promote it to `ui/sheet.tsx` only when a third dialog-or-sheet caller appears outside Catch-ups. Pair it with -01 so its `phone` flag stops flipping.
 
 ## Audit carry-overs in this territory
-- **A8** (dead-code-01/-03/-08 = directory-profile-06/-07 = shell-primitives-06): DONE. `d9adbca8` deleted `active-filter-chips.tsx`, `result-count.tsx`, `SortPill` and `HOUSE_OPTIONS`, and `button.tsx` has no `link`, `icon-xs` or `icon-lg` any more. Residue: `docs/spec/admin.md:425` still names `ResultCount`, and `FacetOptionsPopup` was left single-use (-14).
+- **A8** (dead-code-01/-03/-08 = directory-profile-06/-07 = shell-primitives-06): DONE. `fc0d541e` deleted `active-filter-chips.tsx`, `result-count.tsx`, `SortPill` and `HOUSE_OPTIONS`, and `button.tsx` has no `link`, `icon-xs` or `icon-lg` any more. Residue: `docs/spec/admin.md:425` still names `ResultCount`, and `FacetOptionsPopup` was left single-use (-14).
 - **A17** (landing-mascot-avatars-06, BirdAvatar `ring`): resolved on 2026-09-05 by documentation (the owner kept the pixels). Now MOOT: no shipped caller remains (-09).
 - **B1** (auth-edge-01, lazy InfoTooltip): DONE (`float-field.tsx:21-24`).
 - **B8** (bundle-build-01, the `domMax` module): DONE (`motion-features-max.ts`). **dependency-diet-15** (the wrong test name): DONE; the comment now names the real file and records the old name.
-- **D8** (directory-profile-05, HousePicker): DONE in `1906c68b`. The leftover is HouseOptions with a single caller (-10).
+- **D8** (directory-profile-05, HousePicker): DONE in `348716e2`. The leftover is HouseOptions with a single caller (-10).
 - **E11, the UI-kit tail**: OPEN.
   - duplication-13 (the filter pill trigger): 4 copies → 3 (optional step in -14).
   - duplication-08 `EmptyCard`, -11 `StepFooter`, -12 `useResendVerification`: none was built, and the twins remain: `auth/verify-email-banner.tsx:95-125` ≈ `auth/verify-email-dialog.tsx:94-124`, and the footers in `onboarding/steps/houses-step.tsx` and `register-step.tsx`. These live in the auth, onboarding and letters territories.
@@ -513,7 +513,7 @@ handed to that lens below).
 
 ## Charter leads and questions, answered
 - **Did the 09-15 shared bottom sheet leave the sheets it replaced exported?** No. They were deleted in the same commit, and nothing hand-rolled survives in shipped code (Not-findings).
-- **`active-filter-chips.tsx` and `result-count.tsx`:** deleted in `d9adbca8` (2026-09-05), not imported anywhere. One doc mention remains.
+- **`active-filter-chips.tsx` and `result-count.tsx`:** deleted in `fc0d541e` (2026-09-05), not imported anywhere. One doc mention remains.
 - **E11 UI-kit tail:** see carry-overs. Nothing of it was adopted; the filter trigger went from four copies to three only because SortPill died.
 - **Props no caller passes:** -08 (13 of them) and -09.
 - **Primitives with exactly one caller:** see the census below. Only HouseOptions is a relocated feature component (-10). LocationPicker's single mode is a relocated lab demo (-07).
