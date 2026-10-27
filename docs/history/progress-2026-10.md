@@ -1,3 +1,24 @@
+## 2026-10-27 (collection) — Kartikeya Patodia's 95 photographs wait in review, and the tagging pass learns People means a name
+
+95 photographs from Kartikeya Patodia (class of 2025) went into the Valley Collection with
+`import-album.mjs --scope valley --review --undated --as` his account, so they sit on the review
+room's Waiting pile under his name. The album folder was named `Kartikeya Patodia` through a
+symlink, because the Drive folder he used is called `rishivalley.space` and a second contributor's
+`1.1.JPG` from the same folder would otherwise collide on `sourceKey` and be skipped as already in.
+
+Dates are the camera's own, to the month, on 94; his file numbering gives the year (1.x is 2022 up
+to 4.x 2025), and every stamp agrees with it. The one file with no stamp, `1.4.jpeg`, was filed 2022
+at year precision on his numbering. His descriptions were Google Drive file descriptions, which a
+Drive zip leaves out; read with a nine-line Apps Script the owner ran, then spread across the
+ranges he named, onto 63 photographs. 32 he did not describe stay blank.
+
+The owner then narrowed two buckets: People only when the person is named, Nature only when nature
+is the subject. Applied to the batch (People on 13, Nature on 9) and written into `BUCKET_RULES`
+and the tag-photos skill, so the next pass does not file every face under People and every tree
+under Nature. Uploading cost Vercel nothing: the script writes to R2 and Supabase directly, and the
+production logs for the window show no request from it. Undo files are in
+`scripts/dev/.album-import/`.
+
 ## 2026-10-25 (deps) — CI green again: seven high and critical advisories patched
 
 The `check` workflow had failed on the last two pushes (7aff912, 35bdf67), on one gate only: seven

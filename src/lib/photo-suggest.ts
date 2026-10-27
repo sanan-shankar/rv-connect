@@ -87,15 +87,23 @@ worse than a blank. Captions belong to the people who were there.`;
  * How to choose between the six. Written here rather than in the session
  * prompt because it is the part that decides what the archive looks like,
  * and a rule kept beside the vocabulary cannot drift from it.
+ *
+ * People and Nature were narrowed by the owner on 2026-10-27, after a pass
+ * filed 82 of 95 school photographs under People and 22 under Nature: "only
+ * put the people tag when we know the name of the person", and "it's nature
+ * only if it's nature. otherwise everything would be nature".
  */
 export const BUCKET_RULES = `Give every photograph at least one bucket and as many as genuinely
-apply -- the banyan with children under it is Campus and People and School life, and filing it
-under one of the three makes it unfindable under the other two.
+apply -- the banyan courtyard during assembly is Campus and School life, and filing it under one
+of the two makes it unfindable under the other.
 
-  People       any photograph whose subject is a person or people: portraits, class photographs,
-               groups, faces. A crowd at a distance where nobody is legible is not People.
+  People       a photograph of someone we can NAME: what the contributor said names who is in it.
+               A face is not enough -- nearly every photograph here has someone in it. No name in
+               what they said, no People.
   Birds        a bird, anywhere in the frame as its subject.
-  Nature       the land itself: trees, the hills, weather, flowers, animals that are not birds.
+  Nature       only when nature IS the subject: a landscape, the hills, the sky, weather, an animal
+               that is not a bird. Trees behind a group, leaves in the frame or saplings in somebody's
+               hands are not Nature -- in this valley that would be every photograph.
   Campus       the built valley: buildings, rooms, the study, the dining hall, the banyan courtyard.
   School life  what happens here: assembly, sport, plays, music, dining, work, reunions.
   Other        genuinely nowhere else. Use it rather than forcing a fit -- Other is read, and a

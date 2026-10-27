@@ -90,9 +90,11 @@ not by whatever the file says today. That is the protocol
 picker to it.
 
 The short version: **People · Birds · Nature · Campus · School life · Other.**
-Give as many as genuinely apply — the banyan with children under it is Campus
-*and* People *and* School life, and filing it under one of the three makes it
-unfindable under the other two. Anything outside the six is refused by the
+Give as many as genuinely apply — the banyan courtyard during assembly is
+Campus *and* School life, and filing it under one makes it unfindable under the
+other. Two are narrower than they sound: **People** only when the contributor's
+words name who is in it, and **Nature** only when nature is the subject, not
+the trees behind everyone (owner, 2026-10-27). Anything outside the six is refused by the
 applier, not quietly mapped to Other, so do not invent a seventh.
 
 Use **Other** rather than forcing a fit. Other is read: a run of photographs
