@@ -5,6 +5,7 @@ import { auth } from "@/lib/auth";
 import { CollectionClient } from "@/components/collection/collection-client";
 import { recordView } from "@/lib/content-view";
 import { defaultOrderFor } from "@/lib/collection";
+import { mentionsAsNames } from "@/lib/rich-text";
 import { collectionPageData, loadPhoto } from "../collection-data";
 
 /** The permalink renders the same <CollectionClient>, so it hosts the same
@@ -55,7 +56,8 @@ export async function generateMetadata({
   const photo = await loadPhoto(id);
   if (!photo) return { title: "Collection" };
 
-  const caption = photo.caption?.trim();
+  // A tab title is plain text, so a tag reads as the name it shows.
+  const caption = mentionsAsNames(photo.caption).trim();
   if (!caption) return { title: "Collection" };
   return { title: caption.length > 70 ? caption.slice(0, 70).trimEnd() + "..." : caption };
 }

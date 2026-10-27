@@ -1,3 +1,35 @@
+## 2026-10-27 (collection) — people can be tagged in a photo's description, and hear about it once they can open it
+
+His: "can you tag people in photo descriptions?", then "build". A tag is the post composer's own
+`@[Name](id)`, stored in `Photo.caption`, so there is no schema change and the caption is the list.
+
+The description box in the contribute, edit and review rooms is now `CaptionField`, a
+contentEditable dressed exactly as the textarea it replaced (56px empty, the floating label, the
+(i)), with the composer's own pieces inside: type `@` and a name, or tap an underlined first name.
+The people list is portalled to a strip pinned under the card, because the card clips its rows.
+The 300 counts what a reader sees, a tag as its name, in `photoSchema`. `FloatArea` had no caller
+left and went, its reasons moving into the new field.
+
+The viewer draws captions through `renderRichText`, so a tag is a profile link, white and
+underlined on the dark frame. The expandable caption stopped being a `<button>` (a link inside one
+is not a link): a press on the words still toggles it, More / Less is the real button. Posts and
+Catch-ups hand their bodies to the same viewer caption, so their tags and bold now render there too
+instead of printing brackets. Plain-text surfaces (alt, tab title, download name, the feed card,
+the admin excerpt) read tags as names through `mentionsAsNames`.
+
+`notifyPhotoTags` runs after every caption write and every review decision, and tells a member only
+once `decidePhotoVisibility` lets them open the photograph, once per photograph ever, credited to
+the contributor in the review room. It runs in `after()`, off the save's response, with its three
+reads in parallel and one insert, and its failures are logged and never fail the save (write-path
+review: a contributor told their upload failed uploads it twice). Deleting a photograph removes its
+tag bells, after the commit. Left for later, from /simplify: one mention-editing hook shared with
+the post composer, and one notifier shared with post mentions; both reach into posts code. Verified live at 1440 and 390 on two of Kartikeya's photographs with Jerry Maguire; both
+captions restored exactly and the two test bells removed. One of the two had been approved minutes
+earlier, so that test caption was public for about a minute.
+
+`npm run visual`: support, birds and privacy (desktop) differ from baselines that predate this
+change (privacy gained the trivia paragraph on 10-23, birds its redesign); not rebaselined here.
+
 ## 2026-10-27 (collection) — Kartikeya Patodia's 95 photographs wait in review, and the tagging pass learns People means a name
 
 95 photographs from Kartikeya Patodia (class of 2025) went into the Valley Collection with

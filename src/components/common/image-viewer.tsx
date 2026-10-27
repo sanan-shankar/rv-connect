@@ -80,7 +80,7 @@
  *  real focusable button.
  * ------------------------------------------------------------------ */
 
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Download, Loader2, Pencil, X } from "lucide-react";
 import Link from "@/components/common/link";
@@ -94,6 +94,7 @@ import { usePinchZoom } from "@/components/common/pinch-zoom";
 import { cn } from "@/lib/utils";
 import { useBackCloses } from "@/lib/back-closes";
 import { photoSaveName } from "@/lib/photo-save-name";
+import { renderRichText } from "@/lib/rich-text";
 
 export interface ViewerImage {
   /** What the viewer opens. For a Collection photograph this is its screen
@@ -237,6 +238,17 @@ const ICON_BUTTON =
  * stops the two sites drifting.
  */
 const CAPTION_CLAMP = "line-clamp-4";
+
+/** The caption's type, and its tags dressed for a dark frame: the feed's
+ *  leaf green is a light-surface colour and goes muddy on the photograph's
+ *  black, so a tag here is white, weighted and underlined, with the three
+ *  states every link carries. */
+const CAPTION_TEXT = cn(
+  "text-[14.5px] leading-[1.55] text-white/92",
+  "[&_a]:rounded-sm [&_a]:text-white [&_a]:underline [&_a]:decoration-white/40 [&_a]:underline-offset-2",
+  "[&_a]:transition-colors [&_a]:duration-150 [&_a:hover]:decoration-white [&_a:active]:opacity-70",
+  "[&_a:focus-visible]:outline-2 [&_a:focus-visible]:outline-offset-2 [&_a:focus-visible]:outline-white"
+);
 
 /** The converter every save goes through. See its own file for why. */
 function downloadUrl(src: string): string {
@@ -708,6 +720,26 @@ export function ImageViewer({
   }
 
   const caption = current?.caption?.trim() ?? "";
+  /* Through the one renderer every member's text goes through (escaped first,
+     then tags as links), because a caption is a member's text: a post's own
+     body arrives here as its caption, and so does a Collection photograph's
+     description, either of which can now name somebody. */
+  const captionHtml = useMemo(() => (caption ? renderRichText(caption) : ""), [caption]);
+  /* One paragraph, drawn the same way whether or not it can open: only the
+     open caption scrolls, and only the one that cannot open caps its width
+     here (the open one's wrapper does). */
+  const captionText = (
+    <p
+      ref={captionRef}
+      data-viewer-scroll={overflows && expanded ? "" : undefined}
+      className={cn(
+        CAPTION_TEXT,
+        overflows && expanded ? "max-h-[42vh] overflow-y-auto overscroll-contain pr-1" : CAPTION_CLAMP,
+        !overflows && "max-w-2xl"
+      )}
+      dangerouslySetInnerHTML={{ __html: captionHtml }}
+    />
+  );
   const tags = current?.tags?.filter(Boolean) ?? [];
   const where = current?.where?.trim() ?? "";
   const hidden = chrome !== "shown";
@@ -1039,36 +1071,31 @@ export function ImageViewer({
                   (overflows ? (
                     /* The whole caption is the control. There is no small
                        exact pill to hit, in either direction: press the words
-                       to open them and press them again to put them away. */
-                    <button
-                      type="button"
-                      onClick={() => setExpanded((v) => !v)}
-                      aria-expanded={expanded}
-                      className="-mx-2 max-w-2xl rounded-[var(--radius-sm)] px-2 py-1 text-left transition-colors duration-150 hover:bg-white/8 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                       to open them and press them again to put them away.
+
+                       A div that listens, not a button, since a caption can
+                       carry a tag (2026-10-27) and a link inside a button is
+                       not a link anybody can follow. A press ON a tag goes to
+                       the tag. More / Less is a real button so a keyboard can
+                       open it too; its click reaches this same handler. */
+                    <div
+                      onClick={(e) => {
+                        if ((e.target as HTMLElement).closest("a")) return;
+                        setExpanded((v) => !v);
+                      }}
+                      className="-mx-2 max-w-2xl cursor-pointer rounded-[var(--radius-sm)] px-2 py-1 text-left transition-colors duration-150 hover:bg-white/8"
                     >
-                      <p
-                        ref={captionRef}
-                        data-viewer-scroll={expanded ? "" : undefined}
-                        className={cn(
-                          "text-[14.5px] leading-[1.55] text-white/92",
-                          expanded
-                            ? "max-h-[42vh] overflow-y-auto overscroll-contain pr-1"
-                            : CAPTION_CLAMP
-                        )}
+                      {captionText}
+                      <button
+                        type="button"
+                        aria-expanded={expanded}
+                        className="mt-0.5 inline-block rounded-sm text-[12px] font-semibold text-white/75 transition-colors duration-150 hover:text-white active:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
                       >
-                        {caption}
-                      </p>
-                      <span className="mt-0.5 inline-block text-[12px] font-semibold text-white/75">
                         {expanded ? "Less" : "More"}
-                      </span>
-                    </button>
+                      </button>
+                    </div>
                   ) : (
-                    <p
-                      ref={captionRef}
-                      className={cn(CAPTION_CLAMP, "max-w-2xl text-[14.5px] leading-[1.55] text-white/92")}
-                    >
-                      {caption}
-                    </p>
+                    captionText
                   ))}
 
                 <div className="flex items-center gap-3">

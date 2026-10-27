@@ -123,9 +123,15 @@ export function applyFormatShortcut(e: React.KeyboardEvent<HTMLElement>): boolea
 /** Force plain-text paste: clipboard formatting never bleeds into the editor,
  *  so bold/italic only ever comes from a shortcut, the phone's selection bar,
  *  or markdown the user types by hand (which round-trips via renderRichText). */
-export function insertPlainTextPaste(e: React.ClipboardEvent<HTMLElement>): void {
+export function insertPlainTextPaste(
+  e: React.ClipboardEvent<HTMLElement>,
+  /** At most this many characters land: a box with a ceiling takes as much
+   *  of a long paste as still fits, rather than refusing all of it. */
+  limit = Infinity
+): void {
   e.preventDefault();
-  const text = e.clipboardData.getData("text/plain");
+  const text = e.clipboardData.getData("text/plain").slice(0, Math.max(0, limit));
+  if (!text) return;
   try {
     document.execCommand("insertText", false, text);
   } catch {

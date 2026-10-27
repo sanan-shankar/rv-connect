@@ -52,12 +52,12 @@ test("the mention id charset is defined exactly once in rich-text.ts", () => {
   );
 });
 
-test("MENTION_PATTERN is declared once and used by both the renderer and the extractor", () => {
+test("MENTION_PATTERN is declared once and shared by the renderer, the extractor and the name reader", () => {
   const src = decomment(read("src/lib/rich-text.ts"));
   assert.equal(
     (src.match(/MENTION_PATTERN/g) ?? []).length,
-    3,
-    "expected exactly 3: the declaration, renderRichText's .replace(), and mentionedUserIds' matchAll()"
+    4,
+    "expected exactly 4: the declaration, renderRichText's .replace(), mentionedUserIds' matchAll() and mentionsAsNames' .replace()"
   );
 });
 

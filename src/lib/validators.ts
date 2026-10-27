@@ -5,6 +5,7 @@ import { POST_CONTENT_MAX, POST_TOO_LONG, postContentMax } from "./post-caps";
 import { FULL_NAME_MAX, OCCUPATION_MAX, fullNameFits, valleyYear } from "./utils";
 import { MAX_BATCH_TARGETS, parseBatchTargets } from "./post-visibility-rule";
 import { MIN_PASSWORD } from "./password-rule";
+import { mentionsAsNames } from "./rich-text";
 
 /**
  * A school year, bounded below by the year Rishi Valley opened and above by
@@ -258,7 +259,16 @@ export const postSchema = z
 // their columns stopped being written on 2026-09-07.
 export const photoSchema = z
   .object({
-    caption: z.string().trim().max(300).optional(),
+    /* 300 is what a person can SEE. A tag is stored as `@[Name](id)`, about
+       thirty characters more than the name it shows, so counting the raw
+       string would charge a caption naming six people for 180 characters
+       nobody can read. The raw ceiling is only a bound on the column. */
+    caption: z
+      .string()
+      .trim()
+      .max(2000)
+      .refine((c) => mentionsAsNames(c).length <= 300, "Keep the description to 300 characters")
+      .optional(),
     /* The six buckets, and only the six. A closed vocabulary is the whole
        point of them (src/lib/collection.ts): the moment anything else can be
        written here it is free text, and free text is searched, never

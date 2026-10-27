@@ -11,6 +11,7 @@
 import { prisma } from "@/lib/prisma";
 import { PUBLISHED_ONLY } from "@/lib/posts";
 import { plainExcerpt } from "@/lib/utils";
+import { mentionsAsNames } from "@/lib/rich-text";
 import { escapeLike } from "@/lib/db-text";
 import {
   CONTENT_PAGE_SIZE,
@@ -166,7 +167,7 @@ export async function loadContent(f: ContentFilters): Promise<ContentItem[]> {
             id: p.id,
             kind: "photo" as const,
             title: null,
-            excerpt: p.caption ? plainExcerpt(p.caption, EXCERPT) : "",
+            excerpt: plainExcerpt(mentionsAsNames(p.caption), EXCERPT),
             thumbUrl: p.thumbUrl,
             authorId: p.uploader.id,
             authorName: p.uploader.name,

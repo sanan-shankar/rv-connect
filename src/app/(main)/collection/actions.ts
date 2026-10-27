@@ -69,6 +69,7 @@ import { requireVerifiedMember } from "@/lib/member-gate";
 import { rateLimit } from "@/lib/rate-limit";
 import { revalidatePath } from "next/cache";
 import { isForeignKeyViolation, isUniqueViolation } from "@/lib/prisma-errors";
+import { notifyPhotoTags } from "@/lib/photo-tag-notifications";
 
 /* How many photographs a batch of the river holds.
  *
@@ -294,7 +295,7 @@ export async function contributePhoto(formData: FormData) {
     destination.scope === "class" ||
     isPhotoAutoApproved({ role: session.user.role, ...me });
 
-  await createPhotoRow({
+  const row = await createPhotoRow({
     data: photoRowData({
       uploaderId: session.user.id,
       url,
@@ -308,6 +309,7 @@ export async function contributePhoto(formData: FormData) {
       classYears: destination.classYears,
     }),
   }, [url, thumbUrl]);
+  notifyPhotoTags({ photoId: row.id, caption: meta.caption, tagger: session.user });
 
   revalidatePath("/collection");
   /* `smaller: true`, unconditionally: this action IS the fallback, so
@@ -580,7 +582,7 @@ export async function contributePhotoDirect(input: {
     isPhotoAutoApproved({ role: session.user.role, ...me });
 
   try {
-    await createPhotoRow({
+    const row = await createPhotoRow({
       /* `sourceKey` is the staged key, held unique (audit C-129). It is what
          makes one contribution one photograph: two calls carrying the same key
          both read the original before either delete ran, so both re-encoded
@@ -601,6 +603,7 @@ export async function contributePhotoDirect(input: {
         classYears: destination.classYears,
       }),
     }, [url, thumbUrl, screenUrl]);
+    notifyPhotoTags({ photoId: row.id, caption: meta.caption, tagger: session.user });
   } catch (err) {
     /* Lost the race to `Photo_sourceKey_key`. The contribution the member
        meant to make exists, so this is their outcome, not an error --
@@ -1082,7 +1085,15 @@ async function erasePhoto(
   }
   // After the commit, so a slow R2 cannot hold the transaction open. Anything
   // it cannot reach is retried by the nightly sweep.
-  await drainPendingImagePurges(urls);
+  /* A tag's bell would otherwise point at "That photo is not available" for
+     the month notifications are kept, the hole C-054 closed for posts. After
+     the commit too: `link` is not indexed, and a scan has no business holding
+     the delete open. Tags only: the note telling a contributor why their
+     photograph went is written after this, and must survive it. */
+  await Promise.all([
+    drainPendingImagePurges(urls),
+    prisma.notification.deleteMany({ where: { type: "mention", link: `/collection/${photoId}` } }),
+  ]);
   return { uploaderId: photo.uploaderId };
 }
 
@@ -1279,6 +1290,7 @@ export async function editPhoto(input: {
     },
   });
   if (changed.count === 0) return { error: "That photo is no longer here." };
+  notifyPhotoTags({ photoId: input.id, caption: meta.caption, tagger: session.user });
 
   revalidatePath("/collection");
   revalidatePath(`/collection/${input.id}`);

@@ -25,6 +25,7 @@ import { IS_DEMO } from "@/lib/demo";
 import { prisma } from "@/lib/prisma";
 import { rateLimit } from "@/lib/rate-limit";
 import { parsePhotoMeta } from "@/lib/collection-photo";
+import { notifyPhotoTags } from "@/lib/photo-tag-notifications";
 import { declinePhoto } from "@/app/(main)/collection/actions";
 
 /** The answers as the room holds them, already run through the one date rule
@@ -118,6 +119,9 @@ export async function saveReview(input: {
         : "That photo is no longer here.",
     };
   }
+  /* Every decision, not only Approve: a Save on a photograph already in can
+     add a tag, and the helper itself asks whether each person may see it yet. */
+  notifyPhotoTags({ photoId: input.id, caption: meta.caption });
 
   revalidatePath("/collection");
   revalidatePath(`/collection/${input.id}`);

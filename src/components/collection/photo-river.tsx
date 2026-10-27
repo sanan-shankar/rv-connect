@@ -22,6 +22,7 @@ import type { PhotoData, RiverOrder } from "@/app/(main)/collection/actions";
 import { cn } from "@/lib/utils";
 import type { BandBox } from "@/lib/river-geometry";
 import { preloadImageViewer } from "@/components/common/lazy-image-viewer";
+import { mentionsAsNames } from "@/lib/rich-text";
 
 /** Scroll the document to `want`, LENGTHENING IT FIRST if it is too short
  *  to get there. A scroll position only exists if there is document below
@@ -94,13 +95,15 @@ function TileInner({
   /** Position within its year, for the arrival stagger below. */
   index: number;
 }) {
+  // A tag reads as the name it shows: this is a label and an alt, not a link.
+  const said = mentionsAsNames(photo.caption);
   return (
     <button
       type="button"
       onClick={onOpen}
       onPointerEnter={preloadImageViewer}
       onFocus={preloadImageViewer}
-      aria-label={photo.caption ?? `Photograph by ${photo.uploader.name}`}
+      aria-label={said || `Photograph by ${photo.uploader.name}`}
       // Hover is the scrim below, so no state-layer here (a tint over a
       // photograph is noise). The press only needed an answer: opacity, not a
       // transform, because the tile must not move under the cursor.
@@ -122,7 +125,7 @@ function TileInner({
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={photo.thumbUrl}
-        alt={photo.caption ?? ""}
+        alt={said}
         width={photo.width}
         height={photo.height}
         loading="lazy"

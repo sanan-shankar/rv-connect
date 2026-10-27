@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { headingTextWidth } from "@/lib/text-width";
 import { batchLine, metaLine } from "@/lib/utils";
 import { RailCard } from "./rail-card";
+import { mentionsAsNames } from "@/lib/rich-text";
 
 /**
  * The caption's line, and the type set on it. The rail is a fixed 318px
@@ -84,7 +85,9 @@ const PHOTO_SELECT = {
 } as const;
 
 export async function CollectionModule() {
-  const candidates = await prisma.photo.findMany({
+  /* Tags read as names: the card is one line of plain text, and the width
+     below has to measure what it will actually print. */
+  const candidates = (await prisma.photo.findMany({
     /* LANDSCAPE ONLY. The tile below is a fixed 150px band across the rail,
        so it asks for a photograph around 2:1; a portrait one arrives as a
        centre-cropped sliver with its subject's head and feet outside the
@@ -103,7 +106,7 @@ export async function CollectionModule() {
     orderBy: { createdAt: "desc" },
     take: CANDIDATES,
     select: PHOTO_SELECT,
-  });
+  })).map((p) => ({ ...p, caption: p.caption && mentionsAsNames(p.caption) }));
 
   /* WHOLE CAPTIONS ONLY. The caption gets one line and the browser cuts a
      long one off with an ellipsis, which is a card advertising that it is

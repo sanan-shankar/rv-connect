@@ -47,6 +47,18 @@ export function mentionedUserIds(text: string): string[] {
 }
 
 /**
+ * The same text with every tag read as the name alone, which is how a tag
+ * reads on screen. For everywhere a tag cannot be a link: an image's alt, a
+ * page title, a download's file name, a one-line card, and a length that has
+ * to count what a person can see rather than the ids behind it. `replace` with
+ * a global regex resets `lastIndex` itself, so this shares the pattern safely.
+ * No text reads as "", so a missing caption needs no guard of its own.
+ */
+export function mentionsAsNames(text: string | null | undefined): string {
+  return text ? text.replace(MENTION_PATTERN, "$1") : ""
+}
+
+/**
  * Build the matcher for one inline emphasis delimiter.
  *
  * The rules are deliberately conservative, the way WhatsApp's are, because

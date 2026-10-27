@@ -23,6 +23,7 @@ import type { ViewerImage } from "@/components/common/image-viewer";
 import type { PhotoData } from "@/lib/collection-shape";
 import { bucketLabel } from "@/lib/collection";
 import { collectionSaveName } from "@/lib/photo-save-name";
+import { mentionsAsNames } from "@/lib/rich-text";
 
 /**
  * The file to draw a Collection photograph from at the size of a screen: its
@@ -64,7 +65,8 @@ export function toViewerImage(p: PhotoData, isAdmin: boolean): ViewerImage {
     height: p.height,
     /* The tile that was pressed, already in the browser's cache. */
     placeholder: p.thumbUrl,
-    alt: p.caption ?? undefined,
+    // A tag reads as the name it shows; the viewer draws `caption` with links.
+    alt: mentionsAsNames(p.caption) || undefined,
     caption: p.caption,
     author: p.uploader,
     date: p.takenLabel,
@@ -72,7 +74,7 @@ export function toViewerImage(p: PhotoData, isAdmin: boolean): ViewerImage {
     href: `/collection/${p.id}`,
     /* Without this a saved photograph is called by its object key. The
        archive knows what it is and when it was, so it says so. */
-    downloadName: collectionSaveName(p.caption, p.takenLabel),
+    downloadName: collectionSaveName(mentionsAsNames(p.caption), p.takenLabel),
     loved: p.loved,
     loveCount: p.loveCount,
     /* An EDIT, not a delete, and deliberately instead of one. The owner,

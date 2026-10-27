@@ -233,6 +233,27 @@ the code stopped reading them on 2026-09-07 and their removal SQL is
 `prisma/migrations-manual/2026-09-07-drop-collection-legacy-tags.sql`, unrun. **The columns still
 exist.**
 
+### 5b. Tagging people in a description (2026-10-27)
+
+The owner: *"can you tag people in photo descriptions?"* A tag is the post composer's own, stored
+the same way: `@[Name](id)` inside `Photo.caption`. No table, no column; the caption is the list.
+
+- **Writing one.** The description box in all three rooms (contribute, edit, review) is
+  `CaptionField` (`src/components/collection/caption-field.tsx`), a contentEditable dressed as the
+  old textarea. Type `@` and a name, or tap a first name it underlines; the people list opens below
+  the card. The 300 counts what a reader sees: a tag counts as its name (`photoSchema`).
+- **Reading one.** The viewer draws the caption through `renderRichText`, so a tag is a link to the
+  profile, white and underlined on the dark frame. Everywhere a caption is plain text (alt, tab
+  title, download name, the feed card, the admin excerpt) reads it through `mentionsAsNames`.
+- **Being told.** `notifyPhotoTags` (`src/lib/photo-tag-notifications.ts`) runs after every caption
+  write and every review decision, and tells a tagged member only once `decidePhotoVisibility`
+  says they may open the photograph, once per photograph ever. A tag written while a photograph
+  waits is told when it is approved, credited to the contributor. Deleting the photograph takes
+  its tag bells with it.
+- **Not done.** Tagging does not set the People bucket. The owner's rule is People only when a
+  person is named (2026-10-27), and a tag is exactly that, so it is the obvious next step, but it
+  would change a contributor's own choice of buckets and was not asked for.
+
 ## 6. The grid page UX
 
 **Deleted 2026-09-08, same reason as §2.** It specified a masonry of CSS columns behind a rail of

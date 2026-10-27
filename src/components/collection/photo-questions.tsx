@@ -35,12 +35,12 @@ import {
   FLOAT_LABEL_BASE,
   FLOAT_LABEL_REST,
   FLOAT_LABEL_UP,
-  FloatArea,
 } from "@/components/common/float-field";
 import { EASE_OUT_SMOOTH } from "@/components/common/motion";
 import { eraFromPartial, eraSaid, MONTHS, typedDate, yearGiven } from "@/lib/collection";
 import { valleyYear } from "@/lib/utils";
 import { BucketTiles } from "./bucket-tiles";
+import { CaptionField } from "./caption-field";
 import { cn } from "@/lib/utils";
 
 /** What the questions answer, for one photograph.
@@ -116,6 +116,8 @@ export function PhotoQuestions({
   value: PhotoAnswers;
   onAnswer: (patch: Partial<PhotoAnswers>) => void;
 }) {
+  // Where the description's people list opens: under the card, which clips.
+  const [listHost, setListHost] = useState<HTMLDivElement | null>(null);
   return (
     <>
       {/* 15px, not 13.5. These headings are the questions themselves, and
@@ -138,39 +140,43 @@ export function PhotoQuestions({
 
           `overflow-hidden` is what lets the group's radius clip rows that draw
           no radius of their own. */}
-      <div className="mt-5 overflow-hidden rounded-[var(--radius-input)] border border-border">
-        <WhenField id={`${idPrefix}-year`} meta={value} onAnswer={onAnswer} />
+      <div className="relative mt-5">
+        <div className="overflow-hidden rounded-[var(--radius-input)] border border-border">
+          <WhenField id={`${idPrefix}-year`} meta={value} onAnswer={onAnswer} />
 
-        {/* THE DESCRIPTION, and it is the one prose field left.
+          {/* THE DESCRIPTION, and it is the one prose field left.
 
-            The label was "What is this photograph?" and the owner cut it back:
-            "don't say what is this photograph, we can just say add a
-            description." A question mark on a form is a thing you owe an
-            answer to; a label is a box you may use.
+              The label was "What is this photograph?" and the owner cut it back:
+              "don't say what is this photograph, we can just say add a
+              description." A question mark on a form is a thing you owe an
+              answer to; a label is a box you may use.
 
-            The hint behind the (i) lost three things and kept one. Gone: the
-            bolding on what/where/who ("I don't want to bold this"), "if you
-            know", and "a line is plenty, and nothing is required" -- two
-            hedges apologising for a question that had already been asked
-            gently. Kept: the three prompts themselves, because
-            where-in-the-valley used to be a second box and this sentence is
-            now the only place it is asked for. */}
-        <div className="border-t border-border">
-          <FloatArea
-            id={`${idPrefix}-caption`}
-            label="Add a description"
-            bare
-            /* ONE row, not two. It grows from there, so the box is the size of
-               what you have written rather than the size of what you might
-               write -- and an empty one now matches the date row above it
-               instead of towering over it. */
-            rows={1}
-            maxLength={300}
-            value={value.caption}
-            onChange={(e) => onAnswer({ caption: e.target.value.slice(0, 300) })}
-            hint="Anything you remember. What is happening, where in the valley it was, and who is in it."
-          />
+              The hint behind the (i) lost three things and kept one. Gone: the
+              bolding on what/where/who ("I don't want to bold this"), "if you
+              know", and "a line is plenty, and nothing is required" -- two
+              hedges apologising for a question that had already been asked
+              gently. Kept: the three prompts themselves, because
+              where-in-the-valley used to be a second box and this sentence is
+              now the only place it is asked for. */}
+          <div className="border-t border-border">
+            {/* ONE row, not two. It grows from there, so the box is the size of
+                what you have written rather than the size of what you might
+                write -- and an empty one matches the date row above it. Type
+                "@" to tag somebody (caption-field.tsx). */}
+            <CaptionField
+              id={`${idPrefix}-caption`}
+              label="Add a description"
+              max={300}
+              value={value.caption}
+              onChange={(caption) => onAnswer({ caption })}
+              listHost={listHost}
+              hint="Anything you remember. What is happening, where in the valley it was, and who is in it. Type @ to tag someone."
+            />
+          </div>
         </div>
+        {/* Pinned to the card's own bottom edge, so the list opens 4px under the
+            box whatever spacing the room puts between this and its footer. */}
+        <div ref={setListHost} className="absolute inset-x-0 top-full z-20" />
       </div>
     </>
   );
