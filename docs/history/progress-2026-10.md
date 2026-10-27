@@ -30,6 +30,12 @@ earlier, so that test caption was public for about a minute.
 `npm run visual`: support, birds and privacy (desktop) differ from baselines that predate this
 change (privacy gained the trivia paragraph on 10-23, birds its redesign); not rebaselined here.
 
+After the push, CI failed one gate local runs could not see: the focus-edge test greps only TRACKED
+files, and `caption-field.tsx` was untracked when `check` ran here. It is now on the reasoned
+borderless list beside the year digits it shares a card with. Atul Vij was then tagged, by his
+words "Atul Sir", on the three hike photographs still in the Collection (2.19, 2.20, 2.22), written
+directly with an undo file in `scripts/dev/.album-import/`, so no bell was sent.
+
 ## 2026-10-27 (collection) — Kartikeya Patodia's 95 photographs wait in review, and the tagging pass learns People means a name
 
 95 photographs from Kartikeya Patodia (class of 2025) went into the Valley Collection with

@@ -53,6 +53,7 @@ const BORDERLESS = new Map([
   ["src/components/common/rich-text-area.tsx", "unstyled primitive: the box and its focus edge come from the caller's className"],
   ["src/components/common/filters/facet-search-select.tsx", "search line inside a popover header"],
   ["src/components/collection/photo-questions.tsx", "year digits inside a grouped bare row"],
+  ["src/components/collection/caption-field.tsx", "the description, the other bare row of that grouped card: the caret and the rising label are its focus state"],
   ["src/components/collection/contribute-room.tsx", "hidden file input (the year digits moved to photo-questions.tsx)"],
   ["src/components/profile/letterhead-profile.tsx", "no text input rendered; the match is a comment"],
   ["src/components/profile/flag-person-dialog.tsx", "radio inputs only"],
