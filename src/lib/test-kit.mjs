@@ -22,7 +22,7 @@
  * to execute it.
  */
 
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -69,11 +69,14 @@ export function walk(dir, { skip = SKIP_DIRS, match = /\.tsx?$/ } = {}) {
   const matches = typeof match === "function" ? match : (name) => match.test(name);
   const out = [];
   const visit = (d) => {
-    for (const name of readdirSync(d)) {
-      const full = join(d, name);
-      if (statSync(full).isDirectory()) {
-        if (!skipped(name, full)) visit(full);
-      } else if (!skipped(name, full) && matches(name)) {
+    /* Each entry's own type, never a link's target: `statSync` followed links,
+       and one that dangled (a staged album's links into originals that had
+       since moved, 2026-10-28) threw out of every sweep that walks scripts/. */
+    for (const entry of readdirSync(d, { withFileTypes: true })) {
+      const full = join(d, entry.name);
+      if (entry.isDirectory()) {
+        if (!skipped(entry.name, full)) visit(full);
+      } else if (!skipped(entry.name, full) && matches(entry.name)) {
         out.push(full);
       }
     }

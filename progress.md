@@ -15,6 +15,7 @@ if the month is new), and add one line here, at the top of that month's list.
 
 ## October 2026 — [full entries](docs/history/progress-2026-10.md)
 
+- 2026-10-28 (ci) — the gate stops crashing on a dangling link
 - 2026-10-28 (collection) — Kartikeya's photo ceiling is raised to 3,000 a half; everybody else keeps 1,000
 - 2026-10-28 (collection) — Kartikeya's Class of 2025 folders go in trimmed: 1,773 of 2,609, every one dated
 - 2026-10-28 (ci) — the gate runs before every push, so a red run stops on the laptop instead of arriving by email

@@ -26,7 +26,7 @@
  * ------------------------------------------------------------------ */
 
 import { spawn } from "node:child_process";
-import { readdirSync, statSync } from "node:fs";
+import { readdirSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -49,11 +49,16 @@ function run(cmd, args) {
 
 /** Find every *.test.mjs the repo tracks. They are standalone scripts that throw on failure. */
 function findTests(dir, acc = []) {
-  for (const entry of readdirSync(dir)) {
-    if (entry === "node_modules" || entry === ".next" || entry === ".git") continue;
-    const full = join(dir, entry);
-    if (statSync(full).isDirectory()) findTests(full, acc);
-    else if (entry.endsWith(".test.mjs")) acc.push(relative(ROOT, full));
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    if (entry.name === "node_modules" || entry.name === ".next" || entry.name === ".git") continue;
+    const full = join(dir, entry.name);
+    /* The entry's own type, never what a link points at. `statSync` followed
+       links, so one dangling link anywhere in the tree crashed the whole gate:
+       an album staged for import-album.mjs is a gitignored folder of links
+       into the member's originals, and those were moved off the Desktop once
+       the photographs were in (2026-10-28). */
+    if (entry.isDirectory()) findTests(full, acc);
+    else if (entry.name.endsWith(".test.mjs")) acc.push(relative(ROOT, full));
   }
   return acc;
 }
@@ -73,16 +78,17 @@ const MIN_TEST_FILES = 60;
 /** Test-shaped files this discovery would NOT run, which is the other half:
  *  a floor catches a wholesale disappearance, this catches one rename. */
 function findUnrunTests(dir, acc = []) {
-  for (const entry of readdirSync(dir)) {
-    if (entry === "node_modules" || entry === ".next" || entry === ".git") continue;
-    const full = join(dir, entry);
-    if (statSync(full).isDirectory()) {
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    if (entry.name === "node_modules" || entry.name === ".next" || entry.name === ".git") continue;
+    const full = join(dir, entry.name);
+    // The entry's own type, as in findTests above, so a dangling link is skipped.
+    if (entry.isDirectory()) {
       // e2e/ is Playwright's, run by `npm run test:e2e`, and deliberately not
       // here: these gates must not need a browser or a dev server.
-      if (entry !== "e2e") findUnrunTests(full, acc);
+      if (entry.name !== "e2e") findUnrunTests(full, acc);
       continue;
     }
-    if (/\.(test|spec)\.[cm]?[jt]sx?$/.test(entry) && !entry.endsWith(".test.mjs")) {
+    if (/\.(test|spec)\.[cm]?[jt]sx?$/.test(entry.name) && !entry.name.endsWith(".test.mjs")) {
       acc.push(relative(ROOT, full));
     }
   }

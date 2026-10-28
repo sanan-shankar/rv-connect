@@ -1,3 +1,13 @@
+## 2026-10-28 (ci) — the gate stops crashing on a dangling link
+
+The test finders in `scripts/qa/check.mjs` and the shared `walk` in `src/lib/test-kit.mjs` used
+`statSync`, which follows links, so one dangling link anywhere under `scripts/` threw out of the
+gate before a single test ran. It happened as soon as Kartikeya's photographs were in and his folder
+left the Desktop: a staged album (gitignored, `scripts/dev/.album-screen/<album>/staging`) is links
+into the originals. All three walks now read each entry's own type from `readdir`. Proved with the
+1,764 dangling links still in place: 155/155. Nothing else in `src/` or `scripts/` is a link, so no
+sweep loses a file.
+
 ## 2026-10-28 (collection) — Kartikeya's photo ceiling is raised to 3,000 a half; everybody else keeps 1,000
 
 His: *"raise only his limit"*, after the import left Kartikeya Patodia with 1,773 class photographs
