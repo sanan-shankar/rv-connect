@@ -15,6 +15,7 @@ if the month is new), and add one line here, at the top of that month's list.
 
 ## October 2026 — [full entries](docs/history/progress-2026-10.md)
 
+- 2026-10-28 (ci) — the gate runs before every push, so a red run stops on the laptop instead of arriving by email
 - 2026-10-27 (collection) — people can be tagged in a photo's description, and hear about it once they can open it
 - 2026-10-27 (collection) — Kartikeya Patodia's 95 photographs wait in review, and the tagging pass learns People means a name
 - 2026-10-25 (deps) — CI green again: seven high and critical advisories patched

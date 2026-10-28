@@ -1,0 +1,20 @@
+#!/bin/sh
+# A push to main is a deploy, and check.yml runs `npm run check` on it. This
+# runs the same gate here first, so a red run stops the push on this machine
+# instead of arriving as a failure email after the site has already shipped.
+# Owner, 2026-10-28, after four of those emails in a month, every one a push
+# nobody had checked: a test the change itself broke, or a security advisory
+# published since the last local run.
+#
+# Installed once per clone (git keeps it in .git/config, not in the repo):
+#   git config core.hooksPath scripts/dev/git-hooks
+# An urgent fix while a fresh advisory is still unpatched can skip it:
+#   git push --no-verify
+
+npm run check --silent && exit 0
+
+echo ""
+echo "pre-push: npm run check failed, so nothing was pushed."
+echo "It checked the working tree, not the commits: a failure in a file this"
+echo "push does not contain is another session's unfinished work."
+exit 1

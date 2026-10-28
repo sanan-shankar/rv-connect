@@ -72,4 +72,8 @@ No browser, no dev server. Everything is static or in-process so it runs from a
 cold terminal in seconds. Visual verification is a separate job: use the
 `screenshot-qa` subagent, or `npm run screenshot` / `npm run screenshot:auth`.
 
-Never wire this into a git hook. Committing is not where this belongs.
+Never wire this into a commit hook. Committing is not where this belongs.
+Pushing is: `scripts/dev/git-hooks/pre-push` runs it, because a push is a
+deploy and CI runs the same gate on it anyway (owner, 2026-10-28). If a push
+is refused, fix what it names; `--no-verify` is for an urgent fix while a
+fresh advisory waits, and only when the owner has said so.

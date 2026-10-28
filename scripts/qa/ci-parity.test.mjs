@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { statSync } from "node:fs";
 import test from "node:test";
 
 import { read } from "../../src/lib/test-kit.mjs";
@@ -87,4 +88,18 @@ test("the two gates that moved out of the workflow are still gates", () => {
       `${script} ran in CI until it moved into check.mjs, and check.mjs no longer calls it`
     );
   }
+});
+
+/* The laptop half (owner, 2026-10-28). CI running the gate only means the
+   failure is learned by email after the deploy; the pre-push hook runs it
+   before the push leaves. A hook that lost its execute bit is skipped by git
+   without a word, and one that ignores the gate's exit pushes anyway. */
+test("the pre-push hook runs the gate and stops the push on a red run", () => {
+  const HOOK = "scripts/dev/git-hooks/pre-push";
+  assert.ok(statSync(HOOK).mode & 0o100, `${HOOK} is not executable, so git silently skips it`);
+  assert.match(
+    read(HOOK),
+    /^npm run check --silent && exit 0$[\s\S]*^exit 1$/m,
+    `${HOOK} no longer runs \`npm run check\` and refuses the push when it fails`
+  );
 });

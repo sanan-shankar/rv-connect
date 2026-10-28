@@ -1,3 +1,22 @@
+## 2026-10-28 (ci) — the gate runs before every push, so a red run stops on the laptop instead of arriving by email
+
+His: "some workflow failed fix it", then "I don't want to receive those emails every time or few
+times something deploys." The failure he saw was already fixed (`572da69f`), but October had four:
+a test the change itself broke (27th, the caption field missing `FIELD_FOCUS`) and new
+high/critical advisories in Next, Sentry and DOMPurify (1st, 23rd, 25th). Every one was a push that
+had not passed `npm run check` on this machine first, and the deploy went out regardless.
+
+`scripts/dev/git-hooks/pre-push` now runs the same gate before anything leaves, and refuses the push
+if it fails. ~30 seconds a push; offline it only warns, as the gate already did. Installed with
+`git config core.hooksPath scripts/dev/git-hooks` (local config, so once per clone, in OPERATIONS
+§2). He chose it over turning the emails off, which would also have hidden a failed backup.
+
+The 2026-08-08 rule "never wire this into a git hook" was about commits and stays for commits; the
+check skill and `check.mjs` header now say pushes are the exception. `ci-parity.test.mjs` pins the
+hook as executable and exiting on a red gate. Proved with a stand-in `npm` that fails: `git push
+--dry-run` was refused.
+
+
 ## 2026-10-27 (collection) — people can be tagged in a photo's description, and hear about it once they can open it
 
 His: "can you tag people in photo descriptions?", then "build". A tag is the post composer's own

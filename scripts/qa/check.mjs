@@ -11,12 +11,14 @@
  *  were written down in three places. Rules nothing enforces are just
  *  prose. This is the enforcement.
  *
- *  It is deliberately NOT a git hook. docs/spec/DESIGN-SYSTEM.md is
+ *  It is deliberately NOT a commit hook. docs/spec/DESIGN-SYSTEM.md is
  *  explicit that the design rules "nudge, they never break the build",
  *  and eslint.config.mjs sets every one of them to `warn` for exactly
  *  that reason. So this reports, ranks and exits non-zero on the things
  *  that are genuinely broken (types, stranded lab rooms, failing tests)
  *  and merely COUNTS the things that are matters of degree (lint).
+ *  It does run before every push (scripts/dev/git-hooks/pre-push): a
+ *  push is a deploy, and CI runs this same gate on it anyway.
  *
  *  Deliberately does not need the dev server: everything here is static
  *  or in-process, so it runs in seconds from a cold terminal. Anything

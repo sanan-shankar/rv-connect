@@ -87,6 +87,13 @@ same list of gates the laptop runs, or a green local run still lands in your inb
 failure email. `scripts/qa/ci-parity.test.mjs` fails the build if a step is added here
 that `npm run check` does not run.
 
+The same gate runs **before every push** too, from `scripts/dev/git-hooks/pre-push`, so a red
+run stops the push on the laptop instead of arriving by email after the deploy (owner,
+2026-10-28: four such emails in October, every one a push nobody had checked). It costs ~30
+seconds a push. Git keeps the hook's location in `.git/config`, so a fresh clone needs
+`git config core.hooksPath scripts/dev/git-hooks` once. A newly published advisory blocks
+every push until it is patched; `git push --no-verify` gets an urgent fix past it.
+
 ### `backup.yml` — the one that must never be broken
 **Fires:** nightly at 02:00 IST, and on demand via **Actions → backup → Run workflow**.
 
