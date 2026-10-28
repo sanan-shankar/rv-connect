@@ -86,6 +86,16 @@
  *  approved row never names a non-admin as the one who let it in
  *  (Santharam's flowers, 2026-10-18).
  *
+ *  DATES WITHOUT CAPTIONS. `--dates` names a TSV of `<folder>/<file><TAB>
+ *  2023-04` (or `2023`) for the photographs whose file says nothing, read
+ *  exactly like the third column of `--captions`: the date wins, the stamp
+ *  if any still goes to exifYear/exifMonth. Unlike captions it need not
+ *  cover the folder, since most files date themselves, but every line must
+ *  name a file that is there. Built for a screened album
+ *  (scripts/dev/screen-album.mjs), whose WhatsApp copies and screenshots
+ *  carry their date in the name and nowhere else (Kartikeya's Class of 2025
+ *  folders, 2026-10-28).
+ *
  *  Run: node scripts/dev/import-album.mjs [--apply] [--quality 90]
  *                                         [--album <dir>] [--as <email>]
  *                                         [--limit N] [--env .env]
@@ -93,6 +103,7 @@
  *                                         [--folder <name>] [--captions <tsv>]
  *                                         [--buckets a,b] [--review]
  *                                         [--undated] [--approved-by <email>]
+ *                                         [--dates <tsv>]
  *       node scripts/dev/import-album.mjs --undo scripts/dev/.album-import/….jsonl --apply
  * ------------------------------------------------------------------ */
 
@@ -110,7 +121,7 @@ import { exifStamp, parseExifStamp } from "../../src/lib/exif-date.ts";
    script can have them; the copies that used to be here drifted from the
    app the moment either changed. */
 import { exifBlockOf, gridThumb, screenCopy } from "../../src/lib/collection-image.ts";
-import { BUCKET_VALUES, eraFromYear } from "../../src/lib/collection.ts";
+import { BUCKET_VALUES, eraFromYear, yearGiven } from "../../src/lib/collection.ts";
 import { COLLECTION_WEBP_QUALITY } from "../../src/lib/upload-shared.ts";
 
 const { flag, value } = argv();
@@ -132,6 +143,7 @@ const envFile = value("--env", ".env");
 const SCOPE = value("--scope", "class");
 const FOLDER = value("--folder", null);
 const CAPTIONS = value("--captions", null);
+const DATES = value("--dates", null);
 const BUCKETS = [...new Set(value("--buckets", "").split(",").map((b) => b.trim()).filter(Boolean))];
 
 /* Beside the script, never in the root: it holds a ledger naming real
@@ -298,6 +310,22 @@ const folders = FOLDER
       .map((d) => d.name)
       .sort();
 
+/* `YYYY` or `YYYY-MM` as { year, month }, null for an empty cell, and the
+   run stopped for anything else: a date typed wrong is a photograph filed
+   under the wrong year, which nobody browsing the rail would ever notice. */
+function givenDate(when, file, name) {
+  const typed = when.trim();
+  if (!typed) return null;
+  const m = /^(\d{4})(?:-(\d{2}))?$/.exec(typed);
+  const month = m?.[2] ? Number(m[2]) : null;
+  /* `yearGiven` is the year field's own rule, floor and ceiling both, so a
+     list cannot file a year the app would refuse to let anyone type. */
+  if (!m || !yearGiven(m[1], THIS_YEAR) || (month !== null && (month < 1 || month > 12))) {
+    fail(`${file}: bad date "${typed}" for ${name}; want YYYY or YYYY-MM`);
+  }
+  return { year: Number(m[1]), month };
+}
+
 /* file name -> { caption, given }, or null when no `--captions` was given.
    `given` is the sender's date from the optional third column, or null. */
 async function captionMap() {
@@ -310,16 +338,29 @@ async function captionMap() {
     // node cannot import (it resolves its siblings without extensions).
     if (!caption.trim() || caption.trim().length > 300) fail(`${CAPTIONS}: bad caption for ${name}`);
     if (map.has(name)) fail(`${CAPTIONS}: ${name} is listed twice`);
-    const m = /^(\d{4})(?:-(\d{2}))?$/.exec(when.trim());
-    const given = m ? { year: Number(m[1]), month: m[2] ? Number(m[2]) : null } : null;
-    if (when.trim() && (!given || given.year > THIS_YEAR || (given.month !== null && (given.month < 1 || given.month > 12)))) {
-      fail(`${CAPTIONS}: bad date "${when.trim()}" for ${name}; want YYYY or YYYY-MM`);
-    }
-    map.set(name, { caption: caption.trim(), given });
+    map.set(name, { caption: caption.trim(), given: givenDate(when, CAPTIONS, name) });
   }
   return map;
 }
 const captions = await captionMap();
+
+/* `<folder>/<file>` -> the given date, or null when no `--dates` was given.
+   Keyed by the relative path, not the bare name the captions use: a screened
+   album flattens two cameras into one folder, and their counters collide. */
+async function dateMap() {
+  if (!DATES) return null;
+  const map = new Map();
+  for (const line of (await readFile(DATES, "utf8")).split("\n")) {
+    if (!line.trim()) continue;
+    const [rel, when = ""] = line.split("\t");
+    const given = givenDate(when, DATES, rel);
+    if (!given) fail(`${DATES}: no date for ${rel}`);
+    if (map.has(rel)) fail(`${DATES}: ${rel} is listed twice`);
+    map.set(rel, given);
+  }
+  return map;
+}
+const dates = await dateMap();
 
 const planned = [];
 const refused = [];
@@ -330,7 +371,9 @@ for (const folder of folders) {
     const file = path.join(ALBUM, rel);
     const stamp = exifStamp(await exifBlockOf(await readFile(file)), THIS_YEAR);
     const date = stamp ? parseExifStamp(stamp, THIS_YEAR) : null;
-    const given = captions?.get(name)?.given ?? null;
+    const captioned = captions?.get(name)?.given ?? null;
+    if (captioned && dates?.has(rel)) fail(`${rel} is dated by both --captions and --dates; keep one`);
+    const given = captioned ?? dates?.get(rel) ?? null;
 
     /* NO STAMP THIS READER CAN SEE. Three PNGs in the owner's album are in
        this state: exiftool finds a DateTimeOriginal in them and sharp's
@@ -369,6 +412,7 @@ for (const folder of folders) {
          the walk is finished. A report that names photographs the run will not
          touch is worse than no report. */
       viaFolder: !!foldered,
+      viaDates: !captioned && !!dates?.has(rel),
       photoYear: year,
       photoMonth,
       datePrecision: photoMonth === null ? "year" : "month",
@@ -379,6 +423,14 @@ for (const folder of folders) {
       era: eraFromYear(year),
     });
   }
+}
+
+if (dates) {
+  const walked = new Set(planned.map((p) => p.rel).concat(refused));
+  /* Only `--folder` narrows it: on a full run a line for a folder that is not
+     there is a typo like any other, and its photograph would go in undated. */
+  const noFile = [...dates.keys()].filter((rel) => (!FOLDER || rel.split("/")[0] === FOLDER) && !walked.has(rel));
+  if (noFile.length) fail(`${DATES} names files that are not in the album:\n  ${noFile.join("\n  ")}`);
 }
 
 if (captions) {
@@ -411,9 +463,14 @@ console.log(`uploader   ${who.name} <${AS}>, class of ${classYear}, ${who.role}`
 console.log(`into       ${SCOPE === "valley" ? "the Valley Collection" : `the Class Collection of ${classYear}`}, buckets: ${BUCKETS.join(",") || "none"}${REVIEW ? ", WAITING IN THE REVIEW ROOM" : ", approved"}`);
 console.log(`quality    WebP q${QUALITY}, full resolution (storedResizeBox)`);
 console.log(`planned    ${todo.length} photographs${LIMIT ? ` (--limit ${LIMIT} of ${fresh.length})` : ""}`);
-if (already.size) console.log(`already in ${already.size} skipped without re-encoding`);
+/* This album's rows only: `already` holds every album the archive has ever
+   imported, and printing its size told a fresh run that 1,873 of its
+   photographs were already in. */
+const alreadyIn = planned.length - fresh.length;
+if (alreadyIn) console.log(`already in ${alreadyIn} skipped without re-encoding`);
 console.log(`  by year  ${[...byYear].sort((a, b) => String(a[0]).localeCompare(String(b[0]))).map(([y, n]) => `${y}:${n}`).join("  ")}`);
 console.log(`  year-only precision: ${todo.filter((p) => p.datePrecision === "year").length}`);
+if (dates) console.log(`  dated by ${DATES}: ${todo.filter((p) => p.viaDates).length}`);
 const fellBackToFolder = todo.filter((p) => p.viaFolder);
 if (fellBackToFolder.length) {
   console.log(`  dated from the folder name (no stamp this reader can see), filed at year precision: ${fellBackToFolder.length}`);

@@ -1,3 +1,51 @@
+## 2026-10-28 (collection) — Kartikeya's Class of 2025 folders go in trimmed: 1,773 of 2,609, every one dated
+
+His: *"I don't want to upload trashy photos. Trashy in just super bad quality, duplicates, blurred,
+or fully black ... completely overexposed ... I'm not going to be too picky ... first, let's trim
+it, and then upload it."* The folder was `~/Desktop/ISC 255`: `ICSE 23` and `ISC 25`, the class's
+Class 10 and Class 12 years, 15 GB, 2,609 photographs and 64 videos. Filed under Kartikeya
+Patodia's account into the Class Collection of 2025, approved, through `import-album.mjs`; the 777
+he had uploaded himself were deleted earlier the same day.
+
+**Left out, 836.** 366 byte-identical copies (`ICSE 23` holds 366 photographs that are also in
+`ISC 25`). 432 repeats of one moment, bursts and retaken group photographs, keeping the sharpest
+unless the sheet showed a new pose or framing. 11 nobody could read: one black frame, ten blurred
+or murky, four of which only the overview sheets found. 27 with no date anywhere (Snapchat saves,
+video-call screenshots, three shared images): offered as undated, and his call was *"honestly
+delete all those undated ones"*, so they were never uploaded; the originals are untouched. The 64
+videos, since the Collection takes photographs.
+
+**Dates, none invented.** 1,685 from EXIF, 86 from the file name (41 WhatsApp copies, 26
+screenshots, 14 millisecond names, 5 camera names), 2 from a date the camera app printed on the
+picture, filed at year precision. 81 of the 86 are when the file arrived or the screen was captured,
+which the app's own `NAME_NOT_TAKEN` declines to offer a contributor; the import files them at
+month precision because he asked for every photograph dated, and the screen now reads camera names
+through `filenameDate` and marks the rest "arrival". Raised with him rather than assumed. Eight sideways screenshots and Snapchat saves went in upright
+through an Orientation tag on a staged copy, the pixels untouched.
+
+**Tooling.** `scripts/dev/screen-album.mjs` is new: it measures without touching the album
+(exposure, tile sharpness, a perceptual hash, the date), groups copies and repeats, draws four sheet
+families (every photograph in date order, the groups, the near-miss pairs, the flagged ones) for a
+session to judge, and stages the keepers. `import-album.mjs` gained `--dates` for per-file dates
+without captions, and its "already in" line stopped printing the size of every album ever imported
+(1,873) as if those were this run's.
+
+**Found on the way.** sharp hands a one-channel raw input back as three channels after a resize,
+so the first pass hashed the top third of each picture; a calibration pair measuring nonsense gave
+it away, and `.greyscale()` on the way out fixed it. And no hash threshold separates a repeat from
+a new pose: repeats measured 2 to 16 bits apart and so did a dancer's two poses, so the hash
+proposes and the sheets decide. The band just past the group limit held 87 more repeats in 157
+pairs, which is why it is now a sheet family of its own.
+
+**Side effect.** `MAX_PHOTOS_PER_ACCOUNT` is 1,000 per half of the Collection. Kartikeya now has
+1,773 class photographs, so the contribute room gives him no room for more class photographs; his
+valley allowance (50 of 1,000) is untouched. Left as it is: his call.
+
+**Undo.** `node scripts/dev/import-album.mjs --undo <ledger> --apply` with
+`scripts/dev/.album-import/imported-2026-10-28T15-38-14-704Z.jsonl` (the 3-photograph test) and
+`imported-2026-10-28T15-39-10-248Z.jsonl` (the rest). The verdicts and every sheet are in
+`scripts/dev/.album-screen/isc-255/`.
+
 ## 2026-10-28 (ci) — the gate runs before every push, so a red run stops on the laptop instead of arriving by email
 
 His: "some workflow failed fix it", then "I don't want to receive those emails every time or few
