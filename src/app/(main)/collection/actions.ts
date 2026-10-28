@@ -39,7 +39,7 @@ import { includeFor, shape, type PhotoData } from "@/lib/collection-shape";
 import {
   MAX_UPLOAD_BYTES,
   COLLECTION_WEBP_QUALITY,
-  MAX_PHOTOS_PER_ACCOUNT,
+  photoCeiling,
   heicRefusal,
   isUnsupportedHeic,
   describeProcessingError,
@@ -115,7 +115,7 @@ async function photoQuotaError(
      archive -- they are different acts and the owner made them different
      pools. */
   const count = await prisma.photo.count({ where: { uploaderId: userId, scope } });
-  if (count >= MAX_PHOTOS_PER_ACCOUNT) {
+  if (count >= photoCeiling(userId)) {
     return HALVES[scope].quotaError;
   }
   return null;

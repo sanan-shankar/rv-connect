@@ -5,7 +5,7 @@ import { BUCKET_VALUES, defaultOrderFor, ERA_VALUES, PHOTO_YEAR_MIN } from "@/li
 import { classKey, photoScopeWhere, type PhotoScope } from "@/lib/photo-visibility-rule";
 import { viewerFacts } from "@/lib/collection-viewer-facts";
 import { isPhotoAutoApproved } from "@/lib/collection-photo";
-import { MAX_PHOTOS_PER_ACCOUNT } from "@/lib/upload-shared";
+import { MAX_PHOTOS_PER_ACCOUNT, photoCeiling } from "@/lib/upload-shared";
 import {
   loadPhotos,
   type RiverOrder,
@@ -209,7 +209,7 @@ export async function collectionPageData(filters: RiverFilters = { order: "newes
         roomLeft:
           session.user.role === "admin"
             ? MAX_PHOTOS_PER_ACCOUNT
-            : Math.max(0, MAX_PHOTOS_PER_ACCOUNT - mine),
+            : Math.max(0, photoCeiling(session.user.id) - mine),
       },
     ] as const;
   });

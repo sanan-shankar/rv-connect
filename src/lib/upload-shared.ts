@@ -51,6 +51,38 @@ export const MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
  */
 export const MAX_PHOTOS_PER_ACCOUNT = 1000;
 
+/**
+ * Members whose ceiling the owner raised by name, per half like the default.
+ *
+ * A raise is a decision about one person, so it is written down with who
+ * asked and why rather than made by lifting the ceiling for everybody. An
+ * admin has no ceiling at all; the callers handle that, since only they know
+ * the role.
+ *
+ * Kartikeya Patodia, Class of 2025: his class's archive went in through
+ * import-album.mjs on 2026-10-28, 1,773 photographs, which left him no room
+ * in his own Class Collection. The owner: "raise only his limit". 3,000 is
+ * those 1,773 plus the thousand any member starts with, rounded up. Both
+ * halves, like the default: a member's valley photographs still wait in the
+ * review room, and the post-to-Collection path counts both halves against one
+ * ceiling (bug audit 3, item 643), so a class-only raise would leave that path
+ * no room for him at all.
+ *
+ * Keyed by user id, which the bucket's own photograph paths already carry,
+ * never by email: this file is in a public repository.
+ */
+const RAISED_CEILINGS: Readonly<Record<string, number>> = {
+  cmuq0cmne000h04js9bwp6avq: 3000,
+};
+
+/** How many photographs this member may have on file in one half. */
+export function photoCeiling(userId: string): number {
+  /* `hasOwn`, as `houses.ts` does: a plain object answers "constructor" with
+     a function, and `count >= function` is false, so the ceiling would never
+     fire for an id that happened to spell one. */
+  return Object.hasOwn(RAISED_CEILINGS, userId) ? RAISED_CEILINGS[userId] : MAX_PHOTOS_PER_ACCOUNT;
+}
+
 
 /**
  * How many photographs one drop may hold. Two hundred (owner's call): a whole

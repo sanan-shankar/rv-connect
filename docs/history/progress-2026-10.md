@@ -1,3 +1,21 @@
+## 2026-10-28 (collection) — Kartikeya's photo ceiling is raised to 3,000 a half; everybody else keeps 1,000
+
+His: *"raise only his limit"*, after the import left Kartikeya Patodia with 1,773 class photographs
+against a ceiling of 1,000 a half, so the contribute room gave him none.
+
+`photoCeiling(userId)` in `src/lib/upload-shared.ts` answers one member's ceiling from a short map
+of raises, each saying who asked and why. All three places that enforce it ask it: `photoQuotaError`
+(both contribution paths), the `roomLeft` the contribute dialog shows, and the post-to-Collection
+intake, so the dialog and the server cannot disagree about him. 3,000 is his 1,773 plus the thousand
+any member starts with, rounded up. A map in code rather than a column, because it is one person: a
+column needs a migration on both databases (TRAPS: the demo drifts) and a control in the admin panel,
+and it can grow into `photoTrusted`'s shape if raises ever become common.
+
+Both halves are raised, like the default, on purpose: the post-to-Collection intake counts both
+halves against one ceiling and has no admin exemption (already filed, bug audit 3 item 643, his
+campaign), so a class-only raise would have left that path with no room for him. The lookup is
+`Object.hasOwn`, as in `houses.ts`, so an id spelling "constructor" cannot switch the ceiling off.
+
 ## 2026-10-28 (collection) — Kartikeya's Class of 2025 folders go in trimmed: 1,773 of 2,609, every one dated
 
 His: *"I don't want to upload trashy photos. Trashy in just super bad quality, duplicates, blurred,

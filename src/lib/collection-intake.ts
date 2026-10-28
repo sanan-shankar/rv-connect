@@ -8,7 +8,7 @@ import {
   photoRowData,
   NO_PHOTO_META,
 } from "@/lib/collection-photo";
-import { MAX_PHOTOS_PER_ACCOUNT } from "@/lib/upload-shared";
+import { photoCeiling } from "@/lib/upload-shared";
 import { plainExcerpt } from "@/lib/utils";
 import { reportSwallowed } from "@/lib/report-error";
 
@@ -83,7 +83,7 @@ export async function copyPostImagesToCollection({
   // could tick "add to the Collection" on post after post and never hit the
   // cap the two dialog paths enforce. Take only as many as the account has room
   // for; the rest are simply not copied (the tick is best-effort by design).
-  const room = Math.max(0, MAX_PHOTOS_PER_ACCOUNT - existing);
+  const room = Math.max(0, photoCeiling(userId) - existing);
   if (room === 0) return 0;
   const toCopy = imageUrls.slice(0, room);
 
