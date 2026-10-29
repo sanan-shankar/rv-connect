@@ -8,8 +8,7 @@ import { existsSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { config } from "dotenv";
-import pg from "pg";
-import { withDatabaseTls } from "../../src/lib/db-tls.ts";
+import { pgClient } from "../dev/_pg.mjs";
 
 /** Load .env exactly like the rest of scripts/qa does (dotenv never
  *  overrides variables already set in the environment). */
@@ -78,7 +77,7 @@ export function bootstrap(importMetaUrl, { base = "http://localhost:3000", chrom
  * a convenience here can never seed the wrong database.
  */
 export async function openDb() {
-  const db = new pg.Client(withDatabaseTls(process.env.DIRECT_URL || process.env.DATABASE_URL));
+  const db = pgClient(process.env.DIRECT_URL || process.env.DATABASE_URL);
   await db.connect();
   return { db, q: (text, params) => db.query(text, params).then((r) => r.rows) };
 }

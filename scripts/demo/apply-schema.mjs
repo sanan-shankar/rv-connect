@@ -20,7 +20,7 @@
  */
 
 import { readFileSync } from "node:fs";
-import pg from "pg";
+import { pgClient } from "../dev/_pg.mjs";
 import { readEnv } from "../dev/_env.mjs";
 
 const EXPECTED_REF = "cbvlzptghkuxhygyaezq";
@@ -54,7 +54,7 @@ if (env.DEMO_MODE !== "1") {
   process.exit(1);
 }
 
-const client = new pg.Client({ connectionString: dsn, ssl: { rejectUnauthorized: false } });
+const client = pgClient(dsn);
 await client.connect();
 
 try {

@@ -14,7 +14,7 @@ import { SUPABASE_ROOT_CA_2021, withDatabaseTls } from "./db-tls.ts";
  *  db-tls.ts, which pins Supabase's root so the connection is verified as
  *  well as encrypted. These tests hold the four things that could quietly
  *  undo it: the certificate itself, the helper's refusal to let the
- *  connection string override it, every client in the repo using TLS, and
+ *  connection string override it, every client in the repo verifying, and
  *  the backup job carrying the same certificate.
  * ------------------------------------------------------------------ */
 
@@ -54,7 +54,7 @@ function callArgs(src, open) {
   return "";
 }
 
-test("every database client in the repo is opened with TLS", () => {
+test("every database client in the repo verifies it is talking to Supabase", () => {
   const files = ["src", "scripts"].flatMap((d) =>
     walk(join(ROOT, d), {
       skip: (name) => SKIP_DIRS.includes(name),
@@ -69,10 +69,17 @@ test("every database client in the repo is opened with TLS", () => {
     for (const m of src.matchAll(/new\s+(?:pg\.)?(?:Client|Pool)\s*\(|new\s+PrismaPg\s*\(/g)) {
       clients += 1;
       const args = callArgs(src, m.index + m[0].length - 1);
-      if (!/withDatabaseTls\(|\bssl\s*:/.test(args)) {
+      /* `withDatabaseTls(` and nothing less. Any `ssl:` used to pass, and ten
+         scripts sailed through on `ssl: { rejectUnauthorized: false }`:
+         encrypted, but talking to whoever answered (bug audit 3, VOL1-01). */
+      if (!/withDatabaseTls\(/.test(args)) {
         offenders.push(`${rel}: ${m[0]}${args.replace(/\s+/g, " ").slice(0, 70)})`);
       }
     }
+    /* The scripts open theirs through scripts/dev/_pg.mjs, whose own two
+       constructions the sweep above holds to `withDatabaseTls`. Each call is a
+       client all the same, and counting them keeps the floor below honest. */
+    clients += [...src.matchAll(/(?<!function\s+)\bpg(?:Client|Pool)\s*\(/g)].length;
   }
   // Anti-vacuity: 30 clients on 2026-09-30. A sweep that stopped reading
   // the tree would find none and pass.
@@ -80,8 +87,9 @@ test("every database client in the repo is opened with TLS", () => {
   assert.deepEqual(
     offenders,
     [],
-    "these open the database in plaintext; pass `withDatabaseTls(url)` from " +
-      "src/lib/db-tls.ts (or at least `ssl`):\n  " + offenders.join("\n  "),
+    "these open the database without verifying it is Supabase; pass " +
+      "`withDatabaseTls(url)` from src/lib/db-tls.ts, or in scripts/ use " +
+      "pgClient/pgPool from scripts/dev/_pg.mjs:\n  " + offenders.join("\n  "),
   );
 });
 

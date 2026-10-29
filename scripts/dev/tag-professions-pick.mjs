@@ -34,7 +34,7 @@
 
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
-import pg from "pg";
+import { pgClient } from "./_pg.mjs";
 import { databaseUrl } from "./_env.mjs";
 import { argv } from "./_cli.mjs";
 import { PROFESSION_TAGS, TAG_FLOOR, TAG_RULES, TIDY_RULES, sourceOf } from "../../src/lib/profession-tags.ts";
@@ -58,7 +58,7 @@ const OUT = path.join(process.cwd(), "scripts", "dev", ".professions");
 
 const { url } = databaseUrl(envFile);
 
-const client = new pg.Client({ connectionString: url, ssl: { rejectUnauthorized: false } });
+const client = pgClient(url);
 await client.connect();
 
 /* Live members only -- blocked accounts and accounts inside the 60-day

@@ -25,10 +25,10 @@
  * `process.env` where a later import could pick them up. That script reads,
  * it does not load.
  *
- * Deliberately NOT a shared database opener as well. The four scripts that
- * open one do it four ways -- pg with relaxed SSL, pg without, and Prisma
- * behind the pg adapter -- and a shared opener with a default connection
- * string is the same convenience that scripts/demo/* keeps a wall against.
+ * Deliberately NOT the database opener as well. That is _pg.mjs, and it takes
+ * the connection string from its caller: an opener holding a default one is
+ * the convenience scripts/demo/* keeps a wall against, so the choice of
+ * database stays here, behind `databaseUrl`'s guard.
  */
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";

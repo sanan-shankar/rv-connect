@@ -30,8 +30,7 @@
  * ------------------------------------------------------------------ */
 
 import { config as loadEnv } from "dotenv";
-import pg from "pg";
-import { withDatabaseTls } from "../../src/lib/db-tls.ts";
+import { pgClient } from "../dev/_pg.mjs";
 
 loadEnv({ path: ".env", quiet: true });
 
@@ -63,7 +62,7 @@ function daysAgo(n) {
  * twenty counts in ONE round trip instead of twenty, which matters on a pooled
  * connection from a CI runner in another continent. Same connection choice as
  * scripts/dev/run-sql.mjs: the session pooler, falling back to the app URL. */
-const db = new pg.Client(withDatabaseTls(process.env.DIRECT_URL ?? process.env.DATABASE_URL));
+const db = pgClient(process.env.DIRECT_URL ?? process.env.DATABASE_URL);
 
 /** Everything collected this run, flattened to {source, metric, value}. */
 const rows = [];

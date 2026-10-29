@@ -100,6 +100,7 @@ Full runbook in `docs/spec/demo.md`. These four are that pipeline.
 | `generate-icons.mjs` | Generates every raster app icon from the two canonical marks. Bakes Apple's edge light into the Android maskable icon and leaves the Apple one flat, because iOS and macOS light it themselves. |
 | `_env.mjs` | Helper: reads `.env` for the scripts in this folder, and answers `databaseUrl(envFile)` with the one destination guard. Seven of them had their own copy of the parser, and seven of the connection guard; `import-album.mjs`, the one script here that writes photographs, had no guard at all until it went through here. |
 | `_cli.mjs` | Helper: `argv()` (`flag`/`value`/`rest`) and `bytesFor(url)`. Six scripts carried the first byte-identically and two the second. |
+| `_pg.mjs` | Helper: the one place a script under `scripts/` gets a raw `pg` client (`pgClient`, `pgPool`). Every client is encrypted and verifies Supabase's pinned root, whatever its caller passes; ten scripts, `run-sql.mjs` among them, used to accept any certificate (bug audit 3, VOL1-01). Takes the connection string from its caller, never a default. `scripts/qa/raw-pg.test.mjs` fails a client built anywhere else. |
 
 ### The Apple edge-light harness (`dev/apple-edge/`)
 

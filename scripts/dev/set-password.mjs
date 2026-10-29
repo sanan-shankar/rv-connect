@@ -29,10 +29,9 @@
  * administers the community.
  */
 import { createInterface } from "node:readline";
-import pg from "pg";
+import { pgClient } from "./_pg.mjs";
 import { readEnv } from "./_env.mjs";
 import bcrypt from "bcryptjs";
-import { withDatabaseTls } from "../../src/lib/db-tls.ts";
 
 /* Same loader the sibling run-sql.mjs uses: read .env by hand rather than
    pulling in dotenv, and never print the connection string. */
@@ -82,7 +81,7 @@ if (!password || password.length < 8) {
    becomes the odd one out. */
 const hash = await bcrypt.hash(password, 12);
 
-const client = new pg.Client(withDatabaseTls(url));
+const client = pgClient(url);
 await client.connect();
 try {
   /* emailVerified is set alongside the password on purpose: an account that

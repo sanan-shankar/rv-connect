@@ -34,7 +34,7 @@
 
 import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-import pg from "pg";
+import { pgClient } from "./_pg.mjs";
 import { databaseUrl } from "./_env.mjs";
 import { argv } from "./_cli.mjs";
 import { planChange, readVerdicts } from "../../src/lib/photo-suggest.ts";
@@ -53,7 +53,7 @@ const readJson = async (p) => JSON.parse(await readFile(p, "utf8"));
 /** The columns this script is allowed to write, and nothing else ever. */
 const COLUMNS = ["subject", "era", "datePrecision"];
 
-const client = new pg.Client({ connectionString: url, ssl: { rejectUnauthorized: false } });
+const client = pgClient(url);
 await client.connect();
 
 /** Write one row's columns. Shared by the apply and the undo, so there is one

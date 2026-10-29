@@ -109,7 +109,7 @@
 
 import { readdir, readFile, appendFile, mkdir } from "node:fs/promises";
 import path from "node:path";
-import pg from "pg";
+import { pgPool } from "./_pg.mjs";
 import { S3Client, PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { createId } from "@paralleldrive/cuid2";
 import { databaseUrl } from "./_env.mjs";
@@ -193,11 +193,7 @@ const s3 = new S3Client({
    at all. A pool hands each worker its own connection, which is what
    concurrent callers have always needed. `pool.query` has the same shape as
    `client.query`, so nothing else in this file changes. */
-const client = new pg.Pool({
-  connectionString: url,
-  ssl: { rejectUnauthorized: false },
-  max: 6,
-});
+const client = pgPool(url, { max: 6 });
 
 /* ------------------------------------------------------------------ *
  *  Who is contributing, and may they.

@@ -47,7 +47,7 @@
 
 import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-import pg from "pg";
+import { pgClient } from "./_pg.mjs";
 import { databaseUrl } from "./_env.mjs";
 import { argv } from "./_cli.mjs";
 import {
@@ -69,7 +69,7 @@ const OUT = path.join(process.cwd(), "scripts", "dev", ".professions");
 
 const { url } = databaseUrl(envFile);
 
-const client = new pg.Client({ connectionString: url, ssl: { rejectUnauthorized: false } });
+const client = pgClient(url);
 await client.connect();
 
 const said = (r) => `${JSON.stringify(r.jobTitle)} @ ${JSON.stringify(r.workplace)}`;

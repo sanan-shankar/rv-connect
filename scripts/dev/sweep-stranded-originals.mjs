@@ -40,7 +40,7 @@
  *                                                     [--env .env.demo]
  * ------------------------------------------------------------------ */
 
-import pg from "pg";
+import { pgClient } from "./_pg.mjs";
 import { databaseUrl } from "./_env.mjs";
 import { S3Client, ListObjectsV2Command, DeleteObjectCommand } from "@aws-sdk/client-s3";
 
@@ -60,7 +60,7 @@ const s3 = new S3Client({
   endpoint: `https://${env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
   credentials: { accessKeyId: env.R2_ACCESS_KEY_ID, secretAccessKey: env.R2_SECRET_ACCESS_KEY },
 });
-const client = new pg.Client({ connectionString: url, ssl: { rejectUnauthorized: false } });
+const client = pgClient(url);
 await client.connect();
 
 /** Every object under `collection/`, paged. */

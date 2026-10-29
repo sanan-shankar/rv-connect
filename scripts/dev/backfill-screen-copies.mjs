@@ -49,7 +49,7 @@
 
 import { appendFile, mkdir, readFile } from "node:fs/promises";
 import path from "node:path";
-import pg from "pg";
+import { pgPool } from "./_pg.mjs";
 import {
   S3Client,
   GetObjectCommand,
@@ -91,7 +91,7 @@ const s3 = new S3Client({
 });
 /* A pool, for the same reason import-album.mjs gives: four workers, and one
    pg.Client serialises them. */
-const db = new pg.Pool({ connectionString: url, ssl: { rejectUnauthorized: false }, max: 6 });
+const db = pgPool(url, { max: 6 });
 
 /* Beside the script, never in the root. `.gitignore` covers every dotted
    working folder under scripts/dev. */

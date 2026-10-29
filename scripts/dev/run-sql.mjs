@@ -31,8 +31,8 @@
  */
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import pg from "pg";
 import { databaseUrl } from "./_env.mjs";
+import { pgClient } from "./_pg.mjs";
 
 const argv = process.argv.slice(2);
 let envFile = ".env";
@@ -54,7 +54,7 @@ if (!sql) {
   process.exit(1);
 }
 
-const client = new pg.Client({ connectionString: url, ssl: { rejectUnauthorized: false } });
+const client = pgClient(url);
 try {
   await client.connect();
   const res = await client.query(sql);

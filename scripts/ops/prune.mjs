@@ -29,8 +29,7 @@
  * ------------------------------------------------------------------ */
 
 import { config as loadEnv } from "dotenv";
-import pg from "pg";
-import { withDatabaseTls } from "../../src/lib/db-tls.ts";
+import { pgClient } from "../dev/_pg.mjs";
 
 loadEnv({ path: ".env", quiet: true });
 
@@ -45,7 +44,7 @@ if (!Number.isFinite(DAYS) || DAYS < 7) {
   process.exit(1);
 }
 
-const db = new pg.Client(withDatabaseTls(process.env.DIRECT_URL ?? process.env.DATABASE_URL));
+const db = pgClient(process.env.DIRECT_URL ?? process.env.DATABASE_URL);
 
 async function main() {
   await db.connect();

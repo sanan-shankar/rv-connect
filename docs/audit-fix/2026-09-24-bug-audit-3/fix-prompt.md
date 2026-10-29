@@ -519,3 +519,4 @@ evidence stays in `work/`; this ledger is the record of what the campaign did.
 - T3-06 — DONE (fix(catchups): an early close with no answers offers more time, and an extension adds once); no ceiling on total extension, which the verdict left as an owner call nobody asked
 - L12-09 — DONE (fix(catchups): removing someone changes the invite link, and clears their filing); Q16 (a): a new token inside the removal's transaction; only a Keeper's page, and not an ended one, carries it
 - T2a-10 — DONE (fix(catchups): removing someone changes the invite link, and clears their filing)
+- VOL1-01 — DONE (fix(scripts): every script opens the database through one verified opener); eleven scripts had accepted any certificate (the verdict's ten plus tag-professions-pick); run-sql.mjs re-proved against production and the demo after the change

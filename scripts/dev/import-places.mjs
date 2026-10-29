@@ -24,7 +24,7 @@ import { readFileSync, existsSync, mkdirSync, rmSync, createWriteStream } from "
 import { resolve } from "node:path";
 import { pipeline } from "node:stream/promises";
 import { execFileSync } from "node:child_process";
-import pg from "pg";
+import { pgClient } from "./_pg.mjs";
 import { readEnv } from "./_env.mjs";
 
 const CITIES_ZIP_URL = "https://download.geonames.org/export/dump/cities500.zip";
@@ -133,7 +133,7 @@ async function main() {
     console.error("No DIRECT_URL or DATABASE_URL found in .env");
     process.exit(1);
   }
-  const client = new pg.Client({ connectionString: url, ssl: { rejectUnauthorized: false } });
+  const client = pgClient(url);
   await client.connect();
 
   let inserted = 0;

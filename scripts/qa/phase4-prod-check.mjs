@@ -23,11 +23,10 @@
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { randomBytes } from "node:crypto";
-import pg from "pg";
+import { pgClient } from "../dev/_pg.mjs";
 import bcrypt from "bcryptjs";
 import { loadEnv, makeLedger, credLogin as kitCredLogin } from "./_probe-kit.mjs";
 import { signHumanPass } from "../../src/lib/human-pass-rule.ts";
-import { withDatabaseTls } from "../../src/lib/db-tls.ts";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const BASE = process.argv[2] || "http://localhost:3100";
@@ -35,7 +34,7 @@ const BASE = process.argv[2] || "http://localhost:3100";
 loadEnv(repoRoot);
 const AUTH_SECRET = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET;
 
-const db = new pg.Client(withDatabaseTls(process.env.DIRECT_URL || process.env.DATABASE_URL));
+const db = pgClient(process.env.DIRECT_URL || process.env.DATABASE_URL);
 await db.connect();
 
 const { check, finish } = makeLedger();

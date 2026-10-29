@@ -50,7 +50,7 @@
 
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
-import pg from "pg";
+import { pgClient } from "./_pg.mjs";
 import sharp from "sharp";
 import { databaseUrl } from "./_env.mjs";
 import { argv, bytesFor } from "./_cli.mjs";
@@ -78,7 +78,7 @@ if (path.dirname(OUT) === REPO_ROOT) {
   process.exit(1);
 }
 
-const client = new pg.Client({ connectionString: url, ssl: { rejectUnauthorized: false } });
+const client = pgClient(url);
 await client.connect();
 
 const q = async (text, params = []) => (await client.query(text, params)).rows;
