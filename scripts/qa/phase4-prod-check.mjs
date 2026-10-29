@@ -26,10 +26,13 @@ import { randomBytes } from "node:crypto";
 import { pgClient } from "../dev/_pg.mjs";
 import bcrypt from "bcryptjs";
 import { loadEnv, makeLedger, credLogin as kitCredLogin } from "./_probe-kit.mjs";
+import { signInOrigin } from "./_dev-login.mjs";
 import { signHumanPass } from "../../src/lib/human-pass-rule.ts";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
-const BASE = process.argv[2] || "http://localhost:3100";
+/* A LOCAL production build only. Below, the dev-login secret goes to this
+   origin in the clear, so another one is refused (bug audit 3, C1-01). */
+const BASE = signInOrigin(process.argv[2] || "http://localhost:3100");
 
 loadEnv(repoRoot);
 const AUTH_SECRET = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET;

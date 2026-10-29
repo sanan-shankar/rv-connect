@@ -9,6 +9,7 @@ import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { config } from "dotenv";
 import { pgClient } from "../dev/_pg.mjs";
+import { signInOrigin } from "./_dev-login.mjs";
 
 /** Load .env exactly like the rest of scripts/qa does (dotenv never
  *  overrides variables already set in the environment). */
@@ -110,6 +111,8 @@ export function makeLedger() {
  * error code on refusal (e.g. code=rate-limited).
  */
 export async function credLogin(base, { email, password, fromIp, turnstileToken, devBypass, cookie = "" }) {
+  // `devBypass` is the dev-login secret itself, so it gets the same refusal.
+  if (devBypass) signInOrigin(base);
   const csrfRes = await fetch(`${base}/api/auth/csrf`, {
     headers: fromIp ? { "x-forwarded-for": fromIp } : {},
   });

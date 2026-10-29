@@ -22,7 +22,30 @@
  *     the resulting HttpOnly cookie is copied into the browser.
  */
 
+import { requireLoopbackBaseUrl } from "./local-base-url.mjs";
+
 const COOKIE_NAMES = ["authjs.session-token", "__Secure-authjs.session-token"];
+
+/**
+ * The origin to sign in against, or a refusal before the secret is read.
+ *
+ * Every caller in the repo passes localhost, but `npm run screenshot:auth`
+ * takes any URL from the command line, and this used to POST the secret to
+ * whatever origin that named: the live site, a reference site being
+ * matched, a typo that resolved. Whoever held it could then sign in as anyone
+ * on a dev server that listens on every interface and writes production
+ * (bug audit 3, C1-01). Checked here, so no caller can opt out.
+ */
+export function signInOrigin(baseUrl) {
+  try {
+    return requireLoopbackBaseUrl(baseUrl);
+  } catch {
+    throw new Error(
+      "Refusing to send DEV_LOGIN_SECRET off this machine: the dev sign-in only goes to " +
+        "localhost, 127.0.0.1 or [::1]. Point the command at http://localhost:3000."
+    );
+  }
+}
 
 function requireSecret() {
   const secret = process.env.DEV_LOGIN_SECRET;
@@ -53,10 +76,11 @@ function requireSecret() {
  * people.
  */
 export async function fetchSessionCookie(baseUrl, email = process.env.ADMIN_EMAIL) {
+  const origin = signInOrigin(baseUrl);
   const secret = requireSecret();
   if (!email) throw new Error("No email given and ADMIN_EMAIL is not set in .env");
 
-  const res = await fetch(new URL("/api/dev-login", baseUrl), {
+  const res = await fetch(new URL("/api/dev-login", origin), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, secret }),
