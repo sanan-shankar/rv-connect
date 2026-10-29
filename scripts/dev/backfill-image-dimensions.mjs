@@ -76,7 +76,7 @@ const failures = [];
    fetches is the kind of thing that costs more than it saves. */
 for (const [i, u] of todo.entries()) {
   try {
-    const facts = await describeImage(await bytesFor(u));
+    const facts = await describeImage(await bytesFor(u, env));
     if (!facts) throw new Error("could not be measured");
     await client.query(
       `INSERT INTO "Image" ("url", "width", "height", "focalX", "focalY", "blurDataUrl")

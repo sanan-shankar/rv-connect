@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { read, decomment, balancedBody } from "../../src/lib/test-kit.mjs";
+import { bucketKey, bytesFor } from "../dev/_cli.mjs";
 
 /* ------------------------------------------------------------------ *
  *  The Catch-ups export keeps its promise about files.
@@ -44,4 +45,57 @@ test("every kind of copied file is recorded as null when it did not arrive", () 
     `${kinds} kinds of file are copied, but only these are nulled when missing: ${nulled.join(", ")}`,
   );
   assert.ok(nulled.some((n) => n.includes("audio")), "a recording that did not arrive keeps a path to nothing");
+});
+
+/* ------------------------------------------------------------------ *
+ *  How it reads them (T2b-08). `bytesFor` in scripts/dev/_cli.mjs read
+ *  every photograph and recording off the public host with no deadline:
+ *  from outside India an uncached file came at 7-40 KB/s, and one stalled
+ *  socket hung the export for ever. Three scripts share it.
+ * ------------------------------------------------------------------ */
+
+const KEYS = {
+  R2_ACCOUNT_ID: "acct",
+  R2_ACCESS_KEY_ID: "id",
+  R2_SECRET_ACCESS_KEY: "secret",
+  R2_BUCKET: "bucket",
+  R2_PUBLIC_BASE_URL: "https://images.example/",
+};
+
+test("a file on the bucket's host is read through the bucket when the keys are there", () => {
+  assert.equal(bucketKey("https://images.example/uploads/u1/2026/08/a.webp", KEYS), "uploads/u1/2026/08/a.webp");
+  assert.equal(bucketKey("https://images.example/audio/u1/a.webm", KEYS), "audio/u1/a.webm");
+  // Anywhere else, or short of a key, it comes over HTTP.
+  assert.equal(bucketKey("https://images.example.attacker.test/uploads/a.webp", KEYS), null);
+  assert.equal(bucketKey("https://elsewhere.example/a.webp", KEYS), null);
+  assert.equal(bucketKey("https://images.example/uploads/a.webp", { ...KEYS, R2_SECRET_ACCESS_KEY: "" }), null);
+  assert.equal(bucketKey("https://images.example/uploads/a.webp"), null);
+  // And bytesFor asks that question before it reaches for HTTP.
+  const body = balancedBody(read("scripts/dev/_cli.mjs"), "export async function bytesFor");
+  assert.ok(body && body.indexOf("bucketKey(") >= 0 && body.indexOf("bucketKey(") < body.indexOf("fetch("));
+  assert.match(body, /GetObjectCommand/);
+});
+
+test("a file read over HTTP has a deadline", async () => {
+  const real = globalThis.fetch;
+  let init;
+  globalThis.fetch = async (_u, i) => {
+    init = i;
+    return new Response(new Uint8Array([1, 2, 3]));
+  };
+  try {
+    assert.deepEqual([...(await bytesFor("https://elsewhere.example/a.webp", KEYS))], [1, 2, 3]);
+    assert.ok(init?.signal instanceof AbortSignal, "fetched with no deadline: one stalled socket hangs the run");
+    // The bucket's own host without the keys (the demo's env) goes the same way.
+    init = undefined;
+    await bytesFor("https://images.example/uploads/a.webp", { R2_PUBLIC_BASE_URL: KEYS.R2_PUBLIC_BASE_URL });
+    assert.ok(init?.signal instanceof AbortSignal);
+  } finally {
+    globalThis.fetch = real;
+  }
+});
+
+test("the export hands bytesFor the env it read, so its files come through the bucket", () => {
+  assert.match(src, /const \{[^}]*\benv\b[^}]*\} = databaseUrl\(/);
+  assert.match(src, /bytesFor\(u, env\)/);
 });

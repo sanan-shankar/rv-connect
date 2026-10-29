@@ -50,7 +50,7 @@ const ALL = flag("--all");
 const envFile = value("--env", ".env");
 const OUT = path.join(process.cwd(), "scripts", "dev", ".tagging");
 
-const { url } = databaseUrl(envFile);
+const { env, url } = databaseUrl(envFile);
 
 const client = pgClient(url);
 await client.connect();
@@ -136,7 +136,7 @@ for (const [i, r] of rows.entries()) {
        without a question; the size because a bucket is a judgment about what
        is IN the frame -- a bird at the edge of a 480px thumbnail is a smudge,
        and the whole batch is a few megabytes either way. */
-    const jpeg = await sharpImage(await bytesFor(r.thumbUrl || r.url))
+    const jpeg = await sharpImage(await bytesFor(r.thumbUrl || r.url, env))
       .resize(640, 640, { fit: "inside", withoutEnlargement: true })
       .jpeg({ quality: 82 })
       .toBuffer();

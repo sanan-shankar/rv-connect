@@ -59,7 +59,7 @@ const { flag, value } = argv();
 const WRITE = flag("--write");
 const NO_PHOTOS = flag("--no-photos");
 const envFile = value("--env", ".env");
-const { url } = databaseUrl(envFile);
+const { env, url } = databaseUrl(envFile);
 
 const stamp = new Date().toISOString().slice(0, 10);
 const OUT = path.resolve(
@@ -324,7 +324,7 @@ const sizes = new Map();
 const dims = new Map();
 for (const { url: u, file } of wanted) {
   try {
-    const bytes = await bytesFor(u);
+    const bytes = await bytesFor(u, env);
     /* The folder is made where the file is written. A separate list of
        folders is how audio/ was left out: every recording failed to copy
        while catchups.json said it had (bug audit 3, T2b-03). */
