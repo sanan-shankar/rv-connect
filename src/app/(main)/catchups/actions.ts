@@ -61,8 +61,7 @@ import {
   advanceEdition,
   openEdition,
   answeringPatch,
-  extendPatch,
-  extendPhasePatch,
+  planExtension,
   isEffectiveKeeper,
   isBatchCatchup,
   BATCH_CATCHUP_REFUSAL,
@@ -78,7 +77,6 @@ import {
   decideTimeCapsuleMark,
   QUESTION_WINDOW_DAYS,
   deadlineIn,
-  shouldExtendForTooFew,
   type AdvanceEditionInput,
 } from "@/lib/catchups";
 import { scheduleLinkPreviews } from "@/lib/link-preview";
@@ -1116,9 +1114,21 @@ export async function openAnswering(editionId: string) {
 
 /**
  * Keeper-only on a people Catch-up; any member on a batch one. Answering ->
- * published, ahead of `answersCloseAt`. Evaluates
- * the too-few-answers rule (spec 2.6) exactly like the natural close: zero
- * entries auto-extends the window once instead of proceeding.
+ * published, ahead of `answersCloseAt`.
+ *
+ * NOT WITH NOBODY'S ANSWERS IN IT (bug audit 3, C3-01; his Q15, 2026-10-29).
+ * This used to run the clock's too-few rule, which moves the deadline to
+ * three days from NOW: right at the deadline that is three more days, but in
+ * a week's first days it moved the deadline up to four days EARLIER, rang
+ * everyone again, spent the Edition's one safety net and told the presser
+ * nothing, so a puzzled second press published an empty Edition to every
+ * member. A press with no answers
+ * now writes nothing and comes back `nobodyAnswered`, which the settings
+ * surface turns into the offer of three more days (`extendDeadline`). The
+ * clock's own rule at the deadline is unchanged.
+ *
+ * The answers are counted inside each write's transaction, as `openAnswering`
+ * counts its questions, so one withdrawn as the press lands is seen.
  *
  * It was `closeAndPrepare` and it stopped a step short, at a 24-hour hold
  * nobody could read through; `publishNow` existed only to skip that hold and
@@ -1148,34 +1158,8 @@ export async function closeAndPublish(editionId: string) {
     }
 
     const now = new Date();
-    const entryCount = await prisma.catchupEntry.count({ where: { editionId } });
-
-    if (shouldExtendForTooFew(edition, entryCount)) {
-      const patch = extendPatch(edition, now);
-      const applied = await prisma.$transaction(async (tx) => {
-        const cas = await tx.catchupEdition.updateMany({
-          where: { id: editionId, status: "answering", remindersSent: edition.remindersSent },
-          data: patch,
-        });
-        if (cas.count === 0) return false;
-        await notifyAnswersOpen(tx, {
-          catchupId: edition.catchupId,
-          editionId,
-          groupId: edition.catchup.group.id,
-          groupName: edition.catchup.group.name,
-          onlyNonAnswerers: true,
-        });
-        return true;
-      });
-      if (!applied) return { error: "This Edition already moved on." };
-
-      revalidatePath(`/catchups/${edition.catchupId}`);
-      return {
-        success: true,
-        extended: true,
-        message: "No one has answered yet, so the window was extended by 3 days.",
-      };
-    }
+    // The refusal and its marker, the same from either way out below.
+    const nobodyAnswered = { error: "Nobody has answered yet.", nobodyAnswered: true as const };
 
     /* A TIME CAPSULE CLOSES INTO `sealed` (build phase 14): the Keeper's early
        close is the clock's close, so it seals exactly as the deadline would,
@@ -1185,11 +1169,12 @@ export async function closeAndPublish(editionId: string) {
       const sealed = sealPatch(now);
       const opensAt = sealed.publishAt as Date;
       const didSeal = await prisma.$transaction(async (tx) => {
+        if ((await tx.catchupEntry.count({ where: { editionId } })) === 0) return "empty" as const;
         const cas = await tx.catchupEdition.updateMany({
           where: { id: editionId, status: "answering", timeCapsule: true },
           data: sealed,
         });
-        if (cas.count === 0) return false;
+        if (cas.count === 0) return "moved" as const;
         await notifySealed(tx, {
           catchupId: edition.catchupId,
           editionId,
@@ -1198,13 +1183,14 @@ export async function closeAndPublish(editionId: string) {
           opensAt,
           excludeUserId: session.user.id,
         });
-        return true;
+        return "sealed" as const;
       });
-      if (!didSeal) return { error: "This Edition already moved on." };
+      if (didSeal === "empty") return nobodyAnswered;
+      if (didSeal === "moved") return { error: "This Edition already moved on." };
 
       revalidatePath(`/catchups/${edition.catchupId}`);
       revalidatePath("/catchups");
-      return { success: true, extended: false, sealed: true };
+      return { success: true, sealed: true };
     }
 
     /* The publish and the bell in one transaction, exactly as the clock's own
@@ -1219,11 +1205,12 @@ export async function closeAndPublish(editionId: string) {
        trusting it (his 34b). */
     const patch = publishPatch(now);
     const applied = await prisma.$transaction(async (tx) => {
+      if ((await tx.catchupEntry.count({ where: { editionId } })) === 0) return "empty" as const;
       const cas = await tx.catchupEdition.updateMany({
         where: { id: editionId, status: "answering", timeCapsule: false },
         data: patch,
       });
-      if (cas.count === 0) return false;
+      if (cas.count === 0) return "moved" as const;
       await notifyPublished(tx, {
         catchupId: edition.catchupId,
         editionId,
@@ -1231,14 +1218,15 @@ export async function closeAndPublish(editionId: string) {
         groupName: edition.catchup.group.name,
         excludeUserId: session.user.id,
       });
-      return true;
+      return "published" as const;
     });
-    if (!applied) return { error: "This Edition already moved on." };
+    if (applied === "empty") return nobodyAnswered;
+    if (applied === "moved") return { error: "This Edition already moved on." };
 
     revalidatePath(`/catchups/${edition.catchupId}`);
     revalidatePath(`/catchups/edition/${editionId}`);
     revalidatePath("/catchups");
-    return { success: true, extended: false };
+    return { success: true };
   });
 }
 
@@ -1306,21 +1294,23 @@ export async function startEdition(catchupId: string) {
 
 /**
  * Keeper-only on a people Catch-up, any member on a batch one: push the
- * current phase's deadline out by 1, 2, 4 or 7 days
- * (owner, 2026-08-05). Works on BOTH windows: `collecting` moves
+ * current phase's deadline out by three days, a week or two weeks
+ * (`extendDaysSchema`). Works on BOTH windows: `collecting` moves
  * `questionsCloseAt`, `answering` moves `answersCloseAt`. Which one is being
  * moved is read from the Edition's own fresh status, never from the caller, so a
  * stale page cannot extend the phase it thinks it is looking at.
  *
- * The compare-and-swap is on the deadline itself rather than just the status:
- * two Keepers each tapping "2 days" on their own stale copy of the page should
- * add two days, not four, and matching on the timestamp they both saw means the
- * second one loses and is told so.
+ * `seenCloseAt` is the deadline the caller's page showed, and the
+ * compare-and-swap is on it (`planExtension`, bug audit 3, T3-06): two people
+ * tapping "A week" on the same page add one week, and the second is told the
+ * deadline moved. It used to swap on the value this action had just read
+ * itself, which always matched, so every tap added the whole extension again.
+ * The new date goes back to the caller, which says it.
  *
  * `published` is refused: there is no window left to extend, and reopening a
  * sealed Edition is a different (and unasked-for) feature.
  */
-export async function extendDeadline(editionId: string, days: number) {
+export async function extendDeadline(editionId: string, days: number, seenCloseAt: string) {
   return runAction(async () => {
     const session = await auth();
     if (!session?.user?.id) return { error: "Not authenticated" };
@@ -1331,6 +1321,9 @@ export async function extendDeadline(editionId: string, days: number) {
     if (typeof editionId !== "string" || !editionId) return { error: "Invalid request." };
     const parsedDays = extendDaysSchema.safeParse(days);
     if (!parsedDays.success) return { error: "Pick three days, a week or two weeks." };
+    if (typeof seenCloseAt !== "string" || Number.isNaN(Date.parse(seenCloseAt))) {
+      return { error: "Invalid request." };
+    }
 
     const scope = await loadKeeperEdition(editionId, session.user.id, {
       notKeeper: "Only a Keeper can extend the deadline.",
@@ -1342,22 +1335,24 @@ export async function extendDeadline(editionId: string, days: number) {
     const idle = refuseIfIdle(edition);
     if (idle) return idle;
 
-    const now = new Date();
-    const patch = extendPhasePatch(edition, parsedDays.data, now);
-    // `extendPhasePatch` returns null only for a status past the two open
-    // windows, so this is the one thing left to say.
-    if (!patch) {
-      return { error: "This Edition has closed. There is no deadline left to extend." };
+    const moved = { error: "The deadline just moved. Reload and try again." };
+    const plan = planExtension(edition, parsedDays.data, seenCloseAt, new Date());
+    if (!plan.ok) {
+      // "closed" is a status past the two open windows; "moved" is a page
+      // that showed a deadline the row no longer has.
+      return plan.reason === "closed"
+        ? { error: "This Edition has closed. There is no deadline left to extend." }
+        : moved;
     }
 
     const cas = await prisma.catchupEdition.updateMany({
       where:
         edition.status === "collecting"
-          ? { id: editionId, status: "collecting", questionsCloseAt: edition.questionsCloseAt }
-          : { id: editionId, status: "answering", answersCloseAt: edition.answersCloseAt },
-      data: patch,
+          ? { id: editionId, status: "collecting", questionsCloseAt: plan.deadline }
+          : { id: editionId, status: "answering", answersCloseAt: plan.deadline },
+      data: plan.patch,
     });
-    if (cas.count === 0) return { error: "The deadline just moved. Reload and try again." };
+    if (cas.count === 0) return moved;
 
     // Any reminder already in the bell now names a deadline that is no longer
     // true ("Last day to answer" when there is a week left). Clear them; the
@@ -1377,6 +1372,7 @@ export async function extendDeadline(editionId: string, days: number) {
       success: true as const,
       days: parsedDays.data,
       phase: edition.status === "collecting" ? ("questions" as const) : ("answers" as const),
+      closesAt: plan.closesAt.toISOString(),
     };
   });
 }

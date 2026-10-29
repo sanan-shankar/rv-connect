@@ -86,7 +86,7 @@ import {
 } from "@/components/ui/dialog";
 import { EASE_OUT_SMOOTH } from "@/components/common/motion";
 import { callAction } from "@/lib/call-action";
-import { cn, formatDayMonth } from "@/lib/utils";
+import { cn, formatDayAndDate, formatDayMonth } from "@/lib/utils";
 import type { ReminderMode } from "@/lib/catchups-types";
 import {
   closeAndPublish,
@@ -124,6 +124,7 @@ export type ChoiceKey = "reminders" | "extend";
 export type ConfirmKey =
   | "open-answering"
   | "close-now"
+  | "nobody-answered"
   | "start"
   | "end"
   | "leave"
@@ -182,18 +183,21 @@ function labelOf(k: ChoiceKey, value: string | number | null): string {
  *  "make everyone a keeper"). Absent when `canRun` is false, when the
  *  Catch-up has ended, and whenever it is idle -- `state` is "none" then,
  *  and Start is on the home, not in here. */
-function editionGroup(c: SettingsCatchup, extended: number | null): Group | null {
+function editionGroup(c: SettingsCatchup): Group | null {
   if (!c.canRun || c.ended || !c.editionId) return null;
-  const closes = c.answersCloseAt ? formatDayMonth(c.answersCloseAt) : "";
+  /* The deadline this row moves, as the page has it. It said "A week more"
+     after a pick, from local state, which hid the real date and survived
+     into the next Edition, while a second tap on the still-pressed pill
+     quietly added another week (bug audit 3, T3-06). A pick is an act, not
+     a setting, so the line is the date and nothing else. */
+  const closes = deadlineSeen(c);
   const longer: Row = {
     key: "extend",
     label: "Give everyone longer",
     icon: CalendarClock,
-    line: extended
-      ? `${labelOf("extend", extended)} more`
-      : closes
-        ? `Answers close ${closes}`
-        : "Push the deadline back",
+    line: closes
+      ? `${c.state === "collecting" ? "Questions" : "Answers"} close ${formatDayMonth(closes)}`
+      : "Push the deadline back",
     choose: "extend",
   };
   const rows: Row[] =
@@ -218,7 +222,10 @@ function editionGroup(c: SettingsCatchup, extended: number | null): Group | null
               icon: Send,
               line: "Publish now, before the deadline",
               oneWay: true,
-              opens: { shape: "confirm", key: "close-now" },
+              /* With nobody's answers in it there is nothing to send, so the
+                 press says so and offers more time (C3-01, his Q15). The
+                 server refuses it too, for a page that is out of date. */
+              opens: { shape: "confirm", key: c.answered ? "close-now" : "nobody-answered" },
             },
           ]
         : [];
@@ -297,12 +304,14 @@ function youGroup(c: SettingsCatchup, reminder: ReminderMode): Group {
   };
 }
 
-export function settingsGroups(
-  c: SettingsCatchup,
-  at: { reminder: ReminderMode; extended: number | null },
-): Group[] {
-  const edition = editionGroup(c, at.extended);
+export function settingsGroups(c: SettingsCatchup, at: { reminder: ReminderMode }): Group[] {
+  const edition = editionGroup(c);
   return [...(edition ? [edition] : []), catchupGroup(c), youGroup(c, at.reminder)];
+}
+
+/** The deadline "Give everyone longer" moves, as this page drew it. */
+function deadlineSeen(c: SettingsCatchup): string | null {
+  return c.state === "collecting" ? c.questionsCloseAt : c.answersCloseAt;
 }
 
 /* ── the pills a row unfolds ───────────────────────────────────────── *
@@ -327,19 +336,23 @@ function Pills({
   onPick,
 }: {
   options: ReadonlyArray<{ value: string | number; label: string }>;
-  at: string | number | null;
+  /** The one that is on, for a choice that stays chosen (Reminders).
+   *  Absent for pills that each DO something (Give everyone longer), which
+   *  are never drawn pressed: tapping a pressed pill reads as turning it
+   *  off, and there it added the extension again (T3-06). */
+  at?: string | number;
   busy: boolean;
   onPick: (v: string | number) => void;
 }) {
   return (
     <div className="flex flex-wrap gap-1.5 pt-0.5 pb-1 pl-[30px]">
       {options.map((o) => {
-        const on = o.value === at;
+        const on = at !== undefined && o.value === at;
         return (
           <button
             key={o.value}
             type="button"
-            aria-pressed={on}
+            aria-pressed={at === undefined ? undefined : on}
             disabled={busy}
             onClick={() => onPick(o.value)}
             className={cn(
@@ -374,7 +387,7 @@ function SettingRow({
 }: {
   r: Row;
   open: boolean;
-  at: { reminder: ReminderMode; extended: number | null };
+  at: { reminder: ReminderMode };
   busy: boolean;
   onOpen: (o: Opens) => void;
   onToggle: () => void;
@@ -382,7 +395,7 @@ function SettingRow({
 }) {
   const Icon = r.icon;
   const press = r.opens ? () => onOpen(r.opens!) : r.choose ? onToggle : undefined;
-  const current = r.choose === "reminders" ? at.reminder : at.extended;
+  const current = r.choose === "reminders" ? at.reminder : undefined;
 
   const body = (
     <>
@@ -501,7 +514,7 @@ function SettingsPanel({
   className,
 }: {
   c: SettingsCatchup;
-  at: { reminder: ReminderMode; extended: number | null };
+  at: { reminder: ReminderMode };
   /** Which row is unfolded. One at a time. */
   open: string | null;
   busy: boolean;
@@ -550,6 +563,11 @@ function SettingsPanel({
  *  this is the sentence for a race rather than for a state: the Edition
  *  published between the panel rendering and the button being pressed. */
 const NO_EDITION = "This Edition has moved on. Reload the page.";
+
+/** `closeAndPublish`'s refusal for an Edition nobody has answered in. */
+function nobodyAnswered(result: unknown): boolean {
+  return !!result && typeof result === "object" && "nobodyAnswered" in result;
+}
 
 /** A one-way act's button. The app has no cinnamon variant, because until
  *  now nothing needed one: `destructive` is the red wash, and none of
@@ -671,6 +689,16 @@ export function confirmCopy(
         verb: "Send it out",
         oneWay: true,
       };
+    /* What "Close and send it out" opens when nobody has answered (C3-01).
+       The button is his wording from Q15 and runs the same three days the
+       row above offers, from the deadline. Not one-way: nothing is lost. */
+    case "nobody-answered":
+      return {
+        title: "Nobody has answered yet",
+        line: "There is nothing to send out until someone answers.",
+        verb: "Give everyone 3 more days",
+        oneWay: false,
+      };
     /* The one place the head count is said, because it is the whole of
        what this costs: every one of them gets a bell. The accident worry
        (N30) that once kept this Keeper-only is answered here instead. Not
@@ -746,20 +774,20 @@ export function PictureDoor({
  *  state for the same Catch-up, and so a call site is two spreads rather
  *  than eleven props.
  *
- *  EVERY VALUE IS OPTIMISTIC AND EVERY FAILURE PUTS IT BACK. A pill fills
- *  the moment it is pressed, because the alternative on a Mumbai round
+ *  A SETTING IS OPTIMISTIC AND EVERY FAILURE PUTS IT BACK. A reminders pill
+ *  fills the moment it is pressed, because the alternative on a Mumbai round
  *  trip is half a second of a control that looks broken; if the action
  *  refuses, the old value returns and the reason is a toast. That is the
  *  same shape `ReminderPrefControl` already used for the same setting.
+ *  An ACT is not: "Give everyone longer" waits for the server and says the
+ *  date it wrote (T3-06).
  *
- *  `router.refresh()` after a success, because these change what the
- *  SERVER renders -- the state line, the Edition region, the sidebar --
- *  and the actions' own `revalidatePath` only invalidates the cache. */
+ *  No `router.refresh()`. Every action here calls `revalidatePath`, and an
+ *  action that does re-renders this page in the same round trip (the
+ *  installed Next docs, guides/server-actions.md), so the state line, the
+ *  Edition region and the props below arrive with the result. */
 export function useSettings(c: SettingsCatchup, onGone: () => void) {
   const [reminder, setReminder] = useState<ReminderMode>(c.reminderMode);
-  /* Null means nobody has pushed the deadline in this session, which is why
-     the row shows the deadline itself until somebody does. */
-  const [extended, setExtended] = useState<number | null>(null);
   const [name, setName] = useState(c.name);
   const [row, setRow] = useState<string | null>(null);
   const [dialog, setDialog] = useState<Opens | null>(null);
@@ -771,22 +799,41 @@ export function useSettings(c: SettingsCatchup, onGone: () => void) {
   useEffect(() => setReminder(c.reminderMode), [c.reminderMode]);
   useEffect(() => setName(c.name), [c.name]);
 
-  async function run<T>(work: () => Promise<T>, undo?: () => void) {
+  /** Runs one action with the panel busy. A refusal is a toast and `null`,
+   *  unless `answers` says the caller answers that one itself. */
+  async function run<T>(work: () => Promise<T>, undo?: () => void, answers?: (r: object) => boolean) {
     setBusy(true);
     try {
       const result = await callAction(work);
-      if (result && typeof result === "object" && "error" in result && result.error) {
+      if (result && typeof result === "object" && "error" in result && result.error && !answers?.(result)) {
         undo?.();
         toast.error(String(result.error));
-        return false;
+        return null;
       }
-      return true;
+      return result;
     } finally {
       setBusy(false);
     }
   }
 
   const live: SettingsCatchup = { ...c, name, reminderMode: reminder };
+
+  /** Push the deadline the page shows, and say where it landed. The page's
+   *  own date goes with it, so a tap made on a page that is out of date is
+   *  refused rather than stacked on top of somebody else's (T3-06). */
+  async function extend(days: number) {
+    const seen = deadlineSeen(c);
+    if (!c.editionId || !seen) {
+      toast.error(NO_EDITION);
+      return false;
+    }
+    const result = await run(() => extendDeadline(c.editionId!, days, seen));
+    if (!result || !("closesAt" in result) || !result.closesAt) return false;
+    toast.success(
+      `${result.phase === "questions" ? "Questions" : "Answers"} now close ${formatDayAndDate(result.closesAt)}.`,
+    );
+    return true;
+  }
 
   async function pick(k: ChoiceKey, v: string | number) {
     setRow(null);
@@ -798,36 +845,48 @@ export function useSettings(c: SettingsCatchup, onGone: () => void) {
       await run(() => setReminderPref(c.catchupId, next), () => setReminder(was));
       return;
     }
-    if (!c.editionId) return;
-    const was = extended;
-    const days = v as number;
-    setExtended(days);
-    await run(() => extendDeadline(c.editionId!, days), () => setExtended(was));
+    await extend(v as number);
   }
 
   /* Every action below returns a DIFFERENT success branch, so the switch is
-     narrowed to `{ error?: string }` here rather than at the call site. The
-     only thing this surface does with a result is decide whether to show a
-     toast; nothing reads a success payload. */
+     narrowed to `{ error?: string }` here rather than at the call site. What
+     this surface reads off a result is whether it was refused, and the one
+     refusal it answers itself: "Close and send it out" with nobody's answers
+     in it, which becomes the offer of more time (C3-01). */
   async function confirm(key: ConfirmKey) {
+    if (key === "nobody-answered") {
+      if (await extend(3)) setDialog(null);
+      return;
+    }
     const id = c.editionId;
-    const ok = await run(async (): Promise<unknown> => {
-      switch (key) {
-        case "open-answering":
-          return id ? await openAnswering(id) : { error: NO_EDITION };
-        case "close-now":
-          return id ? await closeAndPublish(id) : { error: NO_EDITION };
-        case "start":
-          return await startEdition(c.catchupId);
-        case "end":
-          return await endCatchup(c.catchupId);
-        case "leave":
-          return await leaveCatchup(c.catchupId);
-        case "put-away":
-          return await setCatchupArchived(c.catchupId, true);
-      }
-    });
-    if (!ok) return;
+    const result = await run(
+      async (): Promise<unknown> => {
+        switch (key) {
+          case "open-answering":
+            return id ? await openAnswering(id) : { error: NO_EDITION };
+          case "close-now":
+            return id ? await closeAndPublish(id) : { error: NO_EDITION };
+          case "start":
+            return await startEdition(c.catchupId);
+          case "end":
+            return await endCatchup(c.catchupId);
+          case "leave":
+            return await leaveCatchup(c.catchupId);
+          case "put-away":
+            return await setCatchupArchived(c.catchupId, true);
+        }
+      },
+      undefined,
+      nobodyAnswered,
+    );
+    if (!result) return;
+    /* Nobody had answered after all -- the page was drawn before the last
+       answer was withdrawn. Nothing was written, and the dialog becomes the
+       one the row would have opened. */
+    if (nobodyAnswered(result)) {
+      setDialog({ shape: "confirm", key: "nobody-answered" });
+      return;
+    }
     setDialog(null);
     /* Leaving and putting away both take this Catch-up off the member's
        list, so staying on its page would show a surface they are no longer
@@ -847,7 +906,7 @@ export function useSettings(c: SettingsCatchup, onGone: () => void) {
     busy,
     panel: {
       c: live,
-      at: { reminder, extended },
+      at: { reminder },
       open: row,
       busy,
       onOpenRow: setRow,

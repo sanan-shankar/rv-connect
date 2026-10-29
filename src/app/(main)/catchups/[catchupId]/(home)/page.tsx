@@ -483,7 +483,10 @@ async function loadHome(catchupId: string, viewerId: string): Promise<CatchupHom
       }),
       reminderMode: (pref?.reminderMode as ReminderMode) ?? DEFAULT_REMINDER_MODE,
       editionId: freshLatest?.id ?? null,
+      questionsCloseAt: freshLatest?.questionsCloseAt?.toISOString() ?? null,
       answersCloseAt: freshLatest?.answersCloseAt?.toISOString() ?? null,
+      // Read only while answering, which is the one state the press exists in.
+      answered: (editionView?.answeredAuthorIds.length ?? 0) > 0,
       picture: fallback,
     },
     promptLibrary: CATCHUP_PROMPT_SETS,

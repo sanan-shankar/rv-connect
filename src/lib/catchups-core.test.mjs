@@ -52,6 +52,7 @@ import {
   daysLeftUntil,
   TICK_GRACE_MS,
   extendPhasePatch,
+  planExtension,
   REMINDER_QUESTIONS_EXTENDED,
 } from "./catchups-core.ts";
 import { PROMPT_CATEGORIES } from "./catchups-types.ts";
@@ -382,6 +383,55 @@ test("C-028: extending a dormant Edition lands in the future, not in the past", 
 
 test("extendPhasePatch: nothing left to extend once the window has closed", () => {
   assert.equal(extendPhasePatch(edition({ status: "published" }), 1, NOW), null);
+});
+
+test("T3-06: two taps carrying the same seen deadline add one extension, and the second is refused", () => {
+  /* Every tap on "A week" added a week: the swap compared the row with the
+     value the action had just read itself. It swaps on the page's date now. */
+  const closes = at(5 * DAY_MS);
+  let ed = edition({ status: "answering", answersCloseAt: closes });
+  const first = planExtension(ed, 7, closes.toISOString(), NOW);
+  assert.equal(first.ok, true);
+  assert.equal(first.deadline.getTime(), closes.getTime(), "the write would not swap on the date the page showed");
+  assert.equal(first.closesAt.getTime(), deadlineIn(closes, 7).getTime());
+  ed = applyPatch(ed, first.patch);
+  assert.deepEqual(planExtension(ed, 7, closes.toISOString(), NOW), { ok: false, reason: "moved" });
+  // A page showing the new date may push again: that is a second, deliberate act.
+  assert.equal(planExtension(ed, 7, ed.answersCloseAt, NOW).ok, true);
+  assert.deepEqual(planExtension(edition({ status: "published" }), 7, closes, NOW), { ok: false, reason: "closed" });
+});
+
+test("T3-06: each window swaps on its own deadline", () => {
+  const q = at(2 * DAY_MS);
+  const plan = planExtension(edition({ status: "collecting", questionsCloseAt: q }), 3, q, NOW);
+  assert.equal(plan.ok, true);
+  assert.equal(plan.patch.answersCloseAt, undefined);
+  assert.equal(plan.closesAt.getTime(), deadlineIn(q, 3).getTime());
+  // A page drawn while collecting cannot push the answers once the clock has opened them.
+  const opened = edition({ status: "answering", questionsCloseAt: q, answersCloseAt: at(9 * DAY_MS) });
+  assert.deepEqual(planExtension(opened, 3, q, NOW), { ok: false, reason: "moved" });
+});
+
+test("C3-01: the offered three days never land earlier than the deadline they replace", () => {
+  /* "Close and send it out" with no answers moved the deadline to three days
+     from NOW, so a press in a week's first days cut up to four of its seven
+     (C3's /tmp run lost three). The offer that replaced it comes through planExtension:
+     three days from the deadline, or from now once that has passed, and the
+     clock's own one-off zero-answer extension is left for the deadline. */
+  const opened = new Date("2026-10-19T01:30:00Z"); // a Monday, 07:00 IST
+  const weekOut = deadlineIn(opened, 7);
+  const ed = edition({ status: "answering", answersCloseAt: weekOut });
+  for (const pressed of ["2026-10-19T13:00:00Z", "2026-10-22T09:00:00Z", "2026-10-26T03:00:00Z"]) {
+    const now = new Date(pressed);
+    const plan = planExtension(ed, 3, weekOut.toISOString(), now);
+    assert.equal(plan.ok, true);
+    assert.ok(plan.closesAt.getTime() > weekOut.getTime(), `a press at ${pressed} moved the deadline earlier`);
+    assert.equal(
+      plan.closesAt.getTime(),
+      deadlineIn(new Date(Math.max(weekOut.getTime(), now.getTime())), 3).getTime()
+    );
+    assert.equal(plan.patch.remindersSent & REMINDER_EXTENDED, 0, "the hand extension spent the clock's safety net");
+  }
 });
 
 test("planNextAction: no reminder once the answer window has fully closed", () => {

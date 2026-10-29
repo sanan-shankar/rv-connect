@@ -40,6 +40,13 @@ export type SettingsCatchup = {
   reminderMode: ReminderMode;
   /** The Edition the clock rows act on. Null when there is none. */
   editionId: string | null;
+  /** Its two deadlines as this page drew them. "Give everyone longer" names
+   *  the one its phase moves and sends it back, so the server can refuse a
+   *  tap made on a page whose deadline has since moved (bug audit 3, T3-06). */
+  questionsCloseAt: string | null;
   answersCloseAt: string | null;
+  /** Somebody has answered in it. With nobody, "Close and send it out" has
+   *  nothing to send and offers more time instead (C3-01, his Q15). */
+  answered: boolean;
   picture: { src: string; focus: string };
 };

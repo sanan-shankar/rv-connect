@@ -817,6 +817,42 @@ export function extendPhasePatch(ed: EditionTiming, days: number, now: Date): Ed
 }
 
 /**
+ * Whether a hand extension may land, and what it writes (bug audit 3, T3-06).
+ *
+ * `seen` is the deadline the presser's page showed, and the write swaps on it,
+ * so two people tapping "A week" on the same page add one week between them:
+ * the second finds the date already moved and is told so. The swap used to
+ * compare the row with what the action had read a moment earlier in the same
+ * request, which always matched, so every tap added the whole extension again
+ * while the row went on saying "A week more". On a batch Catch-up any member
+ * holds the control, so any two of them stacked.
+ *
+ * The new date is `extendPhasePatch`'s, from the deadline or from now,
+ * whichever is later, so it can never land earlier than the one it replaces
+ * (C3-01: the zero-answer press once moved a week's deadline up to four days
+ * earlier, and "Give everyone 3 more days" now comes through here).
+ */
+export function planExtension(
+  ed: EditionTiming,
+  days: number,
+  seen: Date | string | null | undefined,
+  now: Date
+):
+  | { ok: true; patch: EditionPatch; deadline: Date; closesAt: Date }
+  | { ok: false; reason: "closed" | "moved" } {
+  const patch = extendPhasePatch(ed, days, now);
+  if (!patch) return { ok: false, reason: "closed" };
+  const deadline = ms(ed.status === "collecting" ? ed.questionsCloseAt : ed.answersCloseAt);
+  if (deadline == null || ms(seen) !== deadline) return { ok: false, reason: "moved" };
+  return {
+    ok: true,
+    patch,
+    deadline: new Date(deadline),
+    closesAt: (patch.questionsCloseAt ?? patch.answersCloseAt) as Date,
+  };
+}
+
+/**
  * answering -> published. The only way an Edition comes out, by the clock or
  * by the Keeper's hand: `preparingPatch` and the 24-hour hold it set are
  * deleted (see STATUS_ORDER).
@@ -862,7 +898,15 @@ function questionsExtendPatch(ed: EditionTiming, now: Date): EditionPatch {
   };
 }
 
-/** Too-few extension: push the answer window 3 days and set the extended bit. */
+/**
+ * Too-few extension: push the answer window 3 days and set the extended bit.
+ *
+ * THE CLOCK'S ALONE. It runs at the deadline, where "three days from now" is
+ * three more days. "Close and send it out" borrowed it once and, pressed in
+ * a week's first days, moved the deadline up to four days earlier and spent
+ * the Edition's one safety net (bug audit 3, C3-01). A hand extension is
+ * `planExtension`, which anchors on the deadline.
+ */
 export function extendPatch(ed: EditionTiming, now: Date): EditionPatch {
   const answersCloseAt = deadlineIn(now, EXTEND_DAYS);
   return {

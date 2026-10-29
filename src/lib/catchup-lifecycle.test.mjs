@@ -202,6 +202,76 @@ test("V-T2-02: a missing Edition and a closed door get the same sentence", () =>
   );
 });
 
+test("C3-01: a hand close with nobody's answers in it writes nothing, and says so", () => {
+  /* The press used to run the clock's zero-answer rule: the deadline went to
+     three days from now (up to four days EARLIER in a week's first days), the
+     group was rung again, the one safety net was spent, and the presser saw
+     nothing, so a second press published an empty Edition to everyone. His
+     Q15: refuse it, and offer more time. */
+  const src = decomment(read("src/app/(main)/catchups/actions.ts"));
+  const close = balancedBody(src, "export async function closeAndPublish");
+  assert.ok(close, "closeAndPublish is gone; this pin is reading nothing");
+  assert.doesNotMatch(
+    close,
+    /shouldExtendForTooFew\(|extendPatch\(|notifyAnswersOpen\(/,
+    "a hand close runs the clock's zero-answer extension again"
+  );
+  // Both ways out, the seal and the publish, count the answers inside their
+  // own transaction before they write, so an empty Edition cannot slip out.
+  const ways = close.split("prisma.$transaction(").slice(1);
+  assert.equal(ways.length, 2, "closeAndPublish no longer has its two ways out; retarget this pin");
+  for (const way of ways) {
+    const counted = way.indexOf("tx.catchupEntry.count(");
+    const written = way.indexOf("tx.catchupEdition.updateMany(");
+    assert.ok(counted > -1 && written > -1, "a way out no longer counts the answers, or no longer writes");
+    assert.ok(counted < written, "a way out writes before it has counted the answers");
+  }
+  assert.match(close, /nobodyAnswered: true as const/, "the refusal no longer carries the marker the surface answers");
+});
+
+test("T3-06: an extension swaps on the deadline the caller saw, never on its own read", () => {
+  const src = decomment(read("src/app/(main)/catchups/actions.ts"));
+  assert.match(
+    src,
+    /export async function extendDeadline\(editionId: string, days: number, seenCloseAt: string\)/,
+    "extendDeadline no longer takes the deadline the caller's page showed"
+  );
+  const fn = balancedBody(src, "export async function extendDeadline");
+  assert.ok(fn, "extendDeadline is gone; this pin is reading nothing");
+  assert.match(fn, /planExtension\(edition, parsedDays\.data, seenCloseAt,/, "the caller's deadline no longer decides the extension");
+  const where = fn.slice(fn.indexOf("catchupEdition.updateMany("), fn.indexOf("data: plan.patch"));
+  assert.match(where, /questionsCloseAt: plan\.deadline/, "the questions window swaps on something other than the page's date");
+  assert.match(where, /answersCloseAt: plan\.deadline/, "the answers window swaps on something other than the page's date");
+  assert.doesNotMatch(where, /edition\.(questions|answers)CloseAt/, "the swap reads the action's own fresh value again, which always matches");
+  assert.match(fn, /closesAt: plan\.closesAt\.toISOString\(\)/, "the new date no longer goes back to the caller");
+});
+
+test("C3-01 and T3-06: the settings surface offers more time, and never shows an extension as a setting", () => {
+  const surface = decomment(read("src/components/catchups/settings/settings-surface.tsx"));
+  // The row opens the offer when the page knows nobody has answered...
+  assert.match(
+    surface,
+    /key: c\.answered \? "close-now" : "nobody-answered"/,
+    "Close and send it out opens the publish confirmation over an Edition nobody has answered"
+  );
+  // ...and a refusal the page did not see coming turns into it, not a toast.
+  const confirm = balancedBody(surface, "async function confirm(");
+  assert.ok(confirm, "confirm is gone; this pin is reading nothing");
+  assert.match(confirm, /if \(nobodyAnswered\(result\)\) \{\s*setDialog\(\{ shape: "confirm", key: "nobody-answered" \}\)/);
+  assert.match(confirm, /key === "nobody-answered"[\s\S]{0,80}extend\(3\)/, "the offer no longer gives three days");
+  // The extension sends the page's deadline and says the date it got back.
+  const extend = balancedBody(surface, "async function extend(");
+  assert.ok(extend, "extend is gone; this pin is reading nothing");
+  assert.match(extend, /extendDeadline\(c\.editionId!, days, seen\)/, "the extension no longer sends the deadline the page showed");
+  assert.match(extend, /toast\.success\(/, "the new date is no longer said");
+  // No local "A week more": the line is the deadline, and no extend pill is drawn pressed.
+  assert.doesNotMatch(surface, /setExtended|\bextended\b/, "the extension is held as local state again");
+  const row = balancedBody(surface, "function SettingRow(");
+  assert.match(row, /r\.choose === "reminders" \? at\.reminder : undefined/, "an extend pill can be drawn pressed again");
+  const copy = balancedBody(surface, "export function confirmCopy(");
+  assert.match(copy, /title: "Nobody has answered yet"/);
+});
+
 test("T2a-03: the roster holds MAX_CATCHUP_PEOPLE, counted inside the write that adds to it", () => {
   /* The bound was on one request's list, and the People door sends one id
      per request, so a Keeper could keep adding past a hundred and every bell

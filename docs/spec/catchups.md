@@ -190,7 +190,9 @@ nothing twice.
   revives it; only Start does.
 - **Collecting closes with questions**: answering opens, and the people taking part are told (§11).
 - **Answering closes with no answers at all**: extended 3 days, once (`REMINDER_EXTENDED`), and the
-  non-answerers taking part are told again. After that it publishes whatever is there.
+  non-answerers taking part are told again. After that it publishes whatever is there. This is the
+  clock's rule, at the deadline, and only the clock's: "Close and send it out" pressed with no
+  answers in the Edition is refused and offered three more days instead (§8; bug audit 3, C3-01).
 - **Answering closes with answers**: published, everyone told, and the Catch-up is idle. A time
   capsule goes `sealed` instead, with `sealedAt` and `publishAt` written together, everyone told the
   day it opens (`catchup_sealed`); the Catch-up is idle beside it and may start its next Edition. The
@@ -261,8 +263,8 @@ Catch-up has ended; "idle" means refused while nothing is running (§3.5).
 | `submitPrompt` (ask) | any member, while collecting | same | verified, ended, idle, 300 chars, 40 per Edition |
 | `curatePrompt` (remove, reorder) | Keeper, while collecting | **any member**, while collecting | verified, ended |
 | `openAnswering` | Keeper; refuses an Edition with no questions | **any member**; same | verified, ended, idle |
-| `extendDeadline` | Keeper, collecting or answering | **any member**; same | verified, ended, idle |
-| `closeAndPublish` | Keeper, while answering (zero answers extends instead) | **any member**; same | verified, ended |
+| `extendDeadline` | Keeper, collecting or answering; refused if the deadline its page showed has moved | **any member**; same | verified, ended, idle |
+| `closeAndPublish` | Keeper, while answering; refused, writing nothing, while nobody has answered | **any member**; same | verified, ended |
 | `setEditionTimeCapsule` | Keeper, while collecting | any member, while collecting | verified, ended; nothing calls it yet |
 | `submitEntry` (answer) | any member, while answering | same | verified, ended |
 | `toggleEntryLove`, comments | any member, published only | same | verified; comments rate-limited |
@@ -456,7 +458,20 @@ which rows exist.
 
 Three dialog shapes only: a confirmation, a chooser that unfolds in the row, an editor. The words
 "Cannot be undone" in cinnamon mark a one-way row (Open answering, Close and send it out, End,
-Leave). Reminders: Daily, On the last day, Never, and Never is what a member who never chose has. Start's confirmation is drawn by this file too
+Leave).
+
+**Give everyone longer** unfolds three pills, and they are acts, never a setting: none is drawn
+pressed, and the row's line is the deadline it moves ("Questions close" while collecting, "Answers
+close" while answering), read from the page. The press sends that date back, `extendDeadline` swaps
+on it, so two taps from one page add one extension and the second is told the deadline moved; a
+toast says the new date. Until 2026-10-29 a picked pill stayed pressed, a second tap added the
+extension again, and the line said "A week more" from local state (bug audit 3, T3-06).
+
+**Close and send it out** with nobody's answers in the Edition has nothing to send: the press opens
+"Nobody has answered yet" with "Give everyone 3 more days" (the same three days, from the deadline),
+and the server refuses a press from a page that did not know, which turns into the same dialog. It
+used to move the deadline to three days from now, often earlier, ring everyone again, and say
+nothing, so a second press published an empty Edition (his Q15, 2026-10-29; C3-01). Reminders: Daily, On the last day, Never, and Never is what a member who never chose has. Start's confirmation is drawn by this file too
 (`confirmCopy("start")`), but opened from the home; Rhythm, Hold and Start left the panel on
 2026-10-17.
 
