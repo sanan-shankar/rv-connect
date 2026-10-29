@@ -78,229 +78,259 @@ the rest of the phase runs.
 
 ## Owner questions
 
-Asked 2026-10-29, at the start of the fix campaign. Q1 to Q19 are the audit's own (report §3.1),
-restated in plain words; the numbering is kept so the board's "Blocked on" column still reads. Q20 to
-Q29 are new: eight decisions that were sitting inside the findings themselves (fifteen raw ones,
-merged into eight), and two about how the campaign itself runs. Every question carries the answer the
-campaign takes if the owner replies "go with your defaults".
+Asked 2026-10-29, at the start of the fix campaign, and rewritten the same evening in the shape the
+owner asked for: what happens now, what the problem is, then the change. Q1 to Q19 are the audit's own
+(report §3.1); the numbering is kept so the board's "Blocked on" column still reads. Q20 to Q27 are
+decisions that were sitting inside the findings themselves (fifteen raw ones, merged into eight);
+Q28 and Q29 are about how the campaign runs. Every question ends with the default the campaign takes
+if the owner replies "go with your defaults".
 
 **1. Reports a member filed, after that member leaves**
-- **What I'd change:** when a member who reported someone deletes their account, or is merged into another account, keep their reports, shown as "filed by a member who has since left".
-- **What you'd notice:** on the admin Reports page, old reports stay put instead of vanishing when the person who filed them leaves.
-- **If I guess wrong:** reports you would rather lose stay in your list until you settle them.
-- **Options:** (a) keep them, reporter shown as departed; (b) delete them with the member, as today, and change the privacy page to say so.
-- **If you don't reply I'll do:** (a). The privacy page already promises it. (rows: T7a-01)
+- **What happens now:** if a member reports someone and later deletes their account (or you delete it, or merge it into another), every report they filed is deleted with them. A merge also deletes the reports filed *against* the duplicate account.
+- **The problem:** a report can vanish from your queue before you've read it, and a harasser's "reported N times" count shrinks. The privacy page promises the opposite: reports that were part of moderation outlive deletion.
+- **What I'd change:** keep the reports, shown as "filed by a member who has since left"; a merge moves them onto the surviving account.
+- **What you'd notice:** old reports stay on the admin Reports page.
+- **If I guess wrong:** reports you'd rather lose stay in your list until you settle them.
+- **Options:** (a) keep them; (b) keep deleting them, and change the privacy page to say so. **Default: (a).** (rows: T7a-01)
 
-**2. Ending a Catch-up while people are still answering**
-- **What I'd change:** when a Keeper ends a Catch-up partway through a round, send out the answers already written as one last Edition before it closes.
-- **What you'd notice:** ending a Catch-up mid-round sends a final Edition with whatever is in.
+**2. Ending a Catch-up mid-round**
+- **What happens now:** a Keeper can end a people Catch-up at any moment, including while a round is collecting questions or taking answers. The round is left frozen where it was.
+- **The problem:** that week's answers can never be read by anyone. The round is never sent out, its page says "not yet published" for ever, and only each writer can still find their own words in their data download. The End button's warning doesn't mention this. (Batch Catch-ups can't be ended, so only people Catch-ups are affected.)
+- **What I'd change:** ending mid-round first sends out whatever has been written as a final Edition, then ends.
+- **What you'd notice:** ending a Catch-up mid-round sends one last Edition.
 - **If I guess wrong:** a Keeper who meant "cancel" sends out a half-finished Edition.
-- **Options:** (a) send out what's there, then end; (b) don't allow ending until the round is over; (c) allow it, but warn plainly that the answers will be lost.
-- **If you don't reply I'll do:** (a). Today those answers are stranded where nobody can ever read them. (rows: T2a-07)
+- **Options:** (a) send out what's there, then end; (b) don't allow ending until the round is over; (c) allow it, but warn plainly that the week's answers will be lost. **Default: (a).** (rows: T2a-07)
 
-**3. Changing your sign-in email and password yourself**
-- **What I'd change:** add "Change sign-in email" (a link goes to the new address) and "Change password" (asks for the current one) to a member's own profile page, beside "Delete my account". Whatever you pick, I'll also add a button on a person's admin page so you can correct their sign-in email for them.
-- **What you'd notice:** two new rows on your own profile page. A member who mistyped their email at signup can fix it.
-- **If I guess wrong:** two controls on the profile you didn't want.
-- **Options:** (a) build both; (b) only the email change; (c) neither, you fix emails from the admin page.
-- **If you don't reply I'll do:** (a). Today a mistyped email that doesn't bounce can never be corrected. (rows: T5-01, T6-06)
+**3. Changing your sign-in email and password**
+- **What happens now:** a member can't change their sign-in email from inside the site, and can only change their password through "Forgot password" on the sign-in page. The email row in their contact details looks as if it changes the sign-in email, but it only changes the address other members see, and says "Saved". The one exception: if a confirmation email bounces, the member is offered "Use another email".
+- **The problem:** someone who mistypes their email at signup, where the typo doesn't bounce (it reaches a stranger's real inbox, or is silently dropped), can never confirm their account. Resending goes to the same wrong address, your admin "Retry" goes there too, and the site's advice ("check the email address on your profile") points at the row that doesn't change it. Their only ways out are writing to you, or you deleting the account so they can sign up again.
+- **What I'd change:** add "Change sign-in email" (a link goes to the new address) and "Change password" (asks for the current one) to a member's own profile page, beside "Delete my account". Whatever you pick, you also get a button on a person's admin page to correct their sign-in email for them, and the misleading advice is fixed.
+- **What you'd notice:** two new rows on your profile page.
+- **If I guess wrong:** two controls you didn't want.
+- **Options:** (a) both; (b) email only; (c) neither: you fix emails from the admin page. **Default: (a).** (rows: T5-01, T6-06)
 
-**4. Telling a blocked member they are blocked**
-- **What I'd change:** a blocked member who tries to sign in sees "This account is paused. Write to us." with the contact address, instead of "wrong password".
+**4. A blocked member trying to sign in**
+- **What happens now:** a blocked member who tries to sign in is told their email or password is wrong. If they press "Forgot password", the site says a reset link is on its way, but none is ever sent.
+- **The problem:** they go round in a loop (wrong password, reset, no email, try again) with nothing telling them to contact a person, so it looks like the site is broken.
+- **What I'd change:** tell them plainly at sign-in: "This account is paused. Write to us at" the contact address.
 - **What you'd notice:** nothing, unless you block someone.
 - **If I guess wrong:** a blocked member learns they were blocked.
-- **Options:** (a) say it plainly; (b) keep "wrong password", but stop the reset page promising an email that never comes.
-- **If you don't reply I'll do:** (a). (rows: T5-14)
+- **Options:** (a) say it plainly; (b) keep "wrong password", but stop the reset page promising an email that never comes. **Default: (a).** (rows: T5-14)
 
-**5. The "Flagged" label in the admin People list**
-- **What I'd change:** remove it, and show "reported N times" on a person's admin page instead.
-- **What you'd notice:** the Flagged filter and label leave the admin People list. Nothing in the site could ever set them.
+**5. The "Flagged" label in the admin**
+- **What happens now:** the admin People list has a "Flagged" filter, a "Flagged" label, a count in the side rail and a work queue for flagged members. Nothing anywhere in the site can mark a member as flagged.
+- **The problem:** the queue is always empty and the filter finds nobody, so it looks like a safety tool that's working when it's actually switched off.
+- **What I'd change:** remove it, and show "reported N times" on a person's admin page instead, which is a real number.
+- **What you'd notice:** the Flagged filter and label leave admin People.
 - **If I guess wrong:** you lose a label you meant to build later.
-- **Options:** (a) remove it; (b) build it: a button that flags a member.
-- **If you don't reply I'll do:** (a). (rows: T7a-08)
+- **Options:** (a) remove it; (b) build it: a button that flags a member. **Default: (a).** (rows: T7a-08)
 
-**6. Blocked members, and members leaving the site, inside Catch-ups**
-- **What I'd change:** take them out of Catch-up member lists, counts and reminders, the way the feed already leaves them out.
-- **What you'd notice:** their names stop showing among a Catch-up's people; a Catch-up's count drops by one when you block someone.
+**6. Blocked and leaving members inside Catch-ups**
+- **What happens now:** when you block a member, or a member asks to delete their account, the feed and the directory hide them at once, but Catch-ups don't. They stay listed among a Catch-up's people, count toward the batch's numbers, keep getting daily reminders, and their answers, hearts and votes stay visible in Editions, while their comments on the same page are hidden.
+- **The problem:** Catch-ups disagree with the rest of the site about who's still here, and the same Edition half-hides a blocked person.
+- **What I'd change:** take blocked and leaving members out of Catch-up member lists, counts and reminders.
+- **What you'd notice:** their names stop appearing among a Catch-up's people; a Catch-up's count drops by one when you block someone.
 - **If I guess wrong:** with (a), answers people remember reading disappear from old Editions.
-- **Options:** (a) hide them everywhere in Catch-ups, old Editions included; (b) hide them from lists, counts and reminders, and leave Editions already sent exactly as they were read.
-- **If you don't reply I'll do:** (b). (rows: T2a-13, T2b-05)
+- **Options:** (a) hide them everywhere in Catch-ups, old Editions included; (b) hide them from lists, counts and reminders, and leave Editions already sent exactly as people read them. **Default: (b).** (rows: T2a-13, T2b-05)
 
-**7. A photo ticked into the Collection from a post**
-- **What I'd change:** everywhere else the Collection keeps the full-size original, but a photo added with the "Also add to the Collection" tick only gets the post's smaller copy (1,920 pixels across). I'd make the tick keep the full-size original too.
-- **What you'd notice:** nothing, except that posting with the tick takes a moment longer on big photos.
-- **If I guess wrong:** a bigger change to posting than you wanted for a small tick, and more storage.
-- **Options:** (a) keep the full-size original, like every other way into the Collection; (b) keep the smaller copy, and say so in small print under the tick.
-- **If you don't reply I'll do:** (a), since the Collection keeps originals everywhere else. The audit's own default was (b); I changed it. (rows: V-T4a-A, which rides on T4a-01)
+**7. The "Also add to the Collection" tick on a post**
+- **What happens now:** when you post a photo with the tick on, the Collection gets a copy of the post's photo, which the site has already shrunk to 1,920 pixels across. (Separately, the tick does nothing at all for you right now, because it counts your 1,740 class photos against a member's limit; that is being fixed regardless.)
+- **The problem:** everywhere else the Collection keeps the full-size original, so photos that come in through the tick are permanently smaller than the rest, and the original can't be recovered later.
+- **What I'd change:** make the tick keep the full-size original too.
+- **What you'd notice:** posting with the tick takes a moment longer on big photos.
+- **If I guess wrong:** a bigger change to posting than you wanted, and more storage.
+- **Options:** (a) keep the full-size original; (b) keep the smaller copy, and say so in small print under the tick. **Default: (a).** The audit's own default was (b); I changed it because the Collection keeps originals everywhere else. (rows: V-T4a-A, which rides on T4a-01)
 
 **8. A supporter with a profile photo picks a bird**
-- **What I'd change:** tell them on the bird picker, before they choose, that their photo shows in place of a bird and their bird appears the moment they remove the photo.
+- **What happens now:** after contributing, a supporter picks a bird to wear ("This becomes your avatar everywhere on the site"). If they have a profile photo, the photo always shows instead of the bird. The pick is used up anyway, and picking again takes another contribution.
+- **The problem:** someone who paid and picked a bird never sees it anywhere, and nothing tells them it only appears once they remove their photo. Nobody has hit this yet.
+- **What I'd change:** tell them on the bird picker, before they choose, that their photo shows in place of the bird until they remove it.
 - **What you'd notice:** one sentence on the bird picker, only for members with a photo.
 - **If I guess wrong:** you wanted the paid bird to win over the photo.
-- **Options:** (a) photo wins, and we say so first; (b) a paid pick replaces the photo everywhere.
-- **If you don't reply I'll do:** (a). (rows: T8a-16)
+- **Options:** (a) photo wins, said up front; (b) a paid bird replaces the photo everywhere. **Default: (a).** (rows: T8a-16)
 
 **9. How a Catch-up's closing time is written**
-- **What I'd change:** today "Answers close Sunday" means answering is already shut by 7 am Sunday India time (Saturday evening in America). I'd name the last full day, "Last day to answer: Saturday", with "closes 7 am Sunday, India time" in small print, and make the last reminder match.
-- **What you'd notice:** the deadline line reads differently on every Catch-up and in its reminders.
-- **If I guess wrong:** the new wording reads oddly to you.
-- **Options:** (a) the last full day, with the hour in small print; (b) just the hour ("closes 7 am Sunday, India time"); (c) move the close to the end of the named day instead.
-- **If you don't reply I'll do:** (a). (rows: T7b-15)
+- **What happens now:** a Catch-up says "Answers close Sunday 25 October", but answering actually shuts at 7 am that Sunday, India time, which is Saturday evening in America. The last reminder, sent the day before, always says "Answers close tomorrow", and it stays in the notification list after the round has closed.
+- **The problem:** the day named is a day on which nobody can answer. A member who plans to answer "on Sunday" finds it already shut.
+- **What I'd change:** name the last full day ("Last day to answer: Saturday", with "closes 7 am Sunday, India time" in small print), make the reminder say the same, and clear old reminders once a round closes.
+- **What you'd notice:** new deadline wording on every Catch-up and in its reminders.
+- **If I guess wrong:** the wording reads oddly to you.
+- **Options:** (a) the last full day, with the hour in small print; (b) just the hour ("closes 7 am Sunday, India time"); (c) keep "Sunday" and move the real close to the end of Sunday. **Default: (a).** (rows: T7b-15)
 
-**10. What the analytics tool reads when someone clicks**
-- **What I'd change:** PostHog records the text and link of whatever a member clicks, including other members' names, email addresses and phone numbers. Stop it reading anything that shows a person.
-- **What you'd notice:** click reports in PostHog lose those labels; everything else stays.
+**10. What PostHog records from clicks**
+- **What happens now:** PostHog, the analytics tool, records the text of whatever a member clicks: names on directory cards, post and letter titles. When someone taps a classmate's email or phone link, it records the address or number itself, under the tapper's identity. Signing out doesn't end PostHog's memory of who was using that browser.
+- **The problem:** classmates agreed to show their contact details to members, not to an outside company, and the privacy page says no names, emails or phone numbers are sent. On a shared computer, the next person's browsing is filed under the previous member.
+- **What I'd change:** stop PostHog reading anything that shows a person, and end its identity at sign-out.
+- **What you'd notice:** click reports in PostHog lose those labels.
 - **If I guess wrong:** you lose click detail you use.
-- **Options:** (a) hide anything showing a person; (b) hide all text; (c) leave it.
-- **If you don't reply I'll do:** (a). (rows: T7b-22, T7b-21)
+- **Options:** (a) hide anything showing a person; (b) hide all text; (c) leave it. **Default: (a).** (rows: T7b-22, T7b-21)
 
 **11. Inviting someone to a Catch-up by link**
-- **What I'd change:** bring back "Copy invite link" for Keepers of a people Catch-up. It lost its only button in the September rebuild; links sent before then still work.
+- **What happens now:** every new people Catch-up still gets an invite link, and the join-by-link page still works, but since the September rebuild there is no button anywhere for a Keeper to copy the link.
+- **The problem:** a Keeper can only add people who already have accounts; a friend who hasn't signed up yet can't be brought in.
+- **What I'd change:** bring back "Copy invite link" for Keepers of people Catch-ups.
 - **What you'd notice:** a "Copy invite link" row in a Catch-up's People section, for Keepers only.
 - **If I guess wrong:** you removed it on purpose.
-- **Options:** (a) bring it back; (b) it was on purpose, so switch joining by link off altogether.
-- **If you don't reply I'll do:** (a). (rows: T3-17)
+- **Options:** (a) bring it back; (b) it was on purpose, so switch joining by link off altogether. **Default: (a).** (rows: T3-17)
 
 **12. Your test account Jerry is an admin on the live site**
-- **What I'd change:** keep Jerry's admin role so the automated checks still work, but leave Jerry out of admin notifications and admin lists.
-- **What you'd notice:** Jerry no longer shows among the admins, and members' messages stop ringing Jerry's bell.
+- **What happens now:** Jerry Maguire, the test account, is an admin on the real site. Members' messages to the admins ring Jerry's bell, Jerry is listed among the admins, and every automated screenshot and visual check has only ever seen the site the way an admin sees it.
+- **The problem:** real members' messages land in a test account, and the checks never see what an ordinary member sees.
+- **What I'd change:** keep Jerry's admin role (some checks need it), but leave Jerry out of admin notifications and admin lists.
+- **What you'd notice:** Jerry leaves the admin list, and members' messages stop ringing Jerry.
 - **If I guess wrong:** you wanted Jerry to be a plain member.
-- **Options:** (a) keep admin, hide Jerry from admin notifications and lists; (b) make Jerry a plain member.
-- **If you don't reply I'll do:** (a). (rows: L10-05)
+- **Options:** (a) keep admin, hide Jerry from admin notifications and lists; (b) make Jerry a plain member. **Default: (a).** (rows: L10-05)
 
-**13. When a new signup joins their batch's Catch-up**
-- **What I'd change:** keep adding a new member to their batch's Catch-up when they sign up, but nobody can use its controls (send it out early, give everyone longer, remove a question, open answering) until they have confirmed their email.
+**13. New signups and their batch's Catch-up**
+- **What happens now:** signing up with a batch year puts the new account straight into that batch's Catch-up, before they've confirmed their email. From there they can read the class's member list and every Edition, and once a classmate starts a round, use its controls: send the Edition out early to everyone, give everyone more time (with no limit), open answering, or remove questions. None of those controls checks whether the person confirmed their email. At the audit's count, 54 unconfirmed accounts sat in 20 batch Catch-ups.
+- **The problem:** someone who signed up with a made-up email and a claimed batch year can read a real class's Catch-up and disrupt it.
+- **What I'd change:** nobody can use a Catch-up's controls until they've confirmed their email; that ships whichever option you pick. The question is when a new signup joins their batch's Catch-up at all.
 - **What you'd notice:** nothing, for confirmed members. An unconfirmed one pressing a control is asked to confirm first.
-- **If I guess wrong:** you wanted unconfirmed sign-ups kept out of batch Catch-ups entirely; under (a) they can still read theirs.
-- **Options:** (a) controls wait for a confirmed email; (b) also wait to add them to the batch's Catch-up until they confirm; (c) wait to add them until they are verified (office list or you).
-- **If you don't reply I'll do:** (a). The controls fix ships whichever you pick. (rows: L10-01)
+- **If I guess wrong:** with (a), unconfirmed signups can still read their batch's Catch-up. With (b) or (c), a real new member waits to see their class's Catch-up until their confirmation email arrives, which on a busy signup day can be the next morning.
+- **Options:** (a) join at signup as today, controls wait for a confirmed email; (b) join once they confirm their email; (c) join once they're verified (office list or you). **Default: (a).** (rows: L10-01)
 
-**14. Backups keep forever what a member erased**
-- **What I'd change:** the photo backup never deletes anything, and the database keeps the copy from the 1st of every month forever, so an erased member lives on in both. I'd have the photo backup delete what the live site deleted, 30 days later; keep the monthly database copies for 3 months, not forever; stop backing up photos members started uploading but never added, and delete the 330 of those already in the backup (full-size phone photos, GPS location included); and say on the privacy page that backups hold erased data for up to 3 months.
-- **What you'd notice:** one sentence on the privacy page.
+**14. Backups keep for ever what a member erased**
+- **What happens now:** there are two backups. The photo backup copies every new photo each night and never deletes anything. The database backup keeps daily copies for 30 days, plus the copy from the 1st of every month for ever. The privacy page tells members that when they're erased their data and photos are permanently deleted, and that "backups age out on their own cycle within a few weeks".
+- **The problem:** an erased member stays complete in every monthly database copy for ever, and their photos, avatar and voice answers stay in the photo backup for ever, as does every photo an admin removed. The photo backup also holds 330 full-size phone originals, GPS location included, from uploads members started but never finished. What the privacy page says isn't true.
+- **What I'd change:** the photo backup deletes what the live site deleted, 30 days later; it stops copying unfinished uploads, and the 330 already there are deleted; monthly database copies are kept 3 months instead of for ever; the privacy page says backups keep erased data for up to 3 months.
+- **What you'd notice:** one changed sentence on the privacy page.
 - **If I guess wrong:** a photo deleted by mistake can't be recovered after 30 days, and a database problem older than 3 months can't be rolled back.
-- **Options:** (a) as above; (b) keep backups forever and say so on the privacy page; (c) leave it as it is, unstated.
-- **If you don't reply I'll do:** (a). (rows: L11-02)
+- **Options:** (a) as above; (b) keep backups for ever and say so on the privacy page; (c) leave it as it is. **Default: (a).** (rows: L11-02)
 
 **15. "Close and send it out" before anyone has answered**
-- **What I'd change:** if a Keeper presses it when nobody has answered yet, say "Nobody has answered yet" and offer "Give everyone 3 more days". Today it quietly moves the deadline earlier, and a second press sends an empty Edition to everyone.
-- **What you'd notice:** a different message on that one press; nothing else.
-- **If I guess wrong:** a Keeper who really wanted to send out an empty Edition can't.
-- **Options:** (a) refuse and offer more time; (b) send the empty Edition at once; (c) keep today's behaviour, but say what it did.
-- **If you don't reply I'll do:** (a). (rows: C3-01)
+- **What happens now:** if a Keeper presses it before anyone has answered, the Edition isn't sent. Instead the deadline quietly moves to three days from now (often earlier than the real deadline), everyone gets another "answers are open" notification, and the Keeper sees no message at all. A second press sends an empty Edition to every member, and it stays in everyone's archive.
+- **The problem:** the button does something different from what its own warning says ("Answering stops now and the Edition comes out"), nobody is told, and a puzzled second press publishes an empty Edition. On a batch Catch-up any member can press it.
+- **What I'd change:** on a round with no answers, say "Nobody has answered yet" and offer "Give everyone 3 more days".
+- **What you'd notice:** a different message on that one press.
+- **If I guess wrong:** a Keeper who really wanted an empty Edition out can't send one.
+- **Options:** (a) refuse and offer more time; (b) send the empty Edition at once, as the warning promises; (c) keep today's behaviour, but say what happened. **Default: (a).** (rows: C3-01)
 
 **16. Someone a Keeper removed, using an old invite link**
-- **What I'd change:** someone a Keeper removed from a Catch-up can't rejoin with an old invite link; only a Keeper can add them back. And the link stops being tucked inside every member's copy of the page; only Keepers get it.
+- **What happens now:** when a Keeper removes someone from a Catch-up, the invite link stays the same, and that link is tucked inside every member's copy of the Catch-up's page. A removed member who kept it (from a chat, or from having had the page open) can open it, press Join, and be straight back in with every Edition readable. The Keeper isn't told.
+- **The problem:** a removal doesn't stick, though the help text says removing someone ends their access.
+- **What I'd change:** removing someone changes the link, so old copies stop working, and only Keepers' pages carry it.
 - **What you'd notice:** nothing, unless someone tries it.
-- **If I guess wrong:** a removal meant as temporary needs a Keeper to undo it.
-- **Options:** (a) a removal sticks; (b) links always work, as today.
-- **If you don't reply I'll do:** (a). (rows: L12-09)
+- **If I guess wrong:** a removal meant as temporary needs a Keeper to undo it, and anyone still holding the old link needs the new one.
+- **Options:** (a) removal sticks; (b) links always work, as today. **Default: (a).** (rows: L12-09)
 
 **17. Editing a letter that is already published**
-- **What I'd change:** "Edit" on a published letter opens a small box that, for most letters, is taller than the screen, so Save can't be reached. Every pop-up box in the site will fit the screen and scroll; that ships regardless. The question is whether editing a published letter should open the full letter desk instead, the page drafts are written on.
+- **What happens now:** "Edit" on a published letter opens a small pop-up box with no height limit. A typical letter (most are over 4,000 characters) makes it about three times the height of a laptop screen: the title and the Save button are off the screen, and the box can't be scrolled.
+- **The problem:** a member fixing a typo in their published letter can't reach Save; the only way out is to close the box and lose the edit. This box is the only way to edit a published letter.
+- **What I'd change:** every pop-up box on the site will fit the screen and scroll; that ships regardless. The question is whether editing a published letter should open the full letter desk instead, the page drafts are written on.
 - **What you'd notice:** with (a), editing a letter looks like writing one; with (b), the box scrolls and Save is always reachable.
-- **If I guess wrong:** you preferred the quick box for small corrections, or the reverse.
-- **Options:** (a) open the full desk; (b) keep the box, made to fit and scroll.
-- **If you don't reply I'll do:** (b) now, since it's the smaller change; (a) later if you want it. (rows: T8b-17)
+- **If I guess wrong:** you preferred the other one.
+- **Options:** (a) open the full letter desk; (b) keep the box, made to fit and scroll. **Default: (b) now**, since it's the smaller change; (a) later if you want it. (rows: T8b-17)
 
 **18. The entry question's answers are public**
-- **What I'd change:** move the entry questions and their answers out of the code, which anyone can read on GitHub, into the database, where your admin trivia room can edit them (I'll add the editing if it can't yet), and make the dinner question need a real dish rather than any word containing "egg". The current questions stay in GitHub's history for good, so the gate only truly holds once you write fresh ones there.
-- **What you'd notice:** nothing at signup at first; later, your new questions.
+- **What happens now:** the signup entry questions, and every answer they accept, are written in the site's code, which anyone can read on GitHub now that the repository is public. One question (the Thursday dinner) accepts any reply containing "egg", so "veggies" gets in, and anyone can swap questions without limit until that one comes up.
+- **The problem:** the gate is meant to keep strangers away from the feed, the letters and the map, and the privacy page promises members' details are shown "to no one else". Right now it stops nobody who looks.
+- **What I'd change:** move the questions and answers out of the code into the database, where your admin trivia room can edit them (I'll add the editing if it can't yet), and make the dinner question need a real dish. The current answers stay in GitHub's history for ever, so the gate only truly holds again once you write fresh questions.
+- **What you'd notice:** nothing at first; later, your new questions at signup.
 - **If I guess wrong:** you spend time on a gate you think of as a courtesy.
-- **Options:** (a) move them out, tighten "egg", and you write fresh questions when you can; (b) treat the gate as a speed bump: keep it as it is, and change the privacy page's "to no one else" to say what really keeps strangers out (confirming an email, and the office list); (c) make the repository private again (the old answers are still out there).
-- **If you don't reply I'll do:** (a). (rows: C5-03)
+- **Options:** (a) move them out, tighten "egg", and you write fresh questions when you can; (b) treat the gate as a speed bump: leave it, and change the privacy page to say what really keeps strangers out (confirming an email, and the office list); (c) make the repository private again (the old answers are still out there). **Default: (a).** (rows: C5-03)
 
 **19. Verifying a new member from the office list by name**
-- **What I'd change:** verify someone automatically only when their signup email is on the school's office list. A match on name and batch year alone goes to your verify queue with the office-list entry beside it, and is refused outright if another account has already claimed that person.
+- **What happens now:** when a member's details match the school's office list, the site verifies them automatically, which lets them post and see everyone's contact details. It matches either on email, or on first name, last name and batch year. Nothing checks whether another account was already matched to the same person, nothing records which office-list entry was matched, and you aren't told.
+- **The problem:** a stranger can confirm any throwaway email, copy a real classmate's name and batch year off the directory into their own profile, and be verified as that classmate at once. Two accounts can both be "the" same alumnus. About 66 of today's members were verified by name and year alone.
+- **What I'd change:** verify automatically only when the signup email is on the office list. A name-and-year match goes to your verify queue with the office-list entry beside it, and is refused outright if another account already claimed that person.
 - **What you'd notice:** a few more people in your verify queue: those who signed up with a different email from the one the school has. Members already verified stay verified; I'll list the ones verified by name alone so you can glance over them.
 - **If I guess wrong:** you verify more people by hand.
-- **Options:** (a) email match automatic, name match comes to you; (b) both stay automatic, but a second account claiming the same person is refused; (c) leave it as it is.
-- **If you don't reply I'll do:** (a). Today anyone with any working mailbox who copies a real classmate's name and year off the directory is verified as them; about 66 of today's members were verified by name and year alone. (rows: O-08)
+- **Options:** (a) email match automatic, name match comes to you; (b) both stay automatic, but a second account claiming the same person is refused; (c) leave it. **Default: (a).** (rows: O-08)
 
 **20. What a moderator's removal does to photos, and to Catch-up answers**
-- **What I'd change:** when you hide a post, also delete its photos from storage, so a photo posted without someone's consent really goes; today the words go and the photo stays at its address. And add "Remove answer" for admins on Catch-up answers, doing the same to an answer, its photos and its recording; today only the author can take one down.
+- **What happens now:** when you hide a reported post, its words disappear but its photos stay in storage at their public web addresses, viewable by anyone who has the link; three hidden posts' photos are online today, one hidden since July. And no admin can take down a Catch-up answer at all: only its author can, short of you erasing their whole account.
+- **The problem:** the case that matters most, a photo posted without someone's consent, is exactly the one moderation doesn't handle, and an abusive answer in a published Edition can't be removed.
+- **What I'd change:** hiding a post also deletes its photos from storage. And add "Remove answer" for admins in the Catch-ups reading room, which hides the answer and deletes its photos and recording.
 - **What you'd notice:** a "Remove answer" button in the admin Catch-ups reading room.
-- **If I guess wrong:** a post hidden by mistake can't get its photos back (there is no un-hide button today anyway).
-- **Options:** (a) both; (b) only "Remove answer"; hiding a post keeps its photos, as today; (c) neither.
-- **If you don't reply I'll do:** (a). The three posts already hidden keep their photos unless you add "and delete the three". (rows: C8-02, C8-03)
+- **If I guess wrong:** a post hidden by mistake can't get its photos back (there's no un-hide button today anyway).
+- **Options:** (a) both; (b) only "Remove answer", and hiding a post keeps its photos as today; (c) neither. **Default: (a).** The three posts you've already hidden keep their photos unless you add "and delete the three". (rows: C8-02, C8-03)
 
 **21. When someone leaves, what goes with them**
-- **What I'd change:** one rule for anyone who leaves a Catch-up, is removed from one, moves batch, or is erased: what nobody has read yet goes with them, and what was already sent out stays. So their answers and questions in a round not yet sent out are deleted rather than published after they've gone; an erased member's questions that nobody answered go too (answered ones stay, without their name, and the privacy page says so); and everyone's notifications pointing at an erased member's posts, messages or profile are cleared, instead of leading to "not found" for a month.
+- **What happens now:** (1) If a member leaves a Catch-up, is removed from one, or moves batch while a round is still open, their unsent answers and questions stay in that round and go out to the whole group when it's published, after they've gone, and they can no longer withdraw them. (2) When an account is erased, every question they ever asked in a Catch-up stays word for word, shown as from "an asker who left", including questions nobody ever answered. (3) Notifications in other people's lists that point at an erased member's posts, letters, messages or profile stay for a month, keep a line of their words, and open "not found" pages.
+- **The problem:** a Keeper may remove someone precisely because of what they were writing, and it gets published anyway; and an erasure the privacy page calls complete leaves the member's words behind.
+- **What I'd change:** one rule: what nobody has read yet goes with the person, and what was already sent out stays. Their unsent answers and questions are deleted; an erased member's unanswered questions go (answered ones stay, without their name, and the privacy page says so); notifications pointing at an erased member are cleared.
 - **What you'd notice:** nothing day to day.
 - **If I guess wrong:** a removed member's last answers are missing from that round's Edition.
-- **Options:** (a) this rule; (b) keep today's behaviour, and only fix the privacy page's wording.
-- **If you don't reply I'll do:** (a). (rows: C8-04, C8-08, T7a-04, C8-09)
+- **Options:** (a) this rule; (b) keep today's behaviour, and only fix the privacy page's wording. **Default: (a).** (rows: C8-04, C8-08, T7a-04, C8-09)
 
-**22. A member waiting out the 60 days before their account is deleted**
-- **What I'd change:** their profile disappears the moment they ask, but their posts, letters and comments stay up under a name that leads to "not found". Hide their writing for those 60 days too, the way a blocked member's is hidden; it all comes back if they sign in and cancel.
+**22. A member waiting out the 60 days before deletion**
+- **What happens now:** when a member asks to delete their account, there's a 60-day wait before it's erased, and signing back in cancels it. Their profile disappears at once, but their posts, letters, comments and Catch-up answers stay up under their name; tapping the name opens "not found", and searching for their name still finds their posts.
+- **The problem:** the site keeps naming someone whose profile doesn't exist, which is exactly what you ruled out for blocked members (their writing leaves the feed with them).
+- **What I'd change:** hide a leaving member's writing for those 60 days too, the way a blocked member's is hidden; it all comes back if they cancel.
 - **What you'd notice:** nothing, unless someone asks to leave.
-- **If I guess wrong:** a leaving member's posts vanish two months earlier than you expected.
-- **Options:** (a) hide their writing with them; (b) keep their writing up, but show their name without a link.
-- **If you don't reply I'll do:** (a). It matches what you decided for blocked members. (rows: L10-02)
+- **If I guess wrong:** a leaving member's posts vanish two months before you expected.
+- **Options:** (a) hide their writing with them; (b) keep their writing up, but show their name without a link. **Default: (a).** (rows: L10-02)
 
 **23. Class photos after a member corrects their batch year**
-- **What I'd change:** when a member fixes their batch year, the Class Collection photos they added move with them to their real class.
+- **What happens now:** a Class Collection photo is filed under the class its uploader belonged to when they added it. If they later correct their batch year, the photos stay filed under the old class.
+- **The problem:** the photos keep showing to a class that isn't theirs, with their name on them, and disappear from the member's own Class Collection. The only fix the help describes (delete and re-upload) needs the photo's link, which they can no longer find. Nobody is affected today.
+- **What I'd change:** when a member corrects their batch year, the Class Collection photos they added move with them.
 - **What you'd notice:** nothing, unless someone corrects their year after adding class photos.
 - **If I guess wrong:** if those photos really were of the class they first claimed, that class loses them.
-- **Options:** (a) move them; (b) leave them, but let the member still find their own photos there to delete them.
-- **If you don't reply I'll do:** (a). (rows: C8-05)
+- **Options:** (a) move them; (b) leave them, but let the member still find their own photos there to delete them. **Default: (a).** (rows: C8-05)
 
 **24. What "Download your data" includes**
-- **What I'd change:** add everything the site keeps about a member that the file leaves out today: hearts on photos and Catch-up answers, bookmarks, poll votes, profession tags, notifications, and the record of their visits, searches and pages opened.
-- **What you'd notice:** the downloaded file is longer.
+- **What happens now:** "Download your data" gives a member their profile and most of what they wrote and uploaded. It leaves out their hearts on photos and Catch-up answers, bookmarks, poll votes, the profession tag the directory files them under, their notifications, and everything the site records about their visits, searches and pages opened. Their comments also can't be matched to the posts they were left on.
+- **The problem:** the privacy page promises "a copy of your data, as one file", and this isn't complete.
+- **What I'd change:** add everything it leaves out, and make comments point at their posts.
+- **What you'd notice:** a longer file.
 - **If I guess wrong:** members see how much the site records about their visits.
-- **Options:** (a) everything; (b) everything they made or chose, but leave out the visit, search and page records, and say so on the privacy page.
-- **If you don't reply I'll do:** (a). The privacy page promises "a copy of your data". (rows: T6-03)
+- **Options:** (a) everything; (b) everything they made or chose, but leave out the visit, search and page records, and say so on the privacy page. **Default: (a).** (rows: T6-03)
 
-**25. Links to the privacy policy on the front page**
-- **What I'd change:** the public front page links to no policy at all. Add Privacy, Terms and Guidelines somewhere quiet.
+**25. Policy links on the front page**
+- **What happens now:** the public front page is the photo, the title and the two buttons, with no link to the privacy policy, terms or guidelines. The only place a stranger can find them before joining is the consent line on the signup form.
+- **The problem:** someone who wants to read the privacy policy before signing up has to start signing up, or already know the address.
+- **What I'd change:** add Privacy, Terms and Guidelines somewhere quiet.
 - **What you'd notice:** a small line of links on the front page.
 - **If I guess wrong:** text on your front page you didn't want.
-- **Options:** (a) a quiet line under the two buttons; (b) a thin strip at the very bottom; (c) leave the front page alone; the signup page already links all three.
-- **If you don't reply I'll do:** build (a) and (b) where you can see them, show you both at the end, and leave the live front page untouched until you pick. (rows: T8b-09)
+- **Options:** (a) a quiet line under the two buttons; (b) a thin strip at the very bottom; (c) leave the front page alone. **Default:** I build (a) and (b) where you can see them, show you both at the end, and leave the live front page untouched until you pick. (rows: T8b-09)
 
-**26. Deleted photos stay viewable through the site's image address for up to a year**
-- **What I'd change:** when a photo is deleted (a post removed, an account erased, an avatar replaced), also tell Vercel to throw away its resized copies. That needs a Vercel access key saved in the site's settings, which only you can create; I'll write the steps.
-- **What you'd notice:** nothing. Until the key is added, the site behaves as it does today.
+**26. Deleted photos stay viewable for up to a year**
+- **What happens now:** when the site shows a photo, Vercel makes resized copies of it and keeps them for up to a year (Vercel's documented behaviour; not yet tested on the live site). When the photo is deleted (a post removed, an avatar replaced, an account erased), the original goes at once, but the resized copies keep working at the site's own image address.
+- **The problem:** anyone who had the link can still see a deleted photo for up to a year, including photos removed for privacy or erased with an account.
+- **What I'd change:** when a photo is deleted, also tell Vercel to throw away its copies. That needs a Vercel access key saved in the site's settings, which only you can create; I'll write the steps.
+- **What you'd notice:** nothing. Until you add the key, nothing changes.
 - **If I guess wrong:** nothing breaks.
-- **Options:** (a) you add a key and the site uses it; (b) instead have Vercel keep its copies for a few hours rather than a year, which spends more of the free plan's 5,000 monthly image allowance, already the tightest; (c) leave it.
-- **If you don't reply I'll do:** (a): the code now, the steps for the key in my closing report. (rows: C8-01)
+- **Options:** (a) you add a key and the site uses it; (b) instead, Vercel keeps its copies for a few hours rather than a year, which uses up more of the free plan's 5,000-a-month image allowance, already the tightest; (c) leave it. **Default: (a):** the code now, the key steps in my closing report. (rows: C8-01)
 
 **27. How often an open tab tells the server "still here"**
-- **What I'd change:** every open tab pings the server once a minute so your analytics knows who is on the site, and those pings are a steady share of the free plan's 4 hours of server time a month. Make it every 2 minutes.
+- **What happens now:** every open tab of the site pings the server once a minute (only while the tab is visible and the member active), so your analytics can show who's on the site now and how long visits last. Each ping uses a little server time.
+- **The problem:** on Vercel's free plan the site gets 4 hours of server time a month, and going over can pause the site for up to 30 days. It uses about 2 hours a month at today's quiet activity, so a busy month, or about twice today's members, crosses the line. The pings are one of the steady costs that is cheap to cut.
+- **What I'd change:** ping every 2 minutes instead of every minute.
 - **What you'd notice:** "On the site now" in your analytics takes up to 2 minutes longer to notice that someone has left.
 - **If I guess wrong:** your live view feels slower.
-- **Options:** (a) every 2 minutes; (b) every 3 minutes; (c) keep every minute.
-- **If you don't reply I'll do:** (a). (rows: L5-01)
+- **Options:** (a) every 2 minutes; (b) every 3 minutes; (c) keep every minute. **Default: (a).** (rows: L5-01)
 
 **28. Small changes to the live database**
-- **What I'd change:** several fixes need small database changes: a few new fields, speed-ups for some slow lookups, one rule so a report can outlive its reporter, re-pointing 22 old notifications at the page that replaced theirs, and deleting one blank answer left over from August that nobody can see. Each is written down in a dated file first, as usual, and applied to the live site and the demo.
+- **What happens now:** the live database is shared by the real site and by the work on your laptop, so any change to it is live the moment it's made.
+- **The problem:** several fixes can't land without small changes there: a few new fields, speed-ups for some slow lookups, one rule so a report can outlive its reporter, re-pointing 22 old notifications at the page that replaced theirs, and deleting one blank answer from August that nobody can see.
+- **What I'd change:** apply them as the fixes need them, each written to a dated file first as usual, applied to the live site and the demo, adding only.
 - **What you'd notice:** nothing.
 - **If I guess wrong:** a change could slow or break a page until put right. Each is tested first, and none removes a table or column.
-- **Options:** (a) apply them as the fixes need them, adding only; (b) collect them all and wait for your go at the end (the fixes that need them wait too).
-- **If you don't reply I'll do:** (a). Anything that would remove a table or column, or delete what a member wrote, waits for you regardless. (rows: T7a-01, T7b-03, T2b-12, O-08, C6-02, C8-03, and the index rows in phases B and L)
+- **Options:** (a) apply them as the fixes need them; (b) hold them all for your go at the end, and the fixes that need them wait too. **Default: (a).** Removing a table or column, or deleting anything a member wrote, always waits for you. (rows: T7a-01, T7b-03, T2b-12, O-08, C6-02, C8-03, and the index rows in phases B and L)
 
 **29. Putting the fixes live**
-- **What I'd change:** nothing reaches rishivalley.space until it is pushed, and a push is a deploy. Phases A and B close two live holes: a stranger can be verified as a real classmate, and login cookies reach Sentry.
-- **What you'd notice:** with (a) or (b), fixes appear on the site during the campaign instead of all at once when you push.
-- **If I guess wrong:** a fix that passed every check misbehaves live while you are away. Each push also trips up anyone with the site open at that moment until they reload (a fix in this campaign softens that).
-- **Options:** (a) push after each phase passes every check; (b) push phases A and B as soon as they pass, hold the rest for you; (c) hold everything for you to push.
-- **If you don't reply I'll do:** (c).
+- **What happens now:** nothing fixed reaches rishivalley.space until it is pushed, and a push is a deploy. Unless you say otherwise, every fix is committed on your laptop and nothing is pushed.
+- **The problem:** phases A and B close two holes that are open on the live site today (a stranger can get verified as a real classmate, and members' login cookies are sent to Sentry with server errors), and they stay open until you push.
+- **What I'd change:** nothing, unless you say so.
+- **What you'd notice:** with (a) or (b), fixes go live during the campaign instead of all at once when you push.
+- **If I guess wrong:** a fix that passed every check misbehaves live while you're away, and each push briefly breaks saving for anyone with the site open until they reload (a fix in this campaign softens that).
+- **Options:** (a) push after each phase passes every check; (b) push phases A and B as soon as they pass, and hold the rest for you; (c) hold everything for you to push. **Default: (c).**
 
 ### Things only the owner can do (no answer needed; they block nothing)
 
-- **A. Sentry → Settings → Security & Privacy:** check that "Data Scrubber" and "Use Default Scrubbers" are on, and search stored issues for `authjs`. If a login cookie was stored, changing the site's sign-in secret signs everyone out; that is your call. (T8b-14)
-- **B. Vercel → Usage, once a week:** Active CPU and Image Transformations, the free plan's tight lines. Vercel emails at 75%. (L5-01, L5-11, C5-01)
+- **A. Sentry → Settings → Security & Privacy:** check that "Data Scrubber" and "Use Default Scrubbers" are on, and search stored issues for `authjs`. Why: members' login cookies have been reaching Sentry with server errors (the code fix ships in phase B); if one was stored, changing the site's sign-in secret signs everyone out, which is your call. (T8b-14)
+- **B. Vercel → Usage, once a week:** Active CPU and Image Transformations. Why: they are the free plan's tight lines, and the dashboard is now the only meter. Vercel emails at 75%. (L5-01, L5-11, C5-01)
 - **C. Vercel's free plan is for non-commercial use,** and the site takes contributions on /support. Your call whether that matters.
-- **D. Vercel → Firewall:** add the one rate-limit rule the free plan allows, on production and on the demo. The closing report will spell out the exact rule. (L8-04, L5-02, C5-01)
-- **E. Supabase → Organization → Usage → Egress:** this month's reading. Optional: a Supabase access key in GitHub's secrets would let the nightly job read it itself. (L5-07)
-- **F. Sentry → Spike Protection:** on. (T5-10, T8b-18)
-- **G. Cloudflare → R2:** a lifecycle rule that deletes `staging/` after a day; and check the site's R2 keys reach only the live bucket, not the backup. (T4a-03)
-- **H. Resend → Webhooks:** also send `email.failed` and `email.suppressed`. (L11-05)
-- **I. The demo:** confirm `.env.demo` holds no R2 keys; consider pausing the demo's Vercel project, which has not built since 7 August but still runs two jobs a day on the same allowances. (T4a-06, L8-04)
-- **J. Move `sanan's stuff/` out of the project folder:** it holds a plain-text recovery-codes file every session working here can read.
-- **K. Supabase → Database → Pooler:** the pool size, which the audit could not read. (L5)
-- **L. Optional:** a contact address that is not your own sign-in email, for the policy pages. (C5-02)
+- **D. Vercel → Firewall:** add the one rate-limit rule the free plan allows, on production and on the demo. Why: today a script hitting the site ten times a second spends a month of the free plan's requests in about a day. The closing report will spell out the exact rule. (L8-04, L5-02, C5-01)
+- **E. Supabase → Organization → Usage → Egress:** this month's reading. Why: Supabase's 5 GB of monthly data is the first limit growth hits, and nothing in the site watches it. Optional: a Supabase access key in GitHub's secrets would let the nightly job read it itself. (L5-07)
+- **F. Sentry → Spike Protection:** on. Why: a flood of one error can spend the month's 5,000 Sentry events, after which real errors are dropped. (T5-10, T8b-18)
+- **G. Cloudflare → R2:** a lifecycle rule that deletes `staging/` after a day. Why: photos members start uploading and then abandon stay public for ever, GPS included. Also check the site's R2 keys reach only the live bucket, not the backup. (T4a-03)
+- **H. Resend → Webhooks:** also send `email.failed` and `email.suppressed`. Why: without them a confirmation email that fails still shows "We sent a link" for ever. (L11-05)
+- **I. The demo:** confirm `.env.demo` holds no R2 keys (if it does, a demo tool could delete real photos); consider pausing the demo's Vercel project, which hasn't built since 7 August but still runs two jobs a day on the same free allowances. (T4a-06, L8-04)
+- **J. Move `sanan's stuff/` out of the project folder:** it holds a plain-text recovery-codes file that every session working here can read.
+- **K. Supabase → Database → Pooler:** the pool size, which the audit couldn't read. (L5)
+- **L. Optional:** a contact address that isn't your own sign-in email, for the policy pages. Why: the pages print your login address, which makes it the easiest address to flood with reset emails. (C5-02)
 
 ## Owner answers
 
