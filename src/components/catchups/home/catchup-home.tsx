@@ -319,6 +319,7 @@ export function CatchupHome({ data }: { data: CatchupHomeData }) {
            roster verbs stay refused server-side there regardless of who is
            asking; this decides what is OFFERED, never what is allowed. */
         canManage={data.viewer.isKeeper && !data.isBatch}
+        inviteToken={data.inviteToken}
         open={people}
         onClose={() => setPeople(false)}
         onChanged={refresh}

@@ -382,7 +382,8 @@ pick. Making it starts its first Edition.
 
 - **The head** is the picture with the name on it, and two doors on the picture: **People** (a dialog
   on a laptop, a sheet on a phone; every row a link to that person; add, remove and make-a-Keeper on
-  a person's row, for Keepers of a people Catch-up) and **Settings** (§8).
+  a person's row, for Keepers of a people Catch-up, and at its foot **Add someone** with **Copy invite
+  link** beside it while the Catch-up has not ended; §7.6) and **Settings** (§8).
 - **The Edition region** draws one thing per state. Collecting: the ask box (the question, a library
   button, and an eye in the box's corner that makes it anonymous), then the questions so far.
   Answering: the answering surface itself, on the page (§7.5). **Idle** (§3.5): Start, the page's
@@ -442,8 +443,15 @@ Signed in and not a member: an invitation with Join. Already a member: straight 
 same invitation with sign in and sign up, both carrying `?next=` back to the link. A stranger sees the
 name, who keeps it and how many are in it; nothing anyone wrote.
 
+**Where a Keeper gets it**: Copy invite link in the People door, beside Add someone. It copies the
+join address for the host the Keeper is on and toasts "Link copied. Anyone with it can join."; where
+the clipboard is refused, the address appears in a field to copy by hand. Build phase 7 had dropped
+it with `people-panel.tsx`, so from 2026-09-09 to 2026-10-29 no screen showed the link that every
+people Catch-up was still minted with (his Q11; bug audit 3, T3-17).
+
 The token is a bearer token, so only a Keeper's page carries it, and not once the Catch-up has ended
-(the home's view model; until 2026-10-29 every member's page did). A removal mints a new one (§5).
+(the home's view model; until 2026-10-29 every member's page did). A removal mints a new one (§5),
+and the removal's toast says so.
 
 ### 7.7 Holding screens
 

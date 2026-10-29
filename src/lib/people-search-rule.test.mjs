@@ -93,6 +93,34 @@ test("the People door never offers somebody already in, and says what adding did
   assert.match(panel, /new Set\(people\.map\(\(p\) => p\.id\)\)/, "the roster handed down is not the people in the panel");
 });
 
+test("a Keeper can copy the invite link from the People door, and only a Keeper's page has one (T3-17)", () => {
+  /* Build phase 7 moved the roster's three verbs onto the People door and
+     dropped the fourth thing the old panel held, the invite link, so a
+     Keeper could add only people who already had accounts while the join
+     page still honoured links nobody could copy. His Q11: bring it back. */
+  const readers = walk(resolve(ROOT, "src/components/catchups"), { skip: [] })
+    .map((f) => relative(ROOT, f))
+    .filter((f) => f.endsWith(".tsx") && /\binviteToken\b/.test(decomment(read(f))));
+  assert.ok(
+    readers.includes("src/components/catchups/home/people-door.tsx"),
+    "no component draws the invite link; a Keeper can add only people who already have accounts"
+  );
+  const door = decomment(read("src/components/catchups/home/people-door.tsx"));
+  const invite = balancedBody(door, "function InviteLink(");
+  assert.ok(invite, "InviteLink is gone; this pin is reading nothing");
+  assert.match(invite, /`\$\{window\.location\.origin\}\/catchups\/join\/\$\{token\}`/, "the copied link is not the join page's");
+  assert.match(invite, /navigator\.clipboard\.writeText\(url\)/, "the link is no longer copied");
+  assert.match(invite, /setByHand\(url\)/, "a refused clipboard leaves the Keeper with no way to copy it by hand");
+  // Beside the Keeper's own verbs, and only when the home sent a token.
+  const panel = balancedBody(door, "export function PeoplePanel(");
+  assert.match(
+    panel,
+    /canManage && \(\s*<AddSomeone[\s\S]*?beside=\{inviteToken \? <InviteLink token=\{inviteToken\} \/> : null\}/,
+    "the invite link is drawn outside the Keeper's verbs, or without a token"
+  );
+  assert.match(decomment(read("src/components/catchups/home/catchup-home.tsx")), /inviteToken=\{data\.inviteToken\}/, "the home no longer hands the door its token");
+});
+
 test("every people-search caller either asks for Catch-up people or says why not", () => {
   const callers = execSync(
     `git grep -l 'api/users/search\\|useUserSearch(' -- 'src/**/*.ts' 'src/**/*.tsx' || true`,

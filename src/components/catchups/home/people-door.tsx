@@ -38,11 +38,16 @@
  *  membership is the batch, so `addCatchupMembers`, `removeCatchupMember`
  *  and `setCatchupKeeper` all refuse it server-side before they ask who
  *  the Keeper is; offering them would only be a way to be told no.
+ *
+ *  THE FOURTH THING THE OLD PANEL HELD came back on 2026-10-29: the invite
+ *  link (bug audit 3, T3-17, his Q11). The transplant had dropped it, so a
+ *  Keeper could add only people who already had accounts while every people
+ *  Catch-up still minted a link and the join page still honoured one.
  * ------------------------------------------------------------------ */
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "@/components/common/link";
-import { Plus, Sprout, UserMinus, X } from "lucide-react";
+import { Check, Link2, Plus, Sprout, UserMinus, X } from "lucide-react";
 import { toast } from "sonner";
 import { BirdAvatar } from "@/components/common/bird-avatar";
 import { useUserSearch } from "@/components/common/use-user-search";
@@ -63,6 +68,7 @@ function PersonRow({
   p,
   catchupId,
   canManage,
+  hasLink,
   isYou,
   busy,
   onBusy,
@@ -71,6 +77,8 @@ function PersonRow({
   p: HomePersonRef;
   catchupId: string;
   canManage: boolean;
+  /** The Catch-up has an invite link, which a removal changes (L12-09). */
+  hasLink: boolean;
   isYou: boolean;
   busy: boolean;
   onBusy: (v: boolean) => void;
@@ -129,7 +137,13 @@ function PersonRow({
             destructive
             disabled={busy}
             onClick={() =>
-              run(() => removeCatchupMember(catchupId, p.id), `${p.name} was removed.`)
+              /* The removal changed the link, so any copy the Keeper sent
+                 before now opens on "expired". Said once, here, where the
+                 Keeper can still act on it. */
+              run(
+                () => removeCatchupMember(catchupId, p.id),
+                hasLink ? `${p.name} was removed. The invite link has changed.` : `${p.name} was removed.`
+              )
             }
           >
             <UserMinus className="h-3.5 w-3.5" />
@@ -193,10 +207,13 @@ function AddSomeone({
   catchupId,
   inIds,
   onChanged,
+  beside,
 }: {
   catchupId: string;
   inIds: ReadonlySet<string>;
   onChanged: () => void;
+  /** The door's other way in, on the same line while nobody is searching. */
+  beside?: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -224,10 +241,13 @@ function AddSomeone({
 
   if (!open) {
     return (
-      <Button variant="outline" size="sm" className="mt-3" onClick={() => setOpen(true)}>
-        <Plus className="h-3.5 w-3.5" />
-        Add someone
-      </Button>
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <Button variant="outline" size="sm" onClick={() => setOpen(true)}>
+          <Plus className="h-3.5 w-3.5" />
+          Add someone
+        </Button>
+        {beside}
+      </div>
     );
   }
 
@@ -287,11 +307,64 @@ function AddSomeone({
   );
 }
 
+/* ── inviting somebody not on the site yet ──────────────────────────── *
+ *  A pill beside "Add someone", the door's one shape for a Keeper's verb,
+ *  rather than the old panel's "Or send a link" section with the address in
+ *  a field: an address is noise until it is pasted somewhere. The home sends
+ *  the token to a Keeper of a Catch-up that has not ended and to nobody else
+ *  (L12-09), and a batch Catch-up has none, so having one is the whole test.
+ *
+ *  The origin is read at the press, so the copied link is the host the
+ *  Keeper is on. The clipboard is refused in some in-app browsers; then the
+ *  address appears in a field to copy by hand, the job the old field did. */
+function InviteLink({ token }: { token: string }) {
+  const [copied, setCopied] = useState(false);
+  const [byHand, setByHand] = useState<string | null>(null);
+  // The same beat the share button holds its tick for.
+  useEffect(() => {
+    if (!copied) return;
+    const t = setTimeout(() => setCopied(false), 1400);
+    return () => clearTimeout(t);
+  }, [copied]);
+
+  async function copy() {
+    const url = `${window.location.origin}/catchups/join/${token}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setByHand(null);
+      toast.success("Link copied. Anyone with it can join.");
+    } catch {
+      setByHand(url);
+      toast.error("Could not copy. Select the link and copy it by hand.");
+    }
+  }
+
+  return (
+    <>
+      <Button variant="outline" size="sm" onClick={copy}>
+        {copied ? <Check className="h-3.5 w-3.5" /> : <Link2 className="h-3.5 w-3.5" />}
+        {copied ? "Copied" : "Copy invite link"}
+      </Button>
+      {byHand && (
+        <Input
+          readOnly
+          value={byHand}
+          onFocus={(e) => e.currentTarget.select()}
+          aria-label="Invite link"
+          className="basis-full text-[13px] text-muted-foreground"
+        />
+      )}
+    </>
+  );
+}
+
 export function PeoplePanel({
   people,
   catchupId,
   viewerId,
   canManage,
+  inviteToken,
   open,
   onClose,
   onChanged,
@@ -303,6 +376,9 @@ export function PeoplePanel({
   /** Keeper of a PEOPLE Catch-up. False on every batch one, where the
    *  membership is the batch and all three verbs are refused server-side. */
   canManage: boolean;
+  /** The invite link's token, on a Keeper's page of a Catch-up that has not
+   *  ended, and null everywhere else (the home's view model, L12-09). */
+  inviteToken: string | null;
   open: boolean;
   onClose: () => void;
   onChanged: () => void;
@@ -322,6 +398,7 @@ export function PeoplePanel({
             p={p}
             catchupId={catchupId}
             canManage={canManage}
+            hasLink={!!inviteToken}
             isYou={p.id === viewerId}
             busy={busy}
             onBusy={setBusy}
@@ -336,7 +413,12 @@ export function PeoplePanel({
     <>
       {list}
       {canManage && (
-        <AddSomeone catchupId={catchupId} inIds={inIds} onChanged={onChanged} />
+        <AddSomeone
+          catchupId={catchupId}
+          inIds={inIds}
+          onChanged={onChanged}
+          beside={inviteToken ? <InviteLink token={inviteToken} /> : null}
+        />
       )}
     </>
   );
