@@ -1,6 +1,6 @@
 ---
 name: writing-for-agents
-description: Use when writing anything that another AI session will work from — a prompt to paste into a new session, a spec, a handover, a fix-prompt, an implementation plan, a subagent's task, or a rewrite of any of those. Two failures to avoid: distilling the owner's brief until the nuance is gone, and over-directing until the receiving session cannot use its own judgment. When the brief is the owner's, his words travel verbatim to every worker; when one session hands its own work to the next, its judgment is enough.
+description: Use when writing anything that another AI session will work from — a prompt to paste into a new session, a spec, a handover, a fix-prompt, an implementation plan, a subagent's task, or a rewrite of any of those. Two failures to avoid: distilling the owner's brief until the nuance is gone, and over-directing until the receiving session cannot use its own judgment. When the brief is the owner's, all of his meaning travels to every worker, restated cleanly and quoted only where the exact wording matters; when one session hands its own work to the next, its judgment is enough.
 ---
 
 # Writing for another session
@@ -30,8 +30,9 @@ What gets lost first, and matters most:
 
 - **The small opinions.** "The tag pills are okay but not too pretty." Nothing turns on it
   alone; twenty of them are the taste.
-- **The emotional register.** "It's like the worst design ever, I can't believe that was
-  shipped" is not the same instruction as "improve the caption panel."
+- **The emotional register.** "He thinks the caption panel is the worst design in the app and
+  should never have shipped" is not the same instruction as "improve the caption panel." Carry
+  how strongly he feels; you do not need his exact words to do it.
 - **The things to beat.** Named competitors, reference links, "we have to be better than X".
 - **The fears.** "I don't want to be billed by myself for images." That is a constraint.
 - **The reversals.** Where he argues himself out of a position and back into it, that
@@ -45,13 +46,17 @@ What gets lost first, and matters most:
    and instructs the reader to open first. Never only your paraphrase. A transcript is
    cheap; a rebuilt-from-summary feature is not. A transcript cleaned of nothing but noise
    counts as verbatim; see "Whose words are you carrying?" below for exactly what may go.
+   That file is the record. What you write from it restates him rather than quoting him;
+   see "Restate him; quote him rarely".
 2. **A rewrite is not a summary.** When asked to rewrite or tighten something:
    > "rewritten should be pretty exactly the same with the grammar tightened up but every
    > single thing still conveyed."
    Same content, same order, same emphasis. Fix grammar and cut genuine repetition. If you
    removed an idea, you did it wrong.
-3. **Quote rather than characterise** wherever the wording carries the nuance. Put his
-   sentence in the document, not your reading of it.
+3. **Restate, don't characterise.** A restatement carries what he said, every point and
+   hedge of it, in clean sentences attributed to him; a characterisation swaps in your
+   reading of it. Do the first. Quote him only where the exact wording does work a
+   restatement cannot.
 4. **Index, don't replace.** A long brief plus a numbered ledger of every discrete ask,
    each with a status, beats a tidy summary. The ledger points into the brief; it is not a
    substitute for reading it, and it should say so.
@@ -83,13 +88,14 @@ fix-prompt, a room brief, a prompt for him to paste. Then:
 
 - His words are on disk in a file, cleaned of nothing but noise, and the handover says read
   it first (rule 1).
-- The parts a worker needs are **quoted into its prompt**, paragraph by paragraph, not
-  described. An `Agent` prompt for owner-briefed work carries his paragraphs and the path to
-  the file. "The owner wants the list redesigned" is the failure this section exists for.
+- Everything a worker needs from his brief **goes into its prompt**, point by point and in
+  his order, restated faithfully, with the path to the file. "The owner wants the list
+  redesigned" is still the failure this section exists for: it drops his reasons, his doubts
+  and how strongly he feels, and a faithful restatement keeps all three.
 - Your reading of what he meant goes **beneath** his words, labelled as yours, never in place
   of them. Where you had to interpret a reversal or an ambiguity, quote both sides and say
   which you took.
-- The test: could the worker, reading your prompt, tell which sentences are his and which
+- The test: could the worker, reading your prompt, tell which points are his and which
   are yours? If not, rewrite.
 
 **Cleaning a transcript is allowed; summarising it is not.** He said what may go:
@@ -102,7 +108,8 @@ restarts; where a word is unclear or mis-heard, leave the word as transcribed in
 and put your guess beside it in square brackets, never the other way round. Keep the order,
 the emphasis, the swearing, the reversals, the asides and the "I don't know"s. Number the
 paragraphs so a ledger can point at them. If a sentence of yours would replace a sentence of
-his, you have crossed the line.
+his, you have crossed the line. The swearing stays in the transcript because the transcript
+is a record; it does not travel out of it.
 
 **A hedge is content.** The first cleaned transcript in this repo (Catch-ups, 2026-09-05) was
 checked against the raw recording by four independent readers, and 69 of their findings were
@@ -114,11 +121,33 @@ self-corrections he made out loud that had been flattened to their end state, an
 sentence of opinion gone. So: hedges, tags and reversals stay, and when a transcript matters,
 have someone who did not clean it read the raw against the clean before anyone works from it.
 
+**Restate him; quote him rarely.** The owner narrowed this rule on 2026-10-29. Carried too
+literally, it had filled specs, handovers and code comments with his filler, his venting and
+the odd swear word in quotation marks. That reads as amateurish to anyone who opens the file
+and does nothing for whoever maintains the code later. The point of this section was never
+his exact words; it was that none of his meaning gets lost on the way. Everywhere outside the
+transcript itself:
+
+- Keep every point, in his order and with the weight he gave it. "Failure one" still holds in
+  full: the small opinions, the fears, the hedges, the reversals and the rejected paths all
+  survive.
+- Write them as clean sentences attributed to him. "The owner thinks the second option is a
+  mistake because it hides the photograph" carries everything the outburst carried.
+- Keep intensity as information, in your words: he was emphatic; he is unsure and wants to
+  see options; this has gone wrong three times and he has run out of patience with it.
+- Quote him only when the exact wording does work a restatement cannot: a phrase that sets
+  the bar ("does it give you any dopamine"), a formulation he chose with care, a pick between
+  named options. A phrase or a sentence, never a paragraph. Never quote filler, venting or
+  profanity.
+- Code comments, commit messages and user-facing text never quote him. A comment states the
+  decision and the reason; "owner decision, 2026-10-29" is all the provenance it needs.
+- In a repository built for a client, his transcripts and working notes stay outside it.
+
 **No owner brief behind it**: one session handing its own work to the next, what it found,
 what it decided, what is left. You are the author, and your judgment about what to say is
 the right one. The verbatim rule does not apply; every other rule in this file does. Where
 the owner did speak during your session (a pick, an answer to a question, a correction),
-that fragment is his and travels verbatim under the rule above, however short it is.
+that fragment is his and travels in full under the rules above, however short it is.
 
 ## Failure two: you over-directed it
 
@@ -178,13 +207,15 @@ else. Then:
 - Is every decision marked LOCKED, RECOMMENDED or OPEN?
 - Is there anything the receiver is *meant* to decide, that reads like an instruction?
 - Are the owner's own words on disk in full, and does the document say to read them first?
+- Is anything of his quoted that a clean restatement would carry just as well?
 - Would a stranger know which account, repo, path and command to use?
 - Is anything asserted that you did not verify?
 
 ## Checklist
 
 - [ ] Owner's words captured verbatim in a file, and the handover says read it first
-- [ ] If the brief is his: the paragraphs a worker needs are quoted into the worker's prompt, not paraphrased
+- [ ] If the brief is his: every point a worker needs is in its prompt, restated faithfully and attributed, with short quotes only where the wording matters
+- [ ] Nothing quoted that a restatement carries as well; no filler, venting or profanity quoted outside the transcript
 - [ ] Numbered ledger of every discrete ask, each with a status, pointing into that file
 - [ ] Every decision marked LOCKED / RECOMMENDED / OPEN
 - [ ] Autonomy granted explicitly, by section
@@ -200,7 +231,8 @@ else. Then:
   the ledger pattern.
 - `docs/planning/catchups-rework/` — `brief.md` is the cleaned-transcript pattern with
   numbered paragraphs; `handover.md` writes one prompt per session and quotes the brief into
-  each by paragraph number.
+  each by paragraph number. Both predate the 2026-10-29 narrowing, so the handover quotes
+  more than this file now asks for; follow this file.
 - `docs/audit-fix/*/fix-prompt.md` — the living handover; a fix session is started by
   @-ing it and nothing else.
 - Any `Agent` tool prompt. A subagent gets one message and cannot ask a follow-up.
