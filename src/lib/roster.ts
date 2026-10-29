@@ -4,6 +4,7 @@ import { writeAudit } from "./audit";
 import { notifyAdmins } from "./admin-threads-server";
 import { rosterMayAct, rosterOutcome } from "./roster-rule";
 import { rowForEmail, rowsForName, type RosterRow } from "./roster-lookup";
+import { reportSwallowed } from "./report-error";
 
 /* ------------------------------------------------------------------ *
  *  The office roster, acting on an account (trust model, Phase 3).
@@ -118,7 +119,16 @@ async function tryRosterAutoVerify(userId: string): Promise<boolean> {
         targetId: userId,
         detail: describeRow("name", byName[0]) + more,
       });
-      await notifyAdmins(`${user.name} matches the office list by name`, `/admin/people/${userId}`);
+      /* The row is already pending, so a bell that throws here must not
+         escape: the wrapper below would log "stays unverified", which is
+         false by now, and the next call answers "none", so nothing would
+         ever ring. Report it instead; the account still sits in the queue
+         the Overview reads (write-path review of O-08). */
+      try {
+        await notifyAdmins(`${user.name} matches the office list by name`, `/admin/people/${userId}`);
+      } catch (err) {
+        reportSwallowed("roster", err, { step: "queue-bell", userId });
+      }
     }
   }
 

@@ -54,9 +54,14 @@ export async function requestVerification(): Promise<RequestVerificationResult> 
      them; they can still write to the admins, which is what the line says. */
   const row = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { verifyMethod: true },
+    select: { verifyState: true, verifyMethod: true },
   });
-  if (row?.verifyMethod === ADMIN_WITHHELD) return { ok: false, error: ALREADY_DECIDED };
+  // The session can be older than the row: answer what the row says.
+  if (row?.verifyState === "verified") return { ok: true, state: "verified" };
+  // Any method on a row that is not verified is a decision somebody made
+  // (today only ADMIN_WITHHELD); the write below needs a null one anyway, so
+  // answering "pending" here would promise a request that was never made.
+  if (row?.verifyMethod != null) return { ok: false, error: ALREADY_DECIDED };
 
   // An email on the office roster answers instantly what the owner would
   // otherwise be asked to check by hand. A name and batch year alone only
@@ -87,6 +92,16 @@ export async function requestVerification(): Promise<RequestVerificationResult> 
         `${session.user.name} asked to be verified`,
         `/admin/people/${session.user.id}`
       );
+    } else {
+      /* Nothing flipped: another request got there first, or an admin
+         decided in between. Say what the row now holds rather than a
+         "pending" that may not be true. */
+      const now = await prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { verifyState: true, verifyMethod: true },
+      });
+      if (now?.verifyState === "verified") return { ok: true, state: "verified" };
+      if (now?.verifyMethod === ADMIN_WITHHELD) return { ok: false, error: ALREADY_DECIDED };
     }
   }
 

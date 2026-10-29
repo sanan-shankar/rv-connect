@@ -227,9 +227,12 @@ test("the office list decides by the shared rule and audits what it verifies (O-
 test("asking to be verified after an admin's removal is refused before the office list runs", () => {
   const body = balancedBody(ASK, "export async function requestVerification");
   assert.ok(body && body.length > 400, "requestVerification did not slice; this test is vacuous");
-  const refused = body.indexOf("ADMIN_WITHHELD");
+  /* Any method on an unverified row is a decision (ADMIN_WITHHELD today),
+     refused before the office list runs; the write below needs a null one. */
+  const refused = body.search(/verifyMethod != null\) return \{ ok: false, error: ALREADY_DECIDED \}/);
   const roster = body.indexOf("tryRosterAutoVerifyQuietly(");
   assert.ok(refused > 0 && refused < roster, "a withheld account reaches the office list (or the queue) again");
+  assert.match(body, /ADMIN_WITHHELD/, "a removal that lands mid-call is answered as pending again");
   assert.match(
     whereAfter(body, body.indexOf(".updateMany(")),
     /verifyMethod: null/,
