@@ -91,3 +91,21 @@ test("phase3-probe.mjs expects an office-list name match to queue, not verify", 
   assert.match(src, /row2\.verifyState === "pending"/);
   assert.doesNotMatch(src, /row2\.verifyState === "verified"/);
 });
+
+/* ------------------------------------------------------------------ *
+ *  Phase 7 asserted the rule a 2026-08-25 index replaced, so it failed on
+ *  correct behaviour every run, and it reported an arbitrary real post to
+ *  do it (C1-03).
+ * ------------------------------------------------------------------ */
+
+test("phase7-probe.mjs checks one open report per member per post, on a post of its own", () => {
+  const src = decomment(read("scripts/qa/phase7-probe.mjs"));
+  assert.doesNotMatch(src, /two post reports from one member are both allowed/, "the superseded assertion is back");
+  assert.doesNotMatch(src, /SELECT id FROM "Post"/, "the probe reports a real member's post again");
+  assert.match(src, /second open report of one post by the same member is refused/);
+  // The expectation rests on this index; if it ever goes, so must the check.
+  assert.match(
+    read("prisma/migrations-manual/2026-08-25-report-one-open-per-post.sql"),
+    /CREATE UNIQUE INDEX IF NOT EXISTS "Report_open_post_per_reporter_key"/,
+  );
+});

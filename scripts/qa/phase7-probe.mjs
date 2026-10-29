@@ -5,7 +5,8 @@
  *  - the audit VIEW is admin-only and renders (H14);
  *  - a real admin action (Verify) writes an ATTRIBUTED AuditLog row and then
  *    shows up on the view (H10 end to end: who did what, to whom);
- *  - the Report per-pair unique actually rejects a duplicate flag (H5).
+ *  - the Report per-pair unique actually rejects a duplicate flag (H5), and
+ *    a post takes one open report per member, on a post the probe makes.
  *
  * Usage: node scripts/qa/phase7-probe.mjs
  * Needs: dev server on :3000, DEV_LOGIN_SECRET + ADMIN_EMAIL in .env.
@@ -97,22 +98,41 @@ try {
     }
     L.check("a second (reporter, reported) user-report is refused by the unique index", secondFailed);
 
-    // A post report carries reportedUserId NULL; two of them must both be allowed
-    // (Postgres keeps NULLs distinct), so post reporting is unaffected.
-    const [post] = await q(`SELECT id FROM "Post" WHERE "isHidden" = false LIMIT 1`);
-    let bothPostReportsOk = true;
-    try {
-      for (let i = 0; i < 2; i++) {
-        await db.query(
-          `INSERT INTO "Report" (id, reason, "reporterId", "targetType", "postId", "createdAt")
+    /* A post takes one OPEN report per member (Report_open_post_per_reporter_key,
+       2026-08-25), so a second from the same member is refused and another
+       member's is not. This used to assert the rule from before that index,
+       and so failed on correct behaviour every run since; and it reported an
+       arbitrary real post, drafts included, putting a real member's row on the
+       admins' desk for the length of the run (bug audit 3, C1-03). The post is
+       the probe's own now, a draft letter, which nobody but its author sees. */
+    const post = `probe_post_${createId()}`;
+    await db.query(
+      `INSERT INTO "Post" (id, "authorId", kind, status, content, "updatedAt")
+       VALUES ($1, $2, 'letter', 'draft', 'phase7 probe: a post to report, deleted with the probe', now())`,
+      [post, reported]
+    );
+    const reportPost = (rep) =>
+      db.query(
+        `INSERT INTO "Report" (id, reason, "reporterId", "targetType", "postId", "createdAt")
          VALUES ($1,'probe',$2,'post',$3, now())`,
-          [createId(), reporter, post.id]
-        );
-      }
-    } catch {
-      bothPostReportsOk = false;
+        [createId(), rep, post]
+      );
+    await reportPost(reporter);
+    let secondPostReportRefused = false;
+    try {
+      await reportPost(reporter);
+    } catch (e) {
+      secondPostReportRefused = e.code === "23505"; // unique_violation
     }
-    L.check("two post reports from one member are both allowed (NULLs stay distinct)", bothPostReportsOk);
+    L.check("a second open report of one post by the same member is refused", secondPostReportRefused);
+    const bystander = await mkUser("h5bystander", { verified: true });
+    let otherMemberOk = true;
+    try {
+      await reportPost(bystander);
+    } catch {
+      otherMemberOk = false;
+    }
+    L.check("...while another member's report of the same post is accepted", otherMemberOk);
     void reporter; void reported;
   }
 
