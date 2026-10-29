@@ -313,6 +313,16 @@ for (const route of ROUTES) {
     if (route.anonymous) await page.context().clearCookies();
 
     await page.goto(route.path, { waitUntil: "domcontentloaded" });
+    /* Released for the shot only. globals.css reserves the scroll bar's
+     * column on <html> so a modal does not shift the page, and that column is
+     * as wide as the HOST MAC's scroll bars: nothing when macOS draws overlay
+     * bars, 15px when it draws classic ones, which it does on its own the
+     * moment a mouse is paired ("Automatically based on mouse or trackpad").
+     * Headless Chromium hides every bar, so the column is always an empty
+     * strip -- and on 2026-10-29 it moved the spine to 1177 and failed every
+     * desktop route at once, with no code changed. The baselines were taken
+     * with overlay bars; this keeps every run there, whatever is plugged in. */
+    await page.addStyleTag({ content: "html { scrollbar-gutter: auto !important; }" });
     await settle(page);
 
     if (route.live) await spine(page, route.name);

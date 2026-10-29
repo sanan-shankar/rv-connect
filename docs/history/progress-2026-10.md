@@ -1,3 +1,18 @@
+## 2026-10-29 (visual) — the desktop suite stops depending on whether a mouse is plugged in
+
+Every desktop route had been red since 10-23: content column 1177 against 1192, everything centred
+7px left; mobile passed throughout. `scrollbar-gutter: stable` on `<html>` reserves the width of
+the host Mac's scroll bars, and macOS gives Chromium classic 15px bars once a mouse is paired
+("Automatically based on mouse or trackpad"; a Dell mouse is). Headless Chromium hides every bar,
+so the column is an empty strip whose width is the hardware's: a headed Playwright Chromium
+measured a 15px bar, the headless one 0 for the bar and 15 for the gutter. Neither
+`--enable-features=OverlayScrollbar` nor an `AppleShowScrollBars` argument changes that.
+`visual.spec.ts` now releases the gutter for the shot only; members keep it.
+
+That cleared nine of twelve. The other three were deliberate changes held back behind the shift on
+10-23: the birds redesign, the trivia paragraph on privacy, and Support's redrawn birds with "See
+all 70". Each diff was looked at, then those three desktop baselines moved. `npm run visual` 25/25.
+
 ## 2026-10-29 (profile) — the dark mode tile just says "Experimental"
 
 His call: the light-mode line under "Dark mode" on the profile's settings tile read "Experimental.
