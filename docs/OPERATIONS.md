@@ -246,11 +246,21 @@ because it costs ~30KB gzipped on every page load. If a member ever reports a bl
 that Sentry knows nothing about, that is the gap, and adding `instrumentation-client.ts` is
 the fix.
 
-**Deliberate settings** (`src/instrumentation.ts`): `sendDefaultPii: false` so no IPs,
-cookies or headers are attached; session replay never installed; disabled outside Vercel so
-dev-server noise cannot spend the monthly budget; `NEXT_REDIRECT` and `NEXT_NOT_FOUND`
-ignored, because Next implements `redirect()` and `notFound()` by throwing and every
-redirect would otherwise file an issue.
+**What a report carries** (`src/lib/sentry-scrub.ts`): every error and every sampled trace
+passes a keep-list on its way out. It keeps the request's method, its address without the
+query (and with an invite link's key blanked), and six named headers: host, browser, content
+type, which Server Action, and the navigation and prefetch flags. Everything else stays here,
+the session cookie, Vercel's location headers, the referrer and any search included.
+`sendDefaultPii: false` used to be what did this, and since Sentry 10 it does not: it was
+sending all of those with every server error (bug audit 3, T8b-14). `sentry-scrub.test.mjs`
+sends a poisoned request through the installed SDK with the site's own options, so an upgrade
+that changes an event's shape fails the gate before it ships. Sentry's own server-side Data
+Scrubber (Settings, Security & Privacy) is the second layer, not the first.
+
+**Deliberate settings** (`src/instrumentation.ts`): session replay never installed; disabled
+outside Vercel so dev-server noise cannot spend the monthly budget; `NEXT_REDIRECT` and
+`NEXT_NOT_FOUND` ignored, because Next implements `redirect()` and `notFound()` by throwing
+and every redirect would otherwise file an issue.
 
 Installed by hand rather than with `npx @sentry/wizard`, which would have added a
 `/sentry-example-page` route, enabled session replay, and written an auth token into a new

@@ -1,4 +1,5 @@
 import * as Sentry from "@sentry/nextjs";
+import { scrubEvent } from "./lib/sentry-scrub.ts";
 
 /* ------------------------------------------------------------------ *
  *  Sentry - the smoke alarm. SERVER SIDE ONLY.
@@ -39,7 +40,9 @@ const DSN =
 const ENABLED =
   Boolean(process.env.VERCEL) || process.env.SENTRY_DEV === "1";
 
-const common = {
+/* Exported for src/lib/sentry-scrub.test.mjs, which sends a poisoned request
+ * through these exact options. Next reads only the two exports below. */
+export const sentryOptions = {
   dsn: DSN,
   enabled: ENABLED,
 
@@ -47,10 +50,17 @@ const common = {
    * never looks like a live incident. */
   environment: process.env.VERCEL_ENV ?? process.env.NODE_ENV,
 
-  /* OFF. The default would attach IP addresses, cookies and request headers
-   * to every event. This site holds alumni names, addresses, phone numbers
-   * and photos; an error report is not a place to copy any of it. */
+  /* OFF, and since Sentry 10 not enough on its own: "off" still attaches the
+   * session cookie, every request header but the IP-named ones, and the
+   * query string to each event (bug audit 3, T8b-14). This site holds alumni
+   * names, addresses, phone numbers and photos, and a member's cookie is
+   * their sign-in; an error report is not a place to copy any of it. The
+   * two hooks below are what keep them here: every error and every sampled
+   * trace leaves with only its method, its address minus the query, and a
+   * short list of named headers (src/lib/sentry-scrub.ts). */
   sendDefaultPii: false,
+  beforeSend: scrubEvent,
+  beforeSendTransaction: scrubEvent,
 
   /* 10% of requests traced. The free plan allows 10,000 spans a month and
    * this site's traffic is tiny, so this stays comfortably inside it while
@@ -83,7 +93,7 @@ export async function register() {
    * hypothetical: src/proxy.ts runs there for every request in this app. */
   const runtime = process.env.NEXT_RUNTIME;
   if (runtime === "nodejs" || runtime === "edge") {
-    Sentry.init(common);
+    Sentry.init(sentryOptions);
   }
 }
 

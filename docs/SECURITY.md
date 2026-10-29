@@ -122,6 +122,13 @@ escalation copy at 3 distinct reporters — standing only ever changes by an adm
 needs inline without a nonce pipeline — a strict nonce CSP is future work), frame-ancestors
 'none' + X-Frame-Options, Referrer-Policy, nosniff, Permissions-Policy, HSTS. In `next.config.ts`.
 
+**Error reports** (`src/lib/sentry-scrub.ts`): whatever goes to Sentry, an error or a sampled
+trace, leaves through a keep-list: the request's method, its address without the query (an
+invite link's key blanked too), and six named headers. Since Sentry 10, `sendDefaultPii: false`
+alone was sending the session cookie, Vercel's city and coordinates, the referrer and search
+terms with every server error (bug audit 3, T8b-14). `sentry-scrub.test.mjs` pushes a poisoned
+request through the installed SDK with the site's own options and fails if any of it survives.
+
 **The legal layer** — `/privacy`, `/terms`, `/guidelines` (public, owner-approved 2026-08-20;
 controller contact buried at the bottom of the privacy policy per the owner's decision: email
 sanan.shankar@gmail.com, Margravine Gardens, London, no name printed). Signup has a required,

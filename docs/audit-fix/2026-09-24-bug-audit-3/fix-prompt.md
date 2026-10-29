@@ -520,3 +520,4 @@ evidence stays in `work/`; this ledger is the record of what the campaign did.
 - L12-09 — DONE (fix(catchups): removing someone changes the invite link, and clears their filing); Q16 (a): a new token inside the removal's transaction; only a Keeper's page, and not an ended one, carries it
 - T2a-10 — DONE (fix(catchups): removing someone changes the invite link, and clears their filing)
 - VOL1-01 — DONE (fix(scripts): every script opens the database through one verified opener); eleven scripts had accepted any certificate (the verdict's ten plus tag-professions-pick); run-sql.mjs re-proved against production and the demo after the change
+- T8b-14 — DONE (fix(security): a Sentry report leaves without the member's cookie, location or searches); sampled traces carried the cookie too and pass the same keep-list; owner check A stands: search stored issues for `authjs` and `session-token`
