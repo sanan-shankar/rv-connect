@@ -310,10 +310,6 @@ if (!WRITE) {
 }
 
 await mkdir(OUT, { recursive: true });
-if (wanted.length > 0) {
-  await mkdir(path.join(OUT, "photos"), { recursive: true });
-  await mkdir(path.join(OUT, "avatars"), { recursive: true });
-}
 
 /* One at a time. This runs a few hundred times at most against our own
    bucket, on a laptop, once before a migration; concurrency would buy
@@ -329,6 +325,10 @@ const dims = new Map();
 for (const { url: u, file } of wanted) {
   try {
     const bytes = await bytesFor(u);
+    /* The folder is made where the file is written. A separate list of
+       folders is how audio/ was left out: every recording failed to copy
+       while catchups.json said it had (bug audit 3, T2b-03). */
+    await mkdir(path.dirname(path.join(OUT, file)), { recursive: true });
     await writeFile(path.join(OUT, file), bytes);
     sizes.set(file, bytes.length);
     if (file.startsWith("photos")) {
@@ -353,7 +353,7 @@ for (const c of out.catchups) {
   for (const m of c.members) if (m.photoFile && !sizes.has(m.photoFile)) m.photoFile = null;
   for (const r of c.editions)
     for (const q2 of r.questions)
-      for (const a of q2.answers)
+      for (const a of q2.answers) {
         for (const img of a.images) {
           if (img.file && sizes.has(img.file)) {
             img.bytes = sizes.get(img.file);
@@ -364,6 +364,8 @@ for (const c of out.catchups) {
             }
           } else img.file = null;
         }
+        if (a.audio?.file && !sizes.has(a.audio.file)) a.audio.file = null;
+      }
 }
 
 await writeFile(path.join(OUT, "catchups.json"), JSON.stringify(out, null, 2) + "\n");
