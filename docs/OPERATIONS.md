@@ -258,7 +258,9 @@ that changes an event's shape fails the gate before it ships. Sentry's own serve
 Scrubber (Settings, Security & Privacy) is the second layer, not the first.
 
 **Deliberate settings** (`src/instrumentation.ts`): session replay never installed; disabled
-outside Vercel so dev-server noise cannot spend the monthly budget; `NEXT_REDIRECT` and
+outside Vercel so dev-server noise cannot spend the monthly budget, and on the demo, which is
+this code on a second Vercel project and would otherwise file its standing failures here as
+production, out of the same 5,000 (bug audit 3, T8b-18); `NEXT_REDIRECT` and
 `NEXT_NOT_FOUND` ignored, because Next implements `redirect()` and `notFound()` by throwing
 and every redirect would otherwise file an issue.
 

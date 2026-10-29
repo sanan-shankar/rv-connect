@@ -137,9 +137,9 @@ assumed agreement (owner's decision). The landing footer links exist but sit beh
 `SHOW_SHOWCASE=false`; owner declined a hero link.
 
 **The demo** stays exempt three ways everywhere: `IS_DEMO` short-circuits (gates, limiters, mail,
-audit), the proxy's closed lists, and the Prisma write-allowlist that default-denies any model not
-named. `src/lib/demo.test.mjs` holds the layers honest; a NEW model on a write path the demo can
-reach needs a deliberate allowlist decision.
+audit, error reports), the proxy's closed lists, and the Prisma write-allowlist that default-denies
+any model not named. `src/lib/demo.test.mjs` holds the layers honest; a NEW model on a write path
+the demo can reach needs a deliberate allowlist decision.
 
 ## The gates
 

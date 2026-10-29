@@ -36,9 +36,19 @@ const DSN =
 /* Deployed only. A dev server throws constantly and on purpose while you
  * work, and the free plan is 5,000 errors a month -- one afternoon of
  * hot-reload noise would spend the budget and train us to ignore the alerts.
- * Set SENTRY_DEV=1 to opt in temporarily when debugging Sentry itself. */
+ * Set SENTRY_DEV=1 to opt in temporarily when debugging Sentry itself.
+ *
+ * And never the demo (bug audit 3, T8b-18). It is this same code on a second
+ * Vercel project, so it would file into this one project, labelled
+ * "production", out of the same 5,000 a month, while its data routes fail on
+ * every view (docs/planning/bugs.md, deferred). Labelling it "demo" would only
+ * sort those events; staying silent is what keeps the allowance for the real
+ * site's next failure. The flag is src/lib/demo.ts's IS_DEMO, spelled out
+ * here as src/proxy.ts spells it, so this file pulls none of the demo's write
+ * policy into its two bundles. */
+const IS_DEMO = process.env.DEMO_MODE === "1";
 const ENABLED =
-  Boolean(process.env.VERCEL) || process.env.SENTRY_DEV === "1";
+  !IS_DEMO && (Boolean(process.env.VERCEL) || process.env.SENTRY_DEV === "1");
 
 /* Exported for src/lib/sentry-scrub.test.mjs, which sends a poisoned request
  * through these exact options. Next reads only the two exports below. */

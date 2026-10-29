@@ -1,5 +1,6 @@
 import test, { after } from "node:test";
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import http from "node:http";
 /* The default import, not `import * as`: under plain Node this is a CommonJS
    build, and a namespace import misses every name it re-exports (flush, close,
@@ -8,6 +9,7 @@ import Sentry from "@sentry/nextjs";
 
 import { onRequestError, sentryOptions } from "../instrumentation.ts";
 import { scrubEvent } from "./sentry-scrub.ts";
+import { ROOT } from "./test-kit.mjs";
 
 /* Bug audit 3, T8b-14: since Sentry 10, `sendDefaultPii: false` no longer kept
    a member's session cookie, Vercel's location headers, the referrer or the
@@ -180,4 +182,26 @@ test("T8b-14: the scrubber never throws on a shape it did not plan for", () => {
     { spans: [null, { op: "http.client" }], transaction: 7 },
   ];
   for (const event of odd) assert.doesNotThrow(() => scrubEvent(event), JSON.stringify(event));
+});
+
+test("T8b-18: the demo files nothing into the site's Sentry project, and production still does", () => {
+  /* The demo is this code on a second Vercel project. The flag is read once,
+     when the module loads, so each case is a fresh process holding only the
+     variables named, never whatever the shell running the gate has set. */
+  const enabledWith = (env) => {
+    const run = spawnSync(
+      process.execPath,
+      [
+        "--input-type=module",
+        "-e",
+        'const { sentryOptions } = await import("./src/instrumentation.ts");' +
+          "process.stdout.write(String(sentryOptions.enabled));",
+      ],
+      { cwd: ROOT, env: { PATH: process.env.PATH, ...env }, encoding: "utf8", timeout: 30_000 }
+    );
+    assert.equal(run.status, 0, run.stderr);
+    return run.stdout;
+  };
+  assert.equal(enabledWith({ VERCEL: "1" }), "true", "a deployed build of the real site must report");
+  assert.equal(enabledWith({ VERCEL: "1", DEMO_MODE: "1" }), "false", "the demo must not");
 });

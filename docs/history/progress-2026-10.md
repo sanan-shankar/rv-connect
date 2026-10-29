@@ -1,3 +1,31 @@
+## 2026-10-29 (security) — bug audit 3, unit B1: a Sentry report leaves without the member's cookie, location or searches, and the demo reports nothing
+
+Two rows, two commits. T8b-14 (High): since Sentry 10, `sendDefaultPii: false` no longer keeps
+request data off an event, because "off" now resolves to deny lists that only the tracing code
+reads. Reproduced offline on the installed 10.76.2 with the site's own options: every server error,
+every report swallowed inside a request and every sampled trace (a tenth of all requests, not only
+failures, which the audit had not seen) carried the live session cookie, the raw cookie header,
+Vercel's city, latitude, longitude and postcode headers, the referrer and the query string.
+`src/lib/sentry-scrub.ts` now runs as `beforeSend` and `beforeSendTransaction` and keeps rather than
+removes: the method, the address without its query (an invite link's key blanked), and six named
+headers; span attributes, span names and breadcrumb addresses get the same treatment.
+`sentry-scrub.test.mjs` sends a poisoned request through the installed SDK into an in-memory
+transport and fails if any of it survives; its SDK cases were shown failing with the two hooks
+removed. There is no browser SDK, so nothing client-side reaches Sentry.
+
+T8b-18 (Low): the demo is this code on a second Vercel project, so it filed its standing failures
+into the one project as "production", out of the same 5,000 events a month. Sentry is now off when
+`DEMO_MODE=1`, pinned by two fresh processes reading the exported options and shown failing without
+the guard. A "demo" label was considered and not taken: it sorts the events without saving the
+allowance.
+
+Not visible to members. The privacy page's Sentry line is left for T8b-06. The owner's check A
+stands: Sentry's Data Scrubber settings, and a search of stored issues for `authjs` and
+`session-token`. Not run: a deployed build; the dev server compiled instrumentation on 10-27 and was
+not restarted, so the next deploy is the first real compile of the new import. Found on the way: the
+brief's gate-wait loop (`pgrep -f playwright`) matches another waiting worker's shell, so two
+waiters deadlock; `pgrep -f "[p]laywright"` does not.
+
 ## 2026-10-29 (catchups) — bug audit 3, unit A2: every Catch-up control waits for a verified member, and the hat passes only to someone who can act
 
 Eight rows, three commits. L10-01 (High, V-T2-01 folded in), T2a-03 and T3-22 are one change because

@@ -185,11 +185,12 @@ const EDITABLE_PROFILE_FIELDS: ReadonlySet<string> = new Set([
  *  in the app (src/app/(main)/error.tsx and its siblings) deliberately does
  *  not read a caught error's `.message` -- an unexpected throw of any kind
  *  gets the same generic "this page did not load", by design (audit M05),
- *  while the real cause goes to Sentry. An earlier version of this string
- *  was written as if a visitor would see it ("This is a demo, so that one is
- *  switched off"); nothing ever routed it there (bug audit Low 66). So the
- *  message below is aimed at whoever reads the server log or
- *  scripts/demo/verify-guard.mts's output instead, which is the one place
+ *  while the real cause goes to the server log (not to Sentry: the demo
+ *  reports nothing there, src/instrumentation.ts). An earlier version of
+ *  this string was written as if a visitor would see it ("This is a demo,
+ *  so that one is switched off"); nothing ever routed it there (bug audit
+ *  Low 66). So the message below is aimed at whoever reads the server log
+ *  or scripts/demo/verify-guard.mts's output instead, which is the one place
  *  it is actually read. */
 export class DemoWriteError extends Error {
   readonly isDemoBlock = true;

@@ -71,7 +71,7 @@ the rest of the phase runs.
 | Phase | Status | Rows left | Blocked on |
 |---|---|---|---|
 | A — Trust: who counts as verified, and who may press what in a Catch-up | PARTIAL | 10 (0 H, 3 M, 7 L) | — |
-| B — Privacy: what leaves the site, and what outlives a member | OPEN | 24 (1 H, 7 M, 16 L) | — |
+| B — Privacy: what leaves the site, and what outlives a member | PARTIAL | 22 (0 H, 7 M, 15 L) | — |
 | O — Budgets: what one account or one script may spend of what everyone shares | OPEN | 11 (2 H, 8 M, 1 L) | — |
 | E — The Collection | OPEN | 27 (3 H, 6 M, 18 L) | — |
 | F — Letters, the feed and the composer | OPEN | 26 (2 H, 6 M, 18 L) | — |
@@ -521,3 +521,4 @@ evidence stays in `work/`; this ledger is the record of what the campaign did.
 - T2a-10 — DONE (fix(catchups): removing someone changes the invite link, and clears their filing)
 - VOL1-01 — DONE (fix(scripts): every script opens the database through one verified opener); eleven scripts had accepted any certificate (the verdict's ten plus tag-professions-pick); run-sql.mjs re-proved against production and the demo after the change
 - T8b-14 — DONE (fix(security): a Sentry report leaves without the member's cookie, location or searches); sampled traces carried the cookie too and pass the same keep-list; owner check A stands: search stored issues for `authjs` and `session-token`
+- T8b-18 — DONE (fix(security): the demo reports nothing into the site's Sentry project); off on DEMO_MODE=1 rather than labelled "demo", which would sort the events without saving the allowance
