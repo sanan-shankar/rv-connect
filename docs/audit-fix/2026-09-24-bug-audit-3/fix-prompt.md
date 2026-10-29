@@ -506,3 +506,5 @@ evidence stays in `work/`; this ledger is the record of what the campaign did.
 - C8-01 — DECLINED (owner, Q26c, 2026-10-29)
 - O-08 — DONE (fix(security): the office list verifies by email alone, and a removal sticks); a name match is queued for the owner, never refused (Q19 as he ruled it)
 - T7a-06 — DONE (fix(security): the office list verifies by email alone, and a removal sticks); T6-01, its closed duplicate, rides with it
+- L12-03 — DONE (fix(catchups): an action checks membership before it moves an Edition's clock)
+- V-T2-02 — DONE (fix(catchups): an action checks membership before it moves an Edition's clock); a missing Edition and a closed door now get one sentence

@@ -17,11 +17,12 @@
  *     the Keeper role, computed via `isEffectiveKeeper` (WP1) from freshly-read
  *     rows, never trusted from the caller.
  *
- *  The lazy-advance touchpoint (spec 2.4): any action that reads an Edition's
- *  status first calls WP1's `advanceEdition` on it via `loadFreshEdition`, so
- *  a mutation can never act on a status the clock already passed underneath a
- *  stale page (e.g. a late "open answering now" click after the window had
- *  already auto-advanced past collecting).
+ *  The lazy-advance touchpoint (spec 3.4): any action that reads an Edition's
+ *  status calls WP1's `advanceEdition` on it via `loadMemberEdition`, once the
+ *  caller is proved to be in the group, so a mutation can never act on a
+ *  status the clock already passed underneath a stale page (e.g. a late "open
+ *  answering now" click after the window had already auto-advanced past
+ *  collecting), and an account outside the group cannot move its clock.
  *
  *  Every action is wrapped by `runAction`, which turns a missing-table error
  *  (P2021, pre-migration) into a friendly `{ error }` instead of throwing, so
@@ -236,11 +237,12 @@ type EditionContext = {
   };
 };
 
-/** The Edition's own columns, read twice by `loadFreshEdition` below: once
- *  before `advanceEdition` and once after, because the point of the second
- *  read is that the row has changed. What must not differ between the two is
- *  which columns they ask for, so they ask once. (The first read also nests
- *  the Catch-up and its group; that half is genuinely only wanted once.) */
+/** The Edition's own columns, read twice on the way into a member's action:
+ *  by `readEditionBase` before `advanceEdition` and by `advanceAndReload`
+ *  after it, because the point of the second read is that the row has
+ *  changed. What must not differ between the two is which columns they ask
+ *  for, so they ask once. (The first read also nests the Catch-up and its
+ *  group; that half is genuinely only wanted once.) */
 const EDITION_COLUMNS = {
   id: true,
   catchupId: true,
@@ -258,15 +260,12 @@ const EDITION_COLUMNS = {
 } as const;
 
 /**
- * Load an Edition plus its Catch-up/group context, bringing its status current
- * against the clock first (the lazy-advance touchpoint, spec 2.4). Every
- * action below that reads an Edition's status goes through this helper, so none
- * can act on a status the clock already passed underneath a stale page (e.g.
- * a "close answers now" click after the answer window had already
- * auto-closed, or a question submitted a beat after questionsCloseAt).
+ * An Edition plus its Catch-up/group context exactly as they stand: no clock,
+ * no write. The first half of `loadMemberEdition`, split from the second so
+ * the membership check can sit between them.
  */
-async function loadFreshEdition(editionId: string): Promise<EditionContext | null> {
-  const base = await prisma.catchupEdition.findUnique({
+async function readEditionBase(editionId: string) {
+  return prisma.catchupEdition.findUnique({
     where: { id: editionId },
     select: {
       ...EDITION_COLUMNS,
@@ -275,18 +274,32 @@ async function loadFreshEdition(editionId: string): Promise<EditionContext | nul
           createdById: true,
           status: true,
           // `batchYear` is the whole test for "this is a batch Catch-up" (F6),
-          // and every Keeper control below refuses one outright.
+          // which the Keeper controls below ask before they ask who keeps it.
           group: { select: { id: true, name: true, batchYear: true } },
         },
       },
     },
   });
-  if (!base) return null;
+}
 
+type EditionBase = NonNullable<Awaited<ReturnType<typeof readEditionBase>>>;
+
+/**
+ * Bring an Edition's status current against the clock, then read it again
+ * (the lazy-advance touchpoint, spec 3.4), so no action can act on a status
+ * the clock already passed underneath a stale page (e.g. a "close answers
+ * now" click after the answer window had already auto-closed, or a question
+ * submitted a beat after questionsCloseAt).
+ *
+ * `advanceEdition` is a WRITE: it opens answering, publishes and sends the
+ * day's reminder, each with its bells. So this is reached from one place,
+ * `loadMemberEdition`, after the caller is proved to be in the group.
+ */
+async function advanceAndReload(base: EditionBase): Promise<EditionContext | null> {
   await advanceEdition(base as AdvanceEditionInput);
 
   const fresh = await prisma.catchupEdition.findUnique({
-    where: { id: editionId },
+    where: { id: base.id },
     select: EDITION_COLUMNS,
   });
   if (!fresh) return null;
@@ -310,10 +323,10 @@ async function loadCatchupContext(catchupId: string, userId: string) {
       createdById: true,
       status: true,
       groupId: true,
-      // See loadFreshEdition: the batch test, for the guard in loadKeeperScope
+      // See readEditionBase: the batch test, for the guard in loadKeeperScope
       // and for the two exits that refuse a batch Catch-up by name. `name`
       // is added for `addCatchupMembers`'s notification, the same field
-      // loadFreshEdition already carries for every notify call in this file.
+      // readEditionBase already carries for every notify call in this file.
       group: { select: { name: true, batchYear: true } },
     },
   });
@@ -360,19 +373,35 @@ function refuseIfIdle(edition: EditionContext): { error: string } | null {
   return { error: "Nothing is running here yet. Start an Edition first." };
 }
 
+/** What `loadMemberEdition` says to anyone it turns away, whichever door was
+ *  shut. */
+const NOT_IN_EDITION = "You are not a member of this Catch-up." as const;
+
 /**
  * The Edition a member is acting in, or the reason they may not.
  *
- * Load it fresh (so the clock has advanced), then prove the caller is in the
- * group behind it. Three member actions and every Keeper action below start
- * here; before this helper each of them wrote the same four lines out, and the
- * two refusal sentences with them.
+ * MEMBERSHIP FIRST, THEN THE CLOCK (bug audit 3, L12-03). This used to load
+ * the Edition fresh, advancing it, and only then ask whether the caller was in
+ * the group, so any signed-in account holding an Edition or answer id (bell
+ * links carry them) could open answering, publish or send the day's reminder
+ * for a group it was not in, and be refused afterwards. The home and the
+ * reader already checked before advancing (spec 3.4); this is their order.
+ *
+ * ONE SENTENCE for a missing Edition and a closed door (V-T2-02). Two told a
+ * stranger holding an id whether it was real; the reader answers both with
+ * the same not-found page.
+ *
+ * Every member action and every Keeper action on an Edition starts here;
+ * before this helper each of them wrote the same four lines out, and the
+ * refusal sentences with them.
  */
 async function loadMemberEdition(editionId: string, viewerId: string) {
-  const edition = await loadFreshEdition(editionId);
+  const base = await readEditionBase(editionId);
+  if (!base) return { error: NOT_IN_EDITION };
+  const membership = await loadMembership(base.catchup.group.id, viewerId);
+  if (!membership) return { error: NOT_IN_EDITION };
+  const edition = await advanceAndReload(base);
   if (!edition) return { error: "Catch-up Edition not found." as const };
-  const membership = await loadMembership(edition.catchup.group.id, viewerId);
-  if (!membership) return { error: "You are not a member of this group." as const };
   return { edition, membership };
 }
 
@@ -1139,7 +1168,7 @@ export async function closeAndPublish(editionId: string) {
     /* A TIME CAPSULE CLOSES INTO `sealed` (build phase 14): the Keeper's early
        close is the clock's close, so it seals exactly as the deadline would,
        with everyone told the day it opens. The flag was read fresh by
-       loadFreshEdition and is required again by the write. */
+       loadMemberEdition and is required again by the write. */
     if (edition.timeCapsule) {
       const sealed = sealPatch(now);
       const opensAt = sealed.publishAt as Date;
@@ -1350,8 +1379,8 @@ export async function extendDeadline(editionId: string, days: number) {
  * THE GATE, in the order it runs:
  *  - A verified member. It decides what happens to everybody's writing for a
  *    year, which is the tier every group-reaching write here sits at.
- *  - In this Catch-up, via `loadMemberEdition`, which also brings the clock
- *    current first, so "still collecting" means now and not when the page was
+ *  - In this Catch-up, via `loadMemberEdition`, which then brings the clock
+ *    current, so "still collecting" means now and not when the page was
  *    drawn.
  *  - Not ended (`refuseIfEnded`).
  *  - WHO: `mayMarkTimeCapsule`. The Keepers of a people Catch-up, anyone in a

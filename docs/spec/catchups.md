@@ -181,16 +181,21 @@ nothing twice.
 - **While answering**: one reminder a day to non-answerers who turned reminders on (§11), guarded by
   a days-left bucket in the high bits of `remindersSent`, so a hundred page views produce one.
 
-### 3.4 Three ways the clock is driven
+### 3.4 Four ways the clock is driven
 
 1. **Every authenticated page**: `(main)/layout.tsx` calls `advanceDueCatchups(userId)`, scoped to the
    viewer's own Catch-ups.
 2. **The page itself**: the home and the reader each advance their own Edition before rendering, after
    checking membership (a non-member cannot trigger a write by opening a url).
-3. **The nightly cron**: `GET /api/catchups/tick`, bearer `CRON_SECRET` required, calls
+3. **Every action on an Edition**: `loadMemberEdition` in `catchups/actions.ts` advances the Edition
+   an action is about to act on, after the same membership check, so nothing acts on a status the
+   clock has already passed. Until 2026-10-29 it advanced first and checked after, so any account
+   holding an Edition or answer id could move a group's clock (bug audit 3, L12-03); a missing
+   Edition and a closed door now get the same sentence.
+4. **The nightly cron**: `GET /api/catchups/tick`, bearer `CRON_SECRET` required, calls
    `advanceDueCatchups()` unscoped. Only this path runs the batch self-heals (§13).
 
-All three swallow their own errors and report them through `reportSwallowed`; none can break a page.
+All four swallow their own errors and report them through `reportSwallowed`; none can break a page.
 
 ### 3.5 Idle, Start, End
 

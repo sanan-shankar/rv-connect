@@ -157,6 +157,51 @@ test("an idle Catch-up refuses every write that would start its clock behind eve
   );
 });
 
+test("L12-03: an action proves the caller is in the group before it moves the Edition's clock", () => {
+  /* `advanceEdition` is a write: it opens answering, publishes and sends the
+     day's reminder, each with its bells. The actions used to call it on the
+     way IN, before asking whether the caller belonged, so anyone holding an
+     Edition or answer id could drive a stranger group's clock (bug audit 3,
+     L12-03). Pinned as a property of the file, not of one action: the clock
+     is moved in one place, that place is reached from one place, and that
+     place has read the membership first. */
+  const src = decomment(read("src/app/(main)/catchups/actions.ts"));
+  assert.equal(
+    (src.match(/\badvanceEdition\(/g) ?? []).length,
+    1,
+    "a second call to advanceEdition appeared in the actions; it must go through advanceAndReload, behind the membership check"
+  );
+  const advance = balancedBody(src, "async function advanceAndReload(");
+  assert.ok(advance, "advanceAndReload is gone; this pin is reading nothing");
+  assert.match(advance, /advanceEdition\(/, "advanceAndReload no longer advances; the one call moved somewhere unguarded");
+  assert.equal(
+    (src.match(/\badvanceAndReload\(/g) ?? []).length,
+    2,
+    "advanceAndReload has a caller other than loadMemberEdition, which may not have checked membership"
+  );
+  const member = balancedBody(src, "async function loadMemberEdition(");
+  assert.ok(member, "loadMemberEdition is gone; this pin is reading nothing");
+  const asked = member.indexOf("loadMembership(");
+  const moved = member.indexOf("advanceAndReload(");
+  assert.ok(asked > -1 && moved > -1, "loadMemberEdition no longer reads membership, or no longer advances");
+  assert.ok(asked < moved, "loadMemberEdition advances the clock before it knows the caller is in the group");
+  const base = balancedBody(src, "async function readEditionBase(");
+  assert.ok(base, "readEditionBase is gone; this pin is reading nothing");
+  assert.doesNotMatch(base, /advanceEdition\(|advanceAndReload\(/, "the plain read moves the clock again");
+});
+
+test("V-T2-02: a missing Edition and a closed door get the same sentence", () => {
+  const src = decomment(read("src/app/(main)/catchups/actions.ts"));
+  const member = balancedBody(src, "async function loadMemberEdition(");
+  const refusals = [...member.matchAll(/return \{ error: ([^}]+?) \}/g)].map((m) => m[1].trim());
+  assert.ok(refusals.length >= 2, "loadMemberEdition's refusals did not extract; this pin is vacuous");
+  assert.equal(
+    refusals[0],
+    refusals[1],
+    "\"not found\" and \"not a member\" read differently again, which tells a stranger holding an id whether it exists"
+  );
+});
+
 test("B-060's successor: there is always a way to start the next Edition", () => {
   /* B-060 was a Catch-up sitting active for ever with no future Edition and no
      control anywhere to start one. Its fix re-armed the rhythm on resume; with
