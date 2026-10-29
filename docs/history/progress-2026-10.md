@@ -1,3 +1,15 @@
+## 2026-10-29 (audit-fix) — bug audit 3's fix campaign opens: 29 questions to the owner before any fix
+
+The owner asked for the fix round on every open finding of bug audit 3 (359 rows, 15 phases). Run by
+`/campaign` from `docs/audit-fix/2026-09-24-bug-audit-3/fix-prompt.md`, which now carries the whole
+question batch under `## Owner questions`: the audit's Q1 to Q19 restated, plus ten new ones. Eight
+of those were decisions sitting inside the findings themselves (what a moderator's hide does to
+photos, what leaves with a departing member, the export's contents, the front page's policy links,
+the deleted-photo cache, the presence ping), merged from fifteen; two are about the campaign itself
+(additive database changes, and whether anything is pushed before he says so). Q7's default was
+flipped from the audit's: the Collection keeps originals everywhere else, so the post tick should
+too. No fix starts until he answers; the board is unchanged.
+
 ## 2026-10-28 (ci) — the gate stops crashing on a dangling link
 
 The test finders in `scripts/qa/check.mjs` and the shared `walk` in `src/lib/test-kit.mjs` used
