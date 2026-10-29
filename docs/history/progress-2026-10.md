@@ -1,3 +1,19 @@
+## 2026-10-29 (collection) — a class link sends a member with no class to the Valley Collection
+
+He is sending `/collection?scope=class` to a class that already uses the Class Collection. The link
+is the same for everybody, since the class comes from whoever opens it. A member with no class
+(not yet verified, or no batch year) used to get a page titled "The Class Collection" with no
+photographs, no word of why and no switch back. `/collection` now redirects them to the Valley
+Collection at its plain address. The check sits in the index page, not `collectionPageData`,
+because the permalink shares that and an admin with no class must still open a class photograph
+from the queue. Seen as Jerry (verified, no batch year) at 1440 and 390: both land on
+`/collection`, Valley title, photographs in. He decided "Join" on the sign-in page may keep
+dropping the link.
+
+`npm run visual -- -g collection` fails both desktop collection shots on the spine width (1177
+against 1192). That predates this change: plain `/collection` never reaches the new line, and the
+tree held nothing else.
+
 ## 2026-10-29 (audit-fix) — bug audit 3's fix campaign opens: 29 questions to the owner before any fix
 
 The owner asked for the fix round on every open finding of bug audit 3 (359 rows, 15 phases). Run by

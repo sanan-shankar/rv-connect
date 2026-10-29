@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { CollectionClient } from "@/components/collection/collection-client";
 import { collectionPageData, riverFiltersFrom } from "../collection-data";
 
@@ -41,8 +42,20 @@ export default async function CollectionPage({
   /* A bucket, a decade or a search is an address you can send somebody, so the
      first page is rendered on the server already filtered rather than painting
      the whole archive and then replacing it. */
-  const data = await collectionPageData(riverFiltersFrom(await searchParams));
+  const filters = riverFiltersFrom(await searchParams);
+  const data = await collectionPageData(filters);
   if (!data) return null;
+
+  /* A Class Collection link is the same for everybody -- the class comes from
+     whoever opens it -- so it gets sent to whole classes, and some of the
+     people who open it have no class yet: a profile still waiting to be
+     verified, or with no batch year. Rendered as asked, that was a page
+     titled "The Class Collection" with nothing in it, no word of why, and no
+     switch back. The Valley Collection instead, at its plain address so the
+     bar does not still say "class". Here and not in collectionPageData,
+     because the permalink shares that and an admin with no class must still
+     open a class photograph from the moderation queue. */
+  if (filters.scope === "class" && !data.canSeeClass) redirect("/collection");
 
   return <CollectionClient {...data} />;
 }

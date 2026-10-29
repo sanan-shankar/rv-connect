@@ -83,7 +83,7 @@ they inherit its auth gate:
 
 | Route | What it is |
 |---|---|
-| `/collection` | The archive itself: a river of justified rows, six buckets on one line, a year rail, search on the title line, four orders. `?scope=class` is the same page's other half, a different title and a flipped caret. Server component, hydrating a client that pages both ways. |
+| `/collection` | The archive itself: a river of justified rows, six buckets on one line, a year rail, search on the title line, four orders. `?scope=class` is the same page's other half, a different title and a flipped caret. A member with no class who follows that link (not yet verified, or no batch year) is sent to the Valley Collection. Server component, hydrating a client that pages both ways. |
 | `/collection/[id]` | **A permalink, not a detail page.** It opens the viewer over the grid. Deep-linkable and shareable; there is no separate reading surface for one photograph. |
 
 **There is no `/collection/contribute` and there never was.** Contributing is a pop-up, opened from
