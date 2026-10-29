@@ -35,7 +35,7 @@ the row: if a finding does not hold at today's code, do not fix it; write its le
   `<id> — DONE (<type(scope): subject>)`. A test that pins a fix ships in that fix's commit; a
   scratch test is deleted.
 - Never run `npm run check` while Playwright (`npm run visual` / e2e) runs anywhere in this checkout:
-  `pgrep -f playwright` first, and wait if it is running. They produce false diffs together.
+  `pgrep -f "[p]laywright"` first, and wait if it is running. They produce false diffs together.
 - Stage by name and commit with a pathspec: `git commit -F - -- <paths>`; `git status --short` before
   and after. The shared files (`fix-prompt.md`, `progress.md`, `docs/history/progress-2026-10.md`):
   `git diff` them first; if one holds a hunk that is not yours, stage only your own hunk
@@ -70,10 +70,10 @@ keep that safe:
    to its commit). Under the lock, re-read the board and change only your own phase's row. Never stop
    with it held; if it has been held for more than 20 minutes, say so in your report rather than
    removing it.
-3. **The gates take turns.** Before `npm run check`:
-   `while [ -d /tmp/rv-ba3-visual.lock ] || pgrep -f playwright >/dev/null; do sleep 10; done`.
+3. **The gates take turns.** (The bracketed patterns are deliberate: a plain `pgrep -f playwright` matches the other waiters' own shells, so two waiters wait on each other for ever.) Before `npm run check`:
+   `while [ -d /tmp/rv-ba3-visual.lock ] || pgrep -f "[p]laywright" >/dev/null; do sleep 10; done`.
    For `npm run visual`: `until mkdir /tmp/rv-ba3-visual.lock 2>/dev/null; do sleep 10; done;
-   while pgrep -f "scripts/qa/check.mjs" >/dev/null; do sleep 5; done`, run it, then
+   while pgrep -f "[s]cripts/qa/check.mjs" >/dev/null; do sleep 5; done`, run it, then
    `rmdir /tmp/rv-ba3-visual.lock`.
 4. **Another worker's half-finished file can turn the gate red.** If `npm run check` fails only in
    files you did not touch, confirm your own are clean (`npx tsc --noEmit` filtered to your files,
