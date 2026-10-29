@@ -29,12 +29,13 @@ const DEBOUNCE_MS = 200;
 
 export function useUserSearch(
   query: string,
-  /* Catch-ups is an alumni feature, so its two pickers ask for alumni only.
-     The flag lives with the surface that has the rule rather than in the
-     endpoint every surface shares: it was in the endpoint, and the composer's
-     @-mention dropdown -- which shares it -- could never find a teacher
-     (bug-report-2 C-006). */
-  opts?: { alumniOnly?: boolean }
+  /* The two Catch-ups pickers ask for the people a Catch-up may hold:
+     verified alumni (`CATCHUP_PEOPLE`, bug audit 3 L10-01). The flag lives
+     with the surface that has the rule rather than in the endpoint every
+     surface shares: a teacher filter was once in the endpoint, and the
+     composer's @-mention dropdown -- which shares it -- could never find a
+     teacher (bug-report-2 C-006). */
+  opts?: { forCatchup?: boolean }
 ): {
   results: SearchedPerson[];
   searching: boolean;
@@ -64,7 +65,7 @@ export function useUserSearch(
     const timer = setTimeout(async () => {
       try {
         const res = await fetch(
-          `/api/users/search?q=${encodeURIComponent(q)}${opts?.alumniOnly ? "&alumniOnly=1" : ""}`
+          `/api/users/search?q=${encodeURIComponent(q)}${opts?.forCatchup ? "&forCatchup=1" : ""}`
         );
         const data = await res.json();
         if (id !== requestId.current) return;
@@ -76,7 +77,7 @@ export function useUserSearch(
       }
     }, DEBOUNCE_MS);
     return () => clearTimeout(timer);
-  }, [query, opts?.alumniOnly]);
+  }, [query, opts?.forCatchup]);
 
   function reset() {
     requestId.current += 1;

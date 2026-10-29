@@ -5,6 +5,7 @@ import { insensitive, escapeLike } from "@/lib/db-text";
 import { logSearch } from "@/lib/search-log";
 import { FULL_NAME_MAX } from "@/lib/utils";
 import { IDENTITY_SELECT } from "@/lib/people-select";
+import { CATCHUP_PEOPLE } from "@/lib/catchup-caps";
 
 /** Nobody's name is seven words. Four would do; six leaves room to be wrong. */
 const MAX_SEARCH_TERMS = 6;
@@ -39,28 +40,35 @@ export async function GET(req: NextRequest) {
   // Opt-in, so the default is the whole membership: a caller that forgets the
   // flag gets MORE people, not a silently narrowed list it cannot see is
   // narrowed. The Catch-ups pickers are the ones that pass it.
-  const alumniOnly = req.nextUrl.searchParams.get("alumniOnly") === "1";
+  const forCatchup = req.nextUrl.searchParams.get("forCatchup") === "1";
 
   const users = await prisma.user.findMany({
     where: {
-      AND: terms.map((term) => ({ name: { contains: escapeLike(term), ...insensitive } })),
+      AND: [
+        ...terms.map((term) => ({ name: { contains: escapeLike(term), ...insensitive } })),
+        /* Narrowed to the people a Catch-up may hold only when the CALLER
+         * says so.
+         *
+         * A teacher filter used to sit here unconditionally, under a comment
+         * claiming the endpoint's only consumers were the Catch-ups people
+         * surfaces. They were not: the composer's @-mention dropdown is the
+         * third, and it is the only way to insert a mention -- so a teacher,
+         * who is a first-class author here and writes to the feed and the
+         * letters like anybody else, could never be mentioned by name
+         * (bug-report-2 C-006).
+         *
+         * The two Catch-ups pickers pass forCatchup=1, which is where their
+         * rule belongs: alumni only (owner, 2026-08-18), and only accounts
+         * that have confirmed and been verified, because whoever a Keeper
+         * picks is put straight into a private group and rung by it (bug
+         * audit 3, L10-01). `CATCHUP_PEOPLE` is the same rule the two actions
+         * behind those pickers apply, so a picker offers nobody they drop. */
+        ...(forCatchup ? [CATCHUP_PEOPLE] : []),
+      ],
       isBlocked: false,
       // An account inside its deletion grace window (audit M35) is held out
       // of every people surface the same way a blocked one is.
       deletionRequestedAt: null,
-      /* Teachers are held out only when the CALLER says so.
-       *
-       * This filter was unconditional, under a comment claiming the endpoint's
-       * only consumers were the Catch-ups people surfaces. They were not: the
-       * composer's @-mention dropdown is the third, and it is the only way to
-       * insert a mention -- so a teacher, who is a first-class author here and
-       * writes to the feed and the letters like anybody else, could never be
-       * mentioned by name (bug-report-2 C-006).
-       *
-       * Catch-ups is an alumni feature (owner, 2026-08-18) and its two pickers
-       * pass alumniOnly=1, which is where that rule belongs: with the surface
-       * that has it, not with the endpoint every surface shares. */
-      ...(alumniOnly ? { accountType: { notIn: ["teacher", "ex_teacher"] } } : {}),
     },
     orderBy: { name: "asc" },
     select: {

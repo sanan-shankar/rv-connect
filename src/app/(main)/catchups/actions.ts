@@ -40,7 +40,7 @@ import { z } from "zod/v4";
 import { auth } from "@/lib/auth";
 import { IS_DEMO } from "@/lib/demo";
 import { prisma } from "@/lib/prisma";
-import { MAX_CATCHUP_PEOPLE } from "@/lib/catchup-caps";
+import { CATCHUP_PEOPLE, MAX_CATCHUP_PEOPLE } from "@/lib/catchup-caps";
 import { entryCommentSchema } from "@/lib/validators";
 import {
   EMPTY_COMMENT_PAGE,
@@ -101,7 +101,7 @@ import type {
 } from "@/lib/catchups-types";
 import { promoteGroupSuccessor } from "@/lib/group-succession";
 import { clearCatchupNotifications } from "@/lib/catchup-notifications";
-import { isUniqueViolation } from "@/lib/prisma-errors";
+import { isSerializationFailure, isUniqueViolation } from "@/lib/prisma-errors";
 import { DOUBLE_SUBMIT_MS } from "@/lib/double-submit";
 
 // ─── Soft caps (spec 3.3.1, enforced here rather than only surfaced as UI copy) ──
@@ -498,23 +498,16 @@ export async function createCatchupWithPeople(input: {
     const { name, memberIds } = parsed.data;
     const creatorId = session.user.id;
 
-    // The creator is always in, and never twice. Anyone who is not a real,
-    // unblocked, non-teacher user is dropped rather than failing the whole
-    // creation: the picker can go stale between rendering and submitting,
-    // and Catch-ups is an alumni feature, so a hand-crafted call must not
-    // be able to add a teacher the picker would never have offered.
+    // The creator is always in, and never twice. Anyone a Catch-up may not
+    // hold (`CATCHUP_PEOPLE`: a teacher, a blocked or leaving account, or one
+    // not yet confirmed and verified) is dropped rather than failing the
+    // whole creation: the picker can go stale between rendering and
+    // submitting, and a hand-crafted call must not enrol somebody the picker
+    // would never have offered (bug audit 3, L10-01).
     const invitedIds = [...new Set(memberIds.filter((id) => id !== creatorId))];
     const realMembers = invitedIds.length
       ? await prisma.user.findMany({
-          where: {
-            id: { in: invitedIds },
-            isBlocked: false,
-            // Same as every people surface: someone inside their deletion
-            // grace window (audit M35) must not be enrollable or emailable
-            // by a hand-crafted call the picker would never make.
-            deletionRequestedAt: null,
-            accountType: { notIn: ["teacher", "ex_teacher"] },
-          },
+          where: { id: { in: invitedIds }, AND: [CATCHUP_PEOPLE] },
           select: { id: true },
         })
       : [];
@@ -810,6 +803,10 @@ export async function endCatchup(catchupId: string) {
   return runAction(async () => {
     const session = await auth();
     if (!session?.user?.id) return { error: "Not authenticated" };
+    // It ends the Catch-up for everyone in it, so it is a Stage 2 write like
+    // every control here that reaches other members (bug audit 3, L10-01).
+    const gate = await requireVerifiedMember();
+    if (!gate.ok) return { error: gate.error };
     if (IS_DEMO) return { error: "Ending a Catch-up cannot be undone, so the demo keeps that one switched off." };
     if (typeof catchupId !== "string" || !catchupId) return { error: "Invalid request." };
 
@@ -978,6 +975,12 @@ export async function curatePrompt(input: CuratePromptInput) {
   return runAction(async () => {
     const session = await auth();
     if (!session?.user?.id) return { error: "Not authenticated" };
+    // Removing a question takes it out of everyone's Edition: the same Stage
+    // 2 footing as asking one. On a batch every member holds this, so the
+    // stage is the only thing between an unproven signup and the class's
+    // questions (bug audit 3, L10-01).
+    const gate = await requireVerifiedMember();
+    if (!gate.ok) return { error: gate.error };
 
     if (input.action === "reorder") {
       const parsed = curateReorderSchema.safeParse(input);
@@ -1048,6 +1051,10 @@ export async function openAnswering(editionId: string) {
   return runAction(async () => {
     const session = await auth();
     if (!session?.user?.id) return { error: "Not authenticated" };
+    // Rings everyone taking part: a Stage 2 write, like Start (bug audit 3,
+    // L10-01; every batch member holds it).
+    const gate = await requireVerifiedMember();
+    if (!gate.ok) return { error: gate.error };
     if (typeof editionId !== "string" || !editionId) return { error: "Invalid request." };
 
     const scope = await loadKeeperEdition(editionId, session.user.id, {
@@ -1122,6 +1129,11 @@ export async function closeAndPublish(editionId: string) {
   return runAction(async () => {
     const session = await auth();
     if (!session?.user?.id) return { error: "Not authenticated" };
+    // Ends everyone's week of writing and rings the whole group, one way: a
+    // Stage 2 write, like Start (bug audit 3, L10-01; every batch member
+    // holds it).
+    const gate = await requireVerifiedMember();
+    if (!gate.ok) return { error: gate.error };
     if (typeof editionId !== "string" || !editionId) return { error: "Invalid request." };
 
     const scope = await loadKeeperEdition(editionId, session.user.id, {
@@ -1312,6 +1324,10 @@ export async function extendDeadline(editionId: string, days: number) {
   return runAction(async () => {
     const session = await auth();
     if (!session?.user?.id) return { error: "Not authenticated" };
+    // Moves everyone's deadline: a Stage 2 write, like Start (bug audit 3,
+    // L10-01; every batch member holds it).
+    const gate = await requireVerifiedMember();
+    if (!gate.ok) return { error: gate.error };
     if (typeof editionId !== "string" || !editionId) return { error: "Invalid request." };
     const parsedDays = extendDaysSchema.safeParse(days);
     if (!parsedDays.success) return { error: "Pick three days, a week or two weeks." };
@@ -2086,10 +2102,18 @@ async function loadKeeperScope(
 }
 
 /**
- * Keeper-only: add people to a live Catch-up. Silently skips anyone already in
- * (re-adding is a no-op, not an error) and anyone who is blocked or no longer a
- * real user, so a picker that went stale between opening and submitting does
- * not fail the whole action.
+ * Keeper-only: add people to a live Catch-up, and tell each of them. Silently
+ * skips anyone already in (re-adding is a no-op, not an error) and anyone a
+ * Catch-up may not hold (`CATCHUP_PEOPLE`), so a picker that went stale
+ * between opening and submitting does not fail the whole action.
+ *
+ * THE ROSTER HOLDS `MAX_CATCHUP_PEOPLE`, counted inside the write that adds
+ * to it (bug audit 3, T2a-03). The bound used to be on one request's list,
+ * and the People door sends one person per request, so a Keeper could keep
+ * going past a hundred, and every bell the Catch-up rings fans out per
+ * member. The count and the insert share a SERIALIZABLE transaction: at READ
+ * COMMITTED two adds landing together each see the room the other is about
+ * to take, and five scripted requests would each fill it.
  */
 export async function addCatchupMembers(catchupId: string, userIds: string[]) {
   return runAction(async () => {
@@ -2097,11 +2121,12 @@ export async function addCatchupMembers(catchupId: string, userIds: string[]) {
     if (!session?.user?.id) return { error: "Not authenticated" };
 
     // Enrols other people and notifies each of them. Reaching real members
-    // waits for a confirmed address.
+    // waits for a verified profile.
     const gate = await requireVerifiedMember();
     if (!gate.ok) return { error: gate.error };
     if (typeof catchupId !== "string" || !catchupId) return { error: "Invalid request." };
-    // Same ceiling as creation (audit M29): adding is the same reach.
+    // The shape of one request, the same ceiling as creation's (audit M29).
+    // The roster's own bound is the count inside the write below.
     const parsed = z
       .array(z.string().min(1))
       .min(1)
@@ -2116,39 +2141,73 @@ export async function addCatchupMembers(catchupId: string, userIds: string[]) {
     const { catchup } = scope;
     if (catchup.status === "ended") return { error: "This Catch-up has ended." };
 
-    // Same alumni-only rule as creation: the picker never offers a teacher,
-    // so a raw call must not be able to enrol one either.
+    // The same rule as creation: the picker never offers somebody a Catch-up
+    // may not hold, so a raw call must not be able to enrol them either.
     const real = await prisma.user.findMany({
-      where: {
-        id: { in: [...new Set(parsed.data)] },
-        isBlocked: false,
-        // Deletion-pending accounts are out of reach here too (audit M35).
-        deletionRequestedAt: null,
-        accountType: { notIn: ["teacher", "ex_teacher"] },
-      },
+      where: { id: { in: [...new Set(parsed.data)] }, AND: [CATCHUP_PEOPLE] },
       select: { id: true },
     });
     if (real.length === 0) return { error: "No one to add." };
+    const realIds = real.map((u) => u.id);
 
-    /* Who is already in, read BEFORE the insert. It decides which of the
-       people below are genuinely NEW, which is the only set whose filing
-       state may be cleared -- see the comment on that write. */
-    const alreadyIn = new Set(
-      (
-        await prisma.groupMember.findMany({
-          where: { groupId: catchup.groupId, userId: { in: real.map((u) => u.id) } },
-          select: { userId: true },
-        })
-      ).map((m) => m.userId)
-    );
+    // Every add rings the people it adds, so it draws on the bucket creation
+    // and Start share (T2a-03). After the cheap refusals, as Start does, so a
+    // press that was never going to work spends nothing.
+    const limited = await rateLimit("catchups", session.user.id);
+    if (!limited.ok) return { error: limited.error };
 
-    // createMany + skipDuplicates rather than a read-then-write: the unique on
-    // (groupId, userId) is what decides, so two Keepers adding the same person
-    // at the same moment cannot make this throw.
-    const created = await prisma.groupMember.createMany({
-      data: real.map((u) => ({ groupId: catchup.groupId, userId: u.id, role: "member" })),
-      skipDuplicates: true,
-    });
+    let written: { room: number } | { added: number; newlyAdded: string[] };
+    try {
+      written = await prisma.$transaction(
+        async (tx) => {
+          /* Who is already in, read BEFORE the insert. It decides which of
+             the people below are genuinely NEW, which is the only set whose
+             filing state may be cleared and the only set that is told -- see
+             the comments on those writes. */
+          const alreadyIn = new Set(
+            (
+              await tx.groupMember.findMany({
+                where: { groupId: catchup.groupId, userId: { in: realIds } },
+                select: { userId: true },
+              })
+            ).map((m) => m.userId)
+          );
+          const newlyAdded = realIds.filter((id) => !alreadyIn.has(id));
+          if (newlyAdded.length === 0) return { added: 0, newlyAdded };
+
+          const roster = await tx.groupMember.count({ where: { groupId: catchup.groupId } });
+          if (roster + newlyAdded.length > MAX_CATCHUP_PEOPLE) {
+            return { room: Math.max(0, MAX_CATCHUP_PEOPLE - roster) };
+          }
+
+          // createMany + skipDuplicates rather than a read-then-write: the
+          // unique on (groupId, userId) is what decides, so two Keepers adding
+          // the same person at the same moment cannot make this throw.
+          const created = await tx.groupMember.createMany({
+            data: newlyAdded.map((userId) => ({ groupId: catchup.groupId, userId, role: "member" })),
+            skipDuplicates: true,
+          });
+          return { added: created.count, newlyAdded };
+        },
+        { isolationLevel: "Serializable" }
+      );
+    } catch (err) {
+      // Somebody else changed this roster in the same instant; Postgres kept
+      // one of the two writes and the other is safe to repeat.
+      if (isSerializationFailure(err)) {
+        return { error: "Somebody else was changing who is in this Catch-up. Try again." };
+      }
+      throw err;
+    }
+    if ("room" in written) {
+      return {
+        error:
+          written.room > 0
+            ? `A Catch-up holds up to ${MAX_CATCHUP_PEOPLE} people, so there is room for ${written.room} more.`
+            : `A Catch-up holds up to ${MAX_CATCHUP_PEOPLE} people, and this one is full.`,
+      };
+    }
+    const { newlyAdded } = written;
 
     /* Being added puts the Catch-up back on your list. Without this, someone
        who had filed their copy away before a Keeper took them out would come
@@ -2163,10 +2222,9 @@ export async function addCatchupMembers(catchupId: string, userIds: string[]) {
        the Keeper-only variant that overrides them was offered and declined; a
        Keeper re-listing somebody who is already a member must not be able to
        drag their own copy back out of their bin as a side effect (write-path
-       review, 2026-08-21). The picker never offers an existing member, so
-       this only ever mattered to a hand-made call -- which is exactly the
-       kind that must not be able to do it. */
-    const newlyAdded = real.map((u) => u.id).filter((id) => !alreadyIn.has(id));
+       review, 2026-08-21). The People door offers nobody already in (T3-22),
+       so this only matters to a hand-made call -- which is exactly the kind
+       that must not be able to do it. */
     if (newlyAdded.length > 0) {
       await prisma.catchupPref.updateMany({
         where: { catchupId, userId: { in: newlyAdded }, archivedAt: { not: null } },
@@ -2188,7 +2246,7 @@ export async function addCatchupMembers(catchupId: string, userIds: string[]) {
 
     revalidatePath(`/catchups/${catchupId}`);
     revalidatePath("/catchups");
-    return { success: true as const, added: created.count };
+    return { success: true as const, added: written.added };
   });
 }
 
@@ -2209,6 +2267,10 @@ export async function removeCatchupMember(catchupId: string, userId: string) {
   return runAction(async () => {
     const session = await auth();
     if (!session?.user?.id) return { error: "Not authenticated" };
+    // Takes somebody else out: a Stage 2 write, like adding them (bug audit
+    // 3, L10-01).
+    const gate = await requireVerifiedMember();
+    if (!gate.ok) return { error: gate.error };
     if (typeof catchupId !== "string" || !catchupId) return { error: "Invalid request." };
     if (typeof userId !== "string" || !userId) return { error: "Invalid request." };
 
@@ -2379,6 +2441,10 @@ export async function setCatchupKeeper(catchupId: string, userId: string, isKeep
   return runAction(async () => {
     const session = await auth();
     if (!session?.user?.id) return { error: "Not authenticated" };
+    // Hands another member every control here, or takes them away: a Stage 2
+    // write (bug audit 3, L10-01).
+    const gate = await requireVerifiedMember();
+    if (!gate.ok) return { error: gate.error };
     if (typeof catchupId !== "string" || !catchupId) return { error: "Invalid request." };
     if (typeof userId !== "string" || !userId) return { error: "Invalid request." };
     if (typeof isKeeper !== "boolean") return { error: "Invalid request." };
@@ -2401,7 +2467,11 @@ export async function setCatchupKeeper(catchupId: string, userId: string, isKeep
        on an "admin" row is now the no-op it should always have been. */
     const updated = isKeeper
       ? await prisma.groupMember.updateMany({
-          where: { groupId: catchup.groupId, userId },
+          // Only to somebody a Catch-up may hold (L10-01). The hat is every
+          // Keeper control in this file, and the stage gate on each of them
+          // would turn an unproven Keeper away, leaving a Catch-up whose
+          // Keeper can do nothing.
+          where: { groupId: catchup.groupId, userId, user: CATCHUP_PEOPLE },
           data: { role: "keeper" },
         })
       : await prisma.groupMember.updateMany({
@@ -2409,13 +2479,15 @@ export async function setCatchupKeeper(catchupId: string, userId: string, isKeep
           data: { role: "member" },
         });
     if (updated.count === 0) {
-      // A revoke matching nothing means they never wore this hat: either they
-      // are not in the Catch-up, or they hold the group's own admin role,
-      // which this control is not the place to take away.
+      // Matching nothing means they are not in the Catch-up; or, granting,
+      // that a Catch-up may not hold them; or, revoking, that they never
+      // wore this hat (the group's own admin role is not this control's to
+      // take away).
       const stillHere = await prisma.groupMember.count({
         where: { groupId: catchup.groupId, userId },
       });
       if (stillHere === 0) return { error: "They are not in this Catch-up." };
+      if (isKeeper) return { error: "Only a verified member can be a Keeper." };
     }
 
     revalidatePath(`/catchups/${catchupId}`);

@@ -40,7 +40,7 @@
  *  the Keeper is; offering them would only be a way to be told no.
  * ------------------------------------------------------------------ */
 
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import Link from "@/components/common/link";
 import { Plus, Sprout, UserMinus, X } from "lucide-react";
 import { toast } from "sonner";
@@ -178,16 +178,31 @@ function RowButton({
 }
 
 /* ── adding somebody ───────────────────────────────────────────────── *
- *  `alumniOnly`, because Catch-ups is an alumni feature and the endpoint
- *  is shared with the composer's @-mention list, which is allowed to find
- *  a teacher. The flag lives with the surface that has the rule
+ *  `forCatchup`, because a Catch-up holds verified alumni only and the
+ *  endpoint is shared with the composer's @-mention list, which is allowed
+ *  to find anyone. The flag lives with the surface that has the rule
  *  (bug-report-2 C-006), and `people-search-rule.test.mjs` fails the
- *  build for a caller that forgets it. */
-function AddSomeone({ catchupId, onChanged }: { catchupId: string; onChanged: () => void }) {
+ *  build for a caller that forgets it.
+ *
+ *  `inIds` is the roster, so nobody already in is offered, the Keeper
+ *  included. The panel this replaced passed it, and the transplant dropped
+ *  it, so the door offered existing members and answered "X is in." when
+ *  nothing had changed (bug audit 3, T3-22). The toast now says what the
+ *  server did. */
+function AddSomeone({
+  catchupId,
+  inIds,
+  onChanged,
+}: {
+  catchupId: string;
+  inIds: ReadonlySet<string>;
+  onChanged: () => void;
+}) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [busy, setBusy] = useState(false);
-  const { results, searching, reset } = useUserSearch(query, { alumniOnly: true });
+  const { results, searching, reset } = useUserSearch(query, { forCatchup: true });
+  const offered = results.filter((r) => !inIds.has(r.id));
 
   async function add(id: string, name: string) {
     setBusy(true);
@@ -197,7 +212,8 @@ function AddSomeone({ catchupId, onChanged }: { catchupId: string; onChanged: ()
         toast.error(result.error);
         return;
       }
-      toast.success(`${name} is in.`);
+      const already = result && "added" in result && result.added === 0;
+      toast.success(already ? `${name} is already in.` : `${name} is in.`);
       setQuery("");
       reset();
       onChanged();
@@ -240,7 +256,7 @@ function AddSomeone({ catchupId, onChanged }: { catchupId: string; onChanged: ()
       </div>
       {query.trim().length > 0 && (
         <ul className="mt-2 space-y-1">
-          {results.map((r) => (
+          {offered.map((r) => (
             <li key={r.id}>
               <button
                 type="button"
@@ -258,9 +274,11 @@ function AddSomeone({ catchupId, onChanged }: { catchupId: string; onChanged: ()
               </button>
             </li>
           ))}
-          {!searching && results.length === 0 && (
+          {!searching && offered.length === 0 && (
             <li className="px-2 py-1.5 font-sans text-[13px] text-muted-foreground">
-              Nobody by that name.
+              {results.length > 0
+                ? "They are already in."
+                : "Nobody by that name. Only verified members can be added."}
             </li>
           )}
         </ul>
@@ -294,6 +312,7 @@ export function PeoplePanel({
 }) {
   const [busy, setBusy] = useState(false);
   const panel = useRef<HTMLDivElement>(null);
+  const inIds = useMemo(() => new Set(people.map((p) => p.id)), [people]);
 
   const list = (
     <ul className={cn("gap-x-6 gap-y-3", phone ? "space-y-3" : "grid grid-cols-2")}>
@@ -316,7 +335,9 @@ export function PeoplePanel({
   const body = (
     <>
       {list}
-      {canManage && <AddSomeone catchupId={catchupId} onChanged={onChanged} />}
+      {canManage && (
+        <AddSomeone catchupId={catchupId} inIds={inIds} onChanged={onChanged} />
+      )}
     </>
   );
 

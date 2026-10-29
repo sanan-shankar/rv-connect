@@ -219,3 +219,93 @@ test("settings offers no rhythm, no hold and no Start, and end stays on the narr
     "end is no longer gated on the narrower youKeep permission"
   );
 });
+
+/* ------------------------------------------------------------------ *
+ *  STAGE: every control that reaches other members asks for a verified
+ *  member before it does anything (bug audit 3, L10-01 and V-T2-01).
+ *
+ *  Since daec81ec every member of a batch holds the cycle, and a signup
+ *  joins their batch's Catch-up before confirming anything, which the owner
+ *  kept (2026-10-29, his Q13: they may read it; the controls wait). So the
+ *  stage gate on each control is all that stands between an account that
+ *  has proved nothing and a class's Edition, and four of them had none:
+ *  removing questions, opening answering, extending, closing and
+ *  publishing. The people Catch-up's Keeper verbs had none either.
+ *
+ *  Pinned as a property of the file, not a list: any exported action that
+ *  opts a batch in, goes through a Keeper or Edition preamble, starts an
+ *  Edition, or rings anyone, calls requireVerifiedMember() before its first
+ *  load or write -- or is on REACHES_NOBODY with its reason.
+ * ------------------------------------------------------------------ */
+
+const REACHES_NOBODY = {
+  renameCatchup:
+    "changes one word on a page its people are already reading, with no bell and no mail (its docblock)",
+};
+
+const REACHES_OTHERS =
+  /allowBatch:\s*true|loadKeeperScope\(|loadKeeperEdition\(|loadMemberEdition\(|openEdition\(|\bnotify[A-Z]\w*\(/;
+const FIRST_LOAD_OR_WRITE =
+  /loadKeeperScope\(|loadKeeperEdition\(|loadMemberEdition\(|loadCatchupContext\(|loadCommentableEntry\(|prisma\./;
+
+test("every control that reaches other members asks for a verified member before anything else", () => {
+  const names = [...actions.matchAll(/export async function ([A-Za-z0-9_]+)\(/g)].map((m) => m[1]);
+  let candidates = 0;
+  for (const name of names) {
+    const body = fnBody(name);
+    if (!REACHES_OTHERS.test(body)) continue;
+    candidates += 1;
+    if (REACHES_NOBODY[name]) continue;
+    const gate = body.search(/requireVerifiedMember\(\)/);
+    assert.ok(
+      gate > -1,
+      `${name} reaches other members and never asks for a verified member; an account that has ` +
+        `confirmed nothing (or a signup in its claimed batch) can press it`
+    );
+    const first = body.search(FIRST_LOAD_OR_WRITE);
+    assert.ok(first === -1 || gate < first, `${name} loads or writes before it checks the caller's stage`);
+  }
+  // 16 on 2026-10-29. If the pattern stopped matching, this would pass over nothing.
+  assert.ok(candidates >= 14, `only ${candidates} actions look like they reach other members; the sweep has drifted`);
+});
+
+test("the seven controls the audit found open each carry the gate by name", () => {
+  for (const name of [
+    "curatePrompt",
+    "openAnswering",
+    "closeAndPublish",
+    "extendDeadline",
+    "endCatchup",
+    "removeCatchupMember",
+    "setCatchupKeeper",
+  ]) {
+    assert.match(fnBody(name), /requireVerifiedMember\(\)/, `${name} lost its stage gate (L10-01)`);
+  }
+});
+
+test("the reaches-nobody list names only actions that still exist, and still reach nobody", () => {
+  for (const name of Object.keys(REACHES_NOBODY)) {
+    const body = fnBody(name);
+    assert.doesNotMatch(body, /\bnotify[A-Z]\w*\(|allowBatch:\s*true/, `${name} now rings people or opens to a batch; take it off REACHES_NOBODY`);
+  }
+});
+
+test("putting somebody into a Catch-up, or handing them the hat, asks the Catch-up rule", () => {
+  /* The member's own doors (link, create, ask, answer) already ask Stage 2.
+     These are the doors that put SOMEONE ELSE in, which never asked who
+     that someone was (L10-01, doors 2 and 3). One rule for all of them:
+     CATCHUP_PEOPLE, the same set the pickers offer. */
+  for (const name of ["createCatchupWithPeople", "addCatchupMembers"]) {
+    assert.match(
+      fnBody(name),
+      /prisma\.user\.findMany\(\{\s*where:\s*\{\s*id:\s*\{\s*in:[^}]*\},\s*AND:\s*\[CATCHUP_PEOPLE\]\s*\}/,
+      `${name} enrols people without the Catch-up rule; an unconfirmed or unvouched account can be put in`
+    );
+  }
+  const keeper = fnBody("setCatchupKeeper");
+  const from = keeper.indexOf("const updated = isKeeper");
+  const to = keeper.indexOf(": await prisma.groupMember.updateMany", from);
+  assert.ok(from > -1 && to > from, "setCatchupKeeper's grant/revoke split moved; retarget this pin");
+  assert.match(keeper.slice(from, to), /user:\s*CATCHUP_PEOPLE/, "the hat can be handed to somebody a Catch-up may not hold");
+  assert.match(keeper, /Only a verified member can be a Keeper\./, "a refused grant says nothing, or says it worked");
+});

@@ -202,6 +202,33 @@ test("V-T2-02: a missing Edition and a closed door get the same sentence", () =>
   );
 });
 
+test("T2a-03: the roster holds MAX_CATCHUP_PEOPLE, counted inside the write that adds to it", () => {
+  /* The bound was on one request's list, and the People door sends one id
+     per request, so a Keeper could keep adding past a hundred and every bell
+     the Catch-up rings fans out per member. The count has to sit in the same
+     SERIALIZABLE transaction as the insert: at READ COMMITTED, parallel adds
+     each see the room the others are about to take. */
+  const src = decomment(read("src/app/(main)/catchups/actions.ts"));
+  const fn = balancedBody(src, "export async function addCatchupMembers(");
+  assert.ok(fn, "addCatchupMembers is gone; this pin is reading nothing");
+
+  const tx = fn.indexOf("prisma.$transaction(");
+  const count = fn.indexOf("tx.groupMember.count(");
+  const cap = fn.indexOf("> MAX_CATCHUP_PEOPLE", count);
+  const insert = fn.indexOf("tx.groupMember.createMany(");
+  assert.ok(tx > -1 && count > -1 && insert > -1, "the roster is no longer counted and written in one transaction");
+  assert.ok(tx < count && count < cap && cap < insert, "the roster is not counted and capped before the insert, inside the transaction");
+  assert.match(fn, /isolationLevel:\s*"Serializable"/, "the count and the insert run at READ COMMITTED again, so parallel adds overshoot");
+  assert.match(fn, /isSerializationFailure\(err\)/, "a lost race throws out as \"Something went wrong\" instead of asking to try again");
+  assert.doesNotMatch(fn.slice(insert), /prisma\.groupMember\.createMany\(/, "a second, uncounted insert appeared");
+  assert.match(fn, /holds up to \$\{MAX_CATCHUP_PEOPLE\} people/, "a full roster refuses without saying the number");
+
+  // Metered like creation and Start, before anything is written.
+  const limited = fn.indexOf('rateLimit("catchups"');
+  assert.ok(limited > -1, "adding people is unmetered again, and every add rings the people it adds");
+  assert.ok(limited < tx, "the meter is spent after the write");
+});
+
 test("B-060's successor: there is always a way to start the next Edition", () => {
   /* B-060 was a Catch-up sitting active for ever with no future Edition and no
      control anywhere to start one. Its fix re-armed the rhythm on resume; with

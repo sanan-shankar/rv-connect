@@ -35,6 +35,15 @@ export function isForeignKeyViolation(err: unknown): boolean {
 }
 
 /**
+ * P2034: a SERIALIZABLE transaction lost to a concurrent one and was rolled
+ * back (Postgres 40001 or a deadlock, 40P01, which the pg adapter maps here).
+ * Nothing was written, so the honest answer is "try again", not an error page.
+ */
+export function isSerializationFailure(err: unknown): boolean {
+  return code(err) === "P2034";
+}
+
+/**
  * True when an error means "this table does not exist yet" -- a migration
  * written by hand and not yet run.
  *

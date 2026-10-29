@@ -3,6 +3,7 @@ import { vetLookupRequest } from "@/lib/api-gate";
 import { prisma } from "@/lib/prisma";
 import { parseBatchYearList } from "@/lib/batch-year";
 import { IDENTITY_SELECT } from "@/lib/people-select";
+import { CATCHUP_PEOPLE } from "@/lib/catchup-caps";
 
 export async function GET(request: Request) {
   // Whole batches of names at a time: the exact bulk-harvest shape audit M1
@@ -27,6 +28,11 @@ export async function GET(request: Request) {
   // shortcut). Opt-in so the default `{ userIds }` shape existing callers
   // depend on is untouched.
   const detail = searchParams.get("detail") === "1";
+  // `?forCatchup=1`: only the people a Catch-up may hold. The shortcut builds
+  // a Catch-up's roster, and creation drops anybody outside the rule, so
+  // without this it would offer classmates who then silently were not in
+  // (bug audit 3, L10-01). Opt-in, like `/api/users/search`'s.
+  const forCatchup = searchParams.get("forCatchup") === "1";
 
   if (batches.length === 0) {
     return NextResponse.json(detail ? { users: [] } : { userIds: [] });
@@ -38,6 +44,7 @@ export async function GET(request: Request) {
       isBlocked: false,
       // Deletion-pending accounts are out of the people surfaces (audit M35).
       deletionRequestedAt: null,
+      ...(forCatchup ? { AND: [CATCHUP_PEOPLE] } : {}),
     },
     select: detail
       ? { ...IDENTITY_SELECT, batchYear: true }

@@ -95,7 +95,7 @@ export function PeoplePicker({
   const [addingBatch, setAddingBatch] = useState(false);
   // Shared with the Catch-up people panel, so the debounce and the
   // stale-response guard cannot drift between the two search fields.
-  const { results, searching, reset } = useUserSearch(query, { alumniOnly: true });
+  const { results, searching, reset } = useUserSearch(query, { forCatchup: true });
 
   const full = value.length >= MAX_CATCHUP_PEOPLE;
 
@@ -118,7 +118,9 @@ export function PeoplePicker({
     if (myBatchYear == null) return;
     setAddingBatch(true);
     try {
-      const res = await fetch(`/api/users-by-batch?detail=1&batches=${myBatchYear}`);
+      // forCatchup: only classmates a Catch-up may hold, or creation would
+      // silently drop the rest of what this added (bug audit 3, L10-01).
+      const res = await fetch(`/api/users-by-batch?detail=1&forCatchup=1&batches=${myBatchYear}`);
       const data = await res.json();
       const people: PickedPerson[] = data?.users ?? [];
       const existing = new Set(value.map((p) => p.id));
@@ -175,7 +177,9 @@ export function PeoplePicker({
       </div>
 
       {query.trim() && !searching && unpicked.length === 0 && (
-        <p className="text-[13px] text-muted-foreground">No one found by that name.</p>
+        <p className="text-[13px] text-pretty text-muted-foreground">
+          No one found by that name. Only verified members can be added.
+        </p>
       )}
 
       {unpicked.length > 0 && (

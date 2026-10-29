@@ -508,3 +508,7 @@ evidence stays in `work/`; this ledger is the record of what the campaign did.
 - T7a-06 — DONE (fix(security): the office list verifies by email alone, and a removal sticks); T6-01, its closed duplicate, rides with it
 - L12-03 — DONE (fix(catchups): an action checks membership before it moves an Edition's clock)
 - V-T2-02 — DONE (fix(catchups): an action checks membership before it moves an Edition's clock); a missing Edition and a closed door now get one sentence
+- L10-01 — DONE (fix(catchups): the controls, the pickers and the hat wait for a verified member); Q13 (a): a signup still joins their batch's Catch-up and may read it, and presses nothing until verified; succession's half ships with T2a-09 below
+- V-T2-01 — DONE (fix(catchups): the controls, the pickers and the hat wait for a verified member); folded into L10-01 as door 3. The home still draws the cycle rows, and a press below Stage 2 is refused with the gate's sentence, as Start and answering already were
+- T2a-03 — DONE (fix(catchups): the controls, the pickers and the hat wait for a verified member); the roster cap is counted inside a serializable write, and adding is metered on `catchups`
+- T3-22 — DONE (fix(catchups): the controls, the pickers and the hat wait for a verified member)

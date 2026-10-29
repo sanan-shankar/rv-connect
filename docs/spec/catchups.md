@@ -59,15 +59,22 @@ key and an unpublished Edition has no date.
 silently as the membership container, the `Catchup` with an invite token and a picture, and Edition
 1 in `collecting` with no questions: making a people Catch-up starts its first Edition, and everyone
 named is told. The starter is `createdById` and holds the group role `admin`.
-Teachers, blocked accounts and anyone inside their deletion window are dropped from the roster.
+Anyone a Catch-up may not hold is dropped from the roster: `CATCHUP_PEOPLE` in
+`src/lib/catchup-caps.ts`, which is an alumnus with a confirmed email and a verified profile, not
+blocked, not inside their deletion window, and not the site's Anonymous byline. Both pickers offer
+exactly that set (`forCatchup=1` on `/api/users/search` and `/api/users-by-batch`), and adding people
+later and handing on the hat ask the same rule (bug audit 3, L10-01: until 2026-10-29 the pickers
+offered accounts that had confirmed nothing).
 
 **A batch Catch-up** belongs to a batch group (`Group.batchYear` set). `isBatchCatchup(batchYear)`
 is the whole test. One exists for every batch group at or over **`BATCH_CATCHUP_FLOOR` = 10**
 members; under ten there is none. On the live database, 2026-09-27, that is nine batches: 1989, 2016,
 2018, 2019, 2021, 2022, 2023, 2024 and 2026. Its `createdById` and `inviteToken` are NULL: there is no
 individual Keeper of record and nobody to invite, because the membership is the batch. Everyone who signs
-up with that batch year is added (`joinBatchGroup` in `src/lib/batch-catchups.ts`), and a late joiner
-reads every earlier Edition. A member whose batch year changes afterwards, by their own profile or the
+up with that batch year is added (`joinBatchGroup` in `src/lib/batch-catchups.ts`), before confirming
+anything, and a late joiner reads every earlier Edition. An account that is not yet verified reads
+the batch's Catch-up and presses nothing in it (owner, 2026-10-29: the controls wait, the joining
+does not; §2.2). A member whose batch year changes afterwards, by their own profile or the
 admin's People edit, is moved: `syncBatchGroup` takes them out of the old batch's group, pref row and
 Catch-up bells, the same as leaving, and into the new one. Only alumni are in a batch. Their answers,
 if any, stay in the old batch's Editions.
@@ -102,6 +109,14 @@ confirmation saying how many people it tells, not by locking the controls to nob
 `mayChangeCatchupPicture` shape: the cycle controls (§4) pass it and let any batch member through
 before `isEffectiveKeeper` is even asked; membership and identity do not, and are refused outright,
 the same as before.
+
+**Every control that reaches other members asks for a verified member first**: `requireVerifiedMember`,
+the trust model's Stage 2, the same gate asking, answering and Start always had. Until 2026-10-29 the
+four cycle controls and the people Catch-up's Keeper controls (end, remove, the hat) asked nobody's
+stage, so a signup that had confirmed nothing could publish its class's Edition early, extend it or
+delete its questions the moment a classmate pressed Start (bug audit 3, L10-01). Rename and the
+picture stay ungated: they reach nobody. The hat itself goes only to somebody a Catch-up may hold
+(§2.1), so it cannot be handed to an account its own controls would turn away.
 
 **Starting an Edition is wider than the cycle**: anyone in any Catch-up, batch or people, Keeper or
 not (his answer, 2026-10-17: "Anyone in it"). `startEdition` asks for membership and nothing else.
@@ -229,9 +244,10 @@ All four swallow their own errors and report them through `reportSwallowed`; non
 
 ## 4. Who may do what
 
-Every action is in `src/app/(main)/catchups/actions.ts`. "Verified" means `requireVerifiedMember`
-(a confirmed email address). "Ended" means refused once the Catch-up has ended; "idle" means refused
-while nothing is running (§3.5).
+Every action is in `src/app/(main)/catchups/actions.ts`. "Verified" means `requireVerifiedMember`:
+the trust model's Stage 2, a confirmed email address AND a verified profile (this line said "a
+confirmed email address" until 2026-10-29, which is Stage 1). "Ended" means refused once the
+Catch-up has ended; "idle" means refused while nothing is running (§3.5).
 
 | Action | People Catch-up | Batch Catch-up | Gates |
 |---|---|---|---|
@@ -239,19 +255,19 @@ while nothing is running (§3.5).
 | `joinCatchupByToken` | anyone with the link, not a teacher; refuses an ended one | no link exists | verified |
 | `startEdition` | **any member**, while idle | **any member**; same | verified, ended, rate-limited (`catchups`) |
 | `submitPrompt` (ask) | any member, while collecting | same | verified, ended, idle, 300 chars, 40 per Edition |
-| `curatePrompt` (remove, reorder) | Keeper, while collecting | **any member**, while collecting | |
-| `openAnswering` | Keeper; refuses an Edition with no questions | **any member**; same | ended, idle |
-| `extendDeadline` | Keeper, collecting or answering | **any member**; same | ended, idle |
-| `closeAndPublish` | Keeper, while answering (zero answers extends instead) | **any member**; same | ended |
+| `curatePrompt` (remove, reorder) | Keeper, while collecting | **any member**, while collecting | verified, ended |
+| `openAnswering` | Keeper; refuses an Edition with no questions | **any member**; same | verified, ended, idle |
+| `extendDeadline` | Keeper, collecting or answering | **any member**; same | verified, ended, idle |
+| `closeAndPublish` | Keeper, while answering (zero answers extends instead) | **any member**; same | verified, ended |
 | `setEditionTimeCapsule` | Keeper, while collecting | any member, while collecting | verified, ended; nothing calls it yet |
 | `submitEntry` (answer) | any member, while answering | same | verified, ended |
 | `toggleEntryLove`, comments | any member, published only | same | verified; comments rate-limited |
 | `renameCatchup` | Keeper | refused | |
-| `endCatchup` | Keeper | refused | off on the demo |
+| `endCatchup` | Keeper | refused | verified; off on the demo |
 | `setCatchupPicture` | Keeper | any member | pool or own upload only |
-| `addCatchupMembers` | Keeper, not ended, up to 100 at a time | refused | verified |
-| `removeCatchupMember` | Keeper; not yourself, not the creator | refused | |
-| `setCatchupKeeper` | Keeper; not on the creator | refused | |
+| `addCatchupMembers` | Keeper, not ended; the roster holds 100 at most, counted in the write | refused | verified, rate-limited (`catchups`) |
+| `removeCatchupMember` | Keeper; not yourself, not the creator | refused | verified |
+| `setCatchupKeeper` | Keeper; not on the creator; only to somebody a Catch-up may hold | refused | verified |
 | `leaveCatchup` | any member but the creator | refused | off on the demo |
 | `setCatchupArchived` | any member | same (the only exit) | off on the demo |
 | `setReminderPref` | any member | same | |
