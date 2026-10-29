@@ -495,7 +495,7 @@ Last, one pass. Comment and doc lies are fixed by making the comment true, not b
 
 ## Ledger
 
-One line per row as it lands: `<id> — DONE <sha> | DECLINED (why) | PARKED (why)`. A row's verdict-corrected
+One line per row as it lands: `<id> — DONE (<commit subject>) | DECLINED (why) | PARKED (why)`; a commit cannot carry its own sha, so the subject names it. A row's verdict-corrected
 evidence stays in `work/`; this ledger is the record of what the campaign did.
 
 - L10-05 — DECLINED (owner, Q12, 2026-10-29: leave Jerry as is)
