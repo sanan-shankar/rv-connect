@@ -54,7 +54,7 @@ const ip = `10.99.${Math.floor(Math.random() * 200) + 1}.${Math.floor(Math.rando
 const credLogin = (opts) => kitCredLogin(BASE, { email, fromIp: ip, ...opts });
 
 console.log(`\n-- production build at ${BASE}`);
-{
+try {
   const up = await fetch(BASE, { redirect: "manual" });
   check("server answers", up.status < 500, `got ${up.status}`);
 
@@ -77,11 +77,13 @@ console.log(`\n-- production build at ${BASE}`);
   const pass1 = `rv_human=${signHumanPass(email, Date.now(), AUTH_SECRET)}`;
   const human = await credLogin({ password: PASSWORD, cookie: pass1 });
   check("a valid human pass signs in (production login is not bricked)", human.signedIn, human.location);
+} finally {
+  /* However the checks end. The account is confirmed, so left behind it is a
+     member of the real site; this used to sit after the checks, behind a
+     delete from a table that no longer exists (bug audit 3, V-T7a-03). */
+  await db.query(`DELETE FROM "LoginAttempt" WHERE email = $1`, [email]);
+  await db.query(`DELETE FROM "User" WHERE email = $1`, [email]);
+  await db.end();
 }
-
-await db.query(`DELETE FROM "LoginAttempt" WHERE email = $1`, [email]);
-await db.query(`DELETE FROM "Session" WHERE "userId" IN (SELECT id FROM "User" WHERE email = $1)`, [email]);
-await db.query(`DELETE FROM "User" WHERE email = $1`, [email]);
-await db.end();
 
 finish();
