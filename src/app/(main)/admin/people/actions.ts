@@ -385,13 +385,17 @@ export async function adminMergeUsers(
       prisma.catchup.updateMany({ where: { createdById: sourceId }, data: { createdById: targetId } }),
       // If the duplicate was the group's Keeper and the survivor is already an
       // ordinary member of it, dropping the colliding row would quietly demote
-      // the human. Carry the role over first, then drop.
+      // the human. Carry the hat over first, then drop. As "keeper", the role
+      // every path hands the hat on with: this wrote "admin", which a Keeper's
+      // revoke never matched (bug audit 3, T7a-07). If the duplicate STARTED
+      // the Catch-up, `createdById` moves above and keeps the survivor its
+      // Keeper whatever this row says.
       prisma.groupMember.updateMany({
         where: {
           userId: targetId,
           group: { members: { some: { userId: sourceId, role: { in: ["admin", "keeper"] } } } },
         },
-        data: { role: "admin" },
+        data: { role: "keeper" },
       }),
       prisma.groupMember.deleteMany({
         where: { userId: sourceId, group: { members: { some: { userId: targetId } } } },

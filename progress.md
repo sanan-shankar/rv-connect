@@ -15,6 +15,7 @@ if the month is new), and add one line here, at the top of that month's list.
 
 ## October 2026 — [full entries](docs/history/progress-2026-10.md)
 
+- 2026-10-29 (catchups) — bug audit 3, unit A2: every Catch-up control waits for a verified member, and the hat passes only to someone who can act
 - 2026-10-29 (security) — bug audit 3, unit A1: only an email on the office list verifies, and an admin's removal sticks
 - 2026-10-29 (e2e) — two Collection specs stop failing on a busy machine
 - 2026-10-29 (visual) — the desktop suite stops depending on whether a mouse is plugged in

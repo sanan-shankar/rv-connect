@@ -1,15 +1,25 @@
+import { CATCHUP_PEOPLE } from "./catchup-caps.ts";
+
 /**
- * Who inherits a group when the member leaving it was its only admin.
+ * Who inherits a group when the member leaving it was its only Keeper.
  *
- * Pure and dependency-free so the rule is testable without a database, and so
- * the account purge and any future "leave this group" path decide it the same
- * way. Returns null when there is nothing to do: either somebody else already
+ * Pure, with no database in it (the one import is the rule's own constant), so
+ * it is testable without one, and so the account purge and any future "leave
+ * this group" path decide it the same way. Returns null when there is nothing to do: either somebody else already
  * holds the powers, or nobody is left to hold them.
  *
  * The longest-standing remaining member gets it — "any remaining member may act
- * as Keeper" (docs/spec/catchups.md §7), decided here rather than left to
- * whoever notices, because a group with no admin has no way to curate
- * questions, pause a Catch-up or publish an Edition, and no way to say so.
+ * as Keeper" (docs/spec/catchups.md §5), decided here rather than left to
+ * whoever notices, because a group with no Keeper has no way to curate
+ * questions or publish an Edition, and no way to say so.
+ *
+ * `members` is ONLY the members who can act: both callers read them through
+ * `CATCHUP_PEOPLE` (bug audit 3, T2a-09 and L10-01). A blocked account cannot
+ * sign in, a leaving one has no session, a teacher is turned away from every
+ * Catch-up page, and an unverified one meets the stage gate on every Keeper
+ * control, so handing any of them the hat left the Catch-up as untended as no
+ * Keeper at all. The same goes for a holder: one who can no longer act does
+ * not count as "somebody else already holds the powers".
  */
 export type GroupMemberRow = { userId: string; role: string; joinedAt: Date };
 
@@ -39,13 +49,16 @@ export function chooseGroupSuccessor(
  * without one.
  *
  * Called wherever a `GroupMember` row is about to disappear: leaving a
- * Catch-up, a Keeper removing somebody, the nightly sweep emptying a bin. Each
- * of those could take the last member holding "keeper" or "admin", and once
- * `Catchup.createdById` has gone null (its holder's account purged) there is
- * then nobody who can curate a question, publish an Edition, pause it or end it,
- * and no way for anyone to claim it: setCatchupKeeper itself needs a Keeper to
- * call it (audit C-023). The Catch-up keeps running on its clock, notifying a
- * group that can no longer steer it.
+ * Catch-up, or a Keeper removing somebody. Either could take the last member
+ * holding "keeper" or "admin", and once `Catchup.createdById` has gone null
+ * (its holder's account purged) there is then nobody who can curate a
+ * question, publish an Edition or end it, and no way for anyone to claim it:
+ * setCatchupKeeper itself needs a Keeper to call it (audit C-023). The
+ * Catch-up keeps running on its clock, notifying a group that can no longer
+ * steer it.
+ *
+ * Reads only the members who can act (`CATCHUP_PEOPLE`, see above), and
+ * writes "keeper", the one role every path hands the hat on with.
  *
  * A no-op in the ordinary case -- somebody else still holds the powers, so
  * `chooseGroupSuccessor` returns null and nothing is written.
@@ -53,7 +66,7 @@ export function chooseGroupSuccessor(
 export type SuccessionDb = {
   groupMember: {
     findMany(args: {
-      where: { groupId: string };
+      where: { groupId: string; user: typeof CATCHUP_PEOPLE };
       select: { userId: true; role: true; joinedAt: true };
     }): Promise<GroupMemberRow[]>;
     updateMany(args: {
@@ -69,7 +82,7 @@ export async function promoteGroupSuccessor(
   leavingUserId: string
 ): Promise<string | null> {
   const members = await db.groupMember.findMany({
-    where: { groupId },
+    where: { groupId, user: CATCHUP_PEOPLE },
     select: { userId: true, role: true, joinedAt: true },
   });
   const successor = chooseGroupSuccessor(members, leavingUserId);

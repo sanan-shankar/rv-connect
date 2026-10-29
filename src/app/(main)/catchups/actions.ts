@@ -1978,10 +1978,10 @@ export async function toggleEntryCommentLike(commentId: string) {
 //  operate on `GroupMember` because that is the membership container every
 //  other part of the feature already derives its audience from.
 //
-//  A second Keeper is a `GroupMember.role` of "admin", which `isEffectiveKeeper`
-//  has always honoured. So "make them a Keeper" needs no new column and no
-//  migration; it is the role flip, and every Keeper-gated action picks it up
-//  at once.
+//  A second Keeper is a `GroupMember.role` of "keeper", which `isEffectiveKeeper`
+//  honours beside the creator's own "admin". So "make them a Keeper" needs no
+//  new column and no migration; it is the role flip, and every Keeper-gated
+//  action picks it up at once.
 
 /**
  * Why the demo says no to leaving, archiving and deleting.
@@ -2427,11 +2427,16 @@ export async function setCatchupArchived(catchupId: string, archived: boolean) {
  *
  * Writes `GroupMember.role = "keeper"`, which `isEffectiveKeeper` honours, so
  * one flip is the whole feature and no migration is needed (role is a free
- * string). Deliberately NOT `"admin"`, even though that also satisfies
- * `isEffectiveKeeper`: `"admin"` is the group's own admin role and is read
- * outside this feature, where `deletePost` lets a group admin delete anyone's
- * post in that group. Making someone a Keeper of a Catch-up must not silently
- * also make them a moderator of a group's posts.
+ * string). Every path that hands the hat on writes the same word: this one,
+ * succession on leaving or removal, the account purge's succession and an
+ * admin's merge (bug audit 3, T7a-07; the last two wrote "admin").
+ *
+ * Taking it back takes either word. "admin" was once the group's moderation
+ * role, read by a `deletePost` that let a group admin delete anyone's post in
+ * the group, which is why the two were kept apart (audit C-025). Posts left
+ * groups on 2026-09-07, so "admin" grants nothing a Keeper does not hold, and a
+ * revoke that matched only "keeper" told a Keeper "X is no longer a Keeper"
+ * while changing nothing (T3-15).
  *
  * The creator's own row is untouchable: they hold Keeper power through
  * `Catchup.createdById` regardless of role, so "demoting" them would change
@@ -2457,14 +2462,10 @@ export async function setCatchupKeeper(catchupId: string, userId: string, isKeep
       return { error: "Whoever started a Catch-up is always its Keeper." };
     }
 
-    /* Taking the hat off touches the hat and nothing else (audit C-025).
-       Granting deliberately writes "keeper" rather than "admin" so that a
-       Catch-up Keeper is not silently made a moderator of the group's posts --
-       and the revoke had no matching care: it wrote "member" over whatever it
-       found, so revoking the hat from someone who held the group's own "admin"
-       role stripped their post moderation as a side effect, in the opposite
-       direction to the decoupling above. Scoped to `role: "keeper"`, a revoke
-       on an "admin" row is now the no-op it should always have been. */
+    /* Either word comes off, and only the hat: the revoke writes "member" over
+       a "keeper" or an "admin" row and touches no other role (T3-15, see the
+       docblock). The creator, the one member whose "admin" row means more
+       than the hat, was refused just above. */
     const updated = isKeeper
       ? await prisma.groupMember.updateMany({
           // Only to somebody a Catch-up may hold (L10-01). The hat is every
@@ -2475,14 +2476,13 @@ export async function setCatchupKeeper(catchupId: string, userId: string, isKeep
           data: { role: "keeper" },
         })
       : await prisma.groupMember.updateMany({
-          where: { groupId: catchup.groupId, userId, role: "keeper" },
+          where: { groupId: catchup.groupId, userId, role: { in: ["keeper", "admin"] } },
           data: { role: "member" },
         });
     if (updated.count === 0) {
       // Matching nothing means they are not in the Catch-up; or, granting,
-      // that a Catch-up may not hold them; or, revoking, that they never
-      // wore this hat (the group's own admin role is not this control's to
-      // take away).
+      // that a Catch-up may not hold them; or, revoking, that they were not
+      // wearing the hat, which is the state asked for.
       const stillHere = await prisma.groupMember.count({
         where: { groupId: catchup.groupId, userId },
       });

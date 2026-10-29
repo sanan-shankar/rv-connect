@@ -3,6 +3,7 @@ import { pickCatchupPicture } from "./catchup-picture-pick";
 import { forgetImages } from "./image-record";
 import { delImage } from "./storage";
 import { chooseGroupSuccessor } from "./group-succession";
+import { CATCHUP_PEOPLE } from "./catchup-caps";
 import { photoStoredUrls } from "./collection-photo";
 import type { Prisma } from "@/generated/prisma/client";
 
@@ -38,10 +39,15 @@ type Db = Prisma.TransactionClient | typeof prisma;
  *
  * `Group.creatorId` is SetNull now (2026-08-21), so the group itself survives
  * the delete — but the member's own `GroupMember` row cascades away with them,
- * and if that row was the only admin the group is left with nobody able to
- * curate questions, pause a Catch-up or publish an Edition. Promoting the
- * longest-standing remaining member closes that, inside the purge transaction
- * so it can never half-happen.
+ * and if that row was the only Keeper the group is left with nobody able to
+ * curate questions or publish an Edition. Promoting the longest-standing
+ * remaining member closes that, inside the purge transaction so it can never
+ * half-happen.
+ *
+ * The same rule as leaving (bug audit 3, T2a-09 and T7a-07): only members who
+ * can act are read, through `CATCHUP_PEOPLE`, and the hat is written as
+ * "keeper". This path wrote "admin", which `setCatchupKeeper`'s revoke did not
+ * match, so a successor made here could never be relieved of it.
  */
 async function promoteOrphanedGroups(db: Db, userId: string): Promise<number> {
   const ownRoles = await db.groupMember.findMany({
@@ -55,7 +61,7 @@ async function promoteOrphanedGroups(db: Db, userId: string): Promise<number> {
   if (groupIds.length === 0) return 0;
 
   const members = await db.groupMember.findMany({
-    where: { groupId: { in: groupIds } },
+    where: { groupId: { in: groupIds }, user: CATCHUP_PEOPLE },
     select: { groupId: true, userId: true, role: true, joinedAt: true },
   });
 
@@ -75,7 +81,7 @@ async function promoteOrphanedGroups(db: Db, userId: string): Promise<number> {
     // to promote, and their own removal is somebody else's transaction.
     const done = await db.groupMember.updateMany({
       where: { groupId, userId: successor },
-      data: { role: "admin" },
+      data: { role: "keeper" },
     });
     promoted += done.count;
   }

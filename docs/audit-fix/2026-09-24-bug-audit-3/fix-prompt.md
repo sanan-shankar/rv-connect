@@ -70,15 +70,15 @@ the rest of the phase runs.
 
 | Phase | Status | Rows left | Blocked on |
 |---|---|---|---|
-| A — Trust: who counts as verified, and who may press what in a Catch-up | OPEN | 16 (1 H, 3 M, 12 L) | — |
+| A — Trust: who counts as verified, and who may press what in a Catch-up | PARTIAL | 10 (0 H, 3 M, 7 L) | — |
 | B — Privacy: what leaves the site, and what outlives a member | OPEN | 24 (1 H, 7 M, 16 L) | — |
-| O — Budgets: what one account or one script may spend of what everyone shares | OPEN | 12 (2 H, 9 M, 1 L) | — |
+| O — Budgets: what one account or one script may spend of what everyone shares | OPEN | 11 (2 H, 8 M, 1 L) | — |
 | E — The Collection | OPEN | 27 (3 H, 6 M, 18 L) | — |
 | F — Letters, the feed and the composer | OPEN | 26 (2 H, 6 M, 18 L) | — |
 | D — Alarms: the owner hears about every failure | OPEN | 23 (0 H, 10 M, 13 L) | — |
 | C — When something fails, the member sees the truth and can recover | OPEN | 20 (0 H, 10 M, 10 L) | — |
 | G — Sign-up, sign-in and the confirmation mail | OPEN | 23 (0 H, 10 M, 13 L) | — |
-| H — Catch-ups: answering, reading, and the words on the clock | OPEN | 34 (0 H, 12 M, 22 L) | — |
+| H — Catch-ups: answering, reading, and the words on the clock | OPEN | 33 (0 H, 12 M, 21 L) | — |
 | J — Support and payments | OPEN | 11 (0 H, 6 M, 5 L) | — |
 | I — Admin, moderation and the analytics room | OPEN | 43 (0 H, 3 M, 40 L) | — |
 | K — Text that breaks things: names, numbers, search, links | OPEN | 21 (0 H, 2 M, 19 L) | — |
@@ -512,3 +512,6 @@ evidence stays in `work/`; this ledger is the record of what the campaign did.
 - V-T2-01 — DONE (fix(catchups): the controls, the pickers and the hat wait for a verified member); folded into L10-01 as door 3. The home still draws the cycle rows, and a press below Stage 2 is refused with the gate's sentence, as Start and answering already were
 - T2a-03 — DONE (fix(catchups): the controls, the pickers and the hat wait for a verified member); the roster cap is counted inside a serializable write, and adding is metered on `catchups`
 - T3-22 — DONE (fix(catchups): the controls, the pickers and the hat wait for a verified member)
+- T2a-09 — DONE (fix(catchups): the hat passes only to someone who can act, always as keeper); with L10-01's succession half: both succession paths read only members a Catch-up may hold, and the purge writes keeper
+- T7a-07 — DONE (fix(catchups): the hat passes only to someone who can act, always as keeper)
+- T3-15 — DONE (fix(catchups): the hat passes only to someone who can act, always as keeper); the revoke takes "keeper" or "admin" from anyone but the creator

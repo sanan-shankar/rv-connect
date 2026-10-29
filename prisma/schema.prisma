@@ -564,7 +564,7 @@ model GroupMember {
   id       String   @id @default(cuid())
   groupId  String
   userId   String
-  role     String   @default("member") // "admin" | "member"
+  role     String   @default("member") // "keeper" | "member"; "admin" only on a Catch-up creator's own row (docs/spec/catchups.md 2.2)
   joinedAt DateTime @default(now())
 
   group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)

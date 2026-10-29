@@ -401,19 +401,16 @@ export function catchupSurfaceTitle(title: string | null | undefined, groupName:
 
 /**
  * Effective Keeper = the creator, anyone given the Keeper hat, or a group admin
- * (spec section 7).
+ * (spec section 2.2).
  *
- * The two accepted roles are NOT interchangeable, and the difference matters.
- * `"admin"` is the GROUP's admin role, and it is read outside this feature:
- * `deletePost` in `feed/actions.ts` lets a group admin delete anyone's post in
- * that group. So `setCatchupKeeper` writes `"keeper"` instead, which means
- * exactly "holds Keeper powers in this Catch-up" and nothing else. Handing
- * someone the Keeper hat must never quietly also hand them moderation over a
- * group's posts.
- *
- * `"admin"` stays accepted because it is what the spec's original rule says and
- * what existing rows (including every Catch-up creator's own membership row)
- * already carry. Read both; only ever write `"keeper"`.
+ * Two role strings, one meaning. `"keeper"` is what every path that hands the
+ * hat on writes: `setCatchupKeeper`, succession, the account purge and an
+ * admin's merge (bug audit 3, T7a-07). `"admin"` is what every Catch-up
+ * creator's own membership row has carried since creation. It was also the
+ * GROUP's moderation role once, read by a `deletePost` that let a group admin
+ * delete anyone's post in the group, which is why the two were kept apart;
+ * posts left groups on 2026-09-07, and nothing outside this feature reads the
+ * group role any more. Read both; only ever write `"keeper"`.
  */
 export function isEffectiveKeeper(opts: {
   viewerId: string | null | undefined;

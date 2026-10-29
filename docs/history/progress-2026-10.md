@@ -1,3 +1,44 @@
+## 2026-10-29 (catchups) — bug audit 3, unit A2: every Catch-up control waits for a verified member, and the hat passes only to someone who can act
+
+Eight rows, three commits. L10-01 (High, V-T2-01 folded in), T2a-03 and T3-22 are one change because
+they share the people doors. A signup joins its claimed batch's Catch-up before confirming anything,
+and every batch member runs the cycle, so an account that had proved nothing could remove the class's
+questions, open answering, extend it without bound or publish it early with a bell to everyone; a
+people Catch-up's end, remove and hat controls asked no stage either. All seven now call
+`requireVerifiedMember` (Stage 2) first, the gate Start, asking and answering already had. His Q13
+(a) keeps the join at signup: such an account reads its batch's Catch-up and presses nothing. The
+home still draws the cycle rows for it; a press is refused with the gate's own sentence, as Start
+already was.
+
+Who may be put in a Catch-up, or handed the hat, is one rule: `CATCHUP_PEOPLE` in `catchup-caps.ts`,
+an alumnus with a confirmed email and a verified profile, not blocked or leaving, never the Anonymous
+byline. Both pickers ask for it (`forCatchup=1`, renamed from `alumniOnly`, on the search and on the
+batch shortcut), and creation, adding and the hat's grant apply it. The roster's 100 is counted in a
+serializable write with the insert, and adding is metered on `catchups` (T2a-03). The People door no
+longer offers anyone already in, the Keeper included, and says when nothing changed (T3-22).
+
+L12-03 and V-T2-02: `loadMemberEdition` advanced an Edition before asking whether the caller was in
+its group, so anyone holding an Edition or answer id could move a stranger group's clock. It now
+reads, checks, then advances; a missing Edition and a closed door share one sentence; spec 3.4 lists
+the actions as the clock's fourth driver.
+
+T2a-09, T7a-07, T3-15 and L10-01's succession half: both succession paths read only members a
+Catch-up may hold, so the hat never lands on a blocked, leaving, teacher or unverified account, and a
+holder who can no longer act does not count. The purge and an admin's merge wrote the hat as "admin",
+which the revoke never matched; every writer now says "keeper" and the revoke takes either word from
+anyone but the creator. The docblocks defending the old split (a group admin moderating posts, gone
+since 2026-09-07) and the schema's role comment are corrected.
+
+Visible: the People door's add list and its lines "They are already in." and "Nobody by that name.
+Only verified members can be added.", the same second sentence on the create form, "Only a verified
+member can be a Keeper.", a full-roster refusal, and an unverified member's press refused with a
+toast. Verified live on a throwaway Catch-up holding only the test account, deleted after in one
+guarded statement: creation dropped the Anonymous id, adding refused it, ask, curate, open, extend,
+the hat, remove and end all ran, the serializable path ran, and no bell was written. The batch
+shortcut returned 37 of 2024's 44, every one proven. Each new pin was shown failing against its
+mutation; check green, visual 25/25, shots at 1440 and 390. Not run live: a full roster, a lost race,
+a real succession.
+
 ## 2026-10-29 (security) — bug audit 3, unit A1: only an email on the office list verifies, and an admin's removal sticks
 
 O-08 (High) and T7a-06 (Medium; T6-01 is its closed duplicate), one change because both live in
