@@ -50,6 +50,16 @@ screenshotted at desktop and 390x844.
 Every question carries the answer to take if he does not reply, so a silent owner never blocks the
 campaign for more than the batch he is asked in.
 
+**How a unit lands (2026-10-29, the campaign's own rule).** One worker per unit, units one after
+another. Each fix is its own commit: the code, the test that pins it, its ledger line(s) below, and,
+on the unit's last commit, the phase's "Rows left" on the board plus one line in `progress.md` and its
+entry in `docs/history/progress-2026-10.md` (one per unit, not one per row, as refactor audit 2 did).
+`fix-prompt.md`, `progress.md` and the month file are shared by every commit and by the peer session:
+before committing, `git diff` them, and if a hunk is not yours, stage only your own hunk
+(`git apply --cached` of a trimmed patch) and use a bare `git commit`, never a pathspec, for that one.
+A peer session is fixing Collection things in parallel (`55246d6a` closed most of T4b-05): check
+`git log` on every cited file before editing it.
+
 ## Campaign board
 
 Where the campaign is, in the order the phases run. **This is the resume anchor**: the next session reads
@@ -60,17 +70,17 @@ the rest of the phase runs.
 
 | Phase | Status | Rows left | Blocked on |
 |---|---|---|---|
-| A — Trust: who counts as verified, and who may press what in a Catch-up | OPEN | 17 (2 H, 3 M, 12 L) | Q13 (L10-01 only); Q15 (C3-01 only); Q16 (L12-09 only); Q19 (O-08 only) |
-| B — Privacy: what leaves the site, and what outlives a member | OPEN | 27 (1 H, 9 M, 17 L) | Q1 (T7a-01 only); Q10 (T7b-22, T7b-21 only); Q14 (L11-02 only) |
+| A — Trust: who counts as verified, and who may press what in a Catch-up | OPEN | 17 (2 H, 3 M, 12 L) | — |
+| B — Privacy: what leaves the site, and what outlives a member | OPEN | 24 (1 H, 7 M, 16 L) | — |
 | O — Budgets: what one account or one script may spend of what everyone shares | OPEN | 12 (2 H, 9 M, 1 L) | — |
-| E — The Collection | OPEN | 27 (3 H, 6 M, 18 L) | Q7 (T4a-01 only) |
-| F — Letters, the feed and the composer | OPEN | 26 (2 H, 6 M, 18 L) | Q17 (T8b-17 only) |
+| E — The Collection | OPEN | 27 (3 H, 6 M, 18 L) | — |
+| F — Letters, the feed and the composer | OPEN | 26 (2 H, 6 M, 18 L) | — |
 | D — Alarms: the owner hears about every failure | OPEN | 23 (0 H, 10 M, 13 L) | — |
 | C — When something fails, the member sees the truth and can recover | OPEN | 20 (0 H, 10 M, 10 L) | — |
-| G — Sign-up, sign-in and the confirmation mail | OPEN | 24 (0 H, 11 M, 13 L) | Q3 (T5-01, T6-06 only); Q4 (T5-14 only); Q18 (C5-03 only) |
-| H — Catch-ups: answering, reading, and the words on the clock | OPEN | 34 (0 H, 12 M, 22 L) | Q2 (T2a-07 only); Q6 (T2a-13, T2b-05 only); Q9 (T7b-15 only); Q11 (T3-17 only) |
-| J — Support and payments | OPEN | 11 (0 H, 6 M, 5 L) | Q8 (T8a-16 only) |
-| I — Admin, moderation and the analytics room | OPEN | 46 (0 H, 5 M, 41 L) | Q5 (T7a-08 only); Q12 (L10-05 only) |
+| G — Sign-up, sign-in and the confirmation mail | OPEN | 23 (0 H, 10 M, 13 L) | — |
+| H — Catch-ups: answering, reading, and the words on the clock | OPEN | 34 (0 H, 12 M, 22 L) | — |
+| J — Support and payments | OPEN | 11 (0 H, 6 M, 5 L) | — |
+| I — Admin, moderation and the analytics room | OPEN | 44 (0 H, 4 M, 40 L) | — |
 | K — Text that breaks things: names, numbers, search, links | OPEN | 21 (0 H, 2 M, 19 L) | — |
 | L — Platform, database, demo and scripts | OPEN | 46 (2 H, 1 M, 43 L) | — |
 | M — The hoopoe | OPEN | 11 (0 H, 2 M, 9 L) | — |
@@ -334,7 +344,47 @@ if the owner replies "go with your defaults".
 
 ## Owner answers
 
-(none yet)
+**2026-10-29, the owner's reply to Q1-Q29.** Questions he did not mention take their default. The
+reading below is what every worker follows; argue with the reading, not with a re-derivation.
+
+<details><summary>His reply, verbatim (the record)</summary>
+
+> 2b. 3 yeah add it make sure you every situation someone might use that. And there won't be any problems, you know, verifying the new account. Make sure we read the verification of the new account, we remove the old account. Verifying then the old account doesn't make a difference. All of those edge cases, make sure you consider, because this is a sensitive feature. And you can add those two controls beside the request your data and delete account, so they're not too intrusive. So maybe you first do change email, change password, and then request data, and then delete. Number four, I don't want to provide a contact address, which makes this tough. Maybe we could say, if this is a mistake, please ask a friend to reach out to us through the website. Something like that. I don't know. Yeah, you I can remove flags. 9b. 10 I don't want to lose any info I see in the admin panel. you can do a though. 12 leave as is. For 14, you should leave it as it is, but this, why are we saving unfinished uploads? Is there any utility in doing that? If not, then let's just stop. 17a. For 18, leave it as it is. I'll make it private, but not now. I'll do that later. Don't make any other changes. Yeah, I think your fix for number 19 sounds good, but you're saying you're refusing if someone has already claimed that person, but people can have the same first name and last name. So you shouldn't, like, what do you mean to refuse? You can just leave them for me to be manually verified. But yeah, otherwise the default is fine. Number 20, just leave it as it is. No one's reported. I don't think anyone's going to report. And I can deal with that on a case-by-case basis. 25c. 26c. 27b. 28 You can apply these changes when you need. You have my permission to do all of that, but just be very careful for 29. You have my permission to push. But push as few times as possible, because I don't like to push that often. I will do all of the other tasks you gave below, at the end, I won't do B C I and J. Because those don't need to be done. And L doesn't need to be done. The rest I will do at the end. After you're done.
+
+</details>
+
+| Q | Answer | The reading every worker follows |
+|---|---|---|
+| 1 | default (a) | Keep a departed member's reports, shown as filed by a member who has since left; a merge moves them to the survivor. (T7a-01) |
+| 2 | **(b)** | A Keeper cannot end a Catch-up while a round is collecting or answering; the End row says when it can be ended. No publish-first, no discard. (T2a-07) |
+| 3 | **(a), with his conditions** | Build "Change sign-in email" and "Change password" on the member's own profile, placed with the account controls in this order: change email, change password, download your data, delete my account. He called it a sensitive feature and set the bar: the new address takes effect only after a link sent to it is confirmed; once it is confirmed, the old address stops working for sign-in, and anything still in flight to the old address (a confirmation link, a reset link) does nothing; every edge case is considered (a pending change superseded by another, the new address already taken, an unconfirmed account, a link opened signed out or by another signed-in account, an expired link, sessions on other devices). The admin "correct their sign-in email" button and the fixed advice copy ship too. (T5-01, T6-06) |
+| 4 | **(a), no contact address** | A blocked member is told plainly the account is paused. He will not publish a contact address, so the sentence asks them, if they think it is a mistake, to have a friend on the site reach the team through the website. Something in that spirit, in the house voice. (T5-14) |
+| 5 | (a) | Remove the Flagged state; show "reported N times" instead. (T7a-08) |
+| 6 | default (b) | Hide blocked and leaving members from Catch-up lists, counts and reminders; Editions already sent stay as read. (T2a-13, T2b-05) |
+| 7 | default (a) | The post's Collection tick keeps the full-size original, like every other way in. (V-T4a-A, with T4a-01) |
+| 8 | default (a) | Photo wins; say so on the picker before the pick is spent. (T8a-16) |
+| 9 | **(b)** | Name the hour, India time ("closes 7 am Sunday, India time"), on every surface that names the deadline and in its reminders; clear stale reminders at the close. (T7b-15) |
+| 10 | **(a), keep the admin panel whole** | Mask anything showing a person from PostHog and end its identity at sign-out, but nothing he sees in the admin panel today may be lost: check every PostHog-sourced number the panel or the nightly snapshot shows still comes through. (T7b-22, T7b-21) |
+| 11 | default (a) | Bring back a Keeper-only "Copy invite link" on active people Catch-ups. (T3-17) |
+| 12 | **leave as is** | L10-05 DECLINED by the owner. |
+| 13 | default (a) | Controls wait for a confirmed email; enrolment at signup stays. (L10-01) |
+| 14 | **(c), but stop keeping unfinished uploads** | Backup retention and the privacy page's backup sentence stay as they are. His question, "why are we saving unfinished uploads?", has the answer "no reason": `staging/` holds only uploads in flight or abandoned, so the nightly media sync stops copying it, and the in-app clean-up of abandoned staged uploads (T4a-03) goes ahead. The 330 staged originals already in the backup are left alone unless he says otherwise. (L11-02 shrinks to the sync exclusion.) |
+| 15 | default (a) | Zero answers: refuse with "Nobody has answered yet" and offer three more days. (C3-01) |
+| 16 | default (a) | Removal rotates the invite link; only Keepers' pages carry it. (L12-09) |
+| 17 | **(a)** | "Edit" on a published letter opens the full letter desk; every dialog also fits the screen and scrolls. (T8b-17) |
+| 18 | **leave as is** | C5-03 DECLINED: he will make the repository private later, himself. No change to the gate's questions, answers, judge or the privacy wording. Other trivia rows (C4-01, C7b-01 to C7b-03) are separate bugs and proceed without touching the questions or answers. |
+| 19 | **(a), but never refuse** | Auto-verify on an email match only; a name and batch-year match goes to his verify queue with the office-list row beside it. Never refuse because another account already matched that person (names repeat): queue it and show the other match as information. Record the matched row and audit every automatic verification. (O-08) |
+| 20 | **leave as is** | C8-02 and C8-03 DECLINED: he handles takedowns case by case. |
+| 21 | default (a) | What nobody has read leaves with the person; what was sent out stays. (C8-04, C8-08, T7a-04, C8-09) |
+| 22 | default (a) | A deletion-pending member's writing is hidden for the 60 days, back if they cancel. (L10-02) |
+| 23 | default (a) | A batch-year correction moves the member's own class photos with them. (C8-05) |
+| 24 | default (a) | The export carries everything the site keeps about the member. (T6-03) |
+| 25 | **(c)** | T8b-09 DECLINED: the front page stays as it is. |
+| 26 | **(c)** | C8-01 DECLINED. |
+| 27 | **(b)** | The presence beat goes to every 3 minutes; keep everything the analytics room derives from it honest at that cadence. (L5-01) |
+| 28 | **(a), be very careful** | Additive schema changes and the two named data fixes (re-point the 22 bells, delete the one blank answer) are authorised, each in a dated idempotent file in `prisma/migrations-manual/`, applied to production and the demo. Nothing that drops a table or column or deletes member content. |
+| 29 | **push permitted, as few times as possible** | Push twice: once when phases A and B are done (the two live holes close), once at the very end. A third only if the campaign runs for days and something urgent lands. Never push code before every migration it needs is applied to both databases; `npm run check` (and `npm run visual` for UI) green first. |
+| checks | he does A, D, E, F, G, H, K at the end | B, C, I, J and L are not needed. The closing report must spell out D (the firewall rule) and G (the lifecycle rule) exactly. |
 
 ## The order to work in
 
@@ -447,3 +497,10 @@ Last, one pass. Comment and doc lies are fixed by making the comment true, not b
 
 One line per row as it lands: `<id> — DONE <sha> | DECLINED (why) | PARKED (why)`. A row's verdict-corrected
 evidence stays in `work/`; this ledger is the record of what the campaign did.
+
+- L10-05 — DECLINED (owner, Q12, 2026-10-29: leave Jerry as is)
+- C5-03 — DECLINED (owner, Q18, 2026-10-29: he will make the repository private later; no change to the gate)
+- C8-02 — DECLINED (owner, Q20, 2026-10-29: takedowns case by case)
+- C8-03 — DECLINED (owner, Q20, 2026-10-29: takedowns case by case)
+- T8b-09 — DECLINED (owner, Q25c, 2026-10-29: the front page stays as it is)
+- C8-01 — DECLINED (owner, Q26c, 2026-10-29)
