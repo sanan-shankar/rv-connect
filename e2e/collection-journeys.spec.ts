@@ -239,6 +239,13 @@ test.describe("the Collection survives being used", () => {
     await chooseOrder(page, "Year taken");
     const years = await offeredYears(page);
     test.skip(years.length < 2, "this archive has fewer than two years to travel between");
+    /* A budget per year rather than the file's flat 90s, because the loop
+       grows with the live archive. Each pass is an order change and a seek,
+       two round trips to the database: about 5s together on the dev server
+       (2026-10-29), when the archive offered 25 years. That is two minutes of
+       loop, so the test ran out of time partway through and failed on
+       whichever year it had reached, though every year landed. */
+    test.setTimeout(30_000 + years.length * RIVER_ARRIVES);
 
     for (const year of years) {
       await chooseOrder(page, "Recently added");
@@ -260,7 +267,11 @@ test.describe("the Collection survives being used", () => {
               const top = Math.round(h.getBoundingClientRect().top);
               return Math.abs(top - 24) <= 8 ? "landed" : `at ${top}`;
             }, year),
-          { message: `pressing ${year} did not put ${year} at the top of the river` }
+          {
+            message: `pressing ${year} did not put ${year} at the top of the river`,
+            // A seek is a river arriving, like an order change: same budget.
+            timeout: RIVER_ARRIVES,
+          }
         )
         .toBe("landed");
 

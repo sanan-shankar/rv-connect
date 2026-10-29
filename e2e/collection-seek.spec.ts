@@ -138,13 +138,23 @@ test("pressing a year travels there, and leaves the rest of the river in place",
   await expect(page.locator('h2[data-band="1953"]')).toBeVisible();
 
   /* ...and so are years on BOTH sides of it, which is the difference
-     between a seek and a filter. A filter would leave exactly one. */
-  const bands = await page.locator("h2[data-band]").evaluateAll((hs) =>
-    hs.map((h) => (h as HTMLElement).dataset.band ?? ""),
-  );
-  expect(bands.length).toBeGreaterThan(1);
-  expect(bands).toContain("1940"); // older than the one pressed
-  expect(bands.some((b) => /^\d{4}$/.test(b) && Number(b) > 1953)).toBeTruthy(); // and newer
+     between a seek and a filter. A filter would leave exactly one.
+
+     Waited for, not read once. The seek's window STARTS at 1953; the years
+     above arrive a beat later, when the climb sentinel at the river's head
+     fires on the landing, off screen above the reader. Measured 2026-10-29:
+     33ms between the two at full speed, 236ms with the CPU slowed six times,
+     and a full e2e run read inside that gap and failed. */
+  const bands = () =>
+    page.locator("h2[data-band]").evaluateAll((hs) =>
+      hs.map((h) => (h as HTMLElement).dataset.band ?? ""),
+    );
+  await expect
+    .poll(async () => (await bands()).some((b) => /^\d{4}$/.test(b) && Number(b) > 1953), {
+      message: "no year newer than 1953 arrived above it",
+    })
+    .toBeTruthy();
+  expect(await bands()).toContain("1940"); // and older than the one pressed
 
   /* The rail says where the reader now is, and it is a fact read off the
      page rather than the filter they set. Read with the pointer taken away,
@@ -270,9 +280,15 @@ async function walkTheRail(page: import("@playwright/test").Page, dir: "down" | 
   const seen: string[] = [];
   for (let dy = from; dir === "down" ? dy < to : dy > to; dy += step) {
     await page.mouse.move(x, box.y + dy);
+    /* Which decade the rail OPENED, read off the state rather than the
+       paint: a hidden row is `pointer-events: none` from the same render
+       that hides it. Opacity was the old reading, and it is mid-fade here --
+       a decade stays open for three steps of this walk, and its years reach
+       only about 0.5 in that time (measured 2026-10-29), so a loaded machine
+       missed the 1940s outright. Painting is the half-drawn test's question. */
     const open = await rail(page).evaluate((nav) => {
       const years = [...nav.querySelectorAll("button")]
-        .filter((r) => Number(getComputedStyle(r).opacity) > 0.5)
+        .filter((r) => getComputedStyle(r).pointerEvents !== "none")
         .map((r) => r.getAttribute("aria-label") ?? "")
         .filter((l) => /^\d{4}$/.test(l));
       return years.length ? `${Math.floor(Number(years[0]) / 10) * 10}s` : "";

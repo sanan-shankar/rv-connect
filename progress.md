@@ -15,6 +15,7 @@ if the month is new), and add one line here, at the top of that month's list.
 
 ## October 2026 — [full entries](docs/history/progress-2026-10.md)
 
+- 2026-10-29 (e2e) — two Collection specs stop failing on a busy machine
 - 2026-10-29 (visual) — the desktop suite stops depending on whether a mouse is plugged in
 - 2026-10-29 (profile) — the dark mode tile just says "Experimental"
 - 2026-10-29 (collection) — a class link sends a member with no class to the Valley Collection

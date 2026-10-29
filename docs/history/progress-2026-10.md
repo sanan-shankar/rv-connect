@@ -1,3 +1,18 @@
+## 2026-10-29 (e2e) — two Collection specs stop failing on a busy machine
+
+"Every year the rail offers lands on that year, lit" ran out of its 90s on every run. It presses
+every year of the live archive, which now offers 25, at about 5s a year (an order change and a
+seek). Timed one by one, all 25 landed in 1.6 to 2.6s. Its budget is now per year, and the landing
+poll takes the file's 15s river budget instead of the 5s default.
+
+Two reads in `collection-seek.spec.ts` sampled too early. After a seek the window starts at 1953
+and the years above arrive when the climb sentinel fires: 33ms later at full speed, 236ms with the
+CPU slowed six times. The "newer year" check now waits for them. The decade walk read opacity, but
+a decade stays open for three steps of the walk and fades to only about 0.5, the test's own
+threshold, in that time. It now reads `pointer-events`, which the same render sets. That skip did
+not reproduce in 16 throttled walks; the margin is what was measured. The file passed 31/31 over
+three repeats, and `npm run test:e2e` passed 65 with 14 phone skips.
+
 ## 2026-10-29 (visual) — the desktop suite stops depending on whether a mouse is plugged in
 
 Every desktop route had been red since 10-23: content column 1177 against 1192, everything centred
