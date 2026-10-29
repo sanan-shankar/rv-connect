@@ -423,7 +423,11 @@ async function loadHome(catchupId: string, viewerId: string): Promise<CatchupHom
 
   const data: CatchupHomeData = {
     catchupId: catchup.id,
-    inviteToken: catchup.inviteToken,
+    /* A bearer token: whoever holds it can join. It rode in every member's
+       page data, so a member a Keeper removed still had it (bug audit 3,
+       L12-09). Only a Keeper can share it, and an ended Catch-up refuses a
+       join, so nobody else is sent it. A batch Catch-up has none. */
+    inviteToken: isKeeper && catchup.status !== "ended" ? catchup.inviteToken : null,
     groupId: catchup.groupId,
     groupName: catchup.group.name,
     title: catchupDisplayName(catchup.title, catchup.group.name),

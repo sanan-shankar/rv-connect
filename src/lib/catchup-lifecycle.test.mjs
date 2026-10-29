@@ -272,6 +272,52 @@ test("C3-01 and T3-06: the settings surface offers more time, and never shows an
   assert.match(copy, /title: "Nobody has answered yet"/);
 });
 
+test("L12-09: a removal changes the invite link, in the same transaction, and only when it removed someone", () => {
+  /* The link was minted once and never changed, and every member's page
+     carried it, so a removed member could press Join on their old copy and be
+     straight back in. His Q16: the removal sticks. */
+  const src = decomment(read("src/app/(main)/catchups/actions.ts"));
+  const fn = balancedBody(src, "export async function removeCatchupMember");
+  assert.ok(fn, "removeCatchupMember is gone; this pin is reading nothing");
+  const at = (needle) => fn.indexOf(needle);
+  const order = [
+    "prisma.$transaction(",
+    "tx.groupMember.deleteMany(",
+    "if (gone.count === 0) return gone;",
+    "inviteToken: newInviteToken()",
+    "tx.catchupPref.deleteMany(",
+    "if (removed.count === 0)",
+  ];
+  for (const needle of order) assert.ok(at(needle) > -1, `removeCatchupMember lost ${needle}`);
+  for (let i = 1; i < order.length; i += 1) {
+    assert.ok(at(order[i - 1]) < at(order[i]), `${order[i - 1]} no longer comes before ${order[i]}`);
+  }
+  // Rotated through the transaction, never beside it.
+  assert.doesNotMatch(fn, /prisma\.catchup\.update(Many)?\(/, "the link is changed outside the removal's transaction");
+});
+
+test("L12-09: only a Keeper's page carries the invite link", () => {
+  const page = decomment(read("src/app/(main)/catchups/[catchupId]/(home)/page.tsx"));
+  const sets = [...page.matchAll(/inviteToken:\s*([^,\n]+)/g)].map((m) => m[1].trim());
+  assert.equal(sets.length, 1, "the home's view model sets the invite link more than once, or not at all");
+  assert.match(sets[0], /^isKeeper && .*\? catchup\.inviteToken : null$/, "the invite link goes to every member's browser again");
+});
+
+test("T2a-10: removing someone takes their filing, as leaving does", () => {
+  /* The spec says removal "does the same" as leaving, and leaving drops the
+     pref row; removal kept it, so a member re-added by link found the
+     Catch-up under Archived. Both exits now clear it. */
+  const src = decomment(read("src/app/(main)/catchups/actions.ts"));
+  for (const [name, who] of [["removeCatchupMember", "userId"], ["leaveCatchup", "userId: viewerId"]]) {
+    const fn = balancedBody(src, `export async function ${name}`);
+    assert.ok(fn, `${name} is gone; this pin is reading nothing`);
+    assert.ok(
+      fn.includes(`catchupPref.deleteMany({ where: { catchupId, ${who} } })`),
+      `${name} no longer deletes the member's pref row`
+    );
+  }
+});
+
 test("T2a-03: the roster holds MAX_CATCHUP_PEOPLE, counted inside the write that adds to it", () => {
   /* The bound was on one request's list, and the People door sends one id
      per request, so a Keeper could keep adding past a hundred and every bell

@@ -79,8 +79,10 @@ export type HomeEditionView = {
 
 export type CatchupHomeData = {
   catchupId: string;
-  /** The shareable invite token. Null only for a row written before the column
-   *  existed; the Keeper's invite card is simply absent in that case. */
+  /** The shareable invite token, on a Keeper's page only, and only while the
+   *  Catch-up is not ended (bug audit 3, L12-09): it is a bearer token, and a
+   *  removal changes it. Null for everyone else, on a batch Catch-up, and on
+   *  a row written before the column existed. */
   inviteToken: string | null;
   groupId: string;
   groupName: string;

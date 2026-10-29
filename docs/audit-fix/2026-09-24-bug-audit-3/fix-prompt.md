@@ -517,3 +517,5 @@ evidence stays in `work/`; this ledger is the record of what the campaign did.
 - T3-15 — DONE (fix(catchups): the hat passes only to someone who can act, always as keeper); the revoke takes "keeper" or "admin" from anyone but the creator
 - C3-01 — DONE (fix(catchups): an early close with no answers offers more time, and an extension adds once); Q15 (a): a press with no answers writes nothing and offers three more days from the deadline, ringing nobody; the clock's own zero-answer extension at the deadline is unchanged
 - T3-06 — DONE (fix(catchups): an early close with no answers offers more time, and an extension adds once); no ceiling on total extension, which the verdict left as an owner call nobody asked
+- L12-09 — DONE (fix(catchups): removing someone changes the invite link, and clears their filing); Q16 (a): a new token inside the removal's transaction; only a Keeper's page, and not an ended one, carries it
+- T2a-10 — DONE (fix(catchups): removing someone changes the invite link, and clears their filing)

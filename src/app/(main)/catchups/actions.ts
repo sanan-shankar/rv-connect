@@ -595,7 +595,9 @@ export async function createCatchupWithPeople(input: {
  * The token is the whole authorisation: holding it is the invitation, the same
  * way holding a WhatsApp group link is. So there is nothing to check against
  * the caller beyond being signed in, and nothing here reads a client-supplied
- * catchupId: the token resolves to exactly one Catch-up or to nothing.
+ * catchupId: the token resolves to exactly one Catch-up or to nothing. Which
+ * is why a Keeper's removal changes it (`removeCatchupMember`, L12-09), as
+ * WhatsApp's own "Reset link" does: a removed member's copy stops resolving.
  *
  * Idempotent. Following the same link twice, or landing on it as an existing
  * member, is a no-op that still returns the id, because the honest response to
@@ -2255,6 +2257,14 @@ export async function addCatchupMembers(catchupId: string, userIds: string[]) {
  * their notifications. Re-adding restores both, which is why this is safe to
  * offer mid-cycle.
  *
+ * IT STICKS (bug audit 3, L12-09; his Q16, 2026-10-29). The invite link was
+ * never changed, and every member's page carried it, so a removed member could
+ * open their old copy, press Join and be straight back in. The removal now
+ * changes the link in the same transaction, so every copy already out stops
+ * working (anyone the Keeper still wants needs the new one), and only a
+ * Keeper's page carries it. Their pref row goes too, as when they leave: a
+ * member who comes back should not find it filed under Archived (T2a-10).
+ *
  * The Catch-up's creator cannot be removed (they are its permanent Keeper),
  * and a Keeper cannot remove themselves: leaving is a different action, and one
  * misfire here would leave a Catch-up with nobody able to tend it.
@@ -2284,7 +2294,16 @@ export async function removeCatchupMember(catchupId: string, userId: string) {
       // and on a Catch-up with no creator left that could be the last one
       // (audit C-023).
       await promoteGroupSuccessor(tx, catchup.groupId, userId);
-      return tx.groupMember.deleteMany({ where: { groupId: catchup.groupId, userId } });
+      const gone = await tx.groupMember.deleteMany({ where: { groupId: catchup.groupId, userId } });
+      if (gone.count === 0) return gone;
+      // A new link, so the copy they hold stops working (L12-09). A row with
+      // no link keeps none rather than gaining one.
+      await tx.catchup.updateMany({
+        where: { id: catchupId, inviteToken: { not: null } },
+        data: { inviteToken: newInviteToken() },
+      });
+      await tx.catchupPref.deleteMany({ where: { catchupId, userId } });
+      return gone;
     });
     if (removed.count === 0) return { error: "They are not in this Catch-up." };
 

@@ -272,7 +272,7 @@ Catch-up has ended; "idle" means refused while nothing is running (§3.5).
 | `endCatchup` | Keeper | refused | verified; off on the demo |
 | `setCatchupPicture` | Keeper | any member | pool or own upload only |
 | `addCatchupMembers` | Keeper, not ended; the roster holds 100 at most, counted in the write | refused | verified, rate-limited (`catchups`) |
-| `removeCatchupMember` | Keeper; not yourself, not the creator | refused | verified |
+| `removeCatchupMember` | Keeper; not yourself, not the creator; changes the invite link | refused | verified |
 | `setCatchupKeeper` | Keeper; not on the creator; only to somebody a Catch-up may hold | refused | verified |
 | `leaveCatchup` | any member but the creator | refused | off on the demo |
 | `setCatchupArchived` | any member | same (the only exit) | off on the demo |
@@ -307,7 +307,12 @@ The thirty-day "Recently deleted" bin, `setCatchupDeleted`, its nightly sweep an
 `restoreOwnCatchupCopy` were all deleted in build phase 5. `CatchupReminderPref.deletedAt` is unread
 and waits for its drop (§16).
 
-**Removing** someone (`removeCatchupMember`) does the same to them, by a Keeper.
+**Removing** someone (`removeCatchupMember`) does the same to them, by a Keeper: membership, pref row
+and notifications go (the pref row stayed until 2026-10-29, so a member re-added by link found the
+Catch-up under Archived; bug audit 3, T2a-10). **It also changes the invite link**, in the same
+transaction, so every copy already out stops working, the removed member's included; anyone the
+Keeper still wants needs the new one (his Q16, 2026-10-29; L12-09: the link never changed and rode in
+every member's page data, so a removed member could walk straight back in).
 
 **Archiving** (`setCatchupArchived`) is personal filing: `CatchupPref.archivedAt` on your own row.
 You stay a member and still get every notification (muting is the Reminders setting). An archived
@@ -436,6 +441,9 @@ Outside `(main)` and public in `src/proxy.ts`, because the person following it m
 Signed in and not a member: an invitation with Join. Already a member: straight in. Signed out: the
 same invitation with sign in and sign up, both carrying `?next=` back to the link. A stranger sees the
 name, who keeps it and how many are in it; nothing anyone wrote.
+
+The token is a bearer token, so only a Keeper's page carries it, and not once the Catch-up has ended
+(the home's view model; until 2026-10-29 every member's page did). A removal mints a new one (§5).
 
 ### 7.7 Holding screens
 
