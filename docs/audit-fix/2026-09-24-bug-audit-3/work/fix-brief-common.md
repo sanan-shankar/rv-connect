@@ -51,6 +51,36 @@ the row: if a finding does not hold at today's code, do not fix it; write its le
 - Scratch files go in `/tmp` and are deleted by the command that made them. Never add a file to the
   repository root.
 
+## Running beside other workers (from 2026-10-29: three tracks at once)
+
+Up to two other workers commit in this checkout while you work, each on files of its own. Four rules
+keep that safe:
+
+1. **Your files are yours alone.** Edit only what your unit names or plainly needs. If you must touch a
+   file your brief says another track owns, stop and report instead of editing it.
+2. **The shared files are behind one lock.** `fix-prompt.md`, `progress.md`,
+   `docs/history/progress-2026-10.md`, `prisma/schema.prisma` and anything in `prisma/migrations-manual/`
+   are edited only while you hold it, and you commit before you let go:
+   ```
+   until mkdir /tmp/rv-ba3-docs.lock 2>/dev/null; do sleep 5; done    # take it
+   # ...edit the shared file(s), git add <new files>, git commit -F - -- <paths>...
+   rmdir /tmp/rv-ba3-docs.lock                                          # give it back
+   ```
+   Prepare your text first so you hold it for seconds (a schema change holds it from the schema edit
+   to its commit). Under the lock, re-read the board and change only your own phase's row. Never stop
+   with it held; if it has been held for more than 20 minutes, say so in your report rather than
+   removing it.
+3. **The gates take turns.** Before `npm run check`:
+   `while [ -d /tmp/rv-ba3-visual.lock ] || pgrep -f playwright >/dev/null; do sleep 10; done`.
+   For `npm run visual`: `until mkdir /tmp/rv-ba3-visual.lock 2>/dev/null; do sleep 10; done;
+   while pgrep -f "scripts/qa/check.mjs" >/dev/null; do sleep 5; done`, run it, then
+   `rmdir /tmp/rv-ba3-visual.lock`.
+4. **Another worker's half-finished file can turn the gate red.** If `npm run check` fails only in
+   files you did not touch, confirm your own are clean (`npx tsc --noEmit` filtered to your files,
+   `npx eslint <your files>`, `node --test <your tests>`), wait a few minutes, re-run once, and if it is
+   still red only there, commit and say so in your report. Keep your own edits compiling at every step
+   so you never do this to them.
+
 ## Live data
 
 - One Supabase database serves production and the dev server (`http://localhost:3000`, already
