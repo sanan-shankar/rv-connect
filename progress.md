@@ -15,6 +15,7 @@ if the month is new), and add one line here, at the top of that month's list.
 
 ## October 2026 — [full entries](docs/history/progress-2026-10.md)
 
+- 2026-10-29 (scripts) — bug audit 3, unit L1: the laptop scripts open the database verified and in UTC, and stop writing to real members
 - 2026-10-29 (catchups) — bug audit 3, unit A3: an early close offers more time, a removal sticks, the invite link is back, and End waits for the Edition
 - 2026-10-29 (security) — bug audit 3, unit B1: a Sentry report leaves without the member's cookie, location or searches, and the demo reports nothing
 - 2026-10-29 (catchups) — bug audit 3, unit A2: every Catch-up control waits for a verified member, and the hat passes only to someone who can act

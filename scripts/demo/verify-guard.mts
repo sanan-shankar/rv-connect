@@ -14,7 +14,7 @@
  * Runs against the demo database only, and cleans up after itself.
  */
 
-import { readEnv } from "../dev/_env.mjs";
+import { readEnv, carriesDemoRef } from "../dev/_env.mjs";
 
 /* Env first, before anything constructs a client.
    `readEnv` and an explicit assignment, NOT `loadEnv`: loadEnv refuses to
@@ -24,6 +24,13 @@ import { readEnv } from "../dev/_env.mjs";
    to whatever it names. */
 for (const [k, v] of Object.entries(readEnv([".env.demo"]))) process.env[k] = v;
 
+/* The destination first: DEMO_MODE is a line in the same file that holds the
+   URL, so on its own it proves nothing about where the writes go (bug audit 3,
+   C1-05). */
+if (!carriesDemoRef(process.env.DATABASE_URL)) {
+  console.error("Refusing to run: the DATABASE_URL in .env.demo does not name the demo project");
+  process.exit(1);
+}
 if (process.env.DEMO_MODE !== "1") {
   console.error("Refusing to run: .env.demo does not set DEMO_MODE=1");
   process.exit(1);

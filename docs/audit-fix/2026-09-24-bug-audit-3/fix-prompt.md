@@ -78,11 +78,11 @@ the rest of the phase runs.
 | D — Alarms: the owner hears about every failure | OPEN | 23 (0 H, 10 M, 13 L) | — |
 | C — When something fails, the member sees the truth and can recover | OPEN | 20 (0 H, 10 M, 10 L) | — |
 | G — Sign-up, sign-in and the confirmation mail | OPEN | 23 (0 H, 10 M, 13 L) | — |
-| H — Catch-ups: answering, reading, and the words on the clock | PARTIAL | 31 (0 H, 10 M, 21 L) | — |
+| H — Catch-ups: answering, reading, and the words on the clock | PARTIAL | 28 (0 H, 9 M, 19 L) | — |
 | J — Support and payments | OPEN | 11 (0 H, 6 M, 5 L) | — |
 | I — Admin, moderation and the analytics room | OPEN | 43 (0 H, 3 M, 40 L) | — |
 | K — Text that breaks things: names, numbers, search, links | OPEN | 21 (0 H, 2 M, 19 L) | — |
-| L — Platform, database, demo and scripts | OPEN | 46 (2 H, 1 M, 43 L) | — |
+| L — Platform, database, demo and scripts | PARTIAL | 40 (2 H, 1 M, 37 L) | — |
 | M — The hoopoe | OPEN | 11 (0 H, 2 M, 9 L) | — |
 | N — Feel and truth: presses, taps, comments and docs that lie | OPEN | 14 (0 H, 0 M, 14 L) | — |
 
@@ -531,3 +531,4 @@ evidence stays in `work/`; this ledger is the record of what the campaign did.
 - C1-02 — DONE (fix(qa): the phase 3 probe comments on its own post and takes back the bells it causes); the comment lands on a post the probe makes, authored by stage2 so nobody is rung; the cleanup deletes the admins' bells and audit rows that name a probe account; a name match is now expected to queue as pending with a roster.queue row (since 4c97fdd0); never run
 - C1-03 — DONE (fix(qa): the phase 7 probe checks today's one-report-per-post rule, on a post of its own); a second open report of one post by the same member must be refused and another member's accepted; the post is a draft letter the probe makes, so no real row reaches the desk; never run
 - C1-01 — DONE (fix(qa): the dev-login secret goes nowhere but this machine); the loopback check sits in fetchSessionCookie before the secret is read, so devLogin, devLoginContext and screenshot:auth cannot opt out; the probe kit's credLogin (its devBypass is the secret) and phase4-prod-check refuse the same way; README corrected. Not taken: a Host check in /api/dev-login (src/app/api, outside this unit) and binding next dev to loopback (the LAN origins are allowed on purpose)
+- C1-05 — DONE (fix(demo): the seed refuses any database but the demo, and the force flag waives none of that); the URL must name the demo project and the database must hold only the demo's cast (no address outside @demo.invalid, at most twice the cast), neither waivable; verify-guard checks the ref too, and apply-schema uses the one copy of it; today's demo passes (40 accounts, none outside); never run

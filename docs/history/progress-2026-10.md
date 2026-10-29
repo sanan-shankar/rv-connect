@@ -1,3 +1,50 @@
+## 2026-10-29 (scripts) — bug audit 3, unit L1: the laptop scripts open the database verified and in UTC, and stop writing to real members
+
+Nine rows, nine commits, all in `scripts/`. None was proved by running the script it fixes: the
+probes write to real members, the seed wipes whatever it reaches, and the export reads all of
+production. Every new pin fails against the old code.
+
+VOL1-01 and L3-02, the opener. `scripts/dev/_pg.mjs` is now the only place a script gets a raw `pg`
+client, and `raw-pg.test.mjs` fails one built anywhere else. Eleven scripts, run-sql.mjs among them,
+accepted any certificate; every client now verifies Supabase's pinned root, and `db-tls-rule` no
+longer accepts a bare `ssl:`. The opener also reads `timestamp` and `date` columns in UTC and sends
+Dates in UTC, as Prisma does. The Catch-ups export had written every date 5 h 30 m early from India
+and an hour early from London, and run-sql printed them that way; under an Indian clock it now
+prints a row's `createdAt` exactly as the row's own text reads. The five exports on disk are
+gitignored and were not re-taken: each folder holds `TIMESTAMPS-ARE-SHIFTED.txt` with its measured
+offset (the four September ones five and a half hours, October's one). The gitignored anon-cleanup
+undo file was moved forward 5 h 30 m, measured against its own redate record. bugs.md item 6 is
+closed for scripts. run-sql was proved against production and the demo right after the switch; it
+now also prints Node's MODULE_TYPELESS_PACKAGE_JSON warning on stderr, once a run, as every script
+importing a src/lib .ts file does.
+
+T2b-03 and T2b-08, the export. Recordings never copied, for want of an `audio/` folder, while the
+JSON named them; each file's folder is now made where it is written, and a recording that did not
+arrive is `file: null`. `bytesFor` reads the bucket's own urls through its S3 endpoint when given
+the script's env (the export, the photo picker and the dimensions backfill pass it) and gives
+anything over HTTP thirty seconds. One live thumbnail read proved the S3 route.
+
+V-T7a-03, C1-02 and C1-03, the probes. Five deleted from the dropped "Session" table, three without
+a catch, which stranded confirmed probe accounts; those lines are gone, phase 6 removes its sign-in
+attempts by a column that exists, and every run's cleanup sits in a `finally` (bodies re-indented,
+every template literal byte-identical). Phase 3 comments on a post of its own instead of a real
+member's, deletes the admins' bells and audit rows naming its accounts, and expects an office-list
+name match to queue as pending. Phase 7 expects a second open report of one post by the same member
+to be refused, on a draft letter it makes. `probe-cleanup.test.mjs` reads the migrations for every
+dropped table and fails any script still naming one.
+
+C1-01. `fetchSessionCookie` refuses a non-loopback origin before it reads the dev-login secret, so
+`screenshot:auth <url>` cannot post it to another site; the probe kit's bypass and phase4-prod-check
+refuse the same way.
+
+C1-05. The demo seed checks its destination, and nothing waives it: the URL must name the demo
+project, and the database must hold only the demo's cast (no address outside @demo.invalid, at most
+twice the cast). Today's demo passes, 40 accounts and none outside. verify-guard checks the ref too,
+and apply-schema uses the one copy of it.
+
+Nothing in the app changes. Not done: a Host check in /api/dev-login, and binding `next dev` to
+loopback, both outside these files.
+
 ## 2026-10-29 (catchups) — bug audit 3, unit A3: an early close offers more time, a removal sticks, the invite link is back, and End waits for the Edition
 
 Six rows, four commits, all in a Catch-up's Settings and People doors.

@@ -21,9 +21,7 @@
 
 import { readFileSync } from "node:fs";
 import { pgClient } from "../dev/_pg.mjs";
-import { readEnv } from "../dev/_env.mjs";
-
-const EXPECTED_REF = "cbvlzptghkuxhygyaezq";
+import { readEnv, carriesDemoRef } from "../dev/_env.mjs";
 
 const sqlPath = process.argv[2];
 if (!sqlPath) {
@@ -42,10 +40,10 @@ if (!dsn) {
 }
 
 // Assertion 1: the connection string names the demo project and nothing else.
-if (!dsn.includes(EXPECTED_REF)) {
+if (!carriesDemoRef(dsn)) {
   console.error(
-    `Refusing to run: DIRECT_URL does not mention the demo project ref\n` +
-      `${EXPECTED_REF}. This script only ever touches the demo database.`,
+    `Refusing to run: DIRECT_URL does not mention the demo project's ref.\n` +
+      `This script only ever touches the demo database.`,
   );
   process.exit(1);
 }

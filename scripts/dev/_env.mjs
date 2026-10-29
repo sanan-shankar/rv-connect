@@ -82,7 +82,7 @@ export function databaseUrl(envFile = ".env") {
     console.error(`No DIRECT_URL or DATABASE_URL found in ${envFile}`);
     process.exit(1);
   }
-  if (envFile.includes("demo") && !url.includes(DEMO_REF)) {
+  if (envFile.includes("demo") && !carriesDemoRef(url)) {
     console.error(
       `refusing: ${envFile} was asked for, but the connection host does not carry the demo ref ${DEMO_REF}`
     );
@@ -92,8 +92,38 @@ export function databaseUrl(envFile = ".env") {
 }
 
 /** The demo Supabase project's ref, as it appears in that project's connection
- *  host. The one copy; it used to be seven. */
+ *  host. The one copy; it used to be eight. */
 const DEMO_REF = "cbvlzptghkuxhygyaezq";
+
+/** True when a connection string names the demo project. The check
+ *  `databaseUrl` makes for .env.demo, exported so scripts/demo, which reads
+ *  its own env, makes the same one.
+ *  @param {string | undefined} url */
+export function carriesDemoRef(url) {
+  return typeof url === "string" && url.includes(DEMO_REF);
+}
+
+/**
+ * Why a database must not be wiped as the demo, or null when it may be.
+ *
+ * A check on what the database HOLDS, which no env file can fake. The demo
+ * holds its own cast, every address ending @demo.invalid; production holds
+ * real members. A `.env.demo` that names production in a form the ref check
+ * misses would otherwise have reached scripts/demo/seed-demo.mts's wipe with
+ * nothing to stop it but an unrelated foreign key (bug audit 3, C1-05). Twice
+ * the cast leaves room for a cast that shrank since the last seed, and is
+ * still a fraction of the real membership.
+ * @param {{ users: number, outsiders: number, cast: number }} held
+ *   accounts, accounts not @demo.invalid, and the seed's cast size
+ * @returns {string | null}
+ */
+export function demoWipeRefusal({ users, outsiders, cast }) {
+  if (outsiders > 0) {
+    return `it holds ${outsiders} account(s) whose address is not @demo.invalid, and the demo holds only its own cast`;
+  }
+  if (users > cast * 2) return `it holds ${users} accounts, and the demo's cast is ${cast}`;
+  return null;
+}
 
 /** As `readEnv`, and into `process.env` too, without overriding it.
  *  @param {string[]} [files]
