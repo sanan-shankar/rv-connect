@@ -40,6 +40,8 @@ const ACTION_LABEL: Record<string, string> = {
   "account.purge": "Deletion became final",
   "account.export": "Downloaded their data",
   "account.email_change": "Moved to another email",
+  "roster.verify": "Verified",
+  "roster.queue": "Sent for you to verify",
   "retention.sweep": "Retention sweep ran",
   "report.user": "Flagged a member",
   "report.post": "Reported a post",
@@ -89,7 +91,9 @@ export default async function AdminAuditPage() {
                     {ACTION_LABEL[e.action] ?? e.action}
                   </span>
                   <span className="text-sm text-muted-foreground">
-                    {actor ?? "someone"}
+                    {/* The office list acts with no person behind it; "someone"
+                        would claim there was one. */}
+                    {actor ?? (e.action.startsWith("roster.") ? "Office list" : "someone")}
                     {target && target !== actor ? ` → ${target}` : ""}
                   </span>
                   {e.detail ? (

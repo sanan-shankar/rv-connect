@@ -6,6 +6,7 @@ import { CONTRIBUTION_SUM, netPaise } from "@/lib/contribution-state";
 import { PersonDetail } from "@/components/admin/people/person-detail";
 import { PUBLISHED_ONLY } from "@/lib/posts";
 import { IDENTITY_SELECT } from "@/lib/people-select";
+import { loadRosterMatches } from "@/lib/roster-lookup";
 
 export const metadata: Metadata = {
   title: "Person",
@@ -63,7 +64,7 @@ export default async function AdminPersonPage({
 
   // Counted, not fetched. What this page needs to say about their content is
   // "how much", with a link to Content filtered to them for the rest.
-  const [posts, comments, photos, contributions, reportsAgainst, mail] = await Promise.all([
+  const [posts, comments, photos, contributions, reportsAgainst, mail, office] = await Promise.all([
     prisma.post.count({ where: { authorId: id, ...PUBLISHED_ONLY } }),
     prisma.comment.count({ where: { authorId: id, isHidden: false } }),
     prisma.photo.count({ where: { uploaderId: id, isHidden: false } }),
@@ -93,6 +94,8 @@ export default async function AdminPersonPage({
       orderBy: { createdAt: "desc" },
       take: 8,
     }),
+    // The office list's say, beside the Verify button it informs (O-08).
+    loadRosterMatches(user),
   ]);
 
   return (
@@ -123,6 +126,7 @@ export default async function AdminPersonPage({
         createdAt: user.createdAt.toISOString(),
         places: user.places,
       }}
+      office={office}
       stats={{
         posts,
         comments,

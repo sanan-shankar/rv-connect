@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { REVERSED_STATUSES } from "./contribution-state.ts";
-import { read, decomment } from "./test-kit.mjs";
+import { read, decomment, balancedBody } from "./test-kit.mjs";
 
 /* ------------------------------------------------------------------ *
  *  The admin rooms, where a number nobody can check is the whole risk.
@@ -162,4 +162,86 @@ test("an admin batch-year edit re-derives the board credential", () => {
     "an admin fixing a name or batch year no longer re-checks the office roster, " +
       "which the member's own editor does at the same moment"
   );
+});
+
+/* ---- O-08 / T7a-06: the office list verifies by email alone, and an ---- *
+ * ---- admin's removal of a verification stays removed               ---- */
+
+const ROSTER = decomment(read("src/lib/roster.ts"));
+const ASK = decomment(read("src/components/auth/verification-actions.ts"));
+const IMPORT_ROSTER = decomment(read("scripts/dev/import-roster.mjs"));
+
+/** The balanced `{ ... }` of the first `where:` at or after `from`. */
+function whereAfter(src, from) {
+  const open = src.indexOf("{", src.indexOf("where:", from));
+  for (let i = open, depth = 0; open >= 0 && i < src.length; i++) {
+    if (src[i] === "{") depth++;
+    else if (src[i] === "}" && --depth === 0) return src.slice(open, i + 1);
+  }
+  return "";
+}
+
+test("an admin's 'Remove verification' leaves the mark the office list refuses (T7a-06)", () => {
+  /* A null method is what a row nobody has looked at carries, so the roster
+     verified a removed member again on their next reset, profile edit or "Ask
+     to be verified", or on the admin's own next edit of their name. */
+  const body = balancedBody(PEOPLE, "export async function adminUnverifyUser");
+  assert.ok(body && body.length > 150, "adminUnverifyUser did not slice; this test is vacuous");
+  assert.match(
+    body,
+    /verifyMethod: ADMIN_WITHHELD/,
+    "the removal no longer marks the row, so the office list will hand the verification back (T7a-06)"
+  );
+});
+
+test("every write the office list makes requires a row nobody has decided", () => {
+  /* The property, not the two writes there are today: an admin's removal
+     (ADMIN_WITHHELD) or verification that lands between the roster's read and
+     its write must win, and that only holds if each write re-checks it. */
+  const writes = [...ROSTER.matchAll(/\.update(Many)?\(/g)];
+  assert.ok(writes.length >= 2, `found ${writes.length} roster writes; this sweep stopped matching`);
+  for (const w of writes) {
+    assert.equal(w[1], "Many", "the roster writes a user row without a condition");
+    assert.match(
+      whereAfter(ROSTER, w.index),
+      /verifyMethod: null/,
+      "a roster write admits a row an admin has already decided (T7a-06)"
+    );
+  }
+});
+
+test("the office list decides by the shared rule and audits what it verifies (O-08)", () => {
+  /* rosterOutcome (roster-rule.ts, tested in roster-rule.test.mjs) is where
+     "a name only queues" lives; the server must ask it rather than re-derive
+     it, and the one write that verifies must leave a record. Before, an
+     automatic verification left no trace and nobody was told. */
+  assert.match(ROSTER, /rosterOutcome\(/, "roster.ts no longer asks the shared rule what a match may do");
+  const verifies = [...ROSTER.matchAll(/verifyMethod: "office_list"/g)];
+  assert.equal(verifies.length, 1, "the office list should verify in exactly one place");
+  const block = ROSTER.slice(ROSTER.lastIndexOf("if (", verifies[0].index), verifies[0].index + 700);
+  assert.match(block, /outcome === "verify"/, "the office_list write is no longer behind the email-only outcome");
+  assert.match(block, /writeAudit\(\{\s*action: "roster\.verify"/, "an automatic verification is not audited (O-08)");
+  assert.match(ROSTER, /action: "roster\.queue"/, "a name match sent to the queue is not audited");
+});
+
+test("asking to be verified after an admin's removal is refused before the office list runs", () => {
+  const body = balancedBody(ASK, "export async function requestVerification");
+  assert.ok(body && body.length > 400, "requestVerification did not slice; this test is vacuous");
+  const refused = body.indexOf("ADMIN_WITHHELD");
+  const roster = body.indexOf("tryRosterAutoVerifyQuietly(");
+  assert.ok(refused > 0 && refused < roster, "a withheld account reaches the office list (or the queue) again");
+  assert.match(
+    whereAfter(body, body.indexOf(".updateMany(")),
+    /verifyMethod: null/,
+    "the request's own write can turn a removal that lands mid-call back into a request"
+  );
+});
+
+test("the roster import's backfill follows the same rule and never reads a decided row", () => {
+  assert.match(IMPORT_ROSTER, /rosterOutcome\(/, "the backfill re-derives the rule instead of sharing it (it verified by name)");
+  assert.ok(
+    [...IMPORT_ROSTER.matchAll(/"verifyMethod" IS NULL/g)].length >= 2,
+    "the backfill's read and its write must both skip a row an admin has decided"
+  );
+  assert.match(IMPORT_ROSTER, /'roster\.verify'/, "the backfill's verifications are not audited");
 });

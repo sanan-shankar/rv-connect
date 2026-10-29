@@ -28,6 +28,7 @@ import { Chip } from "@/components/admin/admin-chip";
 import { ConfirmDialog } from "@/components/common/confirm-dialog";
 import { AdminSection } from "@/components/admin/admin-chrome";
 import { batchLine, formatDisplayDate, metaLine } from "@/lib/utils";
+import { ADMIN_WITHHELD } from "@/lib/roster-rule";
 import {
   adminBlockUser,
   adminDeleteUser,
@@ -82,6 +83,16 @@ export interface DetailPerson {
   places: PlaceSelection[];
 }
 
+/** One office-list row they fit (`RosterMatch` in lib/roster-lookup.ts). */
+export interface DetailOfficeMatch {
+  id: string;
+  how: "email" | "name";
+  fullName: string;
+  email: string | null;
+  batchYear: number | null;
+  others: { id: string; name: string; verified: boolean }[];
+}
+
 export interface DetailStats {
   posts: number;
   comments: number;
@@ -99,11 +110,13 @@ const ACCOUNT_TYPES = [
 
 export function PersonDetail({
   person,
+  office,
   stats,
   mail,
   isSelf,
 }: {
   person: DetailPerson;
+  office: DetailOfficeMatch[];
   stats: DetailStats;
   mail: MailRow[];
   /** True when this is the acting admin's own row. Block, Merge and Delete
@@ -126,6 +139,9 @@ export function PersonDetail({
     act("person", fn, done);
 
   const verified = person.verifyState === "verified";
+  const flagged = person.verifyState === "flagged";
+  // In the verify queue: they asked, or the office list matched their name.
+  const pending = person.verifyState === "pending";
   const confirmed = Boolean(person.emailConfirmedAt);
 
   return (
@@ -204,20 +220,27 @@ export function PersonDetail({
                           ? formatDisplayDate(new Date(person.verifiedAt))
                           : null
                       )
-                    : person.verifyState === "flagged"
+                    : flagged
                       ? "Somebody flagged this account"
-                      : "Not yet verified"
+                      : pending
+                        ? "Waiting for you to verify"
+                        : person.verifyMethod === ADMIN_WITHHELD
+                          ? "Verification removed by an admin"
+                          : "Not yet verified"
                 }
                 chip={
                   verified ? (
                     <Chip label="Verified" tone="good" icon={BadgeCheck} />
-                  ) : person.verifyState === "flagged" ? (
+                  ) : flagged ? (
                     <Chip label="Flagged" tone="bad" icon={ShieldQuestion} />
+                  ) : pending ? (
+                    <Chip label="Pending" tone="warn" icon={ShieldQuestion} />
                   ) : (
                     <Chip label="Unverified" tone="idle" icon={ShieldQuestion} />
                   )
                 }
               />
+              <OfficeListFact matches={office} />
               <Fact
                 label="Joined"
                 value={formatDisplayDate(new Date(person.createdAt))}
@@ -697,6 +720,63 @@ function Fact({
         <p className="mt-0.5 text-[13px] text-foreground">{value}</p>
       </div>
       {chip && <div className="shrink-0 pt-0.5">{chip}</div>}
+    </div>
+  );
+}
+
+/* What the office list says about them, beside the decision it informs (bug
+   audit 3, O-08). An email on the list verifies by itself; a name and batch
+   year are public, so a match on those alone only ever sends somebody here,
+   and this is the row it matched. Anyone else the same row fits is listed as
+   information, never as a refusal: names repeat (owner, 2026-10-29). */
+function OfficeListFact({ matches }: { matches: DetailOfficeMatch[] }) {
+  if (matches.length === 0) return <Fact label="Office list" value="No match" />;
+  const byEmail = matches.some((m) => m.how === "email");
+  return (
+    <div className="flex items-start justify-between gap-3">
+      <div className="min-w-0">
+        <p className="text-[12px] font-medium text-muted-foreground">Office list</p>
+        <div className="mt-0.5 flex flex-col gap-2">
+          {matches.map((m) => (
+            <div key={m.id} className="min-w-0">
+              <p className="text-[13px] text-foreground">
+                {m.batchYear != null ? `${m.fullName}, ${m.batchYear}` : m.fullName}
+              </p>
+              {/* Their sign-in email is already in the header when it is the
+                  match; a name match is where the school's address helps. */}
+              {m.how === "name" && m.email && (
+                <p className="mt-0.5 truncate text-[12px] text-muted-foreground">
+                  On the list as {m.email}
+                </p>
+              )}
+              {m.others.length > 0 && (
+                <p className="mt-0.5 text-[12px] leading-snug text-muted-foreground">
+                  Also fits{" "}
+                  {m.others.map((o, i) => (
+                    <span key={o.id}>
+                      {i > 0 && ", "}
+                      <Link
+                        href={`/admin/people/${o.id}`}
+                        className="rounded-sm font-medium text-canopy underline-offset-2 hover:underline active:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                      >
+                        {o.name}
+                      </Link>
+                      {o.verified && " (verified)"}
+                    </span>
+                  ))}
+                </p>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="shrink-0 pt-0.5">
+        {byEmail ? (
+          <Chip label="By email" tone="good" icon={MailCheck} />
+        ) : (
+          <Chip label="Name only" tone="warn" icon={ShieldQuestion} />
+        )}
+      </div>
     </div>
   );
 }

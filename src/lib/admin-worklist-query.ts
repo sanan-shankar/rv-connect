@@ -144,10 +144,11 @@ export async function loadWorklist(): Promise<WorkItem[]> {
       orderBy: { verifyStateAt: "desc" },
       take: PER_QUEUE,
     }),
-    // Members who pressed "Ask to be verified" and whom the office roster
-    // could not vouch for (a roster match never reaches "pending"). The owner
-    // is the whole verification pipeline (his call: no digests, no mail), so
-    // if this queue is not on the worklist, the request went nowhere.
+    // Members waiting for an admin: they pressed "Ask to be verified", or the
+    // office roster matched their name and batch year but not their email (a
+    // name is public, so that match only queues them; src/lib/roster.ts). The
+    // owner is the whole verification pipeline (his call: no digests, no
+    // mail), so if this queue is not on the worklist, the request went nowhere.
     prisma.user.findMany({
       where: { isBlocked: false, verifyState: "pending" },
       select: { id: true, name: true, email: true, verifyStateAt: true },
@@ -219,7 +220,8 @@ export async function loadWorklist(): Promise<WorkItem[]> {
     ...pendingVerify.map((u) => ({
       key: `verify-${u.id}`,
       queue: "verify" as const,
-      title: `${u.name} asked to be verified`,
+      // Not "asked to be verified": a roster name match lands here unasked.
+      title: `${u.name} is waiting to be verified`,
       detail: u.email,
       href: `/admin/people/${u.id}`,
       at: u.verifyStateAt.toISOString(),

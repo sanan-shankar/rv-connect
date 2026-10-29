@@ -50,9 +50,13 @@ by tests that will say so.
 | Own profile; message the admin | ✓ | ✓ | ✓ |
 
 `requireVerifiedEmail()` / `requireVerifiedMember()` in `src/lib/`. Verification is manual (the
-owner) plus the roster auto-verify (`RosterEntry`, 2,134 people from the office sheets; email
-match, or name+batch — never auto-filling admission number or house). A capability lives everywhere
-its data is SERIALIZED, not on one route — the Phase 3 lesson.
+owner) plus the roster (`RosterEntry`, 2,134 people from the office sheets; never auto-filling
+admission number or house). Only a confirmed sign-in email on the roster verifies automatically. A
+name and batch year are public (the directory shows both), so a match on those alone sends the
+account to the owner's verify queue, with the row on its admin page (owner, 2026-10-29, bug audit 3
+O-08). An admin's "Remove verification" leaves `verifyMethod: admin_withheld`, which the roster
+never overrides (T7a-06), and every roster action is in the audit log. A capability lives
+everywhere its data is SERIALIZED, not on one route — the Phase 3 lesson.
 `src/lib/gate-coverage.test.mjs` fails `npm run check` for any exported server action without a
 gate or a written public-by-design reason.
 

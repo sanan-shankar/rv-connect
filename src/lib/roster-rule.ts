@@ -9,7 +9,78 @@
  *  alum. A name match is weaker (anyone can type a name), so it only
  *  counts together with the batch year, and both only ever run for an
  *  account whose email is already confirmed.
+ *
+ *  And a name match no longer verifies anybody (owner, 2026-10-29, bug
+ *  audit 3 O-08). The year was meant to make it hard to fake, but the
+ *  directory hands every confirmed account each member's name and batch
+ *  year, so a stranger could copy one and be verified as that classmate.
+ *  It now puts the account in front of the owner instead: see
+ *  `rosterOutcome` below.
  * ------------------------------------------------------------------ */
+
+/**
+ * What an admin's "Remove verification" leaves in `User.verifyMethod`,
+ * beside `verifyState: "unverified"`.
+ *
+ * Before it, the removal wrote a null method, which is exactly what a row
+ * nobody has looked at carries, so the office list verified a roster-matched
+ * member again on their next password reset, profile edit or "Ask to be
+ * verified", or on the admin's own next edit of their name (bug audit 3,
+ * T7a-06). Verifying them again by hand overwrites it.
+ */
+export const ADMIN_WITHHELD = "admin_withheld";
+
+/** What the office list may do for one account. */
+export type RosterOutcome = "verify" | "queue" | "none";
+
+export interface RosterAccount {
+  /** The link sent to the sign-in address was tapped: `User.emailVerified`,
+   *  the fact, never the session's gate (email-gate-rule.test.mjs). */
+  mailboxProven: boolean;
+  verifyState: string;
+  verifyMethod: string | null;
+}
+
+/**
+ * Whether the office list may act on this account at all: a confirmed
+ * address (a match against an unproven mailbox proves nothing), a state that
+ * is still open ("unverified" or "pending"), and no decision on the row.
+ * Every method counts as a decision -- an admin's removal above, or how a
+ * verified account got there -- and an undefined one fails closed.
+ */
+export function rosterMayAct(account: RosterAccount): boolean {
+  return (
+    account.mailboxProven &&
+    account.verifyMethod === null &&
+    (account.verifyState === "unverified" || account.verifyState === "pending")
+  );
+}
+
+/**
+ * The owner's rule for an office-list match (2026-10-29):
+ *
+ *   verify  the sign-in email is on the list. The only automatic verification.
+ *   queue   only the name and a batch year match. An unverified account goes
+ *           to the admin's verify queue ("pending"), with the row beside it on
+ *           its admin page. A pending one is already there, so it is "none":
+ *           a second edit must not ring the admins again.
+ *   none    no match, or the list may not act (`rosterMayAct`).
+ *
+ * Nothing here asks whether another account already fits the same row, on
+ * purpose. The audit proposed refusing a second claimant; the owner ruled
+ * against it on 2026-10-29, because two people can share a name: a second
+ * match is queued for him like any other, and the admin page shows the first
+ * as information.
+ */
+export function rosterOutcome(
+  account: RosterAccount,
+  matched: { email: boolean; name: boolean }
+): RosterOutcome {
+  if (!rosterMayAct(account)) return "none";
+  if (matched.email) return "verify";
+  if (matched.name && account.verifyState === "unverified") return "queue";
+  return "none";
+}
 
 /**
  * One canonical spelling for a person's name: lowercase, diacritics folded

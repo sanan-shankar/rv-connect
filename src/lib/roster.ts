@@ -1,31 +1,43 @@
 import { prisma } from "./prisma";
 import { IS_DEMO } from "./demo";
-import {
-  normalizeRosterName,
-  rosterNameMatches,
-  rosterYearMatches,
-} from "./roster-rule";
+import { writeAudit } from "./audit";
+import { notifyAdmins } from "./admin-threads-server";
+import { rosterMayAct, rosterOutcome } from "./roster-rule";
+import { rowForEmail, rowsForName, type RosterRow } from "./roster-lookup";
 
 /* ------------------------------------------------------------------ *
- *  Auto-verification against the office roster (trust model, Phase 3).
+ *  The office roster, acting on an account (trust model, Phase 3).
  *
- *  Called at the moments an account becomes matchable: when the email
- *  gets confirmed (confirmEmailToken, resetPassword), when onboarding
- *  writes the batch year, and when the member explicitly asks to be
- *  verified. Everywhere it is best-effort: a roster hiccup must never
- *  break a confirmation that has already happened, so callers fire it
- *  through tryRosterAutoVerifyQuietly below.
+ *  Called at the moments an account becomes matchable: when its email
+ *  gets confirmed (confirmEmailToken, resetPassword), when its name or
+ *  years change (the member's own profile, or an admin's edit of it),
+ *  and when the member asks to be verified. Everywhere it is
+ *  best-effort: a roster hiccup must never break a confirmation that
+ *  has already happened, so callers fire it through
+ *  tryRosterAutoVerifyQuietly below.
+ *
+ *  What it may do is `rosterOutcome` (roster-rule.ts): a sign-in email
+ *  on the list verifies; a name and batch year alone only put the
+ *  account in the admin's verify queue. Both go in the audit log with
+ *  the row they matched, because nothing else records it, and a
+ *  re-import replaces every row id (scripts/dev/import-roster.mjs).
+ *  Finding the rows is roster-lookup.ts, which the admin's person page
+ *  reads without pulling in this write path.
  * ------------------------------------------------------------------ */
 
+/** One row, in words that still read after a re-import has replaced its id. */
+function describeRow(how: "email" | "name", row: RosterRow): string {
+  const why = how === "email" ? "by email" : "by name and batch";
+  return `${why}: ${row.fullName}, ${row.batchYear ?? "no year"} (${row.source}, ${row.id})`;
+}
+
 /**
- * Verify `userId` with verifyMethod "office_list" if the roster vouches for
- * them. Returns true when the user ends up verified by this call.
+ * Act on `userId` if the office list vouches for them. Returns true when the
+ * user ends up verified by this call; a match that only queued them is false.
  *
- * Preconditions checked here, not trusted from the caller: the email must be
- * confirmed (a match against an unproven mailbox verifies nobody), and only
- * "unverified"/"pending" ever transition -- never "flagged", which an admin
- * is already looking at, and never an existing "verified", whose method is
- * a fact worth preserving.
+ * Every precondition is checked here, not trusted from the caller, and each
+ * write is conditional on the same facts, so an admin's decision that lands
+ * between the read and the write (verify, or remove) is never overwritten.
  *
  * Never fills admission number, houses, or anything else from the sheets
  * (owner call: the roster admits people, it does not write their profile).
@@ -42,6 +54,7 @@ async function tryRosterAutoVerify(userId: string): Promise<boolean> {
       batchYear: true,
       yearLeft: true,
       verifyState: true,
+      verifyMethod: true,
     },
   });
   if (!user) return false;
@@ -54,44 +67,62 @@ async function tryRosterAutoVerify(userId: string): Promise<boolean> {
      2026-09-29). A waiting member can still ask to be verified, which reaches
      the owner; the match itself runs the moment they tap their link. */
   if (!user.emailVerified) return false;
-  if (user.verifyState !== "unverified" && user.verifyState !== "pending") return false;
 
-  let matched = Boolean(
-    await prisma.rosterEntry.findFirst({
-      where: { email: user.email.toLowerCase() },
-      select: { id: true },
-    })
-  );
+  const account = {
+    mailboxProven: Boolean(user.emailVerified),
+    verifyState: user.verifyState,
+    verifyMethod: user.verifyMethod,
+  };
+  // A row the list may not touch costs no roster lookup.
+  if (!rosterMayAct(account)) return false;
 
-  if (!matched) {
-    // Name+batch path: pull only the rows for this member's two candidate
-    // years (index-backed), then let the pure rule compare names.
-    const years = [user.batchYear, user.yearLeft].filter((y): y is number => y != null);
-    if (years.length > 0 && normalizeRosterName(user.name)) {
-      const candidates = await prisma.rosterEntry.findMany({
-        where: { batchYear: { in: years } },
-        select: { normalizedName: true, batchYear: true },
+  const byEmail = await rowForEmail(user);
+  const byName = byEmail ? [] : await rowsForName(user);
+  const outcome = rosterOutcome(account, { email: byEmail !== null, name: byName.length > 0 });
+
+  if (outcome === "verify" && byEmail) {
+    const now = new Date();
+    const verified = await prisma.user.updateMany({
+      where: { id: userId, verifyState: { in: ["unverified", "pending"] }, verifyMethod: null },
+      data: {
+        verifyState: "verified",
+        verifyStateAt: now,
+        verifyMethod: "office_list",
+        verifiedAt: now,
+      },
+    });
+    if (verified.count === 0) return false;
+    await writeAudit({
+      action: "roster.verify",
+      targetType: "user",
+      targetId: userId,
+      detail: describeRow("email", byEmail),
+    });
+    return true;
+  }
+
+  if (outcome === "queue") {
+    /* "pending" IS the admin's verify queue: the Overview worklist and the
+       rail's count both read it. The admins hear about it once, on the
+       transition; the next edit finds the row pending and rosterOutcome
+       answers "none", so typing a name twice does not ring them twice. */
+    const queued = await prisma.user.updateMany({
+      where: { id: userId, verifyState: "unverified", verifyMethod: null },
+      data: { verifyState: "pending", verifyStateAt: new Date() },
+    });
+    if (queued.count === 1) {
+      const more = byName.length > 1 ? ` (and ${byName.length - 1} more)` : "";
+      await writeAudit({
+        action: "roster.queue",
+        targetType: "user",
+        targetId: userId,
+        detail: describeRow("name", byName[0]) + more,
       });
-      matched = candidates.some(
-        (c) => rosterYearMatches(c.batchYear, user) && rosterNameMatches(user.name, c.normalizedName)
-      );
+      await notifyAdmins(`${user.name} matches the office list by name`, `/admin/people/${userId}`);
     }
   }
 
-  if (!matched) return false;
-
-  // Conditional update so a concurrent admin decision (verify, flag) between
-  // the read above and here is never overwritten.
-  const updated = await prisma.user.updateMany({
-    where: { id: userId, verifyState: { in: ["unverified", "pending"] } },
-    data: {
-      verifyState: "verified",
-      verifyStateAt: new Date(),
-      verifyMethod: "office_list",
-      verifiedAt: new Date(),
-    },
-  });
-  return updated.count > 0;
+  return false;
 }
 
 /**

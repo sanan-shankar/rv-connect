@@ -436,6 +436,9 @@ else is on the detail page.
 explicit that a dialog is for something done in seconds and this is not. It holds:
 
 - identity and standing, with both verification meanings side by side
+- the office list's say, beside the Verify button: the row their sign-in email is on, or the row
+  their name and batch year fit (that match only queues them, never verifies them), and anyone else
+  the same row fits, as information rather than a refusal (owner, 2026-10-29, bug audit 3 O-08)
 - **the admin note**, editable (gap 3)
 - **their details, editable**: name, city, batch, account type, bird override (gap 6). This is the
   hand-written-SQL replacement, so it must cover exactly what has actually been fixed by hand: name

@@ -125,7 +125,10 @@ model User {
   // fallback ordering.
   verifyStateAt DateTime  @default(now())
   verifiedAt    DateTime?
-  verifyMethod  String?   // office_list | community | admin_manual
+  // office_list | community | admin_manual on a verified row. On an
+  // "unverified" one, "admin_withheld" means an admin removed it: the office
+  // roster never acts on a row with a method (roster-rule.ts, ADMIN_WITHHELD).
+  verifyMethod  String?
   // Blocking is a capability switch, not a delete. It ends every live session
   // (via credentialVersion below), refuses the next sign-in, and holds the
   // account out of the directory and search.

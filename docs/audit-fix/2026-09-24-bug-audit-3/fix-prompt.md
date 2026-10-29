@@ -70,7 +70,7 @@ the rest of the phase runs.
 
 | Phase | Status | Rows left | Blocked on |
 |---|---|---|---|
-| A — Trust: who counts as verified, and who may press what in a Catch-up | OPEN | 17 (2 H, 3 M, 12 L) | — |
+| A — Trust: who counts as verified, and who may press what in a Catch-up | OPEN | 16 (1 H, 3 M, 12 L) | — |
 | B — Privacy: what leaves the site, and what outlives a member | OPEN | 24 (1 H, 7 M, 16 L) | — |
 | O — Budgets: what one account or one script may spend of what everyone shares | OPEN | 12 (2 H, 9 M, 1 L) | — |
 | E — The Collection | OPEN | 27 (3 H, 6 M, 18 L) | — |
@@ -80,7 +80,7 @@ the rest of the phase runs.
 | G — Sign-up, sign-in and the confirmation mail | OPEN | 23 (0 H, 10 M, 13 L) | — |
 | H — Catch-ups: answering, reading, and the words on the clock | OPEN | 34 (0 H, 12 M, 22 L) | — |
 | J — Support and payments | OPEN | 11 (0 H, 6 M, 5 L) | — |
-| I — Admin, moderation and the analytics room | OPEN | 44 (0 H, 4 M, 40 L) | — |
+| I — Admin, moderation and the analytics room | OPEN | 43 (0 H, 3 M, 40 L) | — |
 | K — Text that breaks things: names, numbers, search, links | OPEN | 21 (0 H, 2 M, 19 L) | — |
 | L — Platform, database, demo and scripts | OPEN | 46 (2 H, 1 M, 43 L) | — |
 | M — The hoopoe | OPEN | 11 (0 H, 2 M, 9 L) | — |
@@ -504,3 +504,5 @@ evidence stays in `work/`; this ledger is the record of what the campaign did.
 - C8-03 — DECLINED (owner, Q20, 2026-10-29: takedowns case by case)
 - T8b-09 — DECLINED (owner, Q25c, 2026-10-29: the front page stays as it is)
 - C8-01 — DECLINED (owner, Q26c, 2026-10-29)
+- O-08 — DONE (fix(security): the office list verifies by email alone, and a removal sticks); a name match is queued for the owner, never refused (Q19 as he ruled it)
+- T7a-06 — DONE (fix(security): the office list verifies by email alone, and a removal sticks); T6-01, its closed duplicate, rides with it

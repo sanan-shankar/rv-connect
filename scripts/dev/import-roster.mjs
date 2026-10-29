@@ -28,7 +28,8 @@
  *   node scripts/dev/import-roster.mjs                  # dry run: counts only
  *   node scripts/dev/import-roster.mjs --apply          # replace the table
  *   node scripts/dev/import-roster.mjs --match-existing # + report (or with
- *       --apply, verify) existing unverified members the roster vouches for
+ *       --apply, verify) existing unverified members whose email is on the
+ *       roster; a name-only match is listed for an admin, never verified
  *
  * Re-runnable: --apply replaces every imported row wholesale (the sheets are
  * the source of truth), leaving only the probe's own marker rows alone.
@@ -43,6 +44,7 @@ import {
   normalizeRosterName,
   stripRosterInitials,
   rosterNameMatches,
+  rosterOutcome,
   rosterYearMatches,
 } from "../../src/lib/roster-rule.ts";
 import { withDatabaseTls } from "../../src/lib/db-tls.ts";
@@ -208,27 +210,39 @@ if (APPLY) {
 
 if (MATCH_EXISTING) {
   /* The backfill: members already signed up and email-confirmed but never
-     verified, whom the roster vouches for. Same rule as src/lib/roster.ts,
-     via the same imported functions. */
+     verified. Same rule as src/lib/roster.ts, via the same imported
+     functions: an email on the roster verifies, and a name and batch year
+     alone never do (bug audit 3, O-08). The app sends those to the admin's
+     queue and rings the bell; this script rings nothing, so it lists them for
+     him instead. A row with any method is a decision already made, such as an
+     admin's removal (ADMIN_WITHHELD, T7a-06), and is not even read. */
   const { rows: members } = await db.query(
-    `SELECT id, name, email, "batchYear", "yearLeft", "verifyState"
+    `SELECT id, name, email, "batchYear", "yearLeft", "verifyState", "verifyMethod"
      FROM "User"
      WHERE "verifyState" IN ('unverified', 'pending') AND "emailVerified" IS NOT NULL
+       AND "verifyMethod" IS NULL
        AND email NOT LIKE '%@probe.invalid'`
   );
   console.log(`\nmatch-existing: ${members.length} confirmed-but-unverified member(s)`);
   for (const m of members) {
-    const emailHit = clean.some((e) => e.email && e.email === m.email.toLowerCase());
-    const nameHit =
-      !emailHit &&
-      clean.some(
-        (e) => rosterYearMatches(e.batchYear, m) && rosterNameMatches(m.name, e.normalizedName)
+    const emailRow = clean.find((e) => e.email && e.email === m.email.toLowerCase());
+    const nameRow = emailRow
+      ? undefined
+      : clean.find(
+          (e) => rosterYearMatches(e.batchYear, m) && rosterNameMatches(m.name, e.normalizedName)
+        );
+    const outcome = rosterOutcome(
+      { mailboxProven: true, verifyState: m.verifyState, verifyMethod: m.verifyMethod },
+      { email: Boolean(emailRow), name: Boolean(nameRow) }
+    );
+    if (outcome !== "verify") {
+      console.log(
+        nameRow
+          ? `  name only, for an admin   ${m.name} <${m.email}> (${nameRow.fullName}, ${nameRow.batchYear})`
+          : `  no match   ${m.name} <${m.email}>`
       );
-    if (!emailHit && !nameHit) {
-      console.log(`  no match   ${m.name} <${m.email}>`);
       continue;
     }
-    const how = emailHit ? "email" : "name+batch";
     if (APPLY) {
       /* `verifyStateAt` too, which the schema's own comment demands of every
          writer of verifyState and which this one alone omitted (audit C-046).
@@ -237,15 +251,33 @@ if (MATCH_EXISTING) {
          admin worklist orders "recently verified" and "waiting longest" by
          that column, so an entire import batch sorted as though it had never
          happened and never surfaced in the recently-verified view. */
-      await db.query(
+      const { rowCount } = await db.query(
         `UPDATE "User" SET "verifyState" = 'verified', "verifyMethod" = 'office_list',
                 "verifiedAt" = now(), "verifyStateAt" = now()
-         WHERE id = $1 AND "verifyState" IN ('unverified', 'pending')`,
+         WHERE id = $1 AND "verifyState" IN ('unverified', 'pending') AND "verifyMethod" IS NULL`,
         [m.id]
       );
-      console.log(`  VERIFIED   ${m.name} <${m.email}> (${how})`);
+      if (rowCount === 1) {
+        /* On the record, like the app's own (`roster.verify`, src/lib/audit.ts).
+           createdAt is left to the column's default: a JS Date sent through
+           pg lands 5h30m off (bugs.md #6). */
+        await db.query(
+          `INSERT INTO "AuditLog" (id, action, "targetType", "targetId", detail)
+           VALUES ($1, 'roster.verify', 'user', $2, $3)`,
+          [
+            `audit_${randomBytes(12).toString("hex")}`,
+            m.id,
+            `by email: ${emailRow.fullName}, ${emailRow.batchYear ?? "no year"} (${emailRow.source}, by the import script)`,
+          ]
+        );
+      }
+      console.log(
+        rowCount === 1
+          ? `  VERIFIED   ${m.name} <${m.email}> (email)`
+          : `  skipped, changed meanwhile   ${m.name} <${m.email}>`
+      );
     } else {
-      console.log(`  would verify  ${m.name} <${m.email}> (${how})`);
+      console.log(`  would verify  ${m.name} <${m.email}> (email)`);
     }
   }
 }

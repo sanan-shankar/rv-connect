@@ -133,7 +133,9 @@ export function AdminProfileTools({
         title={verified ? `Unverify ${name}` : `Verify ${name}`}
         description={
           verified
-            ? "Their leaf mark disappears and they return to the review queue."
+            ? // Not "they return to the review queue": the removal now sticks,
+              // and the office list will not hand it back (T7a-06).
+              "Their leaf mark disappears until an admin verifies them again."
             : undefined
         }
         actionLabel={verified ? "Remove verification" : "Verify"}

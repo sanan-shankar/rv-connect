@@ -86,7 +86,7 @@ test("every lookup by email goes through the canonical form", () => {
       // on 2026-08-26 when the two inline claims became this one helper.
       "sentToEmail",
     ],
-    "src/lib/roster.ts": ["user.email.toLowerCase()"],
+    "src/lib/roster-lookup.ts": ["user.email.toLowerCase()"],
     // The fence on "use another email": the address the row held when it was
     // read a moment before, so a second tab or a confirmation in between is
     // not overwritten. Read off the row, never submitted.

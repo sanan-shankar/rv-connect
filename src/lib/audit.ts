@@ -13,6 +13,7 @@ import { IS_DEMO } from "@/lib/demo";
  *   admin.unverify  admin.merge
  *   account.delete_request  account.delete_cancel  account.purge  account.export
  *   account.email_change
+ *   roster.verify  roster.queue
  *   report.user  report.post
  *   retention.sweep
  *
@@ -41,6 +42,13 @@ export type AuditAction =
      first would not take mail (change-email-actions.ts). It changes what they
      sign in with, so it is on the record, with both addresses masked. */
   | "account.email_change"
+  /* The office list acting on its own (src/lib/roster.ts), with the row it
+     matched in the detail and no actor: a sign-in email on the list verified
+     the account, or a name and batch year alone sent it to the verify queue
+     (bug audit 3, O-08). Before these, an automatic verification left no
+     trace at all. */
+  | "roster.verify"
+  | "roster.queue"
   | "report.user"
   | "report.post"
   | "retention.sweep"

@@ -1,3 +1,37 @@
+## 2026-10-29 (security) — bug audit 3, unit A1: only an email on the office list verifies, and an admin's removal sticks
+
+O-08 (High) and T7a-06 (Medium; T6-01 is its closed duplicate), one change because both live in
+the same rule. The office list verified an account whose name and batch year matched a row, and the
+directory shows every confirmed account each member's name and batch year, so a stranger with a
+throwaway mailbox could copy a classmate's pair and be verified as them, unrecorded and untold. The
+rule is now `rosterOutcome` in `roster-rule.ts`, shared by the server and the import script's
+backfill. A confirmed sign-in email on the list verifies, with a `roster.verify` audit row naming
+the matched row. A name and batch year alone move an unverified account to `pending`, the verify
+queue: one admin bell on the transition, a `roster.queue` audit row, and never a refusal because
+another account fits the same row (his Q19 ruling: two people can share a name).
+
+T7a-06: "Remove verification" now leaves `verifyMethod: "admin_withheld"`, and the office list
+never acts on a row with a method, so a removed member's next reset, profile edit or "Ask to be
+verified", or the admin's own next edit, no longer verifies them back. Asking tells them an admin
+has already looked and to write through Reach out. Verifying them by hand overwrites the mark.
+
+Visible, admin side: an "Office list" fact on a person's page (the row their email is on, or the
+row their name and year fit with the school's address for it, plus any other account that row
+fits, linked); pending reads "Waiting for you to verify" with a Pending chip, a removed one
+"Verification removed by an admin"; Overview's verify rows say "is waiting to be verified"; the
+audit log shows "Office list" as the actor of its rows; the profile's unverify dialog says the leaf
+stays gone until an admin verifies them again. Members see one new line, and only after a removal.
+
+Read for him, nothing changed: of the 66 accounts marked `office_list` whose email is not on the
+list, 16 fit a row by name today (verified 09-11 to 10-19); 49 were verified before the office
+list existed, hand verifications stored as `office_list` until 9c1434e6 (08-21); one is unclear.
+The person page's reads live in a new `roster-lookup.ts`, which also keeps that page off the write
+path: the shared dev server kept serving the old `roster.ts`, and a module it had never loaded was
+the way to see the page without restarting it. Pinned in `roster-rule.test.mjs` and
+`admin-rule.test.mjs`, each pin shown failing against its mutation; check green, visual 25/25,
+the three Office list branches seen at 1440 and 390. The write path was not run live: a name match
+would ring his bell.
+
 ## 2026-10-29 (e2e) — two Collection specs stop failing on a busy machine
 
 "Every year the rail offers lands on that year, lit" ran out of its 90s on every run. It presses

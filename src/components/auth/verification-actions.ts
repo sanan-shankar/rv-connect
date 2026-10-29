@@ -6,6 +6,7 @@ import { IS_DEMO } from "@/lib/demo";
 import { EMAIL_UNVERIFIED } from "@/lib/email-gate-message";
 import { notifyAdmins } from "@/lib/admin-threads-server";
 import { tryRosterAutoVerifyQuietly } from "@/lib/roster";
+import { ADMIN_WITHHELD } from "@/lib/roster-rule";
 
 /* ------------------------------------------------------------------ *
  *  "Ask to be verified": the member's side of the second gate.
@@ -20,6 +21,10 @@ import { tryRosterAutoVerifyQuietly } from "@/lib/roster";
 export type RequestVerificationResult =
   | { ok: true; state: "verified" | "pending" }
   | { ok: false; error: string };
+
+/* Module-private: a "use server" file may export only async functions. */
+const ALREADY_DECIDED =
+  "An admin has already looked at your account. If anything has changed, write to them from Reach out.";
 
 export async function requestVerification(): Promise<RequestVerificationResult> {
   const session = await auth();
@@ -43,9 +48,21 @@ export async function requestVerification(): Promise<RequestVerificationResult> 
   // must not quietly wash that state away. They are in the queue either way.
   if (session.user.verifyState === "flagged") return { ok: true, state: "pending" };
 
-  // The office roster answers instantly what the owner would otherwise be
-  // asked to check by hand. Best-effort: if it errors, the request still
-  // reaches the admin the ordinary way.
+  /* An admin took this account's verification away, and that decision stays
+     on the row until an admin verifies it (T7a-06). Asking again must not put
+     it back in front of them, and the office list below must not overrule
+     them; they can still write to the admins, which is what the line says. */
+  const row = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { verifyMethod: true },
+  });
+  if (row?.verifyMethod === ADMIN_WITHHELD) return { ok: false, error: ALREADY_DECIDED };
+
+  // An email on the office roster answers instantly what the owner would
+  // otherwise be asked to check by hand. A name and batch year alone only
+  // queue them, and the roster tells the admins itself, so the conditional
+  // write below then finds the row pending and stays quiet. Best-effort: if
+  // it errors, the request still reaches the admin the ordinary way.
   if (await tryRosterAutoVerifyQuietly(session.user.id)) {
     return { ok: true, state: "verified" };
   }
@@ -53,7 +70,9 @@ export async function requestVerification(): Promise<RequestVerificationResult> 
   const already = session.user.verifyState === "pending";
   if (!already) {
     const flagged = await prisma.user.updateMany({
-      where: { id: session.user.id, verifyState: "unverified" },
+      // `verifyMethod: null` too, so an admin's removal that lands after the
+      // read above is not quietly turned back into a request.
+      where: { id: session.user.id, verifyState: "unverified", verifyMethod: null },
       data: { verifyState: "pending", verifyStateAt: new Date() },
     });
     // Notify only if THIS call is the one that actually made the transition.

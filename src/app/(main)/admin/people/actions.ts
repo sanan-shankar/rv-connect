@@ -21,6 +21,7 @@ import { replaceUserPlaces } from "@/lib/place-write";
 import { lookupGazetteerPlaces } from "@/lib/place-lookup";
 import { SPECIES_SLUGS } from "@/components/common/bird-avatar-v2";
 import { tryRosterAutoVerifyQuietly } from "@/lib/roster";
+import { ADMIN_WITHHELD } from "@/lib/roster-rule";
 import { syncBatchGroupQuietly } from "@/lib/batch-catchups";
 
 /* ------------------------------------------------------------------ *
@@ -184,8 +185,10 @@ export async function adminUpdatePerson(
   /* The office roster matches on name and batch year, and an admin fixing
      either is the moment a member who could not be matched becomes matchable
      -- the same hook `updateProfileField` fires when they fix it themselves.
-     Best-effort and silent, like every roster call: it can only ever raise
-     standing, so a failure leaves the person exactly where they were. */
+     Best-effort, like every roster call: it can only ever raise standing, and
+     never on a row an admin has decided, so correcting the name of somebody
+     you removed verification from leaves them removed (T7a-06). A name match
+     here sends them to the verify queue rather than verifying them. */
   await tryRosterAutoVerifyQuietly(userId);
 
   // A new batch year, or a new account type, is a move between batch groups:
@@ -630,6 +633,17 @@ export async function adminVerifyUser(
   return { success: true };
 }
 
+/**
+ * Take a member's verification away, and keep it away.
+ *
+ * The method is not cleared but set to ADMIN_WITHHELD. A null method is what a
+ * row nobody has looked at carries, so the office list used to verify a
+ * roster-matched member again on their next password reset, profile edit or
+ * "Ask to be verified", or on an admin's own edit of their name, with nothing
+ * in the audit log after this action's own line (bug audit 3, T7a-06). The
+ * list leaves any row with a method alone, "Ask to be verified" tells them an
+ * admin has already looked, and `adminVerifyUser` overwrites it.
+ */
 export async function adminUnverifyUser(userId: string): Promise<AdminActionResult> {
   const actor = await requireAdminActor();
   if (!actor.ok) return { error: actor.error };
@@ -639,7 +653,7 @@ export async function adminUnverifyUser(userId: string): Promise<AdminActionResu
     data: {
       verifyState: "unverified",
       verifyStateAt: new Date(),
-      verifyMethod: null,
+      verifyMethod: ADMIN_WITHHELD,
       verifiedAt: null,
     },
   });
