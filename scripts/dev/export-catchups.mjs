@@ -82,6 +82,9 @@ const client = pgClient(url);
 await client.connect();
 
 const q = async (text, params = []) => (await client.query(text, params)).rows;
+/* UTC instants, because the opener parses timestamp columns in UTC. Exports
+   taken before 2026-10-29 carry the laptop's offset instead, and say so in a
+   note in their folder (bug audit 3, L3-02). */
 const iso = (d) => (d ? new Date(d).toISOString() : null);
 
 /** `promptKind` from src/lib/catchups-types.ts, which this .mjs cannot import

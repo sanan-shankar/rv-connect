@@ -27,6 +27,57 @@
 import pg from "pg";
 import { withDatabaseTls } from "../../src/lib/db-tls.ts";
 
+/* ------------------------------------------------------------------ *
+ *  Timestamps, read and written in UTC.
+ *
+ *  Prisma stores every DateTime as `timestamp without time zone` holding
+ *  the UTC wall clock, and reads it back as UTC. Raw `pg` did neither: it
+ *  parsed such a column in the LAPTOP's zone and sent a JS Date in it. In
+ *  India every timestamp a script read came out 5 h 30 m early; in London
+ *  an hour early in summer and right in winter. The Catch-ups export, the
+ *  safety copy taken before every destructive Catch-ups migration, wrote
+ *  its dates that way, and run-sql.mjs printed them that way (bug audit 3,
+ *  L3-02; the write half is bugs.md item 6).
+ *
+ *  Set here, for the whole process, as this module loads, so no script can
+ *  open a client without them.
+ * ------------------------------------------------------------------ */
+
+const STAMP = /^(\d{4,})-(\d\d)-(\d\d)(?: (\d\d):(\d\d):(\d\d)(\.\d+)?)?( BC)?$/;
+
+/**
+ * Postgres's text for a `timestamp` or a `date`, as the instant it names in
+ * UTC: a date is its UTC midnight. `infinity` comes back as node-pg's own
+ * parser gives it. Text in any other shape (another DateStyle) comes back
+ * unchanged, so a surprise prints as what the server said rather than as a
+ * wrong instant.
+ * @param {string} text
+ * @returns {Date | number | string}
+ */
+export function utcInstant(text) {
+  if (text === "infinity") return Infinity;
+  if (text === "-infinity") return -Infinity;
+  const m = STAMP.exec(text);
+  if (!m) return text;
+  const [, year, month, day, hour = "0", minute = "0", second = "0", fraction = "", bc] = m;
+  const at = new Date(0);
+  // 1 BC is year 0 here, and setUTCFullYear keeps years 0-99 as given.
+  at.setUTCFullYear(bc ? 1 - Number(year) : Number(year), Number(month) - 1, Number(day));
+  // Postgres sends up to six fractional digits; a Date holds three. ".57" is 570.
+  at.setUTCHours(Number(hour), Number(minute), Number(second), Number(`${fraction.slice(1)}000`.slice(0, 3)));
+  return at;
+}
+
+const { builtins, setTypeParser, arrayParser } = pg.types;
+setTypeParser(builtins.TIMESTAMP, utcInstant);
+setTypeParser(builtins.DATE, utcInstant);
+// The array forms: node-pg's own parse each element in local time too.
+const utcArray = (text) => arrayParser.create(text, (e) => (e === null ? null : utcInstant(e))).parse();
+setTypeParser(1115, utcArray); // timestamp[]
+setTypeParser(1182, utcArray); // date[]
+// A JS Date sent as a parameter: the UTC wall clock, the way Prisma writes it.
+pg.defaults.parseInputDatesAsUTC = true;
+
 /** `url`, or a refusal: pg given nothing falls back to PG* variables and
  *  localhost, which is a default database by another name. */
 function named(url) {

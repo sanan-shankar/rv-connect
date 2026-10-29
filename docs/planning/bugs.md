@@ -87,13 +87,16 @@ smoke pass; pre-existing routing behavior, needs a product decision (allowlist u
 404 publicly, or keep the login bounce).
 - Size: small (decision first).
 
-### 6. Raw-SQL timestamp trap (latent)
-`Post.createdAt` etc. are `timestamp without time zone`; rows written via raw `pg` read back 5h30m
-(IST) ahead through Prisma. The app's own Prisma write+read path is self-consistent, but any future
-import script, migration, or admin tool writing timestamps outside Prisma will hit it. Related:
-server-side `toLocaleDateString` without an explicit timeZone can show a date one day off near the
-UTC/IST midnight boundary (e.g. the letters index).
-- Size: investigation.
+### 6. Raw-SQL timestamp trap (the scripts' half closed 2026-10-29)
+`Post.createdAt` etc. are `timestamp without time zone` holding the UTC wall clock. Raw `pg` read and
+wrote them in the laptop's zone, so a script's dates came out early, and its written dates late, by
+the laptop's offset: bug audit 3 found the Catch-ups export 5 h 30 m early (L3-02). Closed for every
+script: `scripts/dev/_pg.mjs` is the only raw-pg opener under `scripts/`, and it reads and writes
+these columns in UTC (`scripts/qa/raw-pg.test.mjs` holds both). A tool that opens raw `pg` outside
+`scripts/` would meet the trap again. Still open: server-side `toLocaleDateString` without an
+explicit timeZone can show a date one day off near the UTC/IST midnight boundary (e.g. the letters
+index).
+- Size: investigation (the toLocale half).
 
 ### 9. Hoopoe flight is hero-only on the landing page (deliberate scope)
 Only the hero "Sign in" / "Join the community" buttons launch the fly-and-perch (the photo-slide

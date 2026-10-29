@@ -27,7 +27,10 @@
  *  that opens in any editor and means something.
  *
  *  Dates are ISO strings, never Date. This crosses a JSON boundary in both
- *  directions and `computeStatus` already accepts `Date | string`.
+ *  directions and `computeStatus` already accepts `Date | string`. They are
+ *  UTC instants. Exports taken before 2026-10-29 are not: each carries the
+ *  exporting laptop's UTC offset, and a note in its folder says by how much
+ *  (bug audit 3, L3-02).
  * ------------------------------------------------------------------ */
 
 import type {

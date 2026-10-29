@@ -12,9 +12,10 @@
  * connection string. Prints row output as JSON (capped) so it is safe to pipe
  * into logs.
  *
- * Timestamps: a `timestamp without time zone` column (Prisma's default for a
- * DateTime) prints shifted by this machine's UTC offset, because pg reads it
- * as local time. To copy one back into the database, select it as `col::text`.
+ * Timestamps print as the UTC instants the app reads, on any machine: the
+ * opener (_pg.mjs) parses `timestamp without time zone` in UTC. Before
+ * 2026-10-29 they printed shifted by this machine's UTC offset (bug audit 3,
+ * L3-02), so a time copied out of older output may be off by that much.
  *
  * `--env <file>` points it at a DIFFERENT env file, and when that file names
  * the demo, the connection is checked for the demo project's ref before a
