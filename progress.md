@@ -15,6 +15,7 @@ if the month is new), and add one line here, at the top of that month's list.
 
 ## October 2026 — [full entries](docs/history/progress-2026-10.md)
 
+- 2026-10-29 (profile) — the dark mode tile just says "Experimental"
 - 2026-10-29 (collection) — a class link sends a member with no class to the Valley Collection
 - 2026-10-29 (audit-fix) — bug audit 3's fix campaign opens: 29 questions to the owner before any fix
 - 2026-10-28 (ci) — the gate stops crashing on a dangling link

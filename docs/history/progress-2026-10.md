@@ -1,3 +1,9 @@
+## 2026-10-29 (profile) — the dark mode tile just says "Experimental"
+
+His call: the light-mode line under "Dark mode" on the profile's settings tile read "Experimental.
+Turning it on takes a few questions." It now reads "Experimental" and nothing else. The dark-mode
+line ("Turning it off is one press.") is unchanged. No visual baseline photographs that tile.
+
 ## 2026-10-29 (collection) — a class link sends a member with no class to the Valley Collection
 
 He is sending `/collection?scope=class` to a class that already uses the Class Collection. The link

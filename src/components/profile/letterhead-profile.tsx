@@ -1397,7 +1397,7 @@ export function LetterheadProfile({
                   <p className="mt-0.5 text-[12px] leading-snug text-muted-foreground">
                     {deviceTheme === "dark"
                       ? "Turning it off is one press."
-                      : "Experimental. Turning it on takes a few questions."}
+                      : "Experimental"}
                   </p>
                 </div>
                 <Link href="/dark-mode" className="inline-flex rounded-full">
