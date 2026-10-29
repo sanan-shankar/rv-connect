@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readdirSync } from "node:fs";
 import { join } from "node:path";
-import { ROOT, read, decomment, walk, SKIP_DIRS } from "../../src/lib/test-kit.mjs";
+import { ROOT, read, decomment, walk, SKIP_DIRS, balancedBody } from "../../src/lib/test-kit.mjs";
 
 /* ------------------------------------------------------------------ *
  *  The probes clean up after themselves.
@@ -63,4 +63,31 @@ for (const probe of PROBES) {
 test("phase6-probe.mjs removes its sign-in attempts by address", () => {
   // LoginAttempt.userId is no foreign key; the column it used to name never existed.
   assert.match(decomment(read("scripts/qa/phase6-probe.mjs")), /DELETE FROM "LoginAttempt" WHERE email LIKE/);
+});
+
+/* ------------------------------------------------------------------ *
+ *  Phase 3 wrote into real members' rows (C1-02). It commented on the
+ *  newest post on the feed, a real member's, so every run rang that
+ *  member's bell, and its cleanup never reached the admins' bells or the
+ *  audit rows its accounts caused.
+ * ------------------------------------------------------------------ */
+
+test("phase3-probe.mjs comments only on its own post", () => {
+  const src = decomment(read("scripts/qa/phase3-probe.mjs"));
+  assert.doesNotMatch(src, /page\.click\(\s*['"`]button\[aria-label="Show comments"\]/, "the drive clicks the first post on the feed again");
+  assert.match(src, /INSERT INTO "Post"/, "the probe no longer makes a post of its own");
+  assert.match(src, /aria-controls="comments-\$\{ownPost\}"/, "the drive does not aim at the probe's own post");
+});
+
+test("phase3-probe.mjs takes back what the app wrote about its accounts", () => {
+  const cleanup = balancedBody(decomment(read("scripts/qa/phase3-probe.mjs")), "async function cleanup");
+  assert.ok(cleanup, "phase3-probe.mjs has no cleanup function");
+  assert.match(cleanup, /DELETE FROM "Notification"/, "the admins' bells naming a probe account outlive it");
+  assert.match(cleanup, /DELETE FROM "AuditLog"/, "the audit rows naming a probe account outlive it");
+});
+
+test("phase3-probe.mjs expects an office-list name match to queue, not verify", () => {
+  const src = decomment(read("scripts/qa/phase3-probe.mjs"));
+  assert.match(src, /row2\.verifyState === "pending"/);
+  assert.doesNotMatch(src, /row2\.verifyState === "verified"/);
 });

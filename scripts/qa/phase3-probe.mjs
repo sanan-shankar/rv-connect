@@ -11,9 +11,11 @@
  *   Stage 1  email confirmed, profile unverified  -> directory names, profiles
  *   Stage 2  profile verified                     -> writes + contact details
  *
- * Creates its own disposable accounts (…@probe.invalid), signs each one in
- * through /api/dev-login, runs the checks, and deletes everything it made.
- * Safe to re-run; it cleans up leftovers from a crashed run first.
+ * Creates its own disposable accounts (…@probe.invalid) and a post of its own
+ * to comment on, signs each account in through /api/dev-login, runs the
+ * checks, and deletes everything it made, including what the app wrote on the
+ * accounts' behalf into other people's rows (the admins' bells, the audit
+ * log). Safe to re-run; it cleans up leftovers from a crashed run first.
  *
  * Usage: node scripts/qa/phase3-probe.mjs
  * Needs: dev server on :3000, DEV_LOGIN_SECRET in .env.
@@ -60,6 +62,17 @@ async function cleanup() {
     await db.query(`DELETE FROM "Like" WHERE "userId" = ANY($1)`, [ids]);
     await db.query(`DELETE FROM "Post" WHERE "authorId" = ANY($1)`, [ids]);
     await db.query(`DELETE FROM "AuthToken" WHERE "userId" = ANY($1)`, [ids]);
+    /* What the app wrote about these accounts into OTHER people's rows: every
+       admin's bell for a verification request or an office-list name match,
+       and the audit log's roster rows. Notification.userId is the recipient,
+       so deleting a probe cascades to none of them; matching on the probe's
+       id, which no real row carries, is exact (bug audit 3, C1-02). */
+    await db.query(
+      `DELETE FROM "Notification"
+        WHERE EXISTS (SELECT 1 FROM unnest($1::text[]) AS probe(id) WHERE strpos(link, probe.id) > 0)`,
+      [ids]
+    );
+    await db.query(`DELETE FROM "AuditLog" WHERE "actorId" = ANY($1) OR "targetId" = ANY($1)`, [ids]);
     await db.query(`DELETE FROM "User" WHERE id = ANY($1)`, [ids]);
   }
   await db.query(`DELETE FROM "RosterEntry" WHERE source = 'phase3-probe'`).catch(() => {});
@@ -114,21 +127,21 @@ try {
   const refContactEmail = (ref.displayEmail || "").trim() || ref.email;
   console.log(`reference member: ${ref.name} (${ref.id})`);
 
-  // A visible post to comment on: newest published, unscoped post.
-  const [refPost] = await q(
-    `SELECT id FROM "Post"
-   WHERE "isHidden" = false AND status = 'published'
-     AND "cityScope" IS NULL
-   ORDER BY "createdAt" DESC LIMIT 1`
-  );
-  if (!refPost) throw new Error("no visible reference post to comment on");
-
   /* ================================================================= stages */
 
   console.log("\n-- creating disposable accounts");
   const u0 = await mkUser("stage0");
   const u1 = await mkUser("stage1", { confirmed: true });
   const u2 = await mkUser("stage2", { confirmed: true, verified: true });
+  /* The post the UI drive comments on, the probe's own. It used to comment on
+     whatever the feed showed first, a real member's post, and the app rang
+     that member's bell: "Probe stage2 commented on your post" (C1-02). Its
+     author is stage2, so the comment that lands rings nobody. */
+  const ownPost = `probe_post_${randomBytes(4).toString("hex")}`;
+  await db.query(
+    `INSERT INTO "Post" (id, "authorId", content, "updatedAt") VALUES ($1, $2, $3, now())`,
+    [ownPost, u2, "phase3 probe: a post to comment on, deleted with the probe"]
+  );
   const c0 = await cookieFor("stage0");
   const c1 = await cookieFor("stage1");
   const c2 = await cookieFor("stage2");
@@ -258,10 +271,13 @@ try {
         const c = await fetchSessionCookie(BASE, `${slug}${P}`);
         await page.setCookie({ name: c.name, value: c.value, url: BASE, httpOnly: true, path: "/" });
         await page.goto(`${BASE}/feed`, { waitUntil: "networkidle2", timeout: 60_000 });
-        await page.waitForSelector('button[aria-label="Show comments"]', { timeout: 30_000 });
-        await page.click('button[aria-label="Show comments"]');
-        await page.waitForSelector('input[placeholder="Write a comment..."]', { timeout: 15_000 });
-        await page.type('input[placeholder="Write a comment..."]', text);
+        // The probe's own post, by its id, never the first one on the feed.
+        const toggle = `button[aria-controls="comments-${ownPost}"]`;
+        const box = `[id="comments-${ownPost}"] input[placeholder="Write a comment..."]`;
+        await page.waitForSelector(toggle, { timeout: 30_000 });
+        await page.click(toggle);
+        await page.waitForSelector(box, { timeout: 15_000 });
+        await page.type(box, text);
         await page.keyboard.press("Enter");
         await new Promise((r) => setTimeout(r, 2500));
         const bodyText = await page.evaluate(() => document.body.innerText);
@@ -367,7 +383,9 @@ try {
       row1.admissionNumber === null && row1.houses === null
     );
 
-    // r2: no email on the sheet, but name + batch year match.
+    /* r2: no email on the sheet, but name + batch year match. Since 4c97fdd0 a
+       name alone only queues the account for the owner (Q19): pending, with
+       the office-list row on the record and the admins told once. */
     const r2 = await mkUser("roster-name", { batchYear: 1999, name: "Probe Rostername" });
     await db.query(
       `INSERT INTO "RosterEntry" (id, "fullName", "normalizedName", email, "batchYear", source, "createdAt")
@@ -376,10 +394,15 @@ try {
     );
     const row2 = await confirmAndRead("roster-name", r2);
     check(
-      "roster name+batch match auto-verifies on confirmation",
-      row2.confirmed && row2.verifyState === "verified" && row2.verifyMethod === "office_list",
+      "roster name+batch match queues the account for the admin, unverified",
+      row2.confirmed && row2.verifyState === "pending" && row2.verifyMethod === null,
       `state=${row2.verifyState} method=${row2.verifyMethod}`
     );
+    const [queued] = await q(
+      `SELECT count(*)::int AS n FROM "AuditLog" WHERE action = 'roster.queue' AND "targetId" = $1`,
+      [r2]
+    );
+    check("...and the match is on the record (roster.queue)", queued.n === 1, `${queued.n} rows`);
 
     // r3: on no list at all -> confirmed, still unverified.
     const r3 = await mkUser("roster-none");
