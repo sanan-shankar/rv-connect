@@ -1087,6 +1087,16 @@ export function isEditionRunning(ed: {
   return ed.status === "collecting" && ms(ed.questionsCloseAt) != null;
 }
 
+/**
+ * `isEditionRunning` as a Prisma `where`, for a write that must not land while
+ * an Edition runs: ending a Catch-up (bug audit 3, T2a-07). Beside the
+ * predicate so the two cannot drift; catchups-core.test.mjs checks them
+ * against each other.
+ */
+export const RUNNING_EDITION_WHERE = {
+  OR: [{ status: "answering" }, { status: "collecting", questionsCloseAt: { not: null } }],
+};
+
 // ─── Friendly status copy (shared so every surface reads the same) ────────────
 
 /**

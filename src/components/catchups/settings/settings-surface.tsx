@@ -256,13 +256,17 @@ function catchupGroup(c: SettingsCatchup): Group {
   // everyone and no one at once -- there is nobody to make that call for
   // the rest, so it stays the narrower, Keeper-only permission.
   if (c.youKeep && !c.ended) {
+    /* Not while an Edition runs (bug audit 3, T2a-07, his Q2): ending stops
+       the clock, and the one in flight would never come out. The row stays,
+       as a fact that says when it can be pressed; `endCatchup` refuses too. */
+    const running = c.state === "collecting" || c.state === "answering";
     rows.push({
       key: "end",
       label: "End this Catch-up",
       icon: Archive,
-      line: "Nothing new starts. It stays readable",
-      oneWay: true,
-      opens: { shape: "confirm", key: "end" },
+      line: running ? "You can end it once this Edition is over" : "Nothing new starts. It stays readable",
+      oneWay: !running,
+      opens: running ? undefined : { shape: "confirm", key: "end" },
     });
   }
   return { label: "This Catch-up", rows };

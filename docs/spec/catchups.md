@@ -240,7 +240,12 @@ All four swallow their own errors and report them through `reportSwallowed`; non
 - **End** (`endCatchup`): status `ended`. One-way. Published Editions stay readable and still take
   hearts and comments. Nothing records when it ended, so the list and the home say "Ended" with no
   date. Refused outright on a batch Catch-up: the roster is the batch, so there is nobody to make
-  that call for the rest of it. `refuseIfEnded` refuses every hand-driven write into an ended
+  that call for the rest of it. **Refused while an Edition is running** (collecting with a deadline,
+  or answering): the clock stops for an ended Catch-up, so one caught mid-way stayed there for good
+  and that week's answers were never read. The check (`RUNNING_EDITION_WHERE`, beside
+  `isEditionRunning`) and the write are one statement, and the End row says "You can end it once this
+  Edition is over" instead of opening (his Q2, 2026-10-29: refuse, rather than send out what is there
+  or throw it away; bug audit 3, T2a-07). `refuseIfEnded` refuses every hand-driven write into an ended
   Catch-up's Edition, and the clock stops for it.
 - **Hold and resume are gone** (2026-10-17). Between Editions there is nothing scheduled to hold, and
   inside one "give everyone longer" is the same act with a date on it. A legacy `paused` row is read
@@ -269,7 +274,7 @@ Catch-up has ended; "idle" means refused while nothing is running (§3.5).
 | `submitEntry` (answer) | any member, while answering | same | verified, ended |
 | `toggleEntryLove`, comments | any member, published only | same | verified; comments rate-limited |
 | `renameCatchup` | Keeper | refused | |
-| `endCatchup` | Keeper | refused | verified; off on the demo |
+| `endCatchup` | Keeper, while nothing is running | refused | verified; off on the demo |
 | `setCatchupPicture` | Keeper | any member | pool or own upload only |
 | `addCatchupMembers` | Keeper, not ended; the roster holds 100 at most, counted in the write | refused | verified, rate-limited (`catchups`) |
 | `removeCatchupMember` | Keeper; not yourself, not the creator; changes the invite link | refused | verified |
@@ -469,7 +474,7 @@ which rows exist.
 | Group | Rows | Shown to |
 |---|---|---|
 | **This Edition** | collecting: Open answering, Give everyone longer. answering: Give everyone longer, Close and send it out | whoever runs the cycle (§2.2), while an Edition is running; never when idle |
-| **This Catch-up** | Name, Picture, for everyone; then End this Catch-up | the first two to all, pressable by whoever may change them; End to Keepers of a people Catch-up, not once ended |
+| **This Catch-up** | Name, Picture, for everyone; then End this Catch-up | the first two to all, pressable by whoever may change them; End to Keepers of a people Catch-up, not once ended, and while an Edition runs it is a line saying when it can be ended rather than a press |
 | **You** | Reminders; Leave, or on a batch Catch-up Put it away | everyone |
 
 Three dialog shapes only: a confirmation, a chooser that unfolds in the row, an editor. The words

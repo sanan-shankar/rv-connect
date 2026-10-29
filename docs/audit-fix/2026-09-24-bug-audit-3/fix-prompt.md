@@ -70,7 +70,7 @@ the rest of the phase runs.
 
 | Phase | Status | Rows left | Blocked on |
 |---|---|---|---|
-| A — Trust: who counts as verified, and who may press what in a Catch-up | PARTIAL | 10 (0 H, 3 M, 7 L) | — |
+| A — Trust: who counts as verified, and who may press what in a Catch-up | PARTIAL | 6 (0 H, 0 M, 6 L) | — |
 | B — Privacy: what leaves the site, and what outlives a member | PARTIAL | 22 (0 H, 7 M, 15 L) | — |
 | O — Budgets: what one account or one script may spend of what everyone shares | OPEN | 11 (2 H, 8 M, 1 L) | — |
 | E — The Collection | OPEN | 27 (3 H, 6 M, 18 L) | — |
@@ -78,7 +78,7 @@ the rest of the phase runs.
 | D — Alarms: the owner hears about every failure | OPEN | 23 (0 H, 10 M, 13 L) | — |
 | C — When something fails, the member sees the truth and can recover | OPEN | 20 (0 H, 10 M, 10 L) | — |
 | G — Sign-up, sign-in and the confirmation mail | OPEN | 23 (0 H, 10 M, 13 L) | — |
-| H — Catch-ups: answering, reading, and the words on the clock | OPEN | 33 (0 H, 12 M, 21 L) | — |
+| H — Catch-ups: answering, reading, and the words on the clock | PARTIAL | 31 (0 H, 10 M, 21 L) | — |
 | J — Support and payments | OPEN | 11 (0 H, 6 M, 5 L) | — |
 | I — Admin, moderation and the analytics room | OPEN | 43 (0 H, 3 M, 40 L) | — |
 | K — Text that breaks things: names, numbers, search, links | OPEN | 21 (0 H, 2 M, 19 L) | — |
@@ -527,3 +527,4 @@ evidence stays in `work/`; this ledger is the record of what the campaign did.
 - T2b-03 — DONE (fix(scripts): the Catch-ups export copies recordings, and records one that did not arrive); each file's folder is made as it is written, so no folder list can miss a kind again; pinned by shape, never run (it reads all of production)
 - T2b-08 — DONE (fix(scripts): bulk readers fetch our files from the bucket, with a deadline); given the script's env, bytesFor reads the bucket's own urls through its S3 endpoint (the export, the photo picker and the dimensions backfill now pass it), and anything over HTTP gets thirty seconds; one live thumbnail read proved the S3 route
 - V-T7a-03 — DONE (fix(qa): the probes stop deleting from a dropped table, and clean up however a run ends); with C1's Extends line: the "Session" delete left phase3, phase4, phase6, phase7 and phase4-prod-check, phase6 removes its sign-in attempts by a column that exists, and each run's cleanup sits in a finally; never run
+- T2a-07 — DONE (fix(catchups): a Catch-up cannot be ended while an Edition is running); Q2 (b): refused in the same statement as the write, and the End row says when it can be ended

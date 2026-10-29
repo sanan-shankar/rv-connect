@@ -68,6 +68,7 @@ import {
   BATCH_LEAVE_REFUSAL,
   DEFAULT_REMINDER_MODE,
   isEditionRunning,
+  RUNNING_EDITION_WHERE,
   isMissingCatchupTable,
   mayChangeCatchupPicture,
   newInviteToken,
@@ -798,7 +799,19 @@ export async function setCatchupPicture(
    Catch-up was made paused so that nobody was bothered by one they had not
    asked for; being idle does that now, with no switch to find. */
 
-/** Keeper-only: end a Catch-up. Past published Editions stay readable forever. */
+/**
+ * Keeper-only: end a Catch-up. Past published Editions stay readable forever.
+ *
+ * NOT WHILE AN EDITION IS RUNNING (bug audit 3, T2a-07; his Q2, 2026-10-29).
+ * The clock stops for an ended Catch-up, so an Edition caught collecting or
+ * answering stayed that way for good: that week's answers could never be read
+ * by anyone, its page said "not out yet" for ever, and the confirmation did
+ * not mention it. He chose refusing over sending it out first or throwing it
+ * away, so the Keeper ends it once the Edition is over, and the End row says
+ * so. The check and the write are one statement, so an Edition started a
+ * moment before is seen; a Start landing in the same instant is not, because
+ * neither write locks the Catch-up row.
+ */
 export async function endCatchup(catchupId: string) {
   return runAction(async () => {
     const session = await auth();
@@ -816,10 +829,13 @@ export async function endCatchup(catchupId: string) {
     });
     if ("error" in scope) return scope;
 
-    await prisma.catchup.update({
-      where: { id: catchupId },
+    const ended = await prisma.catchup.updateMany({
+      where: { id: catchupId, editions: { none: RUNNING_EDITION_WHERE } },
       data: { status: "ended" },
     });
+    if (ended.count === 0) {
+      return { error: "An Edition is running. You can end this Catch-up once it is over." };
+    }
     revalidatePath(`/catchups/${catchupId}`);
     return { success: true };
   });

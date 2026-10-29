@@ -318,6 +318,30 @@ test("T2a-10: removing someone takes their filing, as leaving does", () => {
   }
 });
 
+test("T2a-07: a Catch-up cannot be ended while an Edition is running, and the End row says when it can", () => {
+  /* Ending stops the clock, so an Edition caught collecting or answering
+     stayed there for good and that week's answers were never read. His Q2:
+     refuse it until the Edition is over. One statement, so the check and the
+     write see the same rows. */
+  const src = decomment(read("src/app/(main)/catchups/actions.ts"));
+  const end = balancedBody(src, "export async function endCatchup");
+  assert.ok(end, "endCatchup is gone; this pin is reading nothing");
+  assert.match(
+    end,
+    /prisma\.catchup\.updateMany\(\{\s*where: \{ id: catchupId, editions: \{ none: RUNNING_EDITION_WHERE \} \},\s*data: \{ status: "ended" \},?\s*\}\)/,
+    "ending no longer refuses a Catch-up with an Edition running, in the same statement"
+  );
+  assert.match(end, /if \(ended\.count === 0\) \{\s*return \{ error: "An Edition is running\./, "a refused end says nothing");
+  assert.doesNotMatch(end, /prisma\.catchup\.update\(/, "a second, unconditional write ends it anyway");
+
+  const surface = decomment(read("src/components/catchups/settings/settings-surface.tsx"));
+  const group = balancedBody(surface, "function catchupGroup(");
+  assert.ok(group, "catchupGroup is gone; this pin is reading nothing");
+  assert.match(group, /const running = c\.state === "collecting" \|\| c\.state === "answering";/);
+  assert.match(group, /opens: running \? undefined : \{ shape: "confirm", key: "end" \}/, "End can be pressed while an Edition runs");
+  assert.match(group, /You can end it once this Edition is over/, "the End row no longer says when it can be pressed");
+});
+
 test("T2a-03: the roster holds MAX_CATCHUP_PEOPLE, counted inside the write that adds to it", () => {
   /* The bound was on one request's list, and the People door sends one id
      per request, so a Keeper could keep adding past a hundred and every bell

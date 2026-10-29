@@ -32,6 +32,7 @@ import {
   nextEditionStatus,
   planNextAction,
   isEditionRunning,
+  RUNNING_EDITION_WHERE,
   answerReminderMessage,
   valleyDaysLeft,
   addDays,
@@ -539,6 +540,26 @@ test("isEditionRunning: a collecting row runs exactly when it has a question dea
   // and nobody may start a second Edition on top of it.
   assert.equal(isEditionRunning(edition({ status: "collecting", questionsCloseAt: at(DAY_MS) })), true);
   assert.equal(isEditionRunning(edition({ status: "collecting", questionsCloseAt: at(-HOUR_MS) })), true);
+});
+
+test("T2a-07: the running-Edition where says what isEditionRunning says, on every status and deadline", () => {
+  /* Ending a Catch-up asks the database this question, in the same statement
+     as the write; the screens ask the predicate. Read the where clause by
+     hand over the grid, so the two cannot drift apart. */
+  const holds = (clause, row) =>
+    Object.entries(clause).every(([key, want]) =>
+      want && typeof want === "object" && "not" in want ? row[key] !== want.not : row[key] === want
+    );
+  for (const status of ["draft", "collecting", "answering", "sealed", "published"]) {
+    for (const questionsCloseAt of [null, at(DAY_MS), at(-HOUR_MS)]) {
+      const row = edition({ status, questionsCloseAt });
+      assert.equal(
+        RUNNING_EDITION_WHERE.OR.some((clause) => holds(clause, row)),
+        isEditionRunning(row),
+        `${status} with ${questionsCloseAt ? "a" : "no"} question deadline`
+      );
+    }
+  }
 });
 
 test("the clock never touches an idle Edition, and leaves every closed-empty one idle in the end", () => {

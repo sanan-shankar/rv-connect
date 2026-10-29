@@ -1,3 +1,42 @@
+## 2026-10-29 (catchups) — bug audit 3, unit A3: an early close offers more time, a removal sticks, the invite link is back, and End waits for the Edition
+
+Six rows, four commits, all in a Catch-up's Settings and People doors.
+
+C3-01 and T3-06, one commit (his Q15). "Close and send it out" on an Edition nobody had answered ran
+the clock's zero-answer rule, which moves the deadline to three days from now: in a week's first
+days that is up to four days earlier, and it rang everyone again, spent the Edition's one safety net
+and said nothing, so a second press published an empty Edition. A press with no answers now writes
+nothing: the row opens "Nobody has answered yet" with "Give everyone 3 more days", and a press from a
+page that did not know is refused by the server and turns into the same dialog. "Give everyone
+longer" swapped on the value the action had just read, so every tap added the extension again while
+the row said "A week more". `planExtension` swaps on the deadline the page showed, so a stale second
+tap is refused, the row shows the phase's real deadline, no pill stays pressed, and a toast names the
+new date. The offer runs through the same path, from the deadline, ringing nobody.
+
+L12-09 and T2a-10 (his Q16). The invite link never changed and rode in every member's page data, so
+a removed member could press Join on an old copy. Removal now mints a new link inside its own
+transaction, and only a Keeper's page, not an ended one, carries it. It also drops the member's pref
+row, as leaving does, so someone re-added by link no longer finds the Catch-up under Archived.
+
+T3-17 (his Q11). Build phase 7 dropped the invite link with the old roster panel. "Copy invite link"
+is back beside "Add someone" in the People door, Keeper-only, never on a batch or ended Catch-up; a
+refused clipboard shows the address to copy by hand, and a removal's toast says the link changed.
+
+T2a-07 (his Q2, b). End is refused while an Edition is collecting or answering, checked in the same
+statement as the write (`RUNNING_EDITION_WHERE`, tested against `isEditionRunning`); the End row says
+"You can end it once this Edition is over" instead of opening.
+
+Visible: the "Nobody has answered yet" dialog; the extend row's line ("Questions close" while
+collecting) and its unpressed pills; the "now close" toast; the "Copy invite link" pill, its toasts
+and its fallback field; the removal toast's second sentence; the End row's line while an Edition
+runs. Verified live on a throwaway Catch-up holding only the test account (the site's Anonymous
+account stood in as the member removed), deleted after in one guarded statement: every path above
+ran, a stale tab's extension and End were each refused, the offer moved 6 to 9 November from the
+deadline with the safety-net bit untouched, the old link read "expired", a plain member's page
+carried no token, and no bell was written. Each new pin was shown failing against its mutation;
+check and visual 25/25 on each UI commit. Not done: a ceiling on total extension (an owner call
+nobody asked), and a Start landing in the same instant as an End (neither write locks the row).
+
 ## 2026-10-29 (security) — bug audit 3, unit B1: a Sentry report leaves without the member's cookie, location or searches, and the demo reports nothing
 
 Two rows, two commits. T8b-14 (High): since Sentry 10, `sendDefaultPii: false` no longer keeps
