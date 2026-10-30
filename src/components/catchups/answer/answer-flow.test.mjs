@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { decomment, read } from "../../../lib/test-kit.mjs";
-import { saveLanded, shouldFlush } from "./answer-flow.ts";
+import { nextIndex, saveLanded, shouldFlush } from "./answer-flow.ts";
 
 /* ------------------------------------------------------------------ *
  *  The answering surface's decisions (bug audit 3).
@@ -10,12 +10,28 @@ import { saveLanded, shouldFlush } from "./answer-flow.ts";
  *  again", and doing exactly that sent nothing, because the card compared
  *  the words with what it had last SENT and never learned the send failed.
  *  A member who then left lost the paragraph.
+ *
+ *  T3-18: Share on the last question swept back to the first blank one on
+ *  every press, so a member who left a question blank on purpose could never
+ *  reach the end. T3-05: the end's one pill linked to the page it was on.
  * ------------------------------------------------------------------ */
 
 const CARD = decomment(read("src/components/catchups/answer/answer-card.tsx"));
 const EXPERIENCE = decomment(read("src/components/catchups/answer/answer-experience.tsx"));
 const SONG = decomment(read("src/components/catchups/answer/song-attachment.tsx"));
 const ACTIONS = decomment(read("src/app/(main)/catchups/actions.ts"));
+const COMPLETION = decomment(read("src/components/catchups/answer/completion-card.tsx"));
+
+/** Press Next/Share from `index` until the completion card, or give up. */
+function walk(total, answered, from = 0) {
+  const path = [from];
+  let at = { index: from, swept: false };
+  for (let presses = 0; presses < total * 4 && at.index < total; presses++) {
+    at = nextIndex(at.index, total, answered, at.swept);
+    path.push(at.index);
+  }
+  return path;
+}
 
 test("a failed save is sent again with unchanged words, which is the retry the line promises", () => {
   assert.equal(shouldFlush("Three paragraphs.", "Three paragraphs.", "failed"), true, "T3-04: the retry is a no-op again");
@@ -78,4 +94,32 @@ test("the refusals a retry cannot change carry final, and only those", () => {
   assert.match(submit, /return \{ error: parsed\.error\.issues\[0\]\.message, final: true as const \};/);
   // The catch-all lives in runAction, outside submitEntry: a crash stays retryable.
   assert.equal((submit.match(/final: true as const/g) ?? []).length, 4);
+});
+
+test("a question left blank on purpose sends Share back to it once, and the next Share finishes", () => {
+  // Four questions, the second left blank: the T3-18 case exactly.
+  const answered = [true, false, true, true];
+  assert.deepEqual(walk(4, answered), [0, 1, 2, 3, 1, 2, 3, 4], "Share loops back to question 2 for ever (T3-18)");
+  // Two blanks: one trip back walks past both.
+  assert.deepEqual(walk(4, [false, true, false, true]), [0, 1, 2, 3, 0, 1, 2, 3, 4]);
+  // Everything answered: straight to the card.
+  assert.deepEqual(walk(3, [true, true, true]), [0, 1, 2, 3]);
+  // The owner's own case, 2026-08-13: question one blank when he finished three of four.
+  assert.deepEqual(nextIndex(3, 4, [false, true, true, true], false), { index: 0, swept: true });
+});
+
+test("the question being left is never the one swept back to", () => {
+  /* Its words reach `answered` a render late, so a just-answered last
+     question still reads blank: it must not send the member to itself. */
+  assert.deepEqual(nextIndex(2, 3, [true, true, false], false), { index: 3, swept: false });
+  assert.deepEqual(nextIndex(0, 1, [false], false), { index: 1, swept: false }, "one question, unanswered: the card");
+  assert.deepEqual(nextIndex(0, 3, [false, false, false], false), { index: 1, swept: false }, "only the last question sweeps");
+});
+
+test("the end of answering offers the questions, not the page it is already on", () => {
+  assert.doesNotMatch(COMPLETION, /href=\{`\/catchups\/\$\{/, "the completion card links to the Catch-up's home, which it is drawn on (T3-05)");
+  assert.doesNotMatch(COMPLETION, /from "@\/components\/common\/link"/);
+  assert.match(COMPLETION, /<Button variant="primary" onClick=\{onBack\}[^>]*>\s*Back to the questions\s*<\/Button>/);
+  assert.match(EXPERIENCE, /onBack=\{\(\) => goTo\(0, -1\)\}/, "the pill no longer takes the member to the first question");
+  assert.match(EXPERIENCE, /const next = nextIndex\(index, total, /, "the advance decides inline again, without the sweep's memory");
 });

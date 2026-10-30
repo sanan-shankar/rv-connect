@@ -9,7 +9,6 @@
  *  the card instead of sitting on an empty gap above it.
  * ------------------------------------------------------------------ */
 
-import Link from "@/components/common/link";
 import { ResidentHoopoe } from "@/components/mascot/resident-hoopoe";
 import { useSoloHoopoe } from "@/components/mascot/moments/one-hoopoe-guard";
 import { Button } from "@/components/ui/button";
@@ -17,13 +16,14 @@ import { FadeRise } from "@/components/common/motion";
 import { cn } from "@/lib/utils";
 
 export function CompletionCard({
-  catchupId,
   groupName,
   answeredCount,
+  onBack,
 }: {
-  catchupId: string;
   groupName: string;
   answeredCount: number;
+  /** To the first question, which is where every answer can be changed. */
+  onBack: () => void;
 }) {
   const solo = useSoloHoopoe();
 
@@ -52,9 +52,16 @@ export function CompletionCard({
             ? `See you when ${groupName}'s Catch-up is out.`
             : "You can come back any time before answers close."}
         </p>
-        <Link href={`/catchups/${catchupId}`} className="mt-[var(--space-l)] inline-flex">
-          <Button variant="primary">Back to the Catch-up</Button>
-        </Link>
+        {/* BACK TO THE QUESTIONS, not "Back to the Catch-up". That pill was
+            written when answering had a page of its own; since answering moved
+            onto the Catch-up's home, it linked to the page it was drawn on,
+            and the card stayed (bug audit 3, T3-05). Going back to the
+            questions is the one thing left to do from here: change an answer,
+            or fill in one left blank. The marks above do it too, but they are
+            3px lines, and nothing says they can be pressed. */}
+        <Button variant="primary" onClick={onBack} className="mt-[var(--space-l)]">
+          Back to the questions
+        </Button>
       </div>
     </FadeRise>
   );

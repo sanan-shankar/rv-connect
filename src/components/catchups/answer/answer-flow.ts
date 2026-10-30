@@ -3,9 +3,11 @@
  *
  *  Each of these was once made inline in a component in a way that
  *  trapped a member (bug audit 3): a save that failed could not be
- *  retried the way its own red line said (T3-04). Pure and import-free,
- *  so answer-flow.test.mjs runs them with bare `node` (docs/TRAPS.md, "A
- *  testable module must have no relative VALUE imports").
+ *  retried the way its own red line said (T3-04), and Share on the last
+ *  question swept back to a blank one for ever (T3-18). Pure and
+ *  import-free, so answer-flow.test.mjs runs them with bare `node`
+ *  (docs/TRAPS.md, "A testable module must have no relative VALUE
+ *  imports").
  * ------------------------------------------------------------------ */
 
 /**
@@ -47,4 +49,37 @@ export function saveLanded(status: SaveStatus | undefined): boolean {
 export function shouldFlush(value: string, lastSent: string, lastStatus: SaveStatus): boolean {
   if (lastStatus === "failed") return true;
   return value.trim() !== lastSent.trim();
+}
+
+/**
+ * Where Next (Share, on the last question) goes from question `index`.
+ *
+ * Forward one question at a time, and from the last question on to the
+ * completion card at `total`. Except ONCE: the first Share from the last
+ * question goes back to the first question still blank instead, because
+ * people answer out of order, and the owner, finishing question three of
+ * four, was sent to the end with question one empty (2026-08-13).
+ *
+ * Once, because a blank question is an answer this surface supports: "skip
+ * for now is same as next", in his words. With no memory the sweep sent a
+ * member who left one blank on purpose back to it on every Share, so the
+ * card never came and nothing said their answers were already saved
+ * (T3-18). Walking forward from the blank question passes every later blank
+ * one, so one trip back shows them all.
+ *
+ * The question being left is never the one swept back to: its just-flushed
+ * words reach `answered` a render late, and whether it was answered or
+ * skipped, forward is the honest direction for it.
+ */
+export function nextIndex(
+  index: number,
+  total: number,
+  answered: readonly boolean[],
+  swept: boolean
+): { index: number; swept: boolean } {
+  if (index === total - 1 && !swept) {
+    const back = answered.findIndex((done, i) => i !== index && !done);
+    if (back !== -1) return { index: back, swept: true };
+  }
+  return { index: Math.min(index + 1, total), swept };
 }

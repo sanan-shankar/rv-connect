@@ -21,7 +21,7 @@ import { submitEntry } from "@/app/(main)/catchups/actions";
 import type { StoredRecording } from "@/lib/voice-upload-client";
 import { AnswerCard } from "./answer-card";
 import { CompletionCard } from "./completion-card";
-import { saveLanded, type SaveStatus } from "./answer-flow";
+import { nextIndex, saveLanded, type SaveStatus } from "./answer-flow";
 import { isMeaningfulEntry, type AnswerEntryDraft, type AnswerPromptData } from "./types";
 
 /* "failed" is the status that was missing (audit M11). A save that did not
@@ -44,11 +44,9 @@ type EntryPatch = { body?: string; images?: string[]; audio?: StoredRecording | 
    third time, above the box you are writing in, is the app narrating itself.
    Who has written is read from the roster behind the People door. */
 export function AnswerExperience({
-  catchupId,
   groupName,
   prompts,
 }: {
-  catchupId: string;
   groupName: string;
   prompts: AnswerPromptData[];
 }) {
@@ -61,6 +59,8 @@ export function AnswerExperience({
   const [refusal, setRefusal] = useState<Record<string, string>>({});
   const [index, setIndex] = useState(0);
   const [direction, setDirection] = useState(1);
+  /** Whether Share has already swept back to a blank question once (T3-18). */
+  const [swept, setSwept] = useState(false);
 
   const total = prompts.length;
   const current = index < total ? prompts[index] : null;
@@ -83,31 +83,13 @@ export function AnswerExperience({
     setIndex(Math.max(0, Math.min(total, next)));
   }
 
-  /**
-   * The Next/Share/Skip advance. Linear until the LAST prompt; leaving that
-   * one sweeps back to the first prompt still unanswered instead of the
-   * completion card, because people answer out of order (owner, 2026-08-13:
-   * finishing question three of four jumped him to "back to the Catch-up"
-   * with question one still blank). Only when nothing is left does the
-   * completion card show — which is also what the spec always said
-   * ("a soft completion moment when the last prompt is answered").
-   *
-   * The current prompt is excluded from the sweep rather than trusted:
-   * its just-flushed body reaches this component's state one render late,
-   * so answeredIds cannot say yet whether it was answered or skipped —
-   * and either way, forward is the honest direction for it.
-   */
+  /** The Next/Share advance: forward, and from the last question to the
+   *  completion card, sweeping back to a blank question once on the way
+   *  (`nextIndex`, which says why once and not every time). */
   function advance() {
-    if (index === total - 1) {
-      const firstUnanswered = prompts.findIndex(
-        (p, i) => i !== index && !answeredIds.has(p.id)
-      );
-      if (firstUnanswered !== -1) {
-        goTo(firstUnanswered, -1);
-        return;
-      }
-    }
-    goTo(index + 1, 1);
+    const next = nextIndex(index, total, prompts.map((p) => answeredIds.has(p.id)), swept);
+    setSwept(next.swept);
+    goTo(next.index, next.index > index ? 1 : -1);
   }
 
   function updateEntry(promptId: string, patch: Partial<AnswerEntryDraft>) {
@@ -270,7 +252,11 @@ export function AnswerExperience({
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.3, ease: EASE_SPRING }}
               >
-                <CompletionCard catchupId={catchupId} groupName={groupName} answeredCount={answeredIds.size} />
+                <CompletionCard
+                  groupName={groupName}
+                  answeredCount={answeredIds.size}
+                  onBack={() => goTo(0, -1)}
+                />
               </m.div>
             )}
       </AnimatePresence>

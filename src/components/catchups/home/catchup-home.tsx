@@ -247,11 +247,7 @@ function EditionRegion({
 
   if (edition?.status === "answering") {
     return (
-      <AnswerExperience
-        catchupId={data.catchupId}
-        groupName={data.title}
-        prompts={data.answering}
-      />
+      <AnswerExperience groupName={data.title} prompts={data.answering} />
     );
   }
 
