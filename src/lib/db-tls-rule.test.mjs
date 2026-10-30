@@ -69,6 +69,14 @@ test("every database client in the repo verifies it is talking to Supabase", () 
     for (const m of src.matchAll(/new\s+(?:pg\.)?(?:Client|Pool)\s*\(|new\s+PrismaPg\s*\(/g)) {
       clients += 1;
       const args = callArgs(src, m.index + m[0].length - 1);
+      /* A PrismaPg handed a pool the same file built (src/lib/prisma.ts, since
+         bug audit 3's L5-04): the pool is the client, and its own `new Pool(`
+         is held to the rule below by this same loop. Only that exact shape
+         passes; a pool from anywhere else still has to show its settings. */
+      const handed = /PrismaPg/.test(m[0]) && args.match(/^\s*(\w+)\s*(?:,|$)/)?.[1];
+      if (handed && new RegExp(`\\b(?:const|let)\\s+${handed}\\s*=\\s*new\\s+(?:pg\\.)?Pool\\s*\\(`).test(src)) {
+        continue;
+      }
       /* `withDatabaseTls(` and nothing less. Any `ssl:` used to pass, and ten
          scripts sailed through on `ssl: { rejectUnauthorized: false }`:
          encrypted, but talking to whoever answered (bug audit 3, VOL1-01). */

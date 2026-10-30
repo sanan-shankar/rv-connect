@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import pg from "pg";
+import { PrismaPg } from "@prisma/adapter-pg";
 import { ROOT, decomment, walk } from "./test-kit.mjs";
 
 /* ------------------------------------------------------------------ *
@@ -97,3 +99,69 @@ test("a pool-level error is not swallowed", () => {
     "no onPoolError handler: idle-client errors vanish into the adapter's debug channel"
   );
 });
+
+/* ------------------------------------------------------------------ *
+ *  The singleton's own pool (bug audit 3, L5-04 and L5-05).
+ *
+ *  Under Fluid compute an idle instance is suspended, and timers do not run
+ *  while it sleeps, so a connection still open then keeps its Supavisor slot
+ *  for the whole sleep and can wake as a socket the pooler already dropped.
+ *  prisma.ts therefore builds the pg Pool itself (the object Vercel's
+ *  `attachDatabasePool` takes, once the project carries @vercel/functions)
+ *  and closes idle clients sooner than pg's 10s default.
+ * ------------------------------------------------------------------ */
+
+const singleton = () => sites.find((s) => s.file === "src/lib/prisma.ts")?.src ?? "";
+
+/** The argument list of the call whose `(` is at `open`, parens balanced. */
+function callArgs(src, open) {
+  for (let i = open, depth = 0; i < src.length; i++) {
+    if (src[i] === "(") depth++;
+    else if (src[i] === ")" && --depth === 0) return src.slice(open + 1, i);
+  }
+  return "";
+}
+
+test("the app builds the pool, and the client ends it when it disconnects", () => {
+  const src = singleton();
+  const pool = src.match(/\bconst\s+(\w+)\s*=\s*new\s+Pool\s*\(/);
+  assert.ok(pool, "prisma.ts no longer builds its own pg Pool; PrismaPg is making one nobody can attach or inspect");
+  const open = src.indexOf("new PrismaPg(");
+  const args = callArgs(src, open + "new PrismaPg".length);
+  assert.match(args, new RegExp(`^\\s*${pool[1]}\\s*,`), "the pool prisma.ts builds is not the one it hands PrismaPg");
+  /* Without this the adapter leaves a pool it was handed open on
+     $disconnect(), and every dev rebuild after a schema change (CLAUDE.md
+     gotcha 8) would leak the old client's connections. */
+  assert.match(args, /\bdisposeExternalPool:\s*true\b/, "PrismaPg no longer ends the app's pool on $disconnect()");
+});
+
+test("an idle connection closes well inside the platform's suspend", () => {
+  const m = singleton().match(/\bidleTimeoutMillis:\s*([\d_]+)/);
+  assert.ok(m, "prisma.ts sets no idleTimeoutMillis: pg's 10s default keeps idle clients past an instance's suspend");
+  const value = ms(m[1]);
+  assert.ok(value >= 1000 && value <= 5000, `idleTimeoutMillis ${value} is outside the 1-5s Vercel's guidance asks for`);
+});
+
+test("an interactive transaction waits for a connection exactly as long as a query does", () => {
+  const src = singleton();
+  const open = src.indexOf("new PrismaClient(");
+  assert.ok(open >= 0, "prisma.ts no longer constructs a PrismaClient");
+  const wait = callArgs(src, open + "new PrismaClient".length).match(/transactionOptions:\s*\{[^}]*\bmaxWait:\s*([\d_]+)/);
+  assert.ok(wait, "PrismaClient takes Prisma's own 2s maxWait, so a $transaction gives up before the pool's checkout would");
+  const pool = src.match(/\bconnectionTimeoutMillis:\s*([\d_]+)/);
+  assert.equal(ms(wait[1]), ms(pool[1]), "transactionOptions.maxWait and connectionTimeoutMillis disagree: two budgets for one wait");
+});
+
+test("the adapter adopts the app's pool rather than building a second one, and ends it on dispose", async () => {
+  /* PrismaPg recognises a pool by `instanceof pg.Pool` against ITS copy of
+     pg. A second copy in node_modules would make it read our pool as a bag
+     of options and quietly build its own, and the settings and the attach
+     would land on a pool nothing uses. connect() opens no connection; it
+     only wraps the pool. */
+  const pool = new pg.Pool({ max: 1 });
+  const adapter = await new PrismaPg(pool, { disposeExternalPool: true }).connect();
+  assert.equal(adapter.underlyingDriver(), pool, "PrismaPg did not adopt the pool it was handed (two copies of pg?)");
+  await adapter.dispose();
+  assert.equal(pool.ended, true, "disposing the adapter left the app's pool open");
+});
+

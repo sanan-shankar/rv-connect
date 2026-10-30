@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
+import { Pool } from "pg";
 import { PrismaClient, Prisma } from "@/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { IS_DEMO, DemoWriteError, demoWriteAllowed } from "./demo";
@@ -25,12 +26,30 @@ function createPrismaClient() {
   // platform 504, never the app's error screen, and each hung request keeps
   // its Vercel concurrency slot, so a spike compounds instead of shedding.
   //
-  //   max 5              -- Supavisor's client cap is 200; 5 x ~40 concurrent
-  //                         instances stays under it, and 5 covers the widest
-  //                         fan-out in the app (the directory page's 7-leg
-  //                         Promise.all) in two waves rather than three.
+  //   max 5              -- per instance. Under Fluid compute one instance
+  //                         serves many requests at once, and Vercel's advice
+  //                         is never 1, which would queue them all behind one
+  //                         connection; 5 covers the widest fan-out in the app
+  //                         (the directory page's Promise.all) in two waves
+  //                         rather than three. (This used to reason "5 x ~40
+  //                         concurrent instances stays under Supavisor's 200
+  //                         clients", which is pre-Fluid arithmetic: the
+  //                         instance count is single digits now. Bug audit 3,
+  //                         L5-04.)
   //   connectionTimeout  -- 5s. Under load a few requests get a fast, honest
   //                         error instead of the whole site hanging.
+  //   idleTimeout        -- 5s, half pg's default. Fluid suspends an idle
+  //                         instance, and its timers do not run while it
+  //                         sleeps: a connection still open at that moment
+  //                         keeps a Supavisor client slot for the whole sleep
+  //                         and can wake as a socket the pooler has already
+  //                         dropped, failing the next member's first query
+  //                         (Vercel KB, "Connection pooling with Vercel
+  //                         Functions"; L5-04). The other half of that fix is
+  //                         `attachDatabasePool(pool)` from @vercel/functions,
+  //                         which holds the instance awake until its idle
+  //                         clients have closed; the project does not carry
+  //                         that package, so it is not called here.
   //   query_timeout      -- 20s, client-side. Nothing here should take a
   //                         fifth of that; it exists so one stuck query
   //                         cannot pin a request open.
@@ -43,26 +62,44 @@ function createPrismaClient() {
   // reads like a guard and is not one. Postgres-side runaway queries are
   // bounded by that 2min platform default; `query_timeout` is what actually
   // frees the request.
-  const adapter = new PrismaPg(
-    {
-      // Encrypted and verified against Supabase's pinned root. pg sends
-      // plaintext unless handed `ssl` (db-tls.ts; bug audit 3, O-07).
-      ...withDatabaseTls(connectionString),
-      max: 5,
-      connectionTimeoutMillis: 5_000,
-      query_timeout: 20_000,
+  //
+  // The pool is built here, not handed to the adapter as options, so the app
+  // holds the object itself: the thing `attachDatabasePool` takes. Once per
+  // process: production calls this once, and development keeps the client
+  // below on globalThis.
+  const pool = new Pool({
+    // Encrypted and verified against Supabase's pinned root. pg sends
+    // plaintext unless handed `ssl` (db-tls.ts; bug audit 3, O-07).
+    ...withDatabaseTls(connectionString),
+    max: 5,
+    connectionTimeoutMillis: 5_000,
+    idleTimeoutMillis: 5_000,
+    query_timeout: 20_000,
+  });
+  const adapter = new PrismaPg(pool, {
+    // The adapter leaves a pool it was handed open when the client
+    // disconnects, since it did not make it. This one is nobody else's, and
+    // the dev rebuild further down relies on `$disconnect()` letting the old
+    // client's connections go (CLAUDE.md gotcha 8).
+    disposeExternalPool: true,
+    // The adapter attaches its own listener so a pool error can never crash
+    // the process, but it only forwards to a debug channel nobody reads.
+    // Connection-level trouble is exactly the thing we want to see in the
+    // logs when the site is misbehaving.
+    onPoolError: (err) => {
+      console.error("[prisma] pool error:", err.message);
     },
-    {
-      // The adapter attaches its own listener so a pool error can never crash
-      // the process, but it only forwards to a debug channel nobody reads.
-      // Connection-level trouble is exactly the thing we want to see in the
-      // logs when the site is misbehaving.
-      onPoolError: (err) => {
-        console.error("[prisma] pool error:", err.message);
-      },
-    }
-  );
-  const client = new PrismaClient({ adapter });
+  });
+  const client = new PrismaClient({
+    adapter,
+    // How long an interactive `$transaction` waits for a connection. Prisma's
+    // own default is 2s, so under load the write paths (an answer save, a
+    // Catch-up's creation, the clock's transitions) gave up before a plain
+    // query in the same request would have, and each start they abandoned
+    // still took a connection later just to BEGIN and roll back (bug audit 3,
+    // L5-05). One wait for a connection everywhere: the pool's, above.
+    transactionOptions: { maxWait: 5_000 },
+  });
 
   // On the demo deployment ONLY, every query passes a default-deny check
   // before it reaches Postgres (src/lib/demo.ts). This is the backstop
