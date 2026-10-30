@@ -178,6 +178,33 @@ test("no money surface reads a contribution sum's gross amount", () => {
   }
 });
 
+/* The same rule for a ROW read: a partial refund leaves the row "paid", so a
+ * reader that prints or sums `amount` without `refundedAmount` reports the
+ * gross. The member's own data export did exactly that (bug audit 3, T8a-07):
+ * a gift mostly handed back came out as the whole sum, status "paid". */
+
+test("no contribution row is read for its amount without what was handed back", () => {
+  const calls = [];
+  for (const f of filesContaining("contribution.find", { match: /\.(tsx?|mts|mjs|cjs|js)$/ })) {
+    if (f.endsWith(".test.mjs")) continue;
+    const src = decomment(read(f));
+    for (const m of src.matchAll(/contribution\.find(?:Many|First|Unique)\(/g)) {
+      // The call's own argument, by balancing its parentheses.
+      let i = m.index + m[0].length;
+      for (let depth = 1; i < src.length && depth > 0; i++) {
+        if (src[i] === "(") depth++;
+        else if (src[i] === ")") depth--;
+      }
+      calls.push([f, src.slice(m.index, i)]);
+    }
+  }
+  assert.ok(calls.length >= 6, `found ${calls.length} contribution reads; the readers have moved, retarget this test`);
+  for (const [f, call] of calls) {
+    if (!/\bamount:\s*true/.test(call)) continue;
+    assert.match(call, /\brefundedAmount:\s*true/, `${f} reads a contribution's amount without its refundedAmount:\n${call}`);
+  }
+});
+
 /* ------------------------------------------------------------------ *
  *  A chargeback the owner WINS counts again.
  *

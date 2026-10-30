@@ -276,12 +276,21 @@ export async function GET() {
       "contributions",
       (after) =>
         prisma.contribution.findMany({
+          /* `refundedAmount` beside `amount`, because a partial refund leaves
+             the row "paid" and only moves the paise (audit C-087): every other
+             reader counts amount minus this, and the member's own copy reported
+             the gross (bug audit 3, T8a-07). The two Razorpay ids are the only
+             keys a member can quote to Razorpay or their bank about a payment. */
           select: {
             id: true,
             amount: true,
+            refundedAmount: true,
             currency: true,
             status: true,
             method: true,
+            failureReason: true,
+            razorpayOrderId: true,
+            razorpayPaymentId: true,
             createdAt: true,
             paidAt: true,
           },
@@ -303,7 +312,7 @@ export async function GET() {
         write(`  "exportedAt": ${JSON.stringify(new Date().toISOString())},\n`);
         write('  "site": "Rishi Valley alumni website (rishivalley.space)",\n');
         write(
-          '  "note": "Amounts are in paise. Image URLs point at the site\'s storage and stay live only while the content exists.",\n'
+          '  "note": "Amounts are in paise; a contribution is worth its amount less its refundedAmount, the part handed back. Image URLs point at the site\'s storage and stay live only while the content exists.",\n'
         );
         write(`  "profile": ${JSON.stringify(user, null, 2).replace(/\n/g, "\n  ")},\n`);
 
