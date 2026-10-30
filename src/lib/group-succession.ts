@@ -1,5 +1,5 @@
 import type { Prisma } from "@/generated/prisma/client";
-import { CATCHUP_PEOPLE, IN_GOOD_STANDING } from "./catchup-caps.ts";
+import { CATCHUP_PEOPLE } from "./catchup-caps.ts";
 import { entryStoredUrls } from "./purge-rule.ts";
 
 /**
@@ -258,41 +258,5 @@ export async function dropUnsentWriting(
     { authorId: userId, edition: unsent },
     { authorId: userId, edition: unsent, entries: { none: { authorId: { not: userId } } } },
     "left"
-  );
-}
-
-/**
- * At an Edition's close, the writing of anyone it holds who is blocked or
- * inside their deletion window (bug audit 3, T2a-13 and T2b-05; his Q6 (b)
- * with Q21): their answers, and their questions nobody still here answered.
- * Call it in the close's own transaction, after its swap holds the row: the
- * Keeper's close and the clock's, publishing or sealing a capsule alike.
- *
- * Q6 (b) took them out of a Catch-up's lists, counts and bells and left
- * Editions already sent exactly as people read them. So an Edition that came
- * out before they were blocked keeps their answers and their hearts for good;
- * one still running when it happened is the case Q21 settled, what nobody has
- * read yet goes with the person, and the close is the moment it would
- * otherwise be read. Why at the close rather than at the block or the request:
- * those are the admin's and the account's own doors, and nothing records when
- * a block happened, so the close is the one place that knows what is being
- * sent. An unblock or a cancelled request before the close loses nothing; one
- * after it does not bring that Edition's answers back, because the group read
- * it without them. A capsule opening later keeps what it sealed.
- *
- * Their comments are not touched here: comments come after an Edition is out,
- * and follow the site-wide rule (`VISIBLE_COMMENT`), hidden while the author
- * is blocked or leaving and back if that is undone.
- */
-export async function dropGoneMembersWriting(
-  db: Prisma.TransactionClient,
-  editionId: string
-): Promise<string[]> {
-  const gone = { NOT: IN_GOOD_STANDING };
-  return dropWriting(
-    db,
-    { editionId, author: gone },
-    { editionId, author: gone, entries: { none: { author: IN_GOOD_STANDING } } },
-    "gone"
   );
 }

@@ -363,15 +363,20 @@ standing the feed's `AUTHOR_IN_GOOD_STANDING` reads. An Edition already sent sta
 read it: their answers, photographs, recordings and hearts in it stay, which is the one place the
 feed's rule does not reach (`catchups-edition-view.ts` says why). Their comments under answers follow
 the site's rule, hidden while blocked or leaving and back if that is undone, because a comment is
-written after an Edition is out. What they wrote for an Edition still running when it happened leaves
-it at its close, the Keeper's or the clock's, publishing or sealing (`dropGoneMembersWriting`): their
-answers, with photographs and recordings queued for deletion, and their questions nobody still in good
-standing answered. Nothing records when a block happened, so the close is the one place that knows what
-is being sent; an unblock after it does not bring that Edition's answers back, since the group read it
-without them. "Answered" counts only members in good standing (`ANSWERED_ENTRY_WHERE`), so their
-answers cannot keep an Edition from the too-few rule or the "Nobody has answered yet" refusal. His Q6
-(b) with Q21, 2026-10-29; until then a blocked member stayed in every list, count and bell (bug audit
-3, T2a-13, T2b-05). Blocking still runs no succession: a blocked Keeper keeps the hat until someone
+written after an Edition is out. **Nothing they wrote is deleted for it.** What they wrote for an
+Edition still running when it happened (answers, photographs, recordings, questions) stays where it is
+and goes out with the Edition at its close, the Keeper's or the clock's, publishing or sealing. The drop
+at close was withdrawn before push (blocking and the deletion window are reversible): its first build
+deleted that writing at the close and queued its files, which neither an unblock nor a cancelled
+request could bring back, and he authorised nothing that deletes member content (his Q22 and Q28).
+Q21's "what nobody has read goes with the person" is for leaving, removal, a batch move and erasure,
+not for a standing that can be undone. A reversible withhold (for example a `CatchupEntry.withheldAt`
+set at the close and cleared on an unblock or a cancelled request, with the reader filtering on it) is
+routed to a later unit. "Answered" counts only members in good standing (`ANSWERED_ENTRY_WHERE`), one
+of the counts Q6 takes them out of: when theirs are the only answers, the Keeper's close is refused
+with "Nobody has answered yet" and the clock extends once and then publishes, theirs included. His Q6
+(b), 2026-10-29; until then a blocked member stayed in every list, count and bell (bug audit 3,
+T2a-13, T2b-05). Blocking still runs no succession: a blocked Keeper keeps the hat until someone
 leaves or is removed.
 
 **Archiving** (`setCatchupArchived`) is personal filing: `CatchupPref.archivedAt` on your own row.

@@ -15,6 +15,7 @@ if the month is new), and add one line here, at the top of that month's list.
 
 ## October 2026 — [full entries](docs/history/progress-2026-10.md)
 
+- 2026-10-30 (catchups) — bug audit 3, a correction to unit H3: a close keeps a blocked or leaving member's writing in place
 - 2026-10-30 (privacy) — bug audit 3, unit B5: the privacy page says what the site really does, every cookie is on it, and phase B is done
 - 2026-10-30 (catchups) — bug audit 3, unit H3: who is inside a Catch-up and what leaves with them: unsent writing goes with a leaver, blocked and leaving members leave its people, counts and bells, Remove asks first, and dropped photographs leave the bucket
 - 2026-10-30 (ops) — bug audit 3, unit L4b: the backups keep what they should and name every night, the snapshot reads Supabase's egress once given a token, a laptop cannot pass for production, and the session and bell pins see what they missed

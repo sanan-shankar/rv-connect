@@ -4,12 +4,11 @@ import test from "node:test";
 import {
   anyOtherHolder,
   chooseGroupSuccessor,
-  dropGoneMembersWriting,
   dropUnsentWriting,
   promoteGroupSuccessor,
   UNSENT_EDITION_STATUSES,
 } from "./group-succession.ts";
-import { CATCHUP_PEOPLE, IN_GOOD_STANDING } from "./catchup-caps.ts";
+import { CATCHUP_PEOPLE } from "./catchup-caps.ts";
 import { read as readRepo, decomment, balancedBody } from "./test-kit.mjs";
 
 const at = (iso) => new Date(iso);
@@ -441,26 +440,23 @@ test("C8-04: a photograph another answer still names stays in the bucket", async
   assert.deepEqual(db.calls.find(([k]) => k === "queue")[1].data, [{ url: VOICE, reason: "left" }]);
 });
 
-/* T2a-13 and T2b-05 (his Q6 (b) with Q21): an Edition closing sends out
-   nothing written by a member who is blocked or leaving the site. Called in
-   the close's own transaction, after its swap holds the row, so it holds
-   nothing itself. The three close sites are pinned in catchup-lifecycle. */
-test("Q6: at its close an Edition sheds the writing of members blocked or leaving, and only theirs", async () => {
-  assert.deepEqual(IN_GOOD_STANDING, { isBlocked: false, deletionRequestedAt: null });
-  const db = departureDb({
-    entries: [{ id: "e9", images: JSON.stringify([PHOTO]), audioUrl: null }],
-    prompts: [{ id: "p9" }],
-  });
-  const queued = await dropGoneMembersWriting(db, "ed1");
-  const kinds = db.calls.map(([k]) => k);
-  assert.equal(kinds[0], "entries", "it takes a lock the close's swap already holds");
-  const gone = { NOT: IN_GOOD_STANDING };
-  assert.deepEqual(db.calls.find(([k]) => k === "entries")[1].where, { editionId: "ed1", author: gone });
+/* T2a-13 and T2b-05 first added a second delete here: at an Edition's close,
+   whatever a member blocked or inside their deletion window had written for
+   it. Withdrawn before push. Blocking is undone by an unblock and the
+   deletion window by signing back in (his Q22), a delete cannot be undone,
+   and nothing he authorised deletes member content (Q28). Q21's "what nobody
+   has read goes with the person" is for leaving, removal, a batch move and
+   erasure, so the exits above are the only way a member's writing goes with
+   them. The closes themselves are pinned in catchup-lifecycle. */
+test("Q6: a member's standing deletes none of their writing; only the exits do", async () => {
+  const mod = await import("./group-succession.ts");
   assert.deepEqual(
-    db.calls.find(([k]) => k === "prompts")[1].where,
-    { editionId: "ed1", author: gone, entries: { none: { author: IN_GOOD_STANDING } } },
-    "a question somebody still here answered can go with its asker"
+    Object.keys(mod).filter((name) => /^drop/.test(name)),
+    ["dropUnsentWriting"],
+    "a second way to delete a member's writing is exported again; blocking and the deletion window are reversible"
   );
-  assert.deepEqual(db.calls.find(([k]) => k === "queue")[1].data, [{ url: PHOTO, reason: "gone" }]);
-  assert.deepEqual(queued, [PHOTO]);
+  const src = decomment(readRepo("src/lib/group-succession.ts"));
+  // The delete itself, declared once and called once: by the exits' helper.
+  assert.equal((src.match(/\bdropWriting\(/g) ?? []).length, 2, "the delete has a caller besides the exits again");
+  assert.match(balancedBody(src, "export async function dropUnsentWriting(") ?? "", /return dropWriting\(/);
 });

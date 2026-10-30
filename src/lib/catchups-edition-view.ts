@@ -121,8 +121,10 @@ export async function loadPublishedEditionView(
              asking to leave after it came out keeps their answers, photographs,
              recording and hearts in it; the feed's rule (AUTHOR_IN_GOOD_STANDING)
              hides their posts, and this is the one place it does not reach.
-             Nothing they wrote for an Edition still running when that happened
-             is here to filter: the close took it (`dropGoneMembersWriting`).
+             What they wrote for an Edition still running when that happened is
+             here too: the close deletes none of it, because blocking and the
+             deletion window are both undone (a withhold that can be undone
+             is a later unit's, bug audit 3).
              Their COMMENTS under answers are hidden (VISIBLE_COMMENT, in
              entryCounts and the thread), as on every post: a comment is
              written after an Edition is out, not part of what was sent, and

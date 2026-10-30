@@ -1,3 +1,29 @@
+## 2026-10-30 (catchups) — bug audit 3, a correction to unit H3: a close keeps a blocked or leaving member's writing in place
+
+One commit, before the push. H3's `dropGoneMembersWriting` deleted, at every Edition's close (the
+Keeper's seal and publish, the clock's close), the answers of each member blocked or inside their
+sixty days, queued those answers' photographs and recordings for deletion, and took the questions
+they asked that nobody in good standing had answered. Both standings are undone (an unblock;
+signing back in, which his Q22 says brings it all back), a delete is undone by neither, and none of
+his answers authorised deleting member content (Q28's reading). Q21's "what nobody has read goes
+with the person" covers leaving, removal, a batch move and erasure, which `dropUnsentWriting`
+handles at the exit, untouched here.
+
+The helper and its three calls are gone: `catchups.ts` and `group-succession.ts` read exactly as they
+did before H3, and that writing publishes with its Edition again. The rest of H3 stays: the People
+list, the head counts, the batch floor, the bells, and "answered" counting only members in good
+standing, which deletes nothing (the Keeper's close is refused, the clock extends once and then
+publishes). The pins say the opposite now: no close deletes or queues anything (catchup-lifecycle),
+and group-succession exports one drop helper, the exits', whose delete has one caller; each was shown
+failing against H3's code and against its own mutation. Spec §5, the schema's blocking note, the
+reader's comment and the T2a-13 and T2b-05 ledger lines say so. A reversible withhold (a
+`CatchupEntry.withheldAt` set at the close and cleared on an unblock or a cancelled request, with
+the reader filtering on it) is routed to a later Track 1 unit.
+
+Nothing real was lost while the drop sat in the working tree: on production no Edition has closed
+since it landed, no "gone" row is queued, and the one account not in good standing has written
+nothing in a Catch-up. `npm run check` green. Nothing visible changes against production.
+
 ## 2026-10-30 (privacy) — bug audit 3, unit B5: the privacy page says what the site really does, every cookie is on it, and phase B is done
 
 Two rows, one commit, because T8b-06 and C4-04 are one page. `npm run check` green; `npm run visual`

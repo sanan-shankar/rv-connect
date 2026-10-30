@@ -919,28 +919,30 @@ test("C-149: every swallowed failure on the clock is reported, not just logged",
 /* ------------------------------------------------------------------ *
  *  Blocked and leaving members inside a Catch-up (bug audit 3, T2a-13 and
  *  T2b-05; the owner's Q6 (b), 2026-10-29): out of its lists, counts and
- *  bells; Editions already sent stay exactly as people read them; what
- *  nobody has read yet goes with them (Q21). The bells are driven in
- *  catchup-bells.test.mjs and the close's helper in group-succession.
+ *  bells; Editions already sent stay exactly as people read them; and
+ *  nothing they wrote is deleted for it, because blocking and the deletion
+ *  window are both undone (his Q22). The bells are driven in
+ *  catchup-bells.test.mjs.
  * ------------------------------------------------------------------ */
 
-test("Q6: every close sheds a blocked or leaving member's writing after its count and before its bell", () => {
+test("Q6: a close keeps a blocked or leaving member's writing in place", () => {
+  /* The opposite of what this pin first said. The close deleted what a
+     blocked or leaving member had written for the Edition and queued its
+     photographs and recordings; withdrawn before push, because an unblock or
+     a sign-in inside the sixty days undoes the standing and nothing undoes a
+     delete (his Q22, Q28). Their writing stays and goes out with the Edition.
+     A withhold that can be undone may come later, so the close may still
+     READ a standing; it may not delete for one. Every close: the Keeper's
+     seal and publish, and the clock's. */
+  const deletes = /drop\w*Writing\(|\.(?:catchupEntry\w*|catchupPrompt)\.delete|pendingImagePurge\./;
   const actions = decomment(read("src/app/(main)/catchups/actions.ts"));
   const close = balancedBody(actions, "export async function closeAndPublish");
-  const ways = close.split("unlessEmpty(prisma.$transaction(").slice(1);
-  assert.equal(ways.length, 2, "closeAndPublish no longer has its two ways out; retarget this pin");
-  for (const way of ways) {
-    const counted = way.indexOf("throw new EmptyAfterSwap()");
-    const shed = way.indexOf("await dropGoneMembersWriting(tx, editionId)");
-    const bell = way.search(/await notify(Sealed|Published)\(tx,/);
-    assert.ok(counted > -1 && shed > counted && bell > shed, "a hand close sends out a blocked or leaving member's writing again");
-  }
+  assert.ok(close, "closeAndPublish is gone; this pin is reading nothing");
+  assert.doesNotMatch(close, deletes, "a hand close deletes a blocked or leaving member's writing again");
   const lib = decomment(read("src/lib/catchups.ts"));
-  const apply = balancedBody(lib, "async function applyEditionAction(");
-  const transition = apply.slice(apply.indexOf('action.kind === "transition"'), apply.indexOf('action.kind === "extend"'));
-  const shed = transition.indexOf('if (action.from === "answering") await dropGoneMembersWriting(tx, editionId);');
-  assert.ok(shed > transition.indexOf("if (cas.count === 0) return false;"), "the clock's close sheds before it holds the row, or not at all");
-  assert.ok(shed > -1 && shed < transition.indexOf("notify."), "the clock's close rings its bell before it sheds");
+  const apply = balancedBody(lib, "async function applyEditionAction(") ?? "";
+  assert.ok(apply.includes('action.kind === "transition"'), "the clock's close moved; retarget this pin");
+  assert.doesNotMatch(apply, deletes, "the clock's close deletes a blocked or leaving member's writing again");
 });
 
 test("Q6: an answer is a row with something in it, from somebody still in good standing", async () => {
@@ -948,6 +950,7 @@ test("Q6: an answer is a row with something in it, from somebody still in good s
   const { IN_GOOD_STANDING } = await import("./catchup-caps.ts");
   assert.deepEqual(ANSWERED_ENTRY_WHERE, { NOT: EMPTY_ENTRY_WHERE, author: IN_GOOD_STANDING });
   // One standing for the whole site: the feed's fragment names the same two columns.
+  assert.deepEqual(IN_GOOD_STANDING, { isBlocked: false, deletionRequestedAt: null });
   assert.match(
     decomment(read("src/lib/posts.ts")),
     /AUTHOR_IN_GOOD_STANDING = \{ author: \{ isBlocked: false, deletionRequestedAt: null \} \}/,

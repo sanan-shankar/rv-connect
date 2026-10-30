@@ -1150,11 +1150,14 @@ export const EMPTY_ENTRY_WHERE = { body: null, images: null, audioUrl: null };
  * an emptied answer stopped a member's reminders and told a Keeper somebody
  * had answered when the close would then say nobody had (routed follow-up (c)).
  *
- * And by somebody still in good standing. A blocked member's answers, or those
- * of one inside their deletion window, leave an Edition at its close
- * (`dropGoneMembersWriting`, his Q6 with Q21: what nobody has read yet goes
- * with the person), so they cannot be what makes it "answered" either: an
- * Edition whose only answers were theirs would publish empty.
+ * And by somebody still in good standing (bug audit 3, T2a-13). His Q6 (b)
+ * takes a member who is blocked, or inside their deletion window, out of a
+ * Catch-up's counts, and whether anyone has answered is one of them. Their
+ * answers are not deleted: they stay in the Edition and go out with it, since
+ * blocking and the deletion window are both undone (a drop at the close was
+ * withdrawn before push). So when theirs are the only answers nothing is lost
+ * either way: the Keeper's close is refused, and the clock extends once and
+ * then publishes, theirs included.
  */
 export const ANSWERED_ENTRY_WHERE = { NOT: EMPTY_ENTRY_WHERE, author: IN_GOOD_STANDING };
 

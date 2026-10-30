@@ -108,13 +108,7 @@ import type {
   PromptCategory,
   ReminderMode,
 } from "@/lib/catchups-types";
-import {
-  anyOtherHolder,
-  dropGoneMembersWriting,
-  dropUnsentWriting,
-  lockGroup,
-  promoteGroupSuccessor,
-} from "@/lib/group-succession";
+import { anyOtherHolder, dropUnsentWriting, lockGroup, promoteGroupSuccessor } from "@/lib/group-succession";
 import { drainPendingImagePurges } from "@/lib/account-purge";
 import { clearCatchupNotifications } from "@/lib/catchup-notifications";
 import { isSerializationFailure, isUniqueViolation } from "@/lib/prisma-errors";
@@ -1389,8 +1383,6 @@ export async function closeAndPublish(editionId: string) {
         if ((await tx.catchupEntry.count({ where: { editionId, ...ANSWERED_ENTRY_WHERE } })) === 0) {
           throw new EmptyAfterSwap();
         }
-        // A blocked or leaving member's writing does not go out with it (Q6).
-        await dropGoneMembersWriting(tx, editionId);
         await notifySealed(tx, {
           catchupId: edition.catchupId,
           editionId,
@@ -1429,8 +1421,6 @@ export async function closeAndPublish(editionId: string) {
       if ((await tx.catchupEntry.count({ where: { editionId, ...ANSWERED_ENTRY_WHERE } })) === 0) {
         throw new EmptyAfterSwap();
       }
-      // A blocked or leaving member's writing does not go out with it (Q6).
-      await dropGoneMembersWriting(tx, editionId);
       await notifyPublished(tx, {
         catchupId: edition.catchupId,
         editionId,
