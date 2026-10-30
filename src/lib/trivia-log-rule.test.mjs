@@ -44,6 +44,9 @@ test("nothing outside the known files touches the gate's tables", () => {
     "src/lib/retention.ts",
     "src/lib/admin-trivia.ts",
     "src/app/(main)/admin/trivia/actions.ts",
+    // The rows linked to one member, in their own copy of their data (bug
+    // audit 3, T6-03): theirs, not the room's, so nothing is filtered out.
+    "src/app/api/account/export/route.ts",
   ]);
   const strays = walk(`${ROOT}/src`)
     .map((f) => relative(ROOT, f))

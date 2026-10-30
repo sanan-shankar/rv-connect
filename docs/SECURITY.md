@@ -86,7 +86,14 @@ gate or a written public-by-design reason.
   `GET /api/retention/sweep` with `CRON_SECRET` — applying the owner's schedule and finalising
   expired deletions. Every pass writes a `retention.sweep` audit line, so "is it running" is
   answered on /admin/audit. **Verified live end to end 2026-08-20.**
-- `GET /api/account/export` is the Art. 20 download: strictly self-service, 3/day, audit-logged.
+- `GET /api/account/export` is the Art. 15/20 download: strictly self-service, 3/day, audit-logged.
+  It carries everything the site keeps about the member (bug audit 3, T6-03; the owner's Q24):
+  every column of their row, a section for each of their tables, and the visits, searches, pages
+  opened and bell the site recorded, each row with its id. What it leaves out is `LEFT_OUT` in
+  `src/lib/account-export-rule.ts` with its reason (the account's secrets, the admins' note,
+  reports others filed), written into the file; `account-export-rule.test.mjs` walks the User
+  model and fails on a column or table in neither. Streamed by pull, a page at a time; a failure
+  part of the way through ends the file with `"complete": false` rather than cutting it off.
 
 | Retention (owner, 2026-08-19) | Kept |
 |---|---|

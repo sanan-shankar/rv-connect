@@ -172,11 +172,19 @@ test("the admin content list can open a comment on an answer", () => {
   assert.match(src, /c\.entry\s*\n?\s*\?\s*`\/catchups\/edition\/\$\{c\.entry\.editionId\}#entry-\$\{c\.entryId\}`/);
 });
 
-test("a member's data export carries what they wrote in a Catch-up", () => {
+test("a member's data export carries what they wrote in a Catch-up, and what each comment was on", () => {
   // Selecting only postId gave a member a file that silently omitted every
-  // comment they had written under an answer.
+  // comment they had written under an answer. And a bare postId or entryId
+  // matches nothing in the file when the post or the answer is somebody
+  // else's, so each comment carries a label: the post's words or the
+  // question's (bug audit 3, T6-03).
   const src = decomment(read("src/app/api/account/export/route.ts"));
   const at = src.indexOf('"comments"');
   assert.ok(at > 0, "the comments section of the export is gone");
-  assert.match(src.slice(at, at + 400), /entryId: true/);
+  const section = src.slice(at, src.indexOf('"catchupAnswers"', at));
+  assert.match(section, /entryId: true/);
+  assert.match(section, /\bid: true/, "a comment's own id is dropped from the file again");
+  assert.match(section, /post: \{ select: \{ kind: true, title: true, content: true \} \}/, "the comment no longer reads what post it is on");
+  assert.match(section, /entry: \{ select: \{ prompt: \{ select: \{ text: true \} \} \} \}/, "the comment no longer reads what question it is under");
+  assert.match(section, /on: post \? postLabel\(post\) : entry \?/, "the comment's label is gone");
 });
