@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { read, decomment } from "./test-kit.mjs";
+import { read, decomment, balancedBody } from "./test-kit.mjs";
+import { entryStoredUrls } from "./purge-rule.ts";
 import {
   VOICE_MAX_SECONDS,
   VOICE_MAX_BYTES,
@@ -182,11 +183,22 @@ test("a staged file is refused when its bytes are not what its name says", () =>
 /* ---- the plumbing around the rule, pinned by shape ------------------ */
 
 test("the purge collects an answer's recording before the rows cascade", () => {
-  const src = decomment(read("src/lib/account-purge.ts"));
-  const collect = src.slice(src.indexOf("async function collectImageUrls"));
-  const body = collect.slice(0, collect.indexOf("\n}\n"));
+  /* The guarantee, not the shape of one loop: the purge's collect reads every
+     answer's recording, hands the rows to the one reader of what an answer
+     holds (`entryStoredUrls`, purge-rule.ts, shared with a merge's dropped
+     answers since bug audit 3, V-T7a-02), and that reader returns the
+     recording. This pinned the loop that pushed `audioUrl` by hand, and went
+     stale when the loop became the shared reader. */
+  const body = balancedBody(decomment(read("src/lib/account-purge.ts")), "async function collectImageUrls(");
+  assert.ok(body, "collectImageUrls is gone; this pin is reading nothing");
   assert.match(body, /catchupEntry\.findMany\([^)]*audioUrl:\s*true/s, "collectImageUrls no longer reads CatchupEntry.audioUrl");
-  assert.match(body, /\.audioUrl\)?\s*urls\.push|urls\.push\([^)]*audioUrl/s, "the recording is read but never queued for deletion");
+  assert.match(body, /urls\.push\(\.\.\.entryStoredUrls\(entries\)\)/, "the answers read are never queued for deletion");
+  const recording = "https://img.example/audio/member/answer.webm";
+  assert.deepEqual(
+    entryStoredUrls([{ images: null, audioUrl: recording }]),
+    [recording],
+    "the recording is read but never queued for deletion"
+  );
 });
 
 test("a stored recording's key is inside the delete fence", () => {
