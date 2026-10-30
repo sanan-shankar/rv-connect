@@ -216,6 +216,31 @@ async function clearBellsPointingAtThisMember(db: Db, userId: string): Promise<v
   await db.notification.deleteMany({ where: { link: { in: links } } });
 }
 
+/**
+ * Take the member's unanswered Catch-up questions with them (bug audit 3,
+ * C8-08; the owner's Q21: what nobody has read yet goes with the person, and
+ * what was sent out stays).
+ *
+ * `CatchupPrompt.author` is SetNull so that a question thirty people answered
+ * outlives its asker, and that reason covers a question somebody ANSWERED. One
+ * nobody did, never accepted, or in a round that never opened, or passed over
+ * by everyone, protects nobody's words, and it survived word for word as from
+ * "an asker who left", which the privacy page never listed.
+ *
+ * Answered means an answer from someone else: the member's own answers go
+ * with them, so a question only they answered is left with none. Never a
+ * question with ANY other member's row under it, empty or not, because
+ * deleting a question deletes its answers (`CatchupEntry.prompt` is Cascade);
+ * an answer landing while this runs fails the purge's RepeatableRead
+ * transaction rather than being deleted, and the sweep tries again. Runs
+ * after `collectImageUrls`, which has the bytes of the member's own answers.
+ */
+async function deleteUnansweredPrompts(db: Db, userId: string): Promise<void> {
+  await db.catchupPrompt.deleteMany({
+    where: { authorId: userId, entries: { none: { authorId: { not: userId } } } },
+  });
+}
+
 /** Thrown inside the transaction to roll the whole purge back when the member
  *  has cancelled; caught immediately below, never seen by a caller. */
 class PurgeCancelled extends Error {}
@@ -410,6 +435,7 @@ export async function purgeUserAccount(
           });
         }
         await clearBellsPointingAtThisMember(tx, userId);
+        await deleteUnansweredPrompts(tx, userId);
         /* Nothing here touches the reports this member FILED. They are
            moderation history about somebody else, and they outlive the
            account: Report.reporter is SetNull, so the delete below detaches

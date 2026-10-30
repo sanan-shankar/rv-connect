@@ -15,6 +15,7 @@ if the month is new), and add one line here, at the top of that month's list.
 
 ## October 2026 — [full entries](docs/history/progress-2026-10.md)
 
+- 2026-10-30 (privacy) — bug audit 3, unit B3a: what a departing member leaves behind: reports outlive their reporter, bells and unanswered questions go with them, and a merge hands the hat only to someone who can act
 - 2026-10-30 (qa) — bug audit 3, unit L2: the gates that passed on nothing see again: comments, dates, history, git, lint, CI parity, the security board and the visual suite
 - 2026-10-30 (catchups) — bug audit 3, unit A4: the Catch-up races close, the picture waits for a verified member, and phase A is done
 - 2026-10-30 (privacy) — bug audit 3, unit B2: PostHog stops reading people, and a sign-out ends its identity

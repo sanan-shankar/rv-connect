@@ -71,7 +71,7 @@ the rest of the phase runs.
 | Phase | Status | Rows left | Blocked on |
 |---|---|---|---|
 | A — Trust: who counts as verified, and who may press what in a Catch-up | DONE | 0 | — |
-| B — Privacy: what leaves the site, and what outlives a member | PARTIAL | 20 (0 H, 6 M, 14 L) | — |
+| B — Privacy: what leaves the site, and what outlives a member | PARTIAL | 16 (0 H, 3 M, 13 L) | — |
 | O — Budgets: what one account or one script may spend of what everyone shares | OPEN | 11 (2 H, 8 M, 1 L) | — |
 | E — The Collection | OPEN | 27 (3 H, 6 M, 18 L) | — |
 | F — Letters, the feed and the composer | OPEN | 26 (2 H, 6 M, 18 L) | — |
@@ -80,7 +80,7 @@ the rest of the phase runs.
 | G — Sign-up, sign-in and the confirmation mail | OPEN | 23 (0 H, 10 M, 13 L) | — |
 | H — Catch-ups: answering, reading, and the words on the clock | PARTIAL | 28 (0 H, 9 M, 19 L) | — |
 | J — Support and payments | OPEN | 11 (0 H, 6 M, 5 L) | — |
-| I — Admin, moderation and the analytics room | OPEN | 43 (0 H, 3 M, 40 L) | — |
+| I — Admin, moderation and the analytics room | PARTIAL | 42 (0 H, 3 M, 39 L) | — |
 | K — Text that breaks things: names, numbers, search, links | OPEN | 21 (0 H, 2 M, 19 L) | — |
 | L — Platform, database, demo and scripts | PARTIAL | 29 (2 H, 1 M, 26 L) | — |
 | M — The hoopoe | OPEN | 11 (0 H, 2 M, 9 L) | — |
@@ -566,3 +566,4 @@ evidence stays in `work/`; this ledger is the record of what the campaign did.
 - T7a-02 — DONE (fix(reports): a reporter is answered when the post they reported is deleted); the smaller route, as the brief chose: `deletePostWithImages` writes the closing line into every PENDING report's thread (`noteReportsOnDeletedPost`, admin-threads-server.ts), inside its transaction and before the delete while the report still names the thread, with the author's sentence or, when an admin pressed delete, an admin's; the report itself still cascades with the post, so it leaves the queue and the settled history
 - T7a-04 — DONE (fix(privacy): an erased member's things leave other members' bells with them); Q21 (a): inside the purge's transaction, before anything cascades, `clearBellsPointingAtThisMember` deletes every bell whose exact link is one of the member's post or letter links (`postNotificationLink`: likes, comments, replies and mentions), Collection photographs, Catch-up answer anchors, threads or profile, and the writers are pinned to those shapes; bells that only name the member, aimed at someone else's post, are left to the 30-day sweep (no column records who rang a bell, and names repeat); proved live with the real purge on a throwaway account (both bells gone, a control bell and the test account's other 10 kept, nothing left behind)
 - C8-09 — DONE (fix(privacy): an erased member's things leave other members' bells with them); re-derived at HEAD: the admins' "wrote", report and "asked to be verified" bells link to the member's thread and person page, which the purge never touched and the merge deletes; the purge clears `adminThreadLink`, `/messages/<id>` and `/admin/people/<id>` with the rest, and a merge points `/admin/people/<duplicate>` bells at the survivor
+- C8-08 — DONE (fix(privacy): an erased member's unanswered Catch-up questions go with them); re-derived at HEAD (the purge left every question to the SetNull edge); Q21 (a): `deleteUnansweredPrompts` deletes the member's questions with no row from anyone else under them, unaccepted ones included, inside the purge's transaction after the image collection and the bells; answered ones stay, unnamed; the filter checked read-only against hand-written SQL for all 21 askers on production (5 of 32 questions would go, 27 stay); a question that goes leaves its Edition, published ones included, where it read "No one took this one."

@@ -296,3 +296,33 @@ test("C8-09: a merge points the admins' bells about the duplicate at the survivo
   assert.ok(repointed > -1, "the admins' 'asked to be verified' bells about a merged duplicate open a 404");
   assert.ok(repointed < fn.indexOf("tx.user.delete("), "the bells are re-pointed after the duplicate is gone");
 });
+
+/* ------------------------------------------------------------------ *
+ *  A question nobody answered goes with its asker (bug audit 3, C8-08;
+ *  the owner's Q21). An answered one stays, unnamed: CatchupPrompt.author
+ *  is SetNull, which cascade-rule.test.mjs holds.
+ * ------------------------------------------------------------------ */
+
+test("C8-08: the purge deletes the member's questions nobody else answered, and only those", () => {
+  const src = decomment(read("src/lib/account-purge.ts"));
+  const helper = balancedBody(src, "async function deleteUnansweredPrompts(");
+  assert.ok(helper, "deleteUnansweredPrompts is gone; this pin is reading nothing");
+  /* Deleting a question deletes every answer under it (CatchupEntry.prompt is
+     Cascade), so the filter is the whole safety: any row by anyone else, empty
+     or not, keeps the question. */
+  assert.match(
+    helper,
+    /catchupPrompt\.deleteMany\(\{\s*where:\s*\{\s*authorId:\s*userId,\s*entries:\s*\{\s*none:\s*\{\s*authorId:\s*\{\s*not:\s*userId\s*\}\s*\}\s*\}\s*\}/,
+    "the purge's question delete can reach a question somebody else answered, and their answer with it"
+  );
+
+  const purge = balancedBody(src, "export async function purgeUserAccount(");
+  assert.ok(purge, "purgeUserAccount is gone; this pin is reading nothing");
+  const collected = purge.indexOf("collectImageUrls(tx, userId)");
+  const bells = purge.indexOf("clearBellsPointingAtThisMember(tx, userId)");
+  const prompts = purge.indexOf("deleteUnansweredPrompts(tx, userId)");
+  const deleted = purge.indexOf("tx.user.deleteMany(");
+  assert.ok(collected > -1 && prompts > collected, "questions go before the bytes of the member's own answers under them are collected");
+  assert.ok(bells > -1 && prompts > bells, "the bells under the member's own answers are looked for after those answers are gone");
+  assert.ok(deleted > prompts, "the questions are deleted outside the purge, after the member");
+});

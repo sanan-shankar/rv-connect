@@ -1,3 +1,53 @@
+## 2026-10-30 (privacy) — bug audit 3, unit B3a: what a departing member leaves behind
+
+Five rows and one review follow-up, five commits, in the account purge, the admin merge, the
+report queue and the post delete; `npm run check` green before each.
+
+Reports outlive the member who filed them (T7a-01, the owner's Q1). `Report.reporterId` was
+required with no onDelete, so the purge and the merge deleted every report a member had filed,
+pending ones included, to let the account go. It is nullable with ON DELETE SET NULL now, through
+`2026-10-30-report-outlives-reporter.sql`, which finds the old key by shape rather than name and
+waits at most five seconds for its locks; applied to production and the demo, read back on both,
+then proved in a rolled-back transaction on production: the filer's delete leaves the report
+unnamed, the reported member's still removes it. The purge deletes no report, and a merge moves the
+duplicate's reports both ways, shedding only a flag between the two accounts or a duplicate the
+unique keys refuse, a pending flag kept over a settled one. A departed reporter reads as "A member
+who has since left" in the Reports list and the Overview worklist. The security board's H8 probe
+looked for the purge's delete; track 3 taught it to read the schema first (d10f62ca).
+
+A reporter is answered when the post goes (T7a-02, the smaller of the audit's two routes). An author
+deleting a reported post cascaded the report away, and the reporter's thread never got its last
+line. `deletePostWithImages` writes it into every pending report's thread inside its transaction,
+before the delete, with the author's sentence or, when an admin pressed delete, an admin's.
+
+An erased member's things leave other members' bells with them (T7a-04, C8-09, Q21). Inside the
+purge's transaction every bell whose exact link is one of the member's posts or letters, Collection
+photographs, Catch-up answers, threads, person page or profile is deleted, and the writers are
+pinned to those shapes; a merge points the admins' person-page bells at the survivor. Proved live
+with the real purge on a throwaway account: both bells it should clear went, a control bell and the
+test account's other ten stayed, nothing was left behind. Bells that only name the member, aimed at
+someone else's post, still wait for the 30-day sweep: no column says who rang a bell, and names
+repeat.
+
+Unanswered questions go with their asker (C8-08, Q21): the purge deletes the member's Catch-up
+questions with no row from anyone else under them; answered ones stay, unnamed. Checked read-only
+against hand-written SQL for all 21 askers on production: of 32 questions, 5 would go with their
+asker. A question that goes leaves its Edition, published ones included, where it read "No one took
+this one."
+
+A merge hands the Keeper's hat only to a survivor who can act (A2's review follow-up). It asks
+CATCHUP_PEOPLE of the survivor inside its transaction, interactive now because of that read; a
+survivor who cannot keep a hat gets the duplicate's memberships as plain membership, and every group
+the duplicate kept goes through ordinary succession, each held first. `groupsKeptBy` is shared with
+the purge.
+
+Nothing a member sees changed today; the admin Reports page was screenshotted at both sizes and
+reads as before. The privacy page is its own unit's and now needs two sentences: the reports a
+member filed outlive them, unnamed, and the Catch-up questions they asked that others answered stay,
+as from an asker who left, while unanswered ones are erased. Found on the way: `npm run verify:shot`
+signs in as ADMIN_EMAIL, which is the owner's own login, not the test account the dev-login comment
+names, so its two shots stamped his presence at 01:28.
+
 ## 2026-10-30 (qa) — bug audit 3, unit L2: the gates that passed on nothing see again
 
 Eleven rows and one request from another track, twelve commits, all in the gate every worker runs

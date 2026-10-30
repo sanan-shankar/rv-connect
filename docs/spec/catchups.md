@@ -648,9 +648,11 @@ analytics counter, has no foreign key on `targetId`, and is written for unpublis
   the owner may overturn; spec §3.12).
 - **The admin reading room** shows a sealed time capsule's status and opening day and never queries
   its questions or answers. A capsule past its day that has not opened shows as stuck.
-- **The account purge** removes a member's answers and their photographs, sets their questions'
-  `authorId` to NULL (a question belongs to everyone who answered it), and restores a pool picture
-  where theirs was uploaded.
+- **The account purge** removes a member's answers and their photographs, deletes the questions
+  they asked that nobody else answered, sets the rest's `authorId` to NULL (a question belongs to
+  everyone who answered it; bug audit 3, C8-08), and restores a pool picture where theirs was
+  uploaded. A question that is gone leaves its Edition, published ones included, where it read
+  "No one took this one."
 - **The rework's export**, `node scripts/dev/export-catchups.mjs --write`, copies every Catch-up with
   its photograph bytes into `scripts/dev/.exports/catchups/<date>/` (gitignored, members' private
   words). It is re-run before every Catch-ups migration.
