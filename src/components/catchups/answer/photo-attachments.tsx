@@ -120,10 +120,17 @@ export function PhotoAttachments({
               facts={facts[src]}
               className="absolute bottom-1.5 left-1.5 h-6 w-6"
             />
+            {/* ALWAYS THERE ON A PHONE. It was `opacity-0 group-hover:opacity-100`,
+                and Tailwind puts every hover variant inside `@media (hover: hover)`,
+                so on a touch screen the only way to take a wrong photograph off an
+                answer was an invisible target in its corner (bug audit 3, T3-19).
+                The People door's form: hidden until hover only where hovering
+                exists. It brightens on hover rather than taking the state layer,
+                for the composer's reason: an ink disc barely moves under more ink. */}
             <SpringPress
               as="button"
               onClick={() => onChange(images.filter((_, idx) => idx !== i))}
-              className="absolute right-1.5 top-1.5 inline-grid h-6 w-6 place-items-center rounded-full bg-foreground/70 text-background opacity-0 transition-opacity duration-150 group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+              className="absolute right-1.5 top-1.5 inline-grid h-6 w-6 place-items-center rounded-full bg-foreground/70 text-background transition-opacity duration-150 hover:brightness-150 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 [@media(hover:hover)]:focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
               {...({ type: "button", "aria-label": "Remove photo" } as object)}
             >
               <X className="h-3.5 w-3.5" />
