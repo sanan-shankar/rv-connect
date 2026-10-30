@@ -5,6 +5,7 @@ import { delImage } from "./storage";
 import { chooseGroupSuccessor } from "./group-succession";
 import { CATCHUP_PEOPLE } from "./catchup-caps";
 import { photoStoredUrls } from "./collection-photo";
+import { adminThreadLink, ownProfileLink, postNotificationLink } from "./notification-links";
 import type { Prisma } from "@/generated/prisma/client";
 
 /**
@@ -173,6 +174,46 @@ async function collectImageUrls(db: Db, userId: string): Promise<string[]> {
     }
   }
   return [...new Set(urls)];
+}
+
+/**
+ * Take down the bells in OTHER members' lists that lead to something of this
+ * member's (bug audit 3, T7a-04 and C8-09; the owner's Q21).
+ *
+ * The member's own bell cascades with them; nobody else's does. A "replied to
+ * your comment" aimed at their letter, a "mentioned you" in their post, a
+ * "tagged you in a photo" on their photograph, a reply under their Catch-up
+ * answer, the admins' "<name> wrote: ..." aimed at their thread and "asked to
+ * be verified" aimed at their person page: once the purge has run, each opens
+ * a page that is gone, and keeps a line of their words, until the 30-day
+ * sweep. `clearPostNotifications` already does this for a post deleted on its
+ * own (C-054); the purge removes posts by cascade, so no app code ran for
+ * them.
+ *
+ * Matched on the exact link, as `clearPostNotifications` matches, because the
+ * link is the thing that stops working; each shape is the one its writer
+ * builds, and purge-rule.test.mjs holds the writers to it. Bells that only
+ * NAME the member, aimed at someone else's post ("X liked your letter"), are
+ * left to the sweep: no column records who rang a bell, and a name is not
+ * unique. Read inside the purge transaction, before the rows that name the
+ * targets are gone.
+ */
+async function clearBellsPointingAtThisMember(db: Db, userId: string): Promise<void> {
+  const [posts, threads, photos, entries] = await Promise.all([
+    db.post.findMany({ where: { authorId: userId }, select: { id: true, kind: true } }),
+    db.adminThread.findMany({ where: { memberId: userId }, select: { id: true } }),
+    db.photo.findMany({ where: { uploaderId: userId }, select: { id: true } }),
+    db.catchupEntry.findMany({ where: { authorId: userId }, select: { id: true, editionId: true } }),
+  ]);
+  const links = [
+    `/admin/people/${userId}`,
+    ownProfileLink(userId),
+    ...posts.map((post) => postNotificationLink(post)),
+    ...threads.flatMap((t) => [adminThreadLink(t.id), `/messages/${t.id}`]),
+    ...photos.map((p) => `/collection/${p.id}`),
+    ...entries.map((e) => `/catchups/edition/${e.editionId}#entry-${e.id}`),
+  ];
+  await db.notification.deleteMany({ where: { link: { in: links } } });
 }
 
 /** Thrown inside the transaction to roll the whole purge back when the member
@@ -368,13 +409,15 @@ export async function purgeUserAccount(
             data: collected.map((url) => ({ url, reason: "purge" })),
           });
         }
+        await clearBellsPointingAtThisMember(tx, userId);
         /* Nothing here touches the reports this member FILED. They are
            moderation history about somebody else, and they outlive the
            account: Report.reporter is SetNull, so the delete below detaches
            them and the Reports page shows "a member who has since left" (bug
            audit 3, T7a-01; the owner's Q1, and the privacy page's promise).
-           The edge was RESTRICT, and this line deleted every one of them,
-           pending ones included, so the delete could succeed (audit H8).
+           The edge was RESTRICT, and the purge used to delete every one of
+           them here, pending ones included, so the delete could succeed (audit
+           H8).
            Reports filed AGAINST the member still go with them, by Cascade. */
         await tombstoneComments(tx, userId);
         await clearCoversPointingAtThisMember(tx, userId);

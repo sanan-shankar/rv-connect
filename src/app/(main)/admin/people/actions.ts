@@ -404,6 +404,14 @@ export async function adminMergeUsers(
         await tx.catchupEntry.updateMany({ where: { authorId: sourceId }, data: { authorId: targetId } });
         await tx.adminThread.updateMany({ where: { memberId: sourceId }, data: { memberId: targetId } });
         await tx.adminMessage.updateMany({ where: { authorId: sourceId }, data: { authorId: targetId } });
+        // The admins' bells about the duplicate ("asked to be verified",
+        // "matches the office list by name") lead to its person page, which
+        // 404s once it is gone: point them at the survivor's (bug audit 3,
+        // C8-09). Thread bells need nothing; the threads move above.
+        await tx.notification.updateMany({
+          where: { link: `/admin/people/${sourceId}` },
+          data: { link: `/admin/people/${targetId}` },
+        });
 
         // Owned, not authored. Same shape: shed the collisions, move the rest.
         // Who STARTED a group or a Catch-up moves whatever the survivor's

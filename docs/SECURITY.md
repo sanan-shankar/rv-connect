@@ -73,7 +73,10 @@ gate or a written public-by-design reason.
   stored-image URL first, delete the row (one transaction with the image worklist), then the R2
   bytes. Used by `adminDeleteUser` (immediate) and the sweep (below). The reports a member filed
   outlive them, unnamed: `Report.reporter` is SetNull, and the purge no longer deletes them to make
-  the delete succeed (bug audit 3, T7a-01).
+  the delete succeed (bug audit 3, T7a-01). In the same transaction it clears every bell in other
+  members' lists that leads to the member's posts, letters, photographs, Catch-up answers, admin
+  threads or profile, which used to open a missing page, with a line of their words, for a month
+  (T7a-04, C8-09); a merge points the admins' bells about the duplicate at the survivor.
 - Self-deletion is a REQUEST: password re-auth in the dialog, `deletionRequestedAt` stamped, every
   session ended, a confirmation email with the date, 60-day grace. Signing in during the window
   cancels it (in `authorize()`). Pending accounts leave every people surface like blocked ones.

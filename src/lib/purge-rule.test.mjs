@@ -229,3 +229,70 @@ test("T7a-01: a merge moves the duplicate's reports, both ways, instead of dropp
     "the reports move after the duplicate is deleted, by which time they have cascaded away"
   );
 });
+
+/* ------------------------------------------------------------------ *
+ *  A bell never leads to a member who has been erased (bug audit 3,
+ *  T7a-04 and C8-09; the owner's Q21).
+ *
+ *  The member's own bell cascades with them; nobody else's does. The purge
+ *  removes posts, photographs and answers by cascade, so no app code ran for
+ *  them, and notification-reach.test.mjs's takedown sweep, which looks for
+ *  post.delete(, never saw it (L9-08). Other members' bells kept a line of the
+ *  erased member's words and opened pages that were gone, for a month.
+ * ------------------------------------------------------------------ */
+
+test("T7a-04 / C8-09: the purge clears every bell that leads to the member's things, before the rows go", () => {
+  const src = decomment(read("src/lib/account-purge.ts"));
+  const helper = balancedBody(src, "async function clearBellsPointingAtThisMember(");
+  assert.ok(helper, "clearBellsPointingAtThisMember is gone; this pin is reading nothing");
+  for (const [shape, what] of [
+    [/postNotificationLink\(/, "their posts and letters (likes, comments, replies, mentions)"],
+    [/adminThreadLink\(/, "their threads with the admins (the admins' 'wrote' and report bells)"],
+    [/`\/messages\/\$\{/, "their threads, member side"],
+    [/`\/admin\/people\/\$\{userId\}`/, "their person page (the admins' 'asked to be verified')"],
+    [/ownProfileLink\(userId\)/, "their profile"],
+    [/`\/collection\/\$\{/, "their Collection photographs (tag bells)"],
+    [/#entry-\$\{/, "their Catch-up answers (replies under them)"],
+  ]) {
+    assert.match(helper, shape, `the purge leaves bells aimed at ${what} in other members' lists`);
+  }
+  assert.match(helper, /notification\.deleteMany\(\{\s*where:\s*\{\s*link:\s*\{\s*in:\s*links\s*\}/, "the links are gathered and nothing is deleted");
+
+  const purge = balancedBody(src, "export async function purgeUserAccount(");
+  assert.ok(purge, "purgeUserAccount is gone; this pin is reading nothing");
+  const tx = purge.indexOf("prisma.$transaction(");
+  const cleared = purge.indexOf("clearBellsPointingAtThisMember(tx, userId)");
+  const deleted = purge.indexOf("tx.user.deleteMany(");
+  assert.ok(tx > -1 && cleared > tx, "the bells are cleared outside the purge's transaction");
+  assert.ok(deleted > cleared, "the bells are looked for after the rows that name their targets have cascaded away");
+});
+
+test("T7a-04 / C8-09: the writers still build the links the purge looks for", () => {
+  /* The purge matches exact links. A writer that changes its shape would leave
+     its bells behind silently, so each writer is held to the shape the purge
+     builds. */
+  for (const [file, shape, what] of [
+    ["src/lib/photo-tag-notifications.ts", /`\/collection\/\$\{notice\.photoId\}`/, "a tag in a photograph's caption"],
+    ["src/lib/catchups-notify.ts", /`\/catchups\/edition\/\$\{ctx\.editionId\}#entry-\$\{ctx\.entryId\}`/, "a comment under a Catch-up answer"],
+    ["src/components/auth/verification-actions.ts", /`\/admin\/people\/\$\{session\.user\.id\}`/, "asking to be verified"],
+    ["src/lib/roster.ts", /`\/admin\/people\/\$\{userId\}`/, "a name match on the office list"],
+    ["src/app/(main)/messages/actions.ts", /adminThreadLink\(/, "a member writing to the admins"],
+    ["src/components/posts/report-action.ts", /adminThreadLink\(/, "a report"],
+    ["src/lib/mention-notifications.ts", /postNotificationLink\(/, "a mention"],
+  ]) {
+    assert.match(decomment(read(file)), shape, `${file} no longer builds the link the purge clears for ${what}`);
+  }
+});
+
+test("C8-09: a merge points the admins' bells about the duplicate at the survivor", () => {
+  const fn = balancedBody(
+    decomment(read("src/app/(main)/admin/people/actions.ts")),
+    "export async function adminMergeUsers("
+  );
+  assert.ok(fn, "adminMergeUsers is gone; this pin is reading nothing");
+  const repointed = fn.search(
+    /notification\.updateMany\(\{\s*where:\s*\{\s*link:\s*`\/admin\/people\/\$\{sourceId\}`\s*\},\s*data:\s*\{\s*link:\s*`\/admin\/people\/\$\{targetId\}`/
+  );
+  assert.ok(repointed > -1, "the admins' 'asked to be verified' bells about a merged duplicate open a 404");
+  assert.ok(repointed < fn.indexOf("tx.user.delete("), "the bells are re-pointed after the duplicate is gone");
+});
