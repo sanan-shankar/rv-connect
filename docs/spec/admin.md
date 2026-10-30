@@ -680,6 +680,14 @@ Read-only, and deliberately so: an audit log an admin can edit is not one. The d
 where the account still exists and stay as ids where it does not, which is the point of keeping the
 record after the row is gone.
 
+Beside each erasure (`admin.delete`, `account.purge`) a chip says what is left of that account's
+stored files: "All files deleted" (good), or "N files still queued" (waiting) while the drain has not
+reached them or storage refused them. The line itself is written before any file is deleted (bug
+audit 3, T7a-05), so it can only say how many it queued; the chip reads `PendingImagePurge`, where
+every row the purge queues names its account and leaves only once storage confirms the object gone.
+While rows from before that naming still wait, an erasure with none of its own shows no chip rather
+than guess (bug audit 3, B3b's follow-up).
+
 ### 9.11 Trivia gate (`/admin/trivia`, `/admin/trivia/[questionId]`)
 
 *(Added 2026-10-23.)* The owner: *"I want to know what people are typing in, which questions people

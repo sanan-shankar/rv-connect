@@ -78,7 +78,9 @@ gate or a written public-by-design reason.
   threads or profile, which used to open a missing page, with a line of their words, for a month
   (T7a-04, C8-09); a merge points the admins' bells about the duplicate at the survivor. The
   Catch-up questions a member asked that nobody else answered go with them; answered ones stay,
-  unnamed (C8-08).
+  unnamed (C8-08). Every file the purge queues names its account, and the audit log shows beside
+  each erasure whether all of its files are gone or how many are still queued, read from the
+  worklist (B3b's follow-up: the erasure's line is written before any file is deleted).
 - Self-deletion is a REQUEST: password re-auth in the dialog, `deletionRequestedAt` stamped, every
   session ended, a confirmation email with the date, 60-day grace. Signing in during the window
   cancels it (in `authorize()`). Pending accounts leave every people surface like blocked ones,

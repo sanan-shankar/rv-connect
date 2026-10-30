@@ -3,6 +3,8 @@ import { requireAdminPage } from "@/lib/admin";
 import { PageHeader } from "@/components/layout/page-header";
 import { prisma } from "@/lib/prisma";
 import { ADMIN_MEASURE, AdminSection, AdminEmpty } from "@/components/admin/admin-chrome";
+import { Chip } from "@/components/admin/admin-chip";
+import { erasedFilesState } from "@/lib/erased-files-rule";
 import { formatTimeAgo } from "@/lib/utils";
 
 export const metadata: Metadata = {
@@ -47,6 +49,31 @@ const ACTION_LABEL: Record<string, string> = {
   "report.post": "Reported a post",
 };
 
+/* The two lines that erase an account. Each is written once the account's
+   stored files are queued and before any is deleted (bug audit 3, T7a-05), so
+   it can only say how many it queued; beside it the page shows what is left
+   of them (erasedFilesState, erased-files-rule.ts). That is what these lines said
+   until B3b, when the purge still deleted the files before writing them. */
+const ERASURES = new Set(["admin.delete", "account.purge"]);
+
+/** Per erased account, how many of its files are still queued, and how many
+ *  purge rows wait that were queued before each row named its account. */
+async function erasedFiles(accountIds: string[]) {
+  const queuedFor = new Map<string, number>();
+  // Never `in: []` (docs/TRAPS.md): a page with no erasure asks nothing.
+  if (accountIds.length === 0) return { queuedFor, untagged: 0 };
+  const [groups, untagged] = await Promise.all([
+    prisma.pendingImagePurge.groupBy({
+      by: ["accountId"],
+      where: { accountId: { in: accountIds } },
+      _count: { _all: true },
+    }),
+    prisma.pendingImagePurge.count({ where: { reason: "purge", accountId: null } }),
+  ]);
+  for (const g of groups) if (g.accountId) queuedFor.set(g.accountId, g._count._all);
+  return { queuedFor, untagged };
+}
+
 export default async function AdminAuditPage() {
   // Re-checked per page, not only in the layout: soft navigation skips
   // layouts, which leaves a demoted admin still reading (B-024, argued in
@@ -72,6 +99,9 @@ export default async function AdminAuditPage() {
     : [];
   const nameOf = new Map(users.map((u) => [u.id, u.name]));
   const label = (id: string | null) => (id ? nameOf.get(id) ?? null : null);
+  const { queuedFor, untagged } = await erasedFiles([
+    ...new Set(events.flatMap((e) => (ERASURES.has(e.action) && e.targetId ? [e.targetId] : []))),
+  ]);
 
   return (
     <div className={`flex flex-col gap-6 ${ADMIN_MEASURE}`}>
@@ -85,6 +115,10 @@ export default async function AdminAuditPage() {
             {events.map((e) => {
               const actor = label(e.actorId);
               const target = label(e.targetId);
+              const files =
+                ERASURES.has(e.action) && e.targetId
+                  ? erasedFilesState(queuedFor.get(e.targetId) ?? 0, untagged)
+                  : null;
               return (
                 <li key={e.id} className="flex flex-wrap items-baseline gap-x-2 gap-y-1 px-4 py-3">
                   <span className="text-sm font-medium text-foreground">
@@ -99,6 +133,7 @@ export default async function AdminAuditPage() {
                   {e.detail ? (
                     <span className="text-[13px] text-muted-foreground/80">{e.detail}</span>
                   ) : null}
+                  {files ? <Chip label={files.label} tone={files.tone} /> : null}
                   <span className="ml-auto shrink-0 text-[13px] tabular-nums text-muted-foreground/70">
                     {formatTimeAgo(e.createdAt)}
                   </span>

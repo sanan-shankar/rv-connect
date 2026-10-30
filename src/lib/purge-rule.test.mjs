@@ -12,6 +12,7 @@ import {
   entryStoredUrls,
   retryWriteConflicts,
 } from "./purge-rule.ts";
+import { erasedFilesState } from "./erased-files-rule.ts";
 import { valleyDayKey, valleyMidnight } from "./utils.ts";
 
 /* ------------------------------------------------------------------ *
@@ -60,6 +61,37 @@ test("the purge's audit lines claim nothing it has not done (B-013, T7a-05)", ()
     assert.match(code, /\$\{purged\.queued\.length\} stored image\(s\) queued for deletion/, `${file}'s audit line no longer says what the purge queued`);
     assert.doesNotMatch(code, /stored image\(s\) removed/, `${file}'s audit line calls objects removed that nothing has deleted yet`);
   }
+});
+
+test("an erasure's files say whose they were, and the audit log says what is left of them", () => {
+  /* B3b's follow-up. The purge only queues an account's files, and its line
+     is written before any is deleted (T7a-05), so the line says "queued",
+     where it used to say how many storage had removed. The owner keeps what
+     the panel showed: every row the purge queues names its account, and the
+     audit log reads, beside each erasure, what is left of it in storage. */
+  assert.deepEqual(erasedFilesState(0, 0), { tone: "good", label: "All files deleted" });
+  assert.deepEqual(erasedFilesState(1, 0), { tone: "warn", label: "1 file still queued" });
+  assert.deepEqual(erasedFilesState(7, 3), { tone: "warn", label: "7 files still queued" });
+  assert.equal(erasedFilesState(0, 2), null, "an erasure claims its files are gone while rows naming no account still wait");
+
+  const purge = balancedBody(decomment(read("src/lib/account-purge.ts")), "export async function purgeUserAccount(");
+  assert.match(
+    purge,
+    /collected\.map\(\(url\) => \(\{ url, reason: "purge", accountId: userId \}\)\)/,
+    "the purge queues an account's files without naming the account"
+  );
+  const schema = read("prisma/schema.prisma");
+  const at = schema.indexOf("model PendingImagePurge {");
+  assert.match(schema.slice(at, schema.indexOf("\n}", at)), /^\s*accountId String\?$/m, "PendingImagePurge.accountId is gone, or no longer a plain nullable id");
+  const sql = read("prisma/migrations-manual/2026-10-30-pending-image-purge-account.sql");
+  assert.match(sql, /ADD COLUMN IF NOT EXISTS "accountId" TEXT;/);
+  assert.doesNotMatch(sql, /\bDROP\b/i, "the migration drops something");
+
+  const page = decomment(read("src/app/(main)/admin/audit/page.tsx"));
+  assert.match(page, /const ERASURES = new Set\(\["admin\.delete", "account\.purge"\]\)/);
+  assert.match(page, /pendingImagePurge\.groupBy\(\{\s*by: \["accountId"\],\s*where: \{ accountId: \{ in: accountIds \} \}/);
+  assert.match(page, /pendingImagePurge\.count\(\{ where: \{ reason: "purge", accountId: null \} \}\)/, "the page no longer counts the rows that name no account");
+  assert.match(page, /erasedFilesState\(queuedFor\.get\(e\.targetId\) \?\? 0, untagged\)/);
 });
 
 test("the image worklist is durable before the rows go", () => {

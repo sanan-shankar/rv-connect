@@ -501,8 +501,11 @@ export async function purgeUserAccount(
             const rehomed = await promoteOrphanedGroups(tx, userId);
             const collected = await collectImageUrls(tx, userId);
             if (collected.length > 0) {
+              /* Each row names the account, so the audit log can say, beside
+                 this erasure's line, when its last file is gone: the line is
+                 written before any is deleted (bug audit 3, B3b's follow-up). */
               await tx.pendingImagePurge.createMany({
-                data: collected.map((url) => ({ url, reason: "purge" })),
+                data: collected.map((url) => ({ url, reason: "purge", accountId: userId })),
               });
             }
             await clearBellsPointingAtThisMember(tx, userId);

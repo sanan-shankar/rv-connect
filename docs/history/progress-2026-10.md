@@ -1,3 +1,66 @@
+## 2026-10-30 (privacy) — bug audit 3, unit B4: the data download carries everything the site keeps, a leaving member's writing goes with them, the support bar keeps its figures, and the audit log says when an erased account's files are gone
+
+Four rows and B3b's follow-up in five commits, each pinned and each pin shown failing against its
+mutation; `npm run check` green before every commit; `npm run visual` 25/25 after the support change
+(the audit page is not in the suite; it was shot at 1440 and 390 in both states).
+
+The download (T6-03, T8a-07; the owner's Q24). "Request your data" had ten hand-written sections. It
+missed hearts on photographs and answers, bookmarks, poll votes, the profession tags the directory
+files a member under, and every record of their visits, searches and pages opened; it dropped every
+row's id, so a comment's `postId` matched nothing; and it gave a partly refunded gift at its gross.
+It now carries every column of the member's row and a section for each of their tables, 28 where
+there were ten, every row with its id and, where a row points at somebody else's post, question or
+photograph, a few words of it in `on`. What stays on the site is `LEFT_OUT` in
+`src/lib/account-export-rule.ts`, each with its reason, and the file carries that list too: the
+password's hash, the session counter and the emailed sign-in links (the secrets the owner named), the
+admins' note, reports others filed about the member, a held photograph's mark, a Catch-up's invite
+key and an email's text. `account-export-rule.test.mjs` walks the User model, so a new column or
+table fails the build until somebody decides. The stream is pulled, a page at a time, and a failure
+part of the way through ends the file with `"complete": false` and a sentence instead of cutting it
+off mid-row. Downloaded live as the test account: 200, 93 KB, complete, 28 sections, no secret in the
+profile. The entry questions a member answered at the door are in it too, which is C4-04's download
+half.
+
+A member who asks to leave (L10-02; Q22). For the sixty days their profile answered 404 while their
+posts, letters and comments stayed up under that name, and a search for it still found them. The
+shared standing fragment now names both standings, the single-post rule refuses a leaving author's
+post by link, and cancelling brings everything back. Proved in a rolled-back transaction on the test
+account: a throwaway post and comment counted, hidden and refused while it was leaving, back on
+cancelling, nothing left behind. Comments under Catch-up answers follow the fragment, as a blocked
+member's always have; the answers, questions and names in the Catch-ups are track 1's under Q6, and
+mentions of a gone member in other people's writing are routed to phase K.
+
+The support page (T8a-18). The build cost lived in the client card and the recovered total in paise
+was its prop, so both reached every member's browser. The page keeps the cost and hands the card a
+whole percent; none of the page's 29 client chunks holds either figure.
+
+The audit log (B3b's follow-up). Since T7a-05 an erasure's line says how many files it queued, where
+it used to say how many storage had removed. Each file the purge queues now names its account
+(`PendingImagePurge.accountId`, `2026-10-30-pending-image-purge-account.sql`, applied to production
+and the demo), and beside every erasure the log shows "All files deleted" or "N files still queued",
+read from the worklist. Proved with the real purge on a throwaway account and with a tagged row placed
+under a real erasure line and removed.
+
+Visible: for members, a longer download; a leaving member's writing hidden for the sixty days (nobody
+on production today: the one pending account has written nothing); the support bar at a whole percent,
+a fraction of a percent, too little to see. For the owner, a chip beside each erasure in the audit log.
+
+For the privacy page unit (T8b-06), two sentences. "Download your data gives you, in one file,
+everything the site keeps about you: your profile, everything you wrote, posted and uploaded, the
+hearts, saves, votes and settings you chose, your contributions, and the site's record of your visits,
+searches, the pages you opened, your notifications and the emails it sent you. It leaves out only what
+would open your account and what belongs to someone else, such as reports other members filed about
+you or the admins' own notes, and the file says so itself." And: "While a deletion waits out its sixty
+days, your profile, posts, letters and comments are hidden from everyone; signing back in cancels it
+and brings them all back."
+
+For whoever is next. T6-03's ledger line rode in a9921130 (another track's commit): a pathspec held in
+a zsh variable did not split, the commit failed, and I let the lock go with the line uncommitted; the
+code is 010419eb. The dev server held stale code twice: a Prisma client built from the generated code
+before `accountId` (a second `prisma generate` after a schema touch rebuilt it), and an instance of
+`src/lib/purge-rule.ts` without a new export although its compiled chunk had it, which is why the
+audit helper lives in `erased-files-rule.ts`; a restart clears the latter for good.
+
 ## 2026-10-30 (catchups) — bug audit 3, unit H2: every deadline names its hour, India time, a renamed Catch-up keeps its new name in every bell, and the admin room waits for the tick
 
 Six rows and two routed follow-ups in six commits, every new pin shown failing against its

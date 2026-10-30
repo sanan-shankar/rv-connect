@@ -1786,6 +1786,12 @@ model PendingImagePurge {
   // "purge" (an account erased) or "retention" (the nightly sweep aged an
   // AdminMessage out and its screenshot went with it -- audit C-065).
   reason    String   @default("purge")
+  // The erased account these bytes were queued for: written by the purge
+  // (account-purge.ts) and by nothing else. A plain id, not a relation,
+  // because the account row is deleted in the transaction that queues them.
+  // The audit log reads it to show, beside each erasure, whether all of that
+  // account's files are gone (bug audit 3, B3b's follow-up).
+  accountId String?
   attempts  Int      @default(0)
   lastError String?
   createdAt DateTime @default(now())
