@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import test from "node:test";
 
 import { GATES, blocks, stateOf } from "./check.mjs";
@@ -69,4 +70,19 @@ test("the status board blocks on an open high, and on printing no summary", () =
   assert.equal(blocks(GATES.security, security(1, `${summary}FAIL: 1 open finding(s) at severity critical/high: H1`)), true);
   /* No summary and exit 0 used to throw inside the gate (m[1] of null). */
   assert.equal(blocks(GATES.security, security(0, "")), true);
+});
+
+/* Bug audit 3, L9-11: four of the board's notes told the reader to "run
+   phaseN-probe for behaviour", and those probes comment on a real member's
+   post and ring their bell (C1-02). A note says what its probe saw. */
+test("no note on the status board sends anyone to a phase probe", () => {
+  const board = spawnSync(process.execPath, ["scripts/qa/audit-status.mjs", "--json"], {
+    cwd: new URL("../..", import.meta.url),
+    encoding: "utf8",
+  });
+  assert.equal(board.status, 0, board.stderr);
+  const rows = JSON.parse(board.stdout);
+  assert.ok(rows.length >= 70, `only ${rows.length} rows on the board`);
+  const sends = rows.filter((r) => /phase\d*-probe/.test(r.note)).map((r) => `${r.id}: ${r.note}`);
+  assert.deepEqual(sends, []);
 });

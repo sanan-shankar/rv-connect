@@ -22,6 +22,16 @@
  * in progress.md are for. Read this to know WHERE you are, not whether you
  * were right.
  *
+ * So a note says what its probe looked at, and nothing more (bug audit 3,
+ * L9-11). They used to keep the confidence of the markdown this replaced:
+ * "bounded" for two files with a `take:`, "one limiter on ... catchups" for
+ * one rateLimit call anywhere in a 2,000-line file, "nightly ... media copy"
+ * for the word "media" in a workflow whose media job then failed for 27
+ * nights. A green board was being quoted as the security posture. Write a
+ * note as the probe's finding ("X calls Y"), never as the property it hopes
+ * that implies. And no note tells anyone to run a phase probe: those write
+ * to real members (bug audit 3, C1-02).
+ *
  * Usage:
  *   node scripts/qa/audit-status.mjs             # the board
  *   node scripts/qa/audit-status.mjs --open      # only what is left
@@ -112,18 +122,18 @@ const CHECKS = [
       const body = fnBody(s, "authorize") ?? s;
       return /ADMIN_EMAIL/.test(body)
         ? open("authorize() still references ADMIN_EMAIL")
-        : ok("no ADMIN_EMAIL in authorize(); role comes from the row");
+        : ok("authorize() does not mention ADMIN_EMAIL");
     }},
   { id: "C1-b", sev: "critical", title: "Unauthenticated /api/auth/admin-login", probe: () =>
       has("src/app/api/auth/admin-login/route.ts")
         ? open("route file still present")
-        : ok("route deleted; replaced by dev-login (404 in production)") },
+        : ok("src/app/api/auth/admin-login/route.ts does not exist") },
   { id: "C1-c", sev: "critical", title: "Admin email compiled into the browser bundle", probe: () => {
       const hits = appSources().filter((f) => decomment(f.text).includes("NEXT_PUBLIC_ADMIN_EMAIL"));
       const inEnv = /^NEXT_PUBLIC_ADMIN_EMAIL=/m.test(read(".env"));
       if (hits.length) return open(`read in ${hits.length} file(s): ${hits[0].path}`);
       if (inEnv) return open("still set in .env (unused, but delete it from Vercel too)");
-      return ok("not referenced in src/ and not in .env");
+      return ok("NEXT_PUBLIC_ADMIN_EMAIL is in no src/ file's code and not in .env");
     }},
   { id: "C2", sev: "critical", title: "Any member can delete every image in R2", probe: () => {
       // The fix has two halves, and both must be present. (1) Keys are minted
@@ -138,7 +148,7 @@ const CHECKS = [
       const validatedOnWrite = /ownedUploadUrls\(/.test(feed);
       const hasRule = has("src/lib/upload-ownership-rule.ts");
       if (scoped && validatedOnWrite && hasRule) {
-        return ok("keys owner-scoped (ownerPrefix); post images validated by ownedUploadUrls on write");
+        return ok("storage.ts exports ownerPrefix and names KNOWN_ROOTS; feed/actions.ts calls ownedUploadUrls; the ownership rule file exists");
       }
       const missing = [];
       if (!scoped) missing.push("keys not owner-scoped in storage.ts");
@@ -156,30 +166,35 @@ const CHECKS = [
       return open(`${naOk ? "" : `next-auth ${na} (need >= 5.0.0-beta.32); `}${shOk ? "" : `sharp ${sharp} (need >= 0.35)`}`);
     }},
   { id: "C4", sev: "critical", title: "No verified DB backup / no media backup", probe: () => {
+      /* The two jobs by name and by the command each runs. This used to be
+         `/media/.test(b)` -- the word -- and read "fixed" through 27 nights
+         of the media job failing (L11-01). Whether last night's runs passed
+         is not something a file can say; GitHub and the snapshot can. */
       const b = read(".github/workflows/backup.yml");
-      const db = /pg_dump/.test(b), media = /media/.test(b);
+      const db = /^ {2}dump:\s*$/m.test(b) && /\bpg_dump\b/.test(b);
+      const media = /^ {2}media:\s*$/m.test(b) && /aws s3 sync "?s3:\/\/rv-alumni-media\b/.test(b);
       return db && media
-        ? ok("nightly pg_dump + media copy to a private R2 bucket")
-        : open(`${db ? "" : "no pg_dump job; "}${media ? "" : "no media copy job"}`);
+        ? ok("backup.yml has a dump job running pg_dump and a media job syncing rv-alumni-media; last night's result is not probed")
+        : open(`${db ? "" : "no dump job running pg_dump; "}${media ? "" : "no media job syncing the live bucket"}`);
     }},
 
   // -------------------------------------------------------------------- HIGH
   { id: "H1", sev: "high", title: "loadDirectoryPage has no authentication check", probe: () => {
       const body = fnBody(read("src/app/(main)/directory/actions.ts"), "loadDirectoryPage");
       if (!body) return open("loadDirectoryPage not found");
-      return /auth\(\)|requireVerified/.test(body) ? ok("guarded") : open("no auth() call in the action body");
+      return /auth\(\)|requireVerified/.test(body) ? ok("loadDirectoryPage calls auth() or a requireVerified gate") : open("no auth() call in the action body");
     }},
   { id: "H3", sev: "high", title: "Private-content IDOR (comments/likes/polls)", probe: () => {
       const s = read("src/app/(main)/feed/actions.ts");
       const guarded = ["loadComments", "createComment", "toggleLike", "toggleBookmark", "votePoll"]
         .filter((n) => { const b = fnBody(s, n); return b && /canViewPost|assertCanViewPost/.test(b); });
       return guarded.length === 5
-        ? ok("all five interaction paths re-derive post visibility")
+        ? ok("loadComments, createComment, toggleLike, toggleBookmark and votePoll each call canViewPost")
         : open(`${guarded.length}/5 guarded by a visibility check`);
     }},
   { id: "H4", sev: "high", title: "isBlocked never enforced (blocking is cosmetic)", probe: () => {
       const s = decomment(read("src/lib/auth.ts"));
-      return /isBlocked/.test(s) ? ok("read in the auth layer") : open("isBlocked absent from src/lib/auth.ts");
+      return /isBlocked/.test(s) ? ok("auth.ts reads isBlocked") : open("isBlocked absent from src/lib/auth.ts");
     }},
   { id: "H5", sev: "high", title: "reportUser strips any member's verified badge", probe: () => {
       const b = fnBody(decomment(read("src/components/posts/report-action.ts")), "reportUser");
@@ -191,21 +206,22 @@ const CHECKS = [
       // this open until it lands.
       if (!/@@unique\(\[reporterId, reportedUserId\]\)/.test(read("prisma/schema.prisma")))
         return open("badge-strip gone, reporting member-gated; per-pair dedupe/threshold still missing (Phase 7)");
-      return ok("no verifyState write, and repeat reports deduped per reporter");
+      return ok("reportUser writes no verifyState \"flagged\"; the schema has @@unique([reporterId, reportedUserId])");
     }},
   { id: "H6", sev: "high", title: "No rate limiting or lockout on authentication", probe: () => {
       // Both keys must be read at the door AND spent somewhere: a check
       // that never consumes is decoration. Behaviour is phase4-probe's job.
       const s = decomment(read("src/lib/auth.ts"));
       const wired = /hasBudget\("login-ip"/.test(s) && /hasBudget\("login-account"/.test(s) && /consume\("login-/.test(s);
-      return wired ? ok("per-IP + per-account failure limits in authorize(); run phase4-probe for behaviour") : open("no limiter on the credentials path");
+      return wired ? ok("auth.ts checks the login-ip and login-account budgets and consumes from them") : open("no limiter on the credentials path");
     }},
   { id: "H7", sev: "high", title: "No security headers at all", probe: () => {
-      const c = read("next.config.ts");
+      // Decommented since L9-02: the old stripper ate every header in this file.
+      const c = decomment(read("next.config.ts"));
       if (!/headers\s*\(/.test(c)) return open("next.config.ts defines no headers()");
       const want = ["Content-Security-Policy", "X-Frame-Options", "Referrer-Policy", "X-Content-Type-Options", "Permissions-Policy"];
       const missing = want.filter((h) => !c.includes(h));
-      return missing.length ? open(`headers() present but missing: ${missing.join(", ")}`) : ok("all five headers configured");
+      return missing.length ? open(`headers() present but missing: ${missing.join(", ")}`) : ok("next.config.ts's code names all five headers");
     }},
   { id: "H8", sev: "high", title: "deleteAccount throws for anyone who filed a report", probe: () => {
       // Phase 8 moved deletion into purgeUserAccount (account-purge.ts),
@@ -214,7 +230,7 @@ const CHECKS = [
       const purge = read("src/lib/account-purge.ts");
       if (!purge) return open("account-purge.ts not found");
       return /report\.deleteMany/.test(decomment(purge))
-        ? ok("purgeUserAccount clears filed reports first")
+        ? ok("account-purge.ts calls report.deleteMany")
         : open("no report.deleteMany in purgeUserAccount");
     }},
   { id: "H9", sev: "high", title: "Deletion never removes stored image bytes", probe: () => {
@@ -229,7 +245,7 @@ const CHECKS = [
         return open("adminDeleteUser does not route through purgeUserAccount");
       if (!/purgeUserAccount/.test(decomment(read("src/lib/retention.ts"))))
         return open("retention sweep does not purge grace-expired accounts");
-      return ok("purge deletes R2 objects; both deletion paths route through it");
+      return ok("account-purge.ts calls delImage; the admin delete and retention.ts both call purgeUserAccount");
     }},
   { id: "H10", sev: "high", title: "No audit log", probe: () =>
       /model\s+AuditLog\b/.test(read("prisma/schema.prisma"))
@@ -237,7 +253,7 @@ const CHECKS = [
   { id: "H11", sev: "high", title: "No monitoring, alerting or error tracking", probe: () => {
       const d = { ...pkg().dependencies };
       return d["@sentry/nextjs"] && has("src/instrumentation.ts")
-        ? ok(`@sentry/nextjs ${d["@sentry/nextjs"]}`) : open("no Sentry instrumentation");
+        ? ok(`@sentry/nextjs ${d["@sentry/nextjs"]} installed and src/instrumentation.ts present; alerting is not probed`) : open("no Sentry instrumentation");
     }},
   { id: "H12", sev: "high", title: "No privacy policy, consent or transparency layer", probe: () => {
       const routes = walk("src/app").filter((p) => /privacy|terms|guidelines/i.test(p) && p.endsWith("page.tsx"));
@@ -247,12 +263,12 @@ const CHECKS = [
       const signup = decomment(read("src/components/auth/actions.ts"));
       if (!/consent/.test(signup) || !/consentAt/.test(signup))
         return open("policy pages exist but signup records no consent");
-      return ok(`${routes.length} policy pages; signup consent enforced and stamped`);
+      return ok(`${routes.length} policy pages exist; the signup action mentions consent and consentAt`);
     }},
   { id: "H13", sev: "high", title: "Cross-border transfer, no DPAs", probe: () => owner("owner action: sign DPAs with Vercel, Supabase, Cloudflare, Resend, Razorpay") },
   { id: "H14", sev: "high", title: "No breach-detection capability", probe: () =>
       /model\s+AuditLog\b/.test(read("prisma/schema.prisma"))
-        ? ok("audit log in place (alerting still owner-side)") : open("depends on H10") },
+        ? ok("AuditLog model present; breach alerting is the owner's and is not probed") : open("depends on H10") },
   { id: "H15", sev: "high", title: "Production and dev share one database", probe: () =>
       acc("owner declined a staging database 2026-08-19; C4 backup removes the unrecoverable outcome") },
   { id: "H16", sev: "high", title: "No CI/CD, no branch protection, no security gate", probe: () => {
@@ -269,7 +285,7 @@ const CHECKS = [
       const c = read("scripts/qa/check.mjs");
       if (!/npm-audit-gate\.mjs/.test(c)) return open("the gate does not run the npm-audit gate");
       if (!/audit-status\.mjs"[\s\S]{0,80}--fail-on-open/.test(c)) return open("nothing fails on a re-opened critical/high");
-      return ok("CI runs `npm run check`, which includes the npm-audit gate and audit-status --fail-on-open");
+      return ok("check.yml runs `npm run check`, and check.mjs names npm-audit-gate.mjs and audit-status.mjs --fail-on-open; ci-parity.test.mjs holds that they gate");
     }},
   { id: "H17", sev: "high", title: "No security tests", probe: () => {
       const tests = walk("src", [".test.mjs", ".test.ts"]).concat(walk("e2e", [".spec.ts"]));
@@ -282,11 +298,11 @@ const CHECKS = [
       const bad = [];
       if (/user\.findMany\(\{(?![^}]*take:)/s.test(admin) && !/take:/.test(admin)) bad.push("admin/page.tsx");
       if (byBatch && !/take:/.test(byBatch)) bad.push("users-by-batch");
-      return bad.length ? open(`no take: in ${bad.join(", ")}`) : ok("bounded");
+      return bad.length ? open(`no take: in ${bad.join(", ")}`) : ok("take: present in admin/(index)/page.tsx and the users-by-batch route; no other read is probed");
     }},
   { id: "H19", sev: "high", title: "No RTO/RPO, runbook or incident-response plan", probe: () => {
       const ops = read("docs/OPERATIONS.md");
-      return /restore|RTO|RPO/i.test(ops) ? ok("restore procedure documented in OPERATIONS.md") : open("no documented restore/RTO/RPO");
+      return /restore|RTO|RPO/i.test(ops) ? ok("OPERATIONS.md mentions restore, RTO or RPO") : open("no documented restore/RTO/RPO");
     }},
   { id: "H20", sev: "high", title: "Object storage public-read and permanent", probe: () =>
       acc("owner chose option A (leave public) 2026-08-19; revisit post-launch") },
@@ -317,7 +333,7 @@ const CHECKS = [
       if (!gated(decomment(read("src/app/api/upload/route.ts")))) missing.push("upload route");
       if (missing.length) return open(`gate exists but unused in: ${missing.join(", ")}`);
       if (!vetters.length) return open("api-gate.ts defines no vetter that calls requireVerifiedMember");
-      return ok(`requireVerifiedMember reaches the write paths (via ${vetters.join(", ")}); run phase3-probe for behaviour`);
+      return ok(`member-gate.ts checks verifyState; feed actions and the upload route reach requireVerifiedMember (directly or via ${vetters.join(", ")})`);
     }},
   { id: "H22", sev: "high", title: "No bot defence on any public entry point", probe: () => {
       // Verified at all three doors, or it is not closed: login (inside
@@ -340,7 +356,7 @@ const CHECKS = [
         return open(env ? "keys in .env but no code verifies them yet" : "no Turnstile anywhere");
       }
       return missing.length ? open(`Turnstile verified on some doors but not: ${missing.join(", ")}`)
-        : ok("verified server-side on login, signup and reset; sign-in falls back to a metered allowance when the widget cannot answer");
+        : ok("auth.ts, the signup action and the reset action each call a Turnstile check");
     }},
 
   // ------------------------------------------------------------------ MEDIUM
@@ -349,36 +365,50 @@ const CHECKS = [
       const missing = [];
       if (!/rateLimit\("posts"/.test(decomment(read("src/app/(main)/feed/actions.ts")))) missing.push("posts");
       if (!/rateLimit\("comments"/.test(decomment(read("src/app/(main)/feed/actions.ts")))) missing.push("comments");
-      if (!/rateLimit\("uploads"/.test(decomment(read("src/app/api/upload/route.ts")))) missing.push("uploads");
+      /* The upload routes meter through vetUploadRequest (api-gate.ts), which
+         takes the meter as a parameter defaulting to "uploads". Followed, as
+         H21 follows the same door, rather than read off the route. */
+      const vetUpload = fnBody(decomment(read("src/lib/api-gate.ts")), "vetUploadRequest") ?? "";
+      const uploadsMetered =
+        /rateLimit\("uploads"/.test(decomment(read("src/app/api/upload/route.ts"))) ||
+        (/vetUploadRequest\(/.test(decomment(read("src/app/api/upload/route.ts"))) &&
+          /meter[^)]*=\s*"uploads"/.test(read("src/lib/api-gate.ts")) &&
+          /rateLimit\(meter/.test(vetUpload));
+      if (!uploadsMetered) missing.push("uploads");
       if (!/rateLimit\("reports"/.test(decomment(read("src/components/posts/report-action.ts")))) missing.push("reports");
       if (!/rateLimit\("catchups"/.test(decomment(read("src/app/(main)/catchups/actions.ts")))) missing.push("catchups");
       return missing.length ? open(`limiter exists but unused on: ${missing.join(", ")}`)
-        : ok("one Upstash limiter on posts/comments/uploads/reports/catchups; run phase4-probe for behaviour");
+        : ok("rateLimit is called in the feed, upload, report and catchups paths; per file, not per action");
     }},
   { id: "M3", sev: "medium", title: "Public reset requests can exhaust the daily mail budget", probe: () => {
       const b = fnBody(read("src/components/auth/email-actions.ts"), "requestPasswordReset");
       if (!b) return open("requestPasswordReset not found");
       return /rateLimit\("reset"/.test(decomment(b))
-        ? ok("reset requests metered per IP before any mail is queued")
+        ? ok("requestPasswordReset calls rateLimit(\"reset\")")
         : open("still limited per user id only, never per IP");
     }},
   { id: "M4", sev: "medium", title: "Password reset does not revoke sessions", probe: () =>
       /credentialVersion|sessionsValidFrom/.test(read("prisma/schema.prisma"))
-        ? ok("credential epoch column present") : open("no credentialVersion/sessionsValidFrom column") },
+        ? ok("credentialVersion column present; nothing here checks that a reset bumps it") : open("no credentialVersion/sessionsValidFrom column") },
   { id: "M6", sev: "medium", title: "Deleted user keeps a working session", probe: () => {
       /* Two halves, and only both together revoke anything: the session
          callback must NOTICE the row is gone (it cannot return null itself --
          its return type is Session), and the auth() wrapper must turn that
          mark into null before any caller sees it. */
       const s = decomment(read("src/lib/auth.ts"));
-      const notices = /!dbUser/.test(s) && /session\.invalid\s*=\s*true/.test(s);
+      /* The missing-row check moved into sessionRevoked (session-revocation.ts,
+         audit C-187), which auth.ts calls before marking the session. */
+      const revocation = decomment(read("src/lib/session-revocation.ts"));
+      const notices =
+        /session\.invalid\s*=\s*true/.test(s) &&
+        (/!dbUser/.test(s) || (/sessionRevoked\(/.test(s) && /if \(!row\) return true/.test(revocation)));
       const drops = /session\.invalid[\s\S]{0,80}return null/.test(s);
-      if (notices && drops) return ok("missing row marks the session invalid; auth() drops it");
+      if (notices && drops) return ok("a missing row marks the session invalid (sessionRevoked); auth() returns null for it");
       return open(`${notices ? "" : "session callback does not detect a missing row; "}${drops ? "" : "auth() does not drop invalid sessions"}`);
     }},
   { id: "M7", sev: "medium", title: "Trivia gate: hardcoded fallback secret", probe: () =>
       /rv-connect-trivia-dev-secret/.test(decomment(read("src/components/auth/trivia-actions.ts")))
-        ? open("hardcoded fallback secret still present") : ok("no hardcoded fallback") },
+        ? open("hardcoded fallback secret still present") : ok("trivia-actions.ts holds no hardcoded fallback secret") },
 
   // ---- Phase 5: object deletion and uploads (behaviour: phase5-probe.mjs) ----
   { id: "M10", sev: "medium", title: "Feed/Catch-up accept arbitrary external image URLs", probe: () => {
@@ -390,13 +420,14 @@ const CHECKS = [
       if (!/ownedUploadUrls\(/.test(feed)) missing.push("feed");
       if (!/ownedUploadUrls\(/.test(catchups)) missing.push("catchups");
       return missing.length ? open(`external URLs still accepted in: ${missing.join(", ")}`)
-        : ok("post + Catch-up images validated by ownedUploadUrls (origin + ownership)");
+        : ok("feed and Catch-up actions call ownedUploadUrls");
     }},
   { id: "M11", sev: "medium", title: "Removed Collection photos stay publicly fetchable", probe: () => {
       const b = fnBody(read("src/app/(main)/collection/actions.ts"), "adminRemovePhoto");
       if (!b) return open("adminRemovePhoto not found");
-      return /delImage\(/.test(decomment(b))
-        ? ok("adminRemovePhoto deletes the stored bytes, not just the row")
+      // Through purgeImageUrls since the image-purge work: it deletes, or queues what it could not.
+      return /delImage\(|purgeImageUrls\(/.test(decomment(b))
+        ? ok("adminRemovePhoto calls delImage or purgeImageUrls")
         : open("adminRemovePhoto still keeps the file after hiding the row");
     }},
   { id: "M12", sev: "medium", title: "Collection originals published with EXIF/GPS", probe: () => {
@@ -409,7 +440,7 @@ const CHECKS = [
       const reencoded = /sharpImage\([^)]*\)[\s\S]*\.webp\(/.test(src);
       const storesRaw = /url:\s*publicUrlForKey\(input\.key\)/.test(src);
       return reencoded && !storesRaw
-        ? ok("direct original re-encoded to strip metadata; raw original not stored")
+        ? ok("contributePhotoDirect re-encodes through sharpImage().webp() and stores no publicUrlForKey(input.key) as the url")
         : open(storesRaw ? "still stores the raw EXIF-bearing original as the url" : "original not re-encoded");
     }},
   { id: "M13", sev: "medium", title: "Content-type trusted from the client", probe: () => {
@@ -426,7 +457,7 @@ const CHECKS = [
         .filter(([, p]) => !/sniffImageType\(/.test(decomment(read(p))))
         .map(([n]) => n);
       return missing.length ? open(`magic-byte check missing on: ${missing.join(", ")}`)
-        : ok("sniffImageType guards every path that ingests client bytes");
+        : ok("the upload route, finalize, the Collection actions and the avatar action call sniffImageType");
     }},
   { id: "M14", sev: "medium", title: "No sharp limitInputPixels (decompression bomb)", probe: () => {
       const img = decomment(read("src/lib/image.ts"));
@@ -443,7 +474,7 @@ const CHECKS = [
       ];
       const raw = sites.filter((p) => /\bfrom "sharp"/.test(read(p)));
       return raw.length ? open(`raw sharp import still in: ${raw.join(", ")}`)
-        : ok("all five call sites route through sharpImage (limitInputPixels set)");
+        : ok("image.ts's sharpImage sets limitInputPixels; none of the five named files imports sharp itself");
     }},
   { id: "M16", sev: "medium", title: "Presigned PUT cannot enforce object size", probe: () => {
       // R2 has no content-length-range; the mitigation is a HEAD size check
@@ -452,21 +483,21 @@ const CHECKS = [
       if (!/export async function headObjectSize\b/.test(store)) return open("no headObjectSize helper");
       const fin = /headObjectSize\(/.test(decomment(read("src/app/api/upload/finalize/route.ts")));
       const col = /headObjectSize\(/.test(decomment(read("src/app/(main)/collection/actions.ts")));
-      return fin && col ? ok("oversized presigned objects HEAD-checked and deleted before fetch")
+      return fin && col ? ok("finalize and the Collection actions call headObjectSize")
         : open(`HEAD size check missing on: ${[!fin && "finalize", !col && "collection"].filter(Boolean).join(", ")}`);
     }},
   { id: "M17", sev: "medium", title: "No per-account storage quota", probe: () => {
       if (!/MAX_PHOTOS_PER_ACCOUNT/.test(read("src/lib/upload-shared.ts"))) return open("no quota constant");
       const col = decomment(read("src/app/(main)/collection/actions.ts"));
       return /photoQuotaError\(/.test(col)
-        ? ok("Collection contributions capped per account (MAX_PHOTOS_PER_ACCOUNT)")
+        ? ok("MAX_PHOTOS_PER_ACCOUNT defined; the Collection actions call photoQuotaError")
         : open("quota not enforced on the contribute paths");
     }},
 
   { id: "M18", sev: "medium", title: "updateContactMethods bypasses profileSchema", probe: () => {
       const b = fnBody(read("src/components/profile/profile-actions.ts"), "updateContactMethods");
       if (!b) return open("updateContactMethods not found");
-      return /Schema\.|safeParse|parse\(/.test(b) ? ok("validated") : open("still writes with no Zod validation");
+      return /Schema\.|safeParse|parse\(/.test(b) ? ok("updateContactMethods calls a Zod parse") : open("still writes with no Zod validation");
     }},
   { id: "M19", sev: "medium", title: "/lab public in production", probe: () => {
       const p = decomment(read("src/proxy.ts"));
@@ -475,7 +506,7 @@ const CHECKS = [
       const arr = p.slice(p.indexOf("[", i), p.indexOf("]", i) + 1);
       return /["'`]\/lab["'`]/.test(arr)
         ? open('"/lab" still listed in publicPaths')
-        : ok("/lab no longer public");
+        : ok("\"/lab\" is not in proxy.ts's publicPaths");
     }},
   { id: "M27", sev: "medium", title: "vercel.json cron points at a route that does not exist", probe: () => {
       let cfg; try { cfg = JSON.parse(read("vercel.json")); } catch { return open("vercel.json unreadable"); }
@@ -483,7 +514,7 @@ const CHECKS = [
         const p = c.path.replace(/^\//, "");
         return !has(`src/app/${p}/route.ts`);
       });
-      return missing.length ? open(`cron target missing: ${missing.map((c) => c.path).join(", ")}`) : ok("every cron target exists");
+      return missing.length ? open(`cron target missing: ${missing.map((c) => c.path).join(", ")}`) : ok("every vercel.json cron path has a route file");
     }},
   { id: "M32", sev: "medium", title: "Poll options created outside a transaction", probe: () => {
       const b = fnBody(read("src/app/(main)/feed/actions.ts"), "createPost");
@@ -494,7 +525,7 @@ const CHECKS = [
       // Prisma commits in one transaction. What must be gone is the old
       // separate pollOption.create loop that ran after the post existed.
       const nested = /pollOptions:\s*\{\s*create:/.test(src) && !/prisma\.pollOption\.create/.test(src);
-      if (/\$transaction/.test(src) || nested) return ok("poll + options written atomically (nested create)");
+      if (/\$transaction/.test(src) || nested) return ok("createPost writes poll options in the post's own create (or a $transaction)");
       return open("poll options still written in a loop outside a transaction");
     }},
   { id: "M34", sev: "medium", title: "No retention policy; unbounded accumulation", probe: () => {
@@ -505,7 +536,7 @@ const CHECKS = [
       if (missing.length) return open(`sweep misses: ${missing.join(", ")}`);
       if (!has("src/app/api/retention/sweep/route.ts")) return open("sweep has no route to trigger it");
       if (!has(".github/workflows/retention.yml")) return open("no schedule fires the sweep");
-      return ok("sweep covers all seven tables, on a nightly schedule");
+      return ok("retention.ts deletes from all seven tables; its route and retention.yml exist");
     }},
   { id: "M35", sev: "medium", title: "No deletion confirmation, re-auth, grace period or data export", probe: () => {
       const b = fnBody(read("src/components/settings/actions.ts"), "requestAccountDeletion");
@@ -514,7 +545,7 @@ const CHECKS = [
       if (!/bcrypt\.compare/.test(src)) return open("deletion does not re-ask for the password");
       if (!/deletionRequestedAt/.test(src)) return open("deletion is immediate; no grace window recorded");
       if (!has("src/app/api/account/export/route.ts")) return open("no data export route");
-      return ok("re-auth + 60-day grace + export route; run phase8-probe for behaviour");
+      return ok("requestAccountDeletion compares the password and stamps deletionRequestedAt; the export route exists");
     }},
 
   /* ---- Phase 10: the remaining mediums and lows, tracked at last ---- */
@@ -526,7 +557,7 @@ const CHECKS = [
       // real returning members, a worse trade for a community this size.
       const s = decomment(read("src/components/auth/actions.ts"));
       return /rateLimit\("signup"/.test(s)
-        ? ok("surfaces gated + capped; signup oracle metered per IP (kept, deliberate)")
+        ? ok("the signup action calls rateLimit(\"signup\"); its honest \"already exists\" answer is kept on purpose")
         : open("signup oracle no longer metered");
     }},
   { id: "M5", sev: "medium", title: "JWT sessions: no revocation, docs wrong", probe: () => {
@@ -534,7 +565,7 @@ const CHECKS = [
       if (!/credentialVersion/.test(a)) return open("no revocation primitive in auth.ts");
       const docs = read("AGENTS.md");
       return /JWT/.test(docs) && !/database-backed \(Prisma adapter\)/.test(docs)
-        ? ok("credentialVersion epoch revokes; AGENTS.md corrected")
+        ? ok("auth.ts reads credentialVersion; AGENTS.md says JWT")
         : open("AGENTS.md still claims database sessions");
     }},
   { id: "M8", sev: "medium", title: "Password policy is length-only", probe: () => {
@@ -542,18 +573,18 @@ const CHECKS = [
       const signup = decomment(read("src/components/auth/actions.ts"));
       const reset = decomment(read("src/components/auth/email-actions.ts"));
       return /passwordProblem/.test(signup) && /passwordProblem/.test(reset)
-        ? ok("denylist + own-email rule wired into signup and reset")
+        ? ok("password-rule.ts exists; signup and reset call passwordProblem")
         : open("password-rule exists but is not wired into signup and reset");
     }},
   { id: "M9", sev: "medium", title: "No re-authentication for sensitive operations", probe: () => {
       const b = fnBody(read("src/components/settings/actions.ts"), "requestAccountDeletion") ?? "";
       return /bcrypt\.compare/.test(decomment(b))
-        ? ok("deletion re-asks the password; password change is the emailed reset flow (its own re-auth)")
+        ? ok("requestAccountDeletion compares the password")
         : open("account deletion no longer re-authenticates");
     }},
   { id: "M20", sev: "medium", title: "No row-level security", probe: () =>
       has("prisma/migrations-manual/2026-08-20-enable-rls.sql")
-        ? ok("RLS enabled on every table (PostgREST anon-key surface closed, 2026-08-20)")
+        ? ok("the 2026-08-20 enable-rls migration file exists; whether it is applied is not probed")
         : open("no RLS migration") },
   { id: "M21", sev: "medium", title: "No field-level encryption for phones/admission numbers", probe: () =>
       acc("bounded by RLS + private DB + private backups; app-layer crypto adds key management a one-person operation cannot carry — revisit post-launch") },
@@ -562,7 +593,7 @@ const CHECKS = [
   { id: "M23", sev: "medium", title: "Secrets in plaintext .env, no rotation", probe: () =>
       owner("owner-side practice: secrets live in .env + Vercel/GitHub dashboards; rotate on departure/compromise, starting with AUTH_SECRET and the R2 keys") },
   { id: "M24", sev: "medium", title: "Single signing key, no rotation path", probe: () =>
-      acc("one AUTH_SECRET; rotation = set a new value and every session re-authenticates (30-day cost, acceptable); no code change needed") },
+      acc("one AUTH_SECRET; rotation = set a new value and every session ends, so every member signs in again (acceptable); no code change needed") },
   { id: "M25", sev: "medium", title: "Single region, single points of failure", probe: () =>
       acc("owner locked Hobby/Free tiers 2026-08-19; bom1 + the nightly backup is the accepted posture") },
   { id: "M26", sev: "medium", title: "Free-tier services on the critical path", probe: () =>
@@ -570,43 +601,51 @@ const CHECKS = [
   { id: "M28", sev: "medium", title: "No scheduler: things advance on page view", probe: () => {
       const crons = read("vercel.json");
       return /catchups\/tick/.test(crons) && has(".github/workflows/retention.yml")
-        ? ok("nightly Vercel cron (catchups) + GitHub Actions (retention, backup); page-view ticks remain as backstop")
+        ? ok("vercel.json schedules catchups/tick; retention.yml exists")
         : open("a scheduled trigger went missing");
     }},
   { id: "M29", sev: "medium", title: "Forced enrolment: one member adds 500 users to a group", probe: () => {
       const c = decomment(read("src/app/(main)/catchups/actions.ts"));
-      const caps = c.match(/max\(100/g) ?? [];
-      return caps.length >= 2
-        ? ok("both enrolment paths capped at 100 (a whole batch), Stage 2 gated, rate limited")
+      /* Spelled MAX_CATCHUP_PEOPLE since the cap moved to catchup-caps.ts;
+         the literal still counts if somebody writes it again. */
+      const hundred = /export const MAX_CATCHUP_PEOPLE = 100;/.test(decomment(read("src/lib/catchup-caps.ts")));
+      const caps = (c.match(/max\(100\b/g) ?? []).length + (hundred ? (c.match(/max\(MAX_CATCHUP_PEOPLE\b/g) ?? []).length : 0);
+      return caps >= 2
+        ? ok("catchups/actions.ts holds two .max() caps at MAX_CATCHUP_PEOPLE, which catchup-caps.ts sets to 100")
         : open("an enrolment path lost its 100 cap");
     }},
   { id: "M30", sev: "medium", title: "photoTrusted auto-approval has no revocation path", probe: () => {
       const b = fnBody(read("src/app/(main)/admin/people/actions.ts"), "adminSetPhotoTrusted");
-      return b ? ok("adminSetPhotoTrusted toggles it from the person page") : open("no adminSetPhotoTrusted action");
+      return b ? ok("adminSetPhotoTrusted exists") : open("no adminSetPhotoTrusted action");
     }},
   { id: "M31", sev: "medium", title: "No security-relevant metrics", probe: () =>
       /model\s+LoginAttempt\b/.test(read("prisma/schema.prisma")) && has("src/app/(main)/admin/audit/page.tsx")
-        ? ok("LoginAttempt + AuditLog land on /admin/audit; MetricSnapshot keeps history")
+        ? ok("LoginAttempt model and the /admin/audit page exist")
         : open("the security metrics surface went missing") },
   { id: "M33", sev: "medium", title: "API routes rely solely on SameSite=Lax", probe: () => {
       if (!has("src/lib/origin-rule.ts")) return open("no origin rule");
       const routes = ["src/app/api/upload/route.ts", "src/app/api/upload/presign/route.ts", "src/app/api/upload/finalize/route.ts"];
-      const missing = routes.filter((r) => !/originAllowed/.test(decomment(read(r))));
-      return missing.length ? open(`origin check missing in: ${missing.join(", ")}`) : ok("origin checked on all three upload routes");
+      // Through vetUploadRequest (api-gate.ts), whose first line is the origin check.
+      const vetChecksOrigin = /originAllowed\(/.test(fnBody(decomment(read("src/lib/api-gate.ts")), "vetUploadRequest") ?? "");
+      const missing = routes.filter((r) => {
+        const src = decomment(read(r));
+        return !/originAllowed/.test(src) && !(vetChecksOrigin && /vetUploadRequest\(/.test(src));
+      });
+      return missing.length ? open(`origin check missing in: ${missing.join(", ")}`) : ok("the three upload routes call originAllowed, directly or through vetUploadRequest");
     }},
   { id: "M36", sev: "medium", title: "Deletion is silent and unlogged", probe: () => {
       const s = decomment(read("src/components/settings/actions.ts"));
       return /account\.delete_request/.test(s) && /deletion-scheduled/.test(s)
-        ? ok("audited and confirmed in writing, with the grace window")
+        ? ok("settings actions write account.delete_request and send deletion-scheduled")
         : open("self-deletion lost its audit entry or its confirmation email");
     }},
 
   { id: "L1", sev: "low", title: "Login email is the default public contact", probe: () =>
       acc("mitigated: contacts serialize only for verified members (Stage 2); the displayEmail-only switch is an owner call because it would blank most existing contacts") },
   { id: "L2", sev: "low", title: "Reset/verify tokens in URLs, no Referrer-Policy", probe: () => {
-      const c = read("next.config.ts");
+      const c = decomment(read("next.config.ts"));
       return /strict-origin-when-cross-origin/.test(c)
-        ? ok("Referrer-Policy shipped (H7); tokens stay single-use and short-lived")
+        ? ok("next.config.ts sets Referrer-Policy strict-origin-when-cross-origin")
         : open("Referrer-Policy gone from next.config.ts");
     }},
   { id: "L3", sev: "low", title: "requestPasswordReset timing side-channel", probe: () => {
@@ -617,44 +656,44 @@ const CHECKS = [
       const deferAt = src.indexOf("after(");
       const enqueueAt = src.indexOf("enqueueMail");
       return deferAt >= 0 && enqueueAt > deferAt
-        ? ok("enqueue moved into after(); both branches return after one lookup")
+        ? ok("requestPasswordReset's enqueueMail comes after its after(")
         : open("the enqueue runs before the response again");
     }},
   { id: "L4", sev: "low", title: "Verification gate skipped report/message/createCatchup", probe: () => {
       const c = decomment(read("src/app/(main)/catchups/actions.ts"));
       const r = decomment(read("src/components/posts/report-action.ts"));
       return /requireVerifiedMember/.test(c) && /requireVerifiedMember/.test(r)
-        ? ok("all three moved to the Stage 2 member gate in Phase 3")
+        ? ok("catchups/actions.ts and report-action.ts call requireVerifiedMember")
         : open("a write path fell off the member gate");
     }},
   { id: "L5", sev: "low", title: "PII in application logs", probe: () => {
       const e = decomment(read("src/lib/email.ts"));
       return /maskEmail\(opts\.to\)/.test(e)
-        ? ok("the one production log line with an address is masked; dev prints are local-only by design; log tables expire on the M34 schedule")
+        ? ok("email.ts masks opts.to with maskEmail")
         : open("email.ts logs a raw address in production again");
     }},
   { id: "L6", sev: "low", title: "Upload finalize validates key shape, not ownership", probe: () => {
       const f = decomment(read("src/app/api/upload/finalize/route.ts"));
-      return /keyBelongsTo/.test(f) ? ok("finalize binds the staged key to the caller (Phase 5)") : open("keyBelongsTo gone from finalize");
+      return /keyBelongsTo/.test(f) ? ok("finalize calls keyBelongsTo") : open("keyBelongsTo gone from finalize");
     }},
   { id: "L7", sev: "low", title: "Poll voting: no window, unlimited switching", probe: () => {
       const feed = decomment(read("src/app/(main)/feed/actions.ts"));
       return /canViewPost/.test(feed)
-        ? ok("visibility checked (H3); switching your own vote is product behaviour, kept")
+        ? ok("feed/actions.ts calls canViewPost; changing your own vote is kept on purpose")
         : open("votePoll lost its visibility check");
     }},
   { id: "L8", sev: "low", title: "livemode filtering on contribution totals unverified", probe: () => {
       const s = decomment(read("src/app/(main)/support/actions.ts"));
-      return /livemode/.test(s) ? ok("totals filter on livemode via razorpayLivemode()") : open("no livemode filter in support actions");
+      return /livemode/.test(s) ? ok("support/actions.ts filters on livemode") : open("no livemode filter in support actions");
     }},
   { id: "L9", sev: "low", title: "Signup race surfaces an unhandled P2002", probe: () => {
       const b = fnBody(read("src/components/auth/actions.ts"), "registerUser") ?? "";
-      return /P2002/.test(b) ? ok("the create catches P2002 and answers like the pre-check") : open("no P2002 handling around user.create");
+      return /P2002/.test(b) ? ok("registerUser handles P2002") : open("no P2002 handling around user.create");
     }},
   { id: "L10", sev: "low", title: "extendDeadline deletes notifications unscoped", probe: () => {
       const c = decomment(read("src/app/(main)/catchups/actions.ts"));
       return /catchup_reminder", link:/.test(c) || /type: "catchup_reminder",\s*link:/.test(c)
-        ? ok("the delete is scoped to this Catch-up's reminder link (and Keeper-gated)")
+        ? ok("the catchup_reminder delete names a link")
         : open("the reminder cleanup lost its link scope");
     }},
   { id: "L11", sev: "low", title: "R2 token is object-scoped, cannot manage CORS", probe: () =>
@@ -662,7 +701,7 @@ const CHECKS = [
   { id: "L12", sev: "low", title: "Client-side-only enforcement patterns", probe: () => {
       const feed = decomment(read("src/app/(main)/feed/actions.ts"));
       return /ownedUploadUrls/.test(feed)
-        ? ok("the caps that matter (images, sizes, tiers) are server-side since Phase 5; tour/onboarding localStorage is UX state")
+        ? ok("feed/actions.ts calls ownedUploadUrls")
         : open("server-side image validation went missing");
     }},
 ];
