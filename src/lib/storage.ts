@@ -347,16 +347,17 @@ export async function delImageByKey(key: string): Promise<boolean> {
  */
 export function keyForUrl(url: string | null | undefined): string | null {
   if (!url) return null;
-  let key: string | null = null;
   const base = useR2 ? publicBaseFor(url) : null;
-  if (base) {
-    key = url.slice(base.length + 1);
-  } else if (url.startsWith("/")) {
-    // A root-relative path is ours whether or not R2 is configured: rows
-    // written before the R2 migration still carry local paths, and they
-    // resolve against public/ in both modes.
-    key = url.slice(1);
-  }
+  if (base) return ownKey(url.slice(base.length + 1));
+  // A root-relative path is ours whether or not R2 is configured: rows
+  // written before the R2 migration still carry local paths, and they
+  // resolve against public/ in both modes.
+  if (url.startsWith("/")) return ownKey(url.slice(1));
+  return null;
+}
+
+/** `key` if it is one this app wrote, else null. */
+function ownKey(key: string): string | null {
   if (!key) return null;
   // No traversal segment. On the local-dev filesystem branch the key is joined
   // onto public/ (getImageBuffer, delImageByKey, headObjectSize), and path.join
@@ -376,16 +377,41 @@ export function keyForUrl(url: string | null | undefined): string | null {
 }
 
 /**
+ * Whether `url` is one of this bucket's objects that THIS process cannot
+ * reach: it holds no R2 credentials, so nothing it does can delete the bytes.
+ * A laptop set up the way AGENTS.md describes ("local filesystem in dev"),
+ * or a Vercel preview with the database and not the bucket, shares the one
+ * database with production and sees production's URLs (bug audit 3, L11-06).
+ */
+function outOfReach(url: string): boolean {
+  if (useR2) return false;
+  const base = publicBaseFor(url);
+  return !!base && ownKey(url.slice(base.length + 1)) !== null;
+}
+
+/**
  * Delete an image by its public URL (never throws). Derives the object key and
  * hands off to `delImageByKey`, so the actual R2-vs-local delete logic lives in
  * exactly one place.
  *
  * True means "nothing of ours is left at that URL": either the object was
- * deleted, or the URL was never ours to begin with (a legacy host, an external
- * song artwork) and is left alone on purpose. False means we tried and failed,
- * which only the purge currently acts on.
+ * deleted, or the URL was never ours to begin with (an external song artwork)
+ * and is left alone on purpose. False means the bytes may still be there:
+ * storage refused, or this process cannot reach storage at all. The callers
+ * keep or queue a worklist row on false, for a process that can.
  */
 export async function delImage(url: string | null | undefined): Promise<boolean> {
+  /* One of our photographs, and no R2 credentials here to delete it with. This
+     used to answer true ("not ours"), so a laptop run of the nightly sweep
+     struck every pending deletion off the worklist as done, and a delete
+     pressed on localhost queued nothing, while the bytes stayed public for
+     ever with nothing left able to find them (bug audit 3, L11-06). False
+     leaves them on the worklist for the production sweep, which can reach
+     them. */
+  if (url && outOfReach(url)) {
+    console.error(`[storage] could not delete ${url}: this process holds no R2 credentials, so it is left for one that does`);
+    return false;
+  }
   const key = keyForUrl(url);
   if (!key) return true;
   return delImageByKey(key);

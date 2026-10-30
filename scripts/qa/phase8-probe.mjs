@@ -24,7 +24,10 @@
  * Usage: node scripts/qa/phase8-probe.mjs
  * Needs: dev server on :3000 STARTED WITH CRON_SECRET in its environment
  *        (any value; pass the same one to this probe, or use the dev default
- *        below), DEV_LOGIN_SECRET + ADMIN_EMAIL + R2 creds in .env.
+ *        below) AND SWEEP_IN_DEV=1, without which the route refuses to sweep
+ *        anywhere but production (bug audit 3, L11-06): this runs the REAL
+ *        sweep against the one database. DEV_LOGIN_SECRET + ADMIN_EMAIL + R2
+ *        creds in .env.
  */
 import bcrypt from "bcryptjs";
 import { createId } from "@paralleldrive/cuid2";

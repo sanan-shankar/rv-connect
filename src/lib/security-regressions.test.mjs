@@ -233,9 +233,9 @@ test("the optimizer's host list still covers every base the app accepts", () => 
   // ours has to be one next/image will actually render, or old photographs
   // 404 behind a config that has forgotten where they came from.
   const shared = decomment(read("src/lib/upload-shared.ts"));
-  const list = shared.slice(shared.indexOf("R2_LEGACY_PUBLIC_BASES"));
+  const list = shared.slice(shared.indexOf("KNOWN_PUBLIC_BASES"));
   const bases = [...list.slice(0, list.indexOf("]")).matchAll(/https:\/\/([A-Za-z0-9.-]+)/g)].map((m) => m[1]);
-  assert.ok(bases.length >= 1, "R2_LEGACY_PUBLIC_BASES no longer parses; the scrape has drifted");
+  assert.ok(bases.length >= 2, "KNOWN_PUBLIC_BASES no longer parses; the scrape has drifted");
 
   const config = decomment(read("next.config.ts"));
   for (const host of bases) {

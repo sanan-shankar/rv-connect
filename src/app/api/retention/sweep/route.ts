@@ -55,6 +55,25 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ skipped: "demo" });
   }
 
+  /* Only the production deployment sweeps (bug audit 3, L11-06). Every other
+     process that can serve this route -- the dev server, `next start` on the
+     laptop, a Vercel preview -- talks to the same one database, so a sweep
+     there is the production sweep in every respect: it erases whoever's sixty
+     days are up, hours before the night's run, and writes a retention.sweep
+     line /admin/audit cannot tell from GitHub's. Six laptop sweeps did exactly
+     that in August. SWEEP_IN_DEV=1 on that server runs it anyway, knowingly
+     (the phase-8 probe's server). VERCEL_ENV is the platform's own, the same
+     signal statsWritesEnabled() keys on. */
+  if (process.env.VERCEL_ENV !== "production" && process.env.SWEEP_IN_DEV !== "1") {
+    return NextResponse.json(
+      {
+        error:
+          "The retention sweep runs only on the production deployment. To run it from this server, against the one database, start it with SWEEP_IN_DEV=1.",
+      },
+      { status: 403 }
+    );
+  }
+
   const result = await runRetentionSweep();
 
   /* A pass with a failed step answers 502, not 200 (audit M54).

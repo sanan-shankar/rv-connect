@@ -284,8 +284,9 @@ export function fallbackSizeBatchNotice(count: number): string {
 }
 
 /**
- * Public hosts this bucket's objects have EVER been served from, other than
- * whatever `R2_PUBLIC_BASE_URL` says today.
+ * Every public host this bucket's objects have been served from, today's
+ * included, so the code knows them whatever `R2_PUBLIC_BASE_URL` says, or
+ * whether it is set at all.
  *
  * On 2026-08-21 serving moved from Cloudflare's free `pub-*.r2.dev` address to
  * `images.rishivalley.space`. Every URL written before that moment is stored in
@@ -298,22 +299,30 @@ export function fallbackSizeBatchNotice(count: number): string {
  *  - `isUploadedImageUrl` stops recognising them, so re-saving anything that
  *    re-validates its images refuses pictures the member really did upload.
  *
- * The rows were rewritten to the new host in the same change, so this list is
- * belt as well as braces. It stays because a URL that escaped the rewrite would
- * fail SILENTLY, and because the demo deployment reads the same bucket with its
- * own environment variables.
+ * The rows were rewritten to the new host in the same change, so the old
+ * entry is belt as well as braces. It stays because a URL that escaped the
+ * rewrite would fail SILENTLY, and because the demo deployment reads the same
+ * bucket with its own environment variables.
  *
- * The exact host, not a `pub-*.r2.dev` wildcard: a wildcard would vouch for
+ * Today's host is written here as well (bug audit 3, L11-06). Known only from
+ * the environment, it was invisible to a process set up without it: a laptop
+ * with no R2 variables, or with an `R2_PUBLIC_BASE_URL` still naming the old
+ * host, read every `images.rishivalley.space` URL as somebody else's, and
+ * `delImage` answered "gone" for bytes it never touched. Knowing the host is
+ * what lets `delImage` refuse instead.
+ *
+ * Exact hosts, never a `pub-*.r2.dev` wildcard: a wildcard would vouch for
  * anybody else's bucket, and vouching is what this file does (audit M10).
  */
-const R2_LEGACY_PUBLIC_BASES = [
+const KNOWN_PUBLIC_BASES = [
+  "https://images.rishivalley.space",
   "https://pub-a656209a5438484f9694738260255a5e.r2.dev",
 ] as const;
 
 /** Every public base this app will accept a URL on, newest first. */
 function publicBases(): string[] {
   const current = process.env.R2_PUBLIC_BASE_URL?.replace(/\/+$/, "");
-  return [...(current ? [current] : []), ...R2_LEGACY_PUBLIC_BASES];
+  return [...new Set([...(current ? [current] : []), ...KNOWN_PUBLIC_BASES])];
 }
 
 /**

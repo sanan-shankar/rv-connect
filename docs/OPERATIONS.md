@@ -188,6 +188,17 @@ project. Without it the job fails loudly with a 401, which is the correct sympto
 nothing is swept until it is set. Every sweep writes a `retention.sweep` line to
 /admin/audit, so "is this actually running" is answerable from inside the app.
 
+**Only the production deployment sweeps** (since 2026-10-30, bug audit 3 L11-06). The dev
+server, `next start` on the laptop and a Vercel preview all share the one database, so a sweep
+from any of them is the production sweep in every respect: it erases whoever's sixty days are
+up, hours early, and writes a `retention.sweep` line nobody can tell from GitHub's. Six laptop
+sweeps did exactly that in August. The route now answers 403 wherever `VERCEL_ENV` is not
+`production`; a server started with `SWEEP_IN_DEV=1` runs it anyway, knowingly (the phase-8
+probe needs that). And a process with no R2 credentials never reports one of the bucket's
+photographs as deleted: `delImage` refuses, so the address stays on the worklist for the
+production sweep to remove, where it used to be struck off as done while the bytes stayed
+public. `src/lib/off-production-rule.test.mjs` holds both.
+
 ### `snapshot.yml` — the only thing that remembers last year
 **Fires:** nightly at 00:10 UTC (05:40 IST), and on demand via **Actions → snapshot → Run
 workflow**, which takes an optional `day` to backfill.
