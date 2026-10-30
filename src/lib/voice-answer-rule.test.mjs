@@ -16,6 +16,8 @@ import {
   decideVoiceAnswer,
   decideStagedVoice,
   MAX_VOICE_URL,
+  VOICE_PLAYBACK_LIMIT,
+  playbackLength,
 } from "./voice-answer-rule.ts";
 
 /* ------------------------------------------------------------------ *
@@ -47,6 +49,24 @@ test("the byte cap is the length at the ceiling bitrate, plus a container's slac
   assert.ok((120 * 64_000) / 8 < VOICE_MAX_BYTES / 4);
   // A longer claim allows more bytes, never fewer.
   assert.ok(voiceByteCap(10) < voiceByteCap(11));
+});
+
+test("a recording plays two minutes at most, whatever the file holds", () => {
+  /* T2b-04: the byte cap bounds a file's weight, not its length. Opus carries
+     speech at 6 kbps, so the cap holds over an hour from a client that asked
+     for a low bitrate and claimed two minutes; the limit is where it is heard. */
+  assert.ok((VOICE_MAX_BYTES * 8) / 6_000 > 3600, "the byte cap once looked like a length bound; it is not one");
+  assert.equal(VOICE_PLAYBACK_LIMIT, VOICE_MAX_SECONDS + 1, "a take capped at two minutes loses its last word");
+  assert.equal(playbackLength(1200, 120), 120, "a twenty-minute file's rail is measured against twenty minutes");
+  assert.equal(playbackLength(Infinity, 42), 42, "Chrome's WebM reports Infinity until played through");
+  assert.equal(playbackLength(37.4, 37), 37.4, "the file's own length wins under the cap");
+  assert.equal(playbackLength(NaN, 0), 0);
+
+  const clip = decomment(read("src/components/catchups/voice-clip.ts"));
+  assert.match(clip, /if \(a\.currentTime < VOICE_PLAYBACK_LIMIT\) return false;\s*a\.pause\(\);/, "the player no longer stops at the cap");
+  assert.match(clip, /const tick = \(\) => \{\s*if \(pastTheCap\(\)\) return;/, "the frame loop plays past the cap");
+  assert.match(clip, /const onTime = \(\) => \{\s*if \(!pastTheCap\(\)\)/, "a hidden tab, which runs no frames, plays past the cap");
+  assert.equal((clip.match(/playbackLength\(a\.duration, seconds\)/g) ?? []).length, 2, "the rail or a seek reads past the cap");
 });
 
 test("content types: the four a MediaRecorder makes, with or without a codec", () => {

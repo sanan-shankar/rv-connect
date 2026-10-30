@@ -15,7 +15,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useMotionValue, type MotionValue } from "motion/react";
-import { VOICE_MAX_SECONDS } from "@/lib/voice-answer-rule";
+import { VOICE_MAX_SECONDS, VOICE_PLAYBACK_LIMIT, playbackLength } from "@/lib/voice-answer-rule";
 
 /** Two minutes, his (answer 32, 2026-09-14). One constant, so the recorder's
  *  countdown and the tape's length-against-the-dashes mean the same thing. */
@@ -63,8 +63,19 @@ export function usePlayer(url: string | null, seconds: number): Player {
     a.preload = "metadata";
     audio.current = a;
     let frame = 0;
-    const length = () => (Number.isFinite(a.duration) && a.duration > 0 ? a.duration : seconds);
+    const length = () => playbackLength(a.duration, seconds);
+    /* The two minutes, held where a recording is heard (bug audit 3, T2b-04):
+       a file that runs on past the cap stops at it, on every surface. Checked
+       every frame and on every timeupdate, because a hidden tab runs no
+       frames and goes on playing. */
+    const pastTheCap = () => {
+      if (a.currentTime < VOICE_PLAYBACK_LIMIT) return false;
+      a.pause();
+      onEnded();
+      return true;
+    };
     const tick = () => {
+      if (pastTheCap()) return;
       progress.set(Math.min(1, a.currentTime / length()));
       frame = requestAnimationFrame(tick);
     };
@@ -78,7 +89,9 @@ export function usePlayer(url: string | null, seconds: number): Player {
       setPlaying(false);
       cancelAnimationFrame(frame);
     };
-    const onTime = () => setAt(a.currentTime);
+    const onTime = () => {
+      if (!pastTheCap()) setAt(a.currentTime);
+    };
     const onEnded = () => {
       a.currentTime = 0;
       progress.set(0);
@@ -114,8 +127,7 @@ export function usePlayer(url: string | null, seconds: number): Player {
     (fraction: number) => {
       const a = audio.current;
       if (!a) return;
-      const length = Number.isFinite(a.duration) && a.duration > 0 ? a.duration : seconds;
-      a.currentTime = Math.max(0, Math.min(1, fraction)) * length;
+      a.currentTime = Math.max(0, Math.min(1, fraction)) * playbackLength(a.duration, seconds);
       progress.set(Math.max(0, Math.min(1, fraction)));
       setAt(a.currentTime);
     },

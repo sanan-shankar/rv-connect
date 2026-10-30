@@ -40,15 +40,23 @@ export const VOICE_CONTAINER_SLACK_BYTES = 64_000;
 /**
  * The most bytes a recording of `seconds` may be.
  *
- * THIS IS THE SERVER'S DURATION CHECK, and it is honest about what it is. The
- * server does not decode audio and cannot read a length out of Chrome's
- * recordings at all: MediaRecorder writes WebM as a stream and never goes back
- * to fill in the duration. So the claimed length is bounded two ways that do
- * not need a decoder. It must be 1 to 120, and the file must be no bigger than
- * that many seconds could be at the ceiling bitrate. A file that claims five
- * seconds and is four megabytes is refused. A file that claims two minutes and
- * holds ten seconds passes, and all that costs is a wrong number on the
- * player's rail until the audio element reads the real one.
+ * A WEIGHT CHECK, NOT A LENGTH CHECK. The server does not decode audio and
+ * cannot read a length out of Chrome's recordings at all: MediaRecorder writes
+ * WebM as a stream and never goes back to fill in the duration. So the claimed
+ * length is bounded two ways that do not need a decoder. It must be 1 to 120,
+ * and the file must be no bigger than that many seconds could be at the
+ * ceiling bitrate. A file that claims five seconds and is four megabytes is
+ * refused. A file that claims two minutes and holds ten seconds passes, and
+ * all that costs is a wrong number on the player's rail until the audio
+ * element reads the real one.
+ *
+ * THE OTHER DIRECTION IS THE ONE THIS CANNOT SEE (bug audit 3, T2b-04): a file
+ * made at a low bitrate holds far more than its claim. Opus carries speech at
+ * 6 kbps, so the two-minute cap's 4.8 MB holds well over an hour from a client
+ * that asked for less and claimed two minutes. No byte cap closes that, and
+ * lowering this one would only refuse real recordings from a browser that
+ * ignores the bitrate it was asked for. So the two minutes is held where a
+ * recording is heard instead: `VOICE_PLAYBACK_LIMIT`, below.
  */
 export function voiceByteCap(seconds: number): number {
   return Math.ceil((seconds * VOICE_CEILING_BITS_PER_SECOND) / 8) + VOICE_CONTAINER_SLACK_BYTES;
@@ -57,6 +65,29 @@ export function voiceByteCap(seconds: number): number {
 /** The absolute ceiling, for the presign door, which is told the length too
  *  but checks the whole-cap first so a refusal message can say "too long". */
 export const VOICE_MAX_BYTES = voiceByteCap(VOICE_MAX_SECONDS);
+
+/**
+ * Where every recording stops playing, whatever the file holds.
+ *
+ * The two minutes is held here because nothing upstream can hold it (see
+ * `voiceByteCap`). Reading a length out of WebM, Ogg and MP4 on the server
+ * would be a parser per container run on every upload, and a wrong read
+ * would refuse a member's real recording; a file's tail can also say
+ * anything its maker likes. Every player goes through `usePlayer`
+ * (`components/catchups/voice-clip.ts`): the composer's chip, the reader's
+ * tape and the lab room. One second past the cap, because a take the
+ * recorder stopped at two minutes ends a few hundred milliseconds after
+ * them, and its last word is part of the answer.
+ */
+export const VOICE_PLAYBACK_LIMIT = VOICE_MAX_SECONDS + 1;
+
+/** The length a player measures its progress against: the file's own when the
+ *  browser knows it (Chrome's WebM reports Infinity until played through),
+ *  otherwise the claim, and never more than the cap. */
+export function playbackLength(duration: number, claimed: number): number {
+  const known = Number.isFinite(duration) && duration > 0 ? duration : claimed;
+  return Math.min(known, VOICE_MAX_SECONDS);
+}
 
 /**
  * The four formats a browser's MediaRecorder produces, and the one extension
