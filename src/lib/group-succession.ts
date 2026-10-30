@@ -1,4 +1,6 @@
+import type { Prisma } from "@/generated/prisma/client";
 import { CATCHUP_PEOPLE } from "./catchup-caps.ts";
+import { entryStoredUrls } from "./purge-rule.ts";
 
 /**
  * Who inherits a group when the member leaving it was its only Keeper.
@@ -158,4 +160,103 @@ export async function promoteGroupSuccessor(
     data: { role: "keeper" },
   });
   return done.count > 0 ? successor : null;
+}
+
+/* ------------------------------------------------------------------ *
+ *  What goes with them.
+ *
+ *  The owner's rule for everything a member leaves behind (his Q21,
+ *  2026-10-29): what nobody has read yet goes with the person, and what was
+ *  already sent out stays. An Edition nobody has read is one still collecting
+ *  questions or taking answers; a published one is a keepsake the group has
+ *  read, and a sealed time capsule has closed and been announced, so what it
+ *  holds is fixed until it opens. Both of those stay exactly as they are.
+ * ------------------------------------------------------------------ */
+
+/** The statuses of an Edition nobody has read yet. */
+export const UNSENT_EDITION_STATUSES = ["collecting", "answering"];
+
+/**
+ * Delete some answers and questions inside the caller's transaction, and
+ * queue the photographs and recordings those answers held.
+ *
+ * A question goes only when nobody else's answer sits under it (the caller's
+ * `prompts` says who "else" is): once somebody has answered it, it belongs to
+ * them too, as the account purge decides it (bug audit 3, C8-08). Deleting a
+ * question takes its remaining answers with it (the relation cascades), which
+ * by that test can only be answers that are going anyway.
+ *
+ * The bytes are queued in `PendingImagePurge` in the same transaction, the
+ * C-064 rule: whatever stops naming them queues them, so a request cut off
+ * after its commit cannot strand them. A url another surviving answer still
+ * names stays (the C-018 shape); nothing the app makes puts one url on two
+ * answers, but a hand-made call can. The caller drains the returned urls
+ * after it commits; anything it does not reach, the nightly sweep does.
+ */
+async function dropWriting(
+  db: Prisma.TransactionClient,
+  entriesWhere: Prisma.CatchupEntryWhereInput,
+  promptsWhere: Prisma.CatchupPromptWhereInput,
+  reason: string
+): Promise<string[]> {
+  const entries = await db.catchupEntry.findMany({
+    where: entriesWhere,
+    select: { id: true, images: true, audioUrl: true },
+  });
+  const prompts = await db.catchupPrompt.findMany({ where: promptsWhere, select: { id: true } });
+  if (entries.length > 0) {
+    await db.catchupEntry.deleteMany({ where: { id: { in: entries.map((e) => e.id) } } });
+  }
+  if (prompts.length > 0) {
+    await db.catchupPrompt.deleteMany({ where: { id: { in: prompts.map((p) => p.id) } } });
+  }
+  const urls = entryStoredUrls(entries);
+  if (urls.length === 0) return [];
+  const named = await db.catchupEntry.findMany({
+    where: { OR: [...urls.map((url) => ({ images: { contains: url } })), { audioUrl: { in: urls } }] },
+    select: { images: true, audioUrl: true },
+  });
+  const kept = new Set(entryStoredUrls(named));
+  const orphaned = urls.filter((url) => !kept.has(url));
+  if (orphaned.length > 0) {
+    await db.pendingImagePurge.createMany({ data: orphaned.map((url) => ({ url, reason })) });
+  }
+  return orphaned;
+}
+
+/**
+ * A member's writing in the Editions of one Catch-up that nobody has read
+ * yet, gone with them as they leave it: leaving, being removed by a Keeper,
+ * or a batch-year correction taking them out of a batch (bug audit 3, C8-04).
+ * Call it in the transaction that deletes the membership, so the two land
+ * together or not at all.
+ *
+ * Before this, all three exits took the membership and nothing else, and the
+ * reader trusts that only members wrote an Edition's rows: a member a Keeper
+ * removed, perhaps over what they were writing, still went out to the whole
+ * group when the round published, and could not take any of it back, because
+ * answering refuses anyone outside the group.
+ *
+ * THE EDITIONS ARE HELD FIRST. A close, an open and a member's save each take
+ * the same row (`submitEntry` holds it FOR SHARE), so a publish either
+ * commits first, and that Edition is no longer unsent by the time anything
+ * here reads it, or waits for this; and a save already past the door either
+ * lands first and is taken here, or waits and is refused.
+ *
+ * Returns the urls it queued, for the caller's drain.
+ */
+export async function dropUnsentWriting(
+  db: Prisma.TransactionClient,
+  catchupId: string,
+  userId: string
+): Promise<string[]> {
+  const unsent = { catchupId, status: { in: UNSENT_EDITION_STATUSES } };
+  const held = await db.catchupEdition.updateMany({ where: unsent, data: { updatedAt: new Date() } });
+  if (held.count === 0) return [];
+  return dropWriting(
+    db,
+    { authorId: userId, edition: unsent },
+    { authorId: userId, edition: unsent, entries: { none: { authorId: { not: userId } } } },
+    "left"
+  );
 }

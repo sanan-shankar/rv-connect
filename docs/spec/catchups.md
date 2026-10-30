@@ -76,8 +76,8 @@ anything, and a late joiner reads every earlier Edition. An account that is not 
 the batch's Catch-up and presses nothing in it (owner, 2026-10-29: the controls wait, the joining
 does not; §2.2). A member whose batch year changes afterwards, by their own profile or the
 admin's People edit, is moved: `syncBatchGroup` takes them out of the old batch's group, pref row and
-Catch-up bells, the same as leaving, and into the new one. Only alumni are in a batch. Their answers,
-if any, stay in the old batch's Editions.
+Catch-up bells, the same as leaving, and into the new one. Only alumni are in a batch. Their answers
+in the old batch's published Editions stay; what they wrote for one still running goes with them (§5).
 
 **It is made idle, and stays idle until somebody starts it.** It used to run every three months and
 was made paused (both 2026-09-27); both went on 2026-10-17. A batch nobody starts never hears a word
@@ -322,7 +322,16 @@ a batch says `BATCH_LEAVE_REFUSAL`, which points at archiving.
 `GroupMember` row goes, the member's preference row goes, and their Catch-up notifications are
 cleared (`clearCatchupNotifications`, matched by prefix on `/catchups/<id>` and
 `/catchups/edition/<editionId>`, `#entry-` anchors included). **What they published stays** in the
-Editions other people have read. If they were the last holder of Keeper powers,
+Editions other people have read. **What nobody has read yet goes with them**, in the transaction that
+takes the membership (`dropUnsentWriting`, `group-succession.ts`): their answers in an Edition still
+collecting or answering, with their photographs and recordings queued for deletion, and their questions
+there that nobody else has answered (one somebody else answered belongs to them too, as the purge
+decides it). A sealed time capsule has closed and been announced, so it keeps what it holds. The
+Editions are held while this runs, and a save already past the door holds its Edition too and asks
+again whether its author is still in, so nothing is written back after they have gone. His Q21,
+2026-10-29; until then all three exits left it to go out to the group after they had gone, with no way
+left to withdraw it (bug audit 3, C8-04). Leave's confirmation says so while an Edition is running.
+If they were the last holder of Keeper powers,
 `promoteGroupSuccessor` hands the hat on first, to the longest-standing member who can act: someone
 a Catch-up may hold (§2.1), so never a blocked, leaving, teacher or unverified account, and a holder
 who can no longer act does not count as one (bug audit 3, T2a-09, L10-01). Succession holds the
@@ -339,8 +348,8 @@ The thirty-day "Recently deleted" bin, `setCatchupDeleted`, its nightly sweep an
 `restoreOwnCatchupCopy` were all deleted in build phase 5. `CatchupReminderPref.deletedAt` is unread
 and waits for its drop (§16).
 
-**Removing** someone (`removeCatchupMember`) does the same to them, by a Keeper: membership, pref row
-and notifications go (the pref row stayed until 2026-10-29, so a member re-added by link found the
+**Removing** someone (`removeCatchupMember`) does the same to them, by a Keeper: membership, pref row,
+notifications and their writing for an Edition nobody has read yet go (the pref row stayed until 2026-10-29, so a member re-added by link found the
 Catch-up under Archived; bug audit 3, T2a-10). **It also changes the invite link**, in the same
 transaction, so every copy already out stops working, the removed member's included; anyone the
 Keeper still wants needs the new one (his Q16, 2026-10-29; L12-09: the link never changed and rode in
@@ -467,8 +476,9 @@ to jump between questions and Back beside Next. There is no "Skip for now".
   `body`; the `song*` columns are unread.
 - **Caps**: body 6,000 characters, 3 photographs per answer, on every kind.
 - **Autosave on blur** through `submitEntry`, which re-checks the Edition is still answering inside
-  the write's own transaction, and refuses a save whose `baseUpdatedAt` is stale, so a second device
-  cannot silently replace what the first wrote.
+  the write's own transaction, holding its row (FOR SHARE) until the write commits and asking again
+  there whether its author is still in the Catch-up (§5), and refuses a save whose `baseUpdatedAt` is
+  stale, so a second device cannot silently replace what the first wrote.
 - **Clearing every field deletes the answer**, which withdraws you from the Edition. The delete asks
   that the row is still empty (`EMPTY_ENTRY_WHERE`: no words, photograph or recording), so a save
   from a second device that refilled it in between stays, and the device that emptied it keeps its

@@ -95,8 +95,11 @@ test("the refusals a retry cannot change carry final, and only those", () => {
     assert.match(submit.slice(at, at + 260), /final: true as const/, `"${words}" invites a retry that cannot land`);
   }
   assert.match(submit, /return \{ error: parsed\.error\.issues\[0\]\.message, final: true as const \};/);
+  // A member taken out of the Catch-up while their save was on its way
+  // (C8-04): the same save would meet the same door.
+  assert.match(submit, /if \(entry === "gone"\) return \{ error: NOT_IN_EDITION, final: true as const \};/);
   // The catch-all lives in runAction, outside submitEntry: a crash stays retryable.
-  assert.equal((submit.match(/final: true as const/g) ?? []).length, 4);
+  assert.equal((submit.match(/final: true as const/g) ?? []).length, 5);
 });
 
 test("a question left blank on purpose sends Share back to it once, and the next Share finishes", () => {

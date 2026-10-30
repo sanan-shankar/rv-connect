@@ -578,8 +578,10 @@ function nobodyAnswered(result: unknown): boolean {
 
 /** A one-way act's button. The app has no cinnamon variant, because until
  *  now nothing needed one: `destructive` is the red wash, and none of
- *  these destroys anything -- an ended Catch-up stays readable, a left
- *  Catch-up keeps every word you wrote. */
+ *  these destroys anything of anybody else's -- an ended Catch-up stays
+ *  readable, and a left one keeps every word of yours that is already out.
+ *  What you wrote for an Edition still running goes with you (bug audit 3,
+ *  C8-04), which is your own to take, and Leave's line says so first. */
 const ONE_WAY_BUTTON = "bg-cinnamon/10 text-cinnamon hover:bg-cinnamon/20";
 
 /** Shape one: a confirmation. Title names the object, one line says what
@@ -683,6 +685,9 @@ export function confirmCopy(
   /** The clock's one zero-answer extension is spent. Only "Nobody has
    *  answered yet" says it. */
   autoExtended = false,
+  /** An Edition is collecting or answering, so leaving takes what you wrote
+   *  for it (C8-04). Only Leave says it. */
+  running = false,
 ): { title: string; line: string; verb: string; oneWay: boolean } {
   switch (key) {
     case "open-answering":
@@ -742,10 +747,16 @@ export function confirmCopy(
         verb: "End it",
         oneWay: true,
       };
+    /* What goes with you is said only when something would: what you wrote
+       for an Edition still running (his Q21: what nobody has read yet goes
+       with the person). This line said "What you wrote stays" whatever was
+       running, and it was the one exit that disclosed anything at all. */
     case "leave":
       return {
         title: `Leave ${name}`,
-        line: "You stop getting Editions. What you wrote stays, and only the Keeper can add you back.",
+        line: running
+          ? "You stop getting Editions, and anything you wrote for this one goes with you. Editions already out keep your words, and only the Keeper can add you back."
+          : "You stop getting Editions. What you wrote stays, and only the Keeper can add you back.",
         verb: "Leave",
         oneWay: true,
       };
@@ -995,7 +1006,8 @@ export function SettingsDialogs({
         <DialogContent initialFocus={panel} ref={panel} tabIndex={-1}>
           {open?.shape === "confirm" &&
             (() => {
-              const copy = confirmCopy(open.key, c.name, c.people, c.autoExtended);
+              const running = !c.ended && (c.state === "collecting" || c.state === "answering");
+              const copy = confirmCopy(open.key, c.name, c.people, c.autoExtended, running);
               return (
                 <ConfirmBody
                   title={copy.title}

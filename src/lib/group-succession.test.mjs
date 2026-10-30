@@ -1,7 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { anyOtherHolder, chooseGroupSuccessor, promoteGroupSuccessor } from "./group-succession.ts";
+import {
+  anyOtherHolder,
+  chooseGroupSuccessor,
+  dropUnsentWriting,
+  promoteGroupSuccessor,
+  UNSENT_EDITION_STATUSES,
+} from "./group-succession.ts";
 import { CATCHUP_PEOPLE } from "./catchup-caps.ts";
 import { read as readRepo, decomment, balancedBody } from "./test-kit.mjs";
 
@@ -341,4 +347,88 @@ test("C-023: every path that removes a membership promotes first", async () => {
     !retention.includes("groupMember.deleteMany"),
     "the retention sweep removes memberships again; it must promote a successor first"
   );
+});
+
+/* ------------------------------------------------------------------ *
+ *  C8-04: what nobody has read yet goes with the person (his Q21,
+ *  2026-10-29). Leaving, a Keeper's removal and a batch-year correction
+ *  all call this in the transaction that takes the membership; the three
+ *  call sites are pinned in catchup-lifecycle.test.mjs. Driven against a
+ *  fake client that records what it is asked, in order.
+ * ------------------------------------------------------------------ */
+
+const PHOTO = "https://images.example/uploads/u1/a.webp";
+const VOICE = "https://images.example/audio/u1/r.webm";
+
+function departureDb({ held = 1, entries = [], prompts = [], named = [] } = {}) {
+  const calls = [];
+  return {
+    calls,
+    catchupEdition: {
+      updateMany: async (args) => (calls.push(["hold", args]), { count: held }),
+    },
+    catchupEntry: {
+      // The leaver's answers select their id; the survivors' check does not.
+      findMany: async (args) => (calls.push([args.select.id ? "entries" : "named", args]), args.select.id ? entries : named),
+      deleteMany: async (args) => (calls.push(["drop entries", args]), { count: args.where.id.in.length }),
+    },
+    catchupPrompt: {
+      findMany: async (args) => (calls.push(["prompts", args]), prompts),
+      deleteMany: async (args) => (calls.push(["drop prompts", args]), { count: args.where.id.in.length }),
+    },
+    pendingImagePurge: {
+      createMany: async (args) => (calls.push(["queue", args]), { count: args.data.length }),
+    },
+  };
+}
+
+const UNSENT = { catchupId: "c1", status: { in: ["collecting", "answering"] } };
+
+test("C8-04: only an Edition still collecting or answering is unsent; published and sealed ones stay", () => {
+  assert.deepEqual(UNSENT_EDITION_STATUSES, ["collecting", "answering"]);
+});
+
+test("C8-04: a leaver's answers and their unanswered questions in an unsent Edition go, the Editions held first", async () => {
+  const db = departureDb({
+    entries: [
+      { id: "e1", images: JSON.stringify([PHOTO]), audioUrl: VOICE },
+      { id: "e2", images: null, audioUrl: null },
+    ],
+    prompts: [{ id: "p1" }],
+  });
+  const queued = await dropUnsentWriting(db, "c1", "u1");
+  const kinds = db.calls.map(([k]) => k);
+  assert.equal(kinds[0], "hold", "it read before holding the Editions a publish swaps on");
+  assert.deepEqual(db.calls[0][1].where, UNSENT, "it held something other than this Catch-up's unsent Editions");
+  const [, entries] = db.calls.find(([k]) => k === "entries");
+  assert.deepEqual(entries.where, { authorId: "u1", edition: UNSENT }, "it reaches answers outside the unsent Editions, or other people's");
+  const [, prompts] = db.calls.find(([k]) => k === "prompts");
+  assert.deepEqual(
+    prompts.where,
+    { authorId: "u1", edition: UNSENT, entries: { none: { authorId: { not: "u1" } } } },
+    "a question somebody else has answered can go with its asker"
+  );
+  assert.ok(kinds.indexOf("prompts") < kinds.indexOf("drop entries"), "the questions are chosen after the answers under them are gone, so every one looks unanswered");
+  assert.deepEqual(db.calls.find(([k]) => k === "drop entries")[1].where, { id: { in: ["e1", "e2"] } });
+  assert.deepEqual(db.calls.find(([k]) => k === "drop prompts")[1].where, { id: { in: ["p1"] } });
+  assert.deepEqual(db.calls.find(([k]) => k === "queue")[1].data, [
+    { url: PHOTO, reason: "left" },
+    { url: VOICE, reason: "left" },
+  ]);
+  assert.deepEqual(queued, [PHOTO, VOICE], "the caller is not handed what to drain");
+});
+
+test("C8-04: with no unsent Edition nothing is read or deleted", async () => {
+  const db = departureDb({ held: 0, entries: [{ id: "e1", images: null, audioUrl: null }], prompts: [{ id: "p1" }] });
+  assert.deepEqual(await dropUnsentWriting(db, "c1", "u1"), []);
+  assert.deepEqual(db.calls.map(([k]) => k), ["hold"]);
+});
+
+test("C8-04: a photograph another answer still names stays in the bucket", async () => {
+  const db = departureDb({
+    entries: [{ id: "e1", images: JSON.stringify([PHOTO]), audioUrl: VOICE }],
+    named: [{ images: JSON.stringify([PHOTO]), audioUrl: null }],
+  });
+  assert.deepEqual(await dropUnsentWriting(db, "c1", "u1"), [VOICE]);
+  assert.deepEqual(db.calls.find(([k]) => k === "queue")[1].data, [{ url: VOICE, reason: "left" }]);
 });

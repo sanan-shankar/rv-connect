@@ -106,7 +106,8 @@ import type {
   PromptCategory,
   ReminderMode,
 } from "@/lib/catchups-types";
-import { anyOtherHolder, lockGroup, promoteGroupSuccessor } from "@/lib/group-succession";
+import { anyOtherHolder, dropUnsentWriting, lockGroup, promoteGroupSuccessor } from "@/lib/group-succession";
+import { drainPendingImagePurges } from "@/lib/account-purge";
 import { clearCatchupNotifications } from "@/lib/catchup-notifications";
 import { isSerializationFailure, isUniqueViolation } from "@/lib/prisma-errors";
 import { DOUBLE_SUBMIT_MS } from "@/lib/double-submit";
@@ -1739,10 +1740,26 @@ export async function submitEntry(input: {
      * (The gap used to be measured in seconds: a Spotify fetch sat here until
      * the song field was deleted on 2026-10-11.) */
     const entry = await prisma.$transaction(async (tx) => {
-      const open = await tx.catchupEdition.count({
-        where: { id: prompt.editionId, status: "answering" },
+      /* And HELD (FOR SHARE) until this write commits. Saves share it with
+         each other; a close, an extension and a member's departure each take
+         the row outright, so they wait for a save already writing, or it waits
+         for them and reads what they did. The count this replaced held
+         nothing, so a close could swap the status between it and the upsert. */
+      const open = await tx.$queryRaw<unknown[]>`
+        SELECT 1 FROM "CatchupEdition"
+         WHERE "id" = ${prompt.editionId} AND "status" = 'answering'
+           FOR SHARE`;
+      if (open.length === 0) return "closed" as const;
+      /* Still in the Catch-up, asked now that nobody can be taking them out
+         of it. Membership was checked at the door, before this transaction;
+         a Keeper's removal or their own leaving deletes their unsent answers
+         while holding this Edition (C8-04), and a save that passed the door
+         first would otherwise write one straight back in, to go out to the
+         group after they had gone. */
+      const stillIn = await tx.groupMember.count({
+        where: { groupId: edition.catchup.group.id, userId: session.user.id },
       });
-      if (open === 0) return "closed" as const;
+      if (stillIn === 0) return "gone" as const;
 
       /* The recording this write replaces, read in the same transaction as
          the write, so the purge after it names exactly what the row stopped
@@ -1789,6 +1806,7 @@ export async function submitEntry(input: {
     if (entry === "closed") {
       return { error: "Answering has closed for this Edition. Your answer was not saved.", final: true as const };
     }
+    if (entry === "gone") return { error: NOT_IN_EDITION, final: true as const };
     if (entry === "stale") {
       return {
         error:
@@ -2439,11 +2457,15 @@ export async function addCatchupMembers(catchupId: string, userIds: string[]) {
 /**
  * Keeper-only: take someone out of a live Catch-up.
  *
- * Their words stay where they are. A published Edition is a record of what the
- * group wrote, and unpublishing someone's answer out of it after the fact is
- * not what "remove" means here; what removal does is end their access and stop
- * their notifications. Re-adding restores both, which is why this is safe to
- * offer mid-cycle.
+ * What they PUBLISHED stays where it is. A published Edition is a record of
+ * what the group wrote, and unpublishing someone's answer out of it after the
+ * fact is not what "remove" means here. What nobody has read yet goes with
+ * them: their answers and questions in an Edition still collecting or
+ * answering, in this transaction (bug audit 3, C8-04; his Q21, 2026-10-29).
+ * They used to stay and go out to the whole group at the publish, after a
+ * Keeper had removed them, perhaps over exactly that, and nobody could take
+ * them back. The rest of removal ends their access and stops their
+ * notifications; re-adding restores those, not the writing.
  *
  * IT STICKS (bug audit 3, L12-09; his Q16, 2026-10-29). The invite link was
  * never changed, and every member's page carried it, so a removed member could
@@ -2483,7 +2505,7 @@ export async function removeCatchupMember(catchupId: string, userId: string) {
       // (audit C-023).
       await promoteGroupSuccessor(tx, catchup.groupId, userId);
       const gone = await tx.groupMember.deleteMany({ where: { groupId: catchup.groupId, userId } });
-      if (gone.count === 0) return gone;
+      if (gone.count === 0) return { count: 0, dropped: [] as string[] };
       // A new link, so the copy they hold stops working (L12-09). A row with
       // no link keeps none rather than gaining one.
       await tx.catchup.updateMany({
@@ -2491,7 +2513,10 @@ export async function removeCatchupMember(catchupId: string, userId: string) {
         data: { inviteToken: newInviteToken() },
       });
       await tx.catchupPref.deleteMany({ where: { catchupId, userId } });
-      return gone;
+      // What they wrote for an Edition nobody has read yet goes with them
+      // (C8-04, his Q21); everything already out stays.
+      const dropped = await dropUnsentWriting(tx, catchupId, userId);
+      return { count: gone.count, dropped };
     });
     if (removed.count === 0) return { error: "They are not in this Catch-up." };
 
@@ -2499,6 +2524,9 @@ export async function removeCatchupMember(catchupId: string, userId: string) {
     // used to miss the reveal and the love nudge, which link to a ROUND rather
     // than to the Catch-up; the shared helper takes both shapes.
     await clearCatchupNotifications(userId, catchupId);
+    // After the commit, as every delete does: a slow bucket must not hold the
+    // transaction open, and anything it refuses stays queued for the night.
+    await drainPendingImagePurges(removed.dropped);
 
     revalidatePath(`/catchups/${catchupId}`);
     revalidatePath("/catchups");
@@ -2521,10 +2549,14 @@ export async function removeCatchupMember(catchupId: string, userId: string) {
  * and was then removed by a nightly sweep nobody was watching. One verb, one
  * moment, and a confirmation that says what it does.
  *
- * Your words stay where they are. A published Edition is a keepsake the whole
- * group has read, and pulling one person's answers out of it afterwards would
- * put holes in something other people remember (owner's decision, 2026-08-21).
- * What leaving does is end your access and stop your notifications.
+ * What you published stays where it is. A published Edition is a keepsake the
+ * whole group has read, and pulling one person's answers out of it afterwards
+ * would put holes in something other people remember (owner's decision,
+ * 2026-08-21). What nobody has read yet goes with you: your answers and
+ * questions in an Edition still collecting or answering (bug audit 3, C8-04;
+ * his Q21, 2026-10-29), which used to go out to the group after you had gone,
+ * with no way left to take them back. The rest of leaving ends your access and
+ * stops your notifications.
  *
  * Refused for whoever started it. They hold Keeper power through
  * `Catchup.createdById` rather than through their membership row, so a founder
@@ -2560,7 +2592,7 @@ export async function leaveCatchup(catchupId: string) {
       };
     }
 
-    await prisma.$transaction(async (tx) => {
+    const dropped = await prisma.$transaction(async (tx) => {
       /* Hand the hat on first, if this is the last head wearing it (audit
          C-023). A Catch-up whose `createdById` has gone null holds its Keeper
          powers entirely in `GroupMember.role`, so the last role-holder walking
@@ -2577,12 +2609,17 @@ export async function leaveCatchup(catchupId: string) {
       await tx.groupMember.deleteMany({
         where: { groupId: ctx.catchup.groupId, userId: viewerId },
       });
+      // What they wrote for an Edition nobody has read yet goes with them, in
+      // the same breath (C8-04, his Q21); everything already out stays. The
+      // confirmation says so.
+      return dropUnsentWriting(tx, catchupId, viewerId);
     });
     // Their own pref row goes with them: the reminder setting, and any
     // archived/deleted stamp, describe a copy that no longer exists. Being
     // re-added later should start clean rather than resurrect a bin.
     await prisma.catchupPref.deleteMany({ where: { catchupId, userId: viewerId } });
     await clearCatchupNotifications(viewerId, catchupId);
+    await drainPendingImagePurges(dropped);
 
     revalidatePath(`/catchups/${catchupId}`);
     revalidatePath("/catchups");

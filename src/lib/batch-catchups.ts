@@ -59,6 +59,8 @@ import { isUniqueViolation } from "@/lib/prisma-errors";
 import { pickCatchupPicture } from "@/lib/catchup-picture-pick";
 import { BATCH_CATCHUP_FLOOR, isMissingCatchupTable } from "@/lib/catchups-core";
 import { clearCatchupNotifications } from "@/lib/catchup-notifications";
+import { dropUnsentWriting } from "@/lib/group-succession";
+import { drainPendingImagePurges } from "@/lib/account-purge";
 
 /**
  * Find-or-create the "Batch of {year}" group, add the user to it, and make
@@ -224,7 +226,11 @@ export async function ensureBatchCatchup(groupId: string): Promise<string | null
  *
  * Leaving is the same leaving `leaveCatchup` does: the membership, their
  * own pref row, and any bell still pointing at the old Catch-up go; their
- * words, if they wrote any, stay in the Editions other people have read.
+ * words stay in the Editions other people have read, and what they wrote for
+ * one nobody has read yet goes with them, in the transaction that takes the
+ * membership (bug audit 3, C8-04; his Q21). A year corrected while the wrong
+ * batch was answering used to publish their answers into a class that was
+ * never theirs, with no way left to withdraw them.
  * No Keeper succession, because a batch group has no Keeper to hand on.
  */
 export async function syncBatchGroup(userId: string): Promise<void> {
@@ -239,17 +245,24 @@ export async function syncBatchGroup(userId: string): Promise<void> {
     where: { userId, group: { batchYear: { not: null } } },
     select: { groupId: true, group: { select: { batchYear: true, catchup: { select: { id: true } } } } },
   });
+  const dropped: string[] = [];
   for (const m of memberships) {
     if (m.group.batchYear === own) continue;
-    await prisma.groupMember.deleteMany({ where: { groupId: m.groupId, userId } });
     const catchupId = m.group.catchup?.id;
-    if (catchupId) {
-      await prisma.catchupPref.deleteMany({ where: { catchupId, userId } });
-      await clearCatchupNotifications(userId, catchupId);
-    }
+    // Handed back only once the transaction has committed: a url pushed from
+    // inside one that then rolled back would name bytes a row still points at.
+    const queued = await prisma.$transaction(async (tx) => {
+      await tx.groupMember.deleteMany({ where: { groupId: m.groupId, userId } });
+      if (!catchupId) return [];
+      await tx.catchupPref.deleteMany({ where: { catchupId, userId } });
+      return dropUnsentWriting(tx, catchupId, userId);
+    });
+    dropped.push(...queued);
+    if (catchupId) await clearCatchupNotifications(userId, catchupId);
   }
 
   if (own != null) await joinBatchGroup(userId, own);
+  await drainPendingImagePurges(dropped);
 }
 
 /**

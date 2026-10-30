@@ -369,7 +369,7 @@ test("L12-09: a removal changes the invite link, in the same transaction, and on
   const order = [
     "prisma.$transaction(",
     "tx.groupMember.deleteMany(",
-    "if (gone.count === 0) return gone;",
+    "if (gone.count === 0) return",
     "inviteToken: newInviteToken()",
     "tx.catchupPref.deleteMany(",
     "if (removed.count === 0)",
@@ -380,6 +380,56 @@ test("L12-09: a removal changes the invite link, in the same transaction, and on
   }
   // Rotated through the transaction, never beside it.
   assert.doesNotMatch(fn, /prisma\.catchup\.update(Many)?\(/, "the link is changed outside the removal's transaction");
+});
+
+test("C8-04: every exit takes the leaver's unsent writing in the transaction that takes the membership, then drains", () => {
+  /* Leaving, a Keeper's removal and a batch-year correction took the
+     membership and nothing else, so what the member had written for an
+     Edition still running went out to the group after they had gone, and
+     they could no longer withdraw it. His Q21: what nobody has read yet goes
+     with the person. dropUnsentWriting itself is driven in
+     group-succession.test.mjs. */
+  const actions = decomment(read("src/app/(main)/catchups/actions.ts"));
+  const batch = decomment(read("src/lib/batch-catchups.ts"));
+  for (const [name, body, who] of [
+    ["removeCatchupMember", balancedBody(actions, "export async function removeCatchupMember"), "userId"],
+    ["leaveCatchup", balancedBody(actions, "export async function leaveCatchup"), "viewerId"],
+    ["syncBatchGroup", balancedBody(batch, "export async function syncBatchGroup("), "userId"],
+  ]) {
+    assert.ok(body, `${name} is gone; this pin is reading nothing`);
+    const tx = body.indexOf("prisma.$transaction(");
+    const membership = body.indexOf("tx.groupMember.deleteMany(");
+    const drop = body.indexOf(`dropUnsentWriting(tx, catchupId, ${who})`);
+    const drain = body.indexOf("drainPendingImagePurges(");
+    assert.ok(tx > -1 && membership > tx, `${name} no longer takes the membership inside a transaction`);
+    assert.ok(drop > membership, `${name} no longer takes the unsent writing in the transaction that takes the membership`);
+    assert.ok(drain > drop, `${name} no longer drains what it queued once it has committed`);
+  }
+});
+
+test("C8-04: Leave says what goes with you, and only when an Edition is running", () => {
+  /* Its line said "What you wrote stays" whatever was running; leaving now
+     takes what you wrote for an Edition nobody has read yet. */
+  const surface = decomment(read("src/components/catchups/settings/settings-surface.tsx"));
+  const copy = balancedBody(surface, "export function confirmCopy(");
+  const leave = copy.slice(copy.indexOf('case "leave"'), copy.indexOf('case "put-away"'));
+  assert.match(leave, /running\s*\?\s*"[^"]*anything you wrote for this one goes with you[^"]*"\s*:\s*"[^"]*What you wrote stays[^"]*"/, "Leave no longer says what goes with you while an Edition runs");
+  assert.match(surface, /const running = !c\.ended && \(c\.state === "collecting" \|\| c\.state === "answering"\);\s*const copy = confirmCopy\(open\.key, c\.name, c\.people, c\.autoExtended, running\)/, "the dialog no longer tells the copy whether an Edition is running");
+});
+
+test("C8-04: a save already past the door cannot write an answer back in after its author is taken out", () => {
+  /* Membership is checked before submitEntry's transaction. The exit deletes
+     the unsent answers while holding the Edition, so the save holds it too
+     (FOR SHARE) and asks again, inside, before it writes. */
+  const src = decomment(read("src/app/(main)/catchups/actions.ts"));
+  const fn = balancedBody(src, "export async function submitEntry(");
+  assert.ok(fn, "submitEntry is gone; this pin is reading nothing");
+  const hold = fn.indexOf("FOR SHARE");
+  const asked = fn.search(/tx\.groupMember\.count\(\{\s*where: \{ groupId: edition\.catchup\.group\.id, userId: session\.user\.id \}/);
+  const write = fn.indexOf("catchupEntry.upsert(");
+  assert.ok(hold > -1 && asked > hold && write > asked, "the save no longer re-checks membership, holding the Edition, before it writes");
+  assert.match(fn, /if \(stillIn === 0\) return "gone"/);
+  assert.match(fn, /if \(entry === "gone"\) return \{ error: NOT_IN_EDITION, final: true as const \}/, "a save refused for that says nothing, or invites a retry");
 });
 
 test("A3 review of L12-09 and T3-17: a join reads the link again, and counts the roster, while the roster is held", () => {
@@ -565,14 +615,16 @@ test("C-027: the answer window is re-read at write time, not trusted", () => {
      deleted with the song field on 2026-10-11. The re-read stays: every other
      transition in this feature CASes on status for the same reason, and an
      answer landing in an Edition already on its way out is the fault. */
-  assert.match(body, /tx\.catchupEdition\.count\(\{\s*where: \{ id: prompt\.editionId, status: "answering" \}/);
-  assert.match(body, /if \(open === 0\) return "closed"/);
+  /* Held, not just read (C8-04): FOR SHARE keeps a close, an extension or the
+     author's own departure from landing between the re-read and the write. */
+  assert.match(body, /FROM "CatchupEdition"\s+WHERE "id" = \$\{prompt\.editionId\} AND "status" = 'answering'\s+FOR SHARE/);
+  assert.match(body, /if \(open\.length === 0\) return "closed"/);
   assert.ok(
-    body.indexOf("catchupEdition.count") < body.indexOf("catchupEntry.upsert"),
+    body.indexOf("FOR SHARE") < body.indexOf("catchupEntry.upsert"),
     "the write happens before the window is re-read"
   );
   assert.ok(
-    body.indexOf("prisma.$transaction") < body.indexOf("catchupEdition.count"),
+    body.indexOf("prisma.$transaction") < body.indexOf("FOR SHARE"),
     "the re-read is outside the transaction that writes, so it can go stale again"
   );
   assert.match(body, /Answering has closed for this Edition/);
@@ -811,7 +863,7 @@ test("routed follow-up (d): Nobody has answered yet says what the clock will do"
   // The page tells it which of the two it is.
   const page = decomment(read("src/app/(main)/catchups/[catchupId]/(home)/page.tsx"));
   assert.match(page, /autoExtended: \(\(freshLatest\?\.remindersSent \?\? 0\) & REMINDER_EXTENDED\) !== 0/);
-  assert.match(surface, /confirmCopy\(open\.key, c\.name, c\.people, c\.autoExtended\)/);
+  assert.match(surface, /confirmCopy\(open\.key, c\.name, c\.people, c\.autoExtended[,)]/);
 });
 
 test("C-149: every swallowed failure on the clock is reported, not just logged", () => {
