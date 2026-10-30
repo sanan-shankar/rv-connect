@@ -170,8 +170,11 @@ export const notifyAnswersOpen: NotifyAnswersOpenFn = async (db, ctx) => {
        in build phase 7 and `/catchups/[id]/answer` is a 308 to it; a bell
        link that has to bounce through a redirect is one avoidable round trip
        on the tap this notification exists to invite. The rows written before
-       that are rewritten by
-       `prisma/migrations-manual/2026-09-09-answering-moves-to-the-home.sql`. */
+       that were for
+       `prisma/migrations-manual/2026-09-09-answering-moves-to-the-home.sql`
+       to move, and it was not run until 2026-10-30, by which time the 30-day
+       sweep had taken all 22: they aged out still pointing at `/answer`,
+       through the redirect (bug audit 3, T7b-03). */
     `/catchups/${ctx.catchupId}`
   );
 };

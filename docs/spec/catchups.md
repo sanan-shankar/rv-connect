@@ -616,8 +616,12 @@ pins all of it.
 
 A reminder is matched on its exact link when it is replaced, which is why a route rename is a data
 migration as well as a file move (`2026-09-08-round-becomes-edition.sql`,
-`2026-09-09-answering-moves-to-the-home.sql`). Transition notifications share the transition's
-transaction, so an Edition cannot publish with nobody told.
+`2026-09-09-answering-moves-to-the-home.sql`). The second was not run until 2026-10-30, on both
+databases, by which time the thirty-day sweep had taken all 22 rows it was written for: they aged
+out of the bell still pointing at the old address, behind its redirect (bug audit 3, T7b-03).
+Nothing records which dated files have run, so one whose header says "apply after deploy" is an
+action item for whoever ships it. Transition notifications share the transition's transaction, so
+an Edition cannot publish with nobody told.
 
 ---
 

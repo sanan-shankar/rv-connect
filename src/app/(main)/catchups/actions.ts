@@ -1509,10 +1509,11 @@ export async function extendDeadline(editionId: string, days: number, seenCloseA
     // daily reminder writes an accurate one on its next pass.
     if (edition.status === "answering") {
       await prisma.notification.deleteMany({
-        /* Matches what `notifyReminder` now writes: the home, since answering
-           moved onto it in build phase 7. A stale reminder still pointing at
-           `/catchups/<id>/answer` is left alone by this delete and cleared by
-           the dated migration instead. */
+        /* Matches what `notifyReminder` writes: the home, since answering
+           moved onto it in build phase 7. No reminder points at
+           `/catchups/<id>/answer` any more: the last of them aged out of the
+           bell before the dated migration that was to move them was first run
+           (bug audit 3, T7b-03). */
         where: { type: "catchup_reminder", link: `/catchups/${edition.catchupId}` },
       });
     }

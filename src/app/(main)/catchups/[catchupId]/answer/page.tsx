@@ -9,9 +9,10 @@
  *
  *  Three kinds of link point here and none of them is ours to fix:
  *   - every `Notification.link` written before this shipped. The dated
- *     migration rewrites the rows that exist, but the deployed build keeps
- *     writing this path until this commit ships, so there is always a
- *     window;
+ *     migration meant to rewrite them was not run until 2026-10-30, by
+ *     which time the thirty-day sweep had taken every one (bug audit 3,
+ *     T7b-03), so the ones that existed were only ever followed through
+ *     here;
  *   - the reminder emails already in seventy inboxes, which is the whole
  *     point of a nudge and cannot be recalled;
  *   - anything a member has bookmarked.
