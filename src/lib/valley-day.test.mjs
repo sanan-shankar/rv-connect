@@ -119,28 +119,151 @@ test("the year validators re-read the clock instead of freezing it at import", (
   assert.ok(src.includes("valleyYear"), "validators.ts no longer bounds years by the valley clock");
 });
 
-test("no date is rendered without a time zone in a server-rendered file", () => {
-  // toLocaleDateString with no timeZone reads the runtime's zone: UTC on the
-  // server, the viewer's own in the browser. Both are wrong for a site whose
-  // shared frame is the valley's day, and the disagreement between them is
-  // what produced hydration flashes. Every call must name a zone.
-  const offenders = [];
-  // `lab` is the dev/preview wing: it renders fixtures and documents past
-  // findings, so a date there is not shown to a member.
-  for (const full of walk(resolve(ROOT, "src"), { skip: [...SKIP_DIRS, "lab"] })) {
-    const src = readFileSync(full, "utf8");
-      // Match a toLocale*String call and look at the option object that follows
-      // it, if any, for a timeZone key before the call's closing brace.
-      // Only the two date-specific calls: bare `toLocaleString` is almost
-      // always a NUMBER being grouped ("1,240 people"), which has no time zone
-      // to get wrong.
-    for (const m of src.matchAll(/toLocale(?:Date|Time)String\(([^;]*?)\)\s*[;,)\n]/g)) {
-      if (!/timeZone/.test(m[1])) {
-        offenders.push(`${relative(ROOT, full)}: ${m[0].trim().slice(0, 90)}`);
-      }
-    }
+/* ---- Dates rendered and read: three sweeps that pin the property ---- *
+ *
+ * Each used to see one shape (bug audit 3, L3-05). The rendered-date sweep
+ * was a delimiter regex that flagged a call only when a `;`, `,` or `)`
+ * followed its last paren, so a date written where a .tsx file actually
+ * writes them -- a JSX child, a template literal, a ternary, an attribute --
+ * walked past it, and O-01 shipped through it. The calls are now read with a
+ * paren counter over decommented code, so the shape around a call no longer
+ * matters, only what is inside it.
+ * ------------------------------------------------------------------ */
+
+/** The argument list of the call whose `(` is at `at`: a paren counter, not a
+    regex, because `date_trunc('month', (x AT TIME ZONE 'UTC') AT TIME ZONE
+    'IST')` nests and a regex stops at the first `)`. Decommented code only. */
+function callArgs(code, at) {
+  let depth = 0;
+  for (let i = at; i < code.length; i++) {
+    if (code[i] === "(") depth++;
+    else if (code[i] === ")" && --depth === 0) return code.slice(at, i + 1);
   }
+  return code.slice(at);
+}
+
+/* A toLocaleString is a date only when its options say so: bare, it is
+   almost always a NUMBER being grouped ("1,240 people"), which has no zone
+   to get wrong. A bare `date.toLocaleString()` therefore still passes; it
+   cannot be told from a number without types, and nothing here writes one. */
+const DATE_OPTION = /\b(?:year|month|day|weekday|hour|minute|second|dateStyle|timeStyle|era|dayPeriod|timeZoneName)\s*:/;
+/* A key that names a zone, written out or shorthand, and not `undefined`. */
+const NAMES_A_ZONE = /\btimeZone\s*(?::\s*(?!undefined\b)[^\s,}]|[,}])/;
+
+/** Every call in `src` that renders a date in the runtime's own zone. */
+function zonelessDates(src) {
+  const code = decomment(src);
+  const found = [];
+  for (const m of code.matchAll(
+    /\b(toLocaleDateString|toLocaleTimeString|toLocaleString|DateTimeFormat|toDateString|toTimeString)\s*\(/g
+  )) {
+    const open = m.index + m[0].length - 1;
+    const args = callArgs(code, open);
+    const call = `${m[1]}${args.replace(/\s+/g, " ").slice(0, 80)}`;
+    // These two take no options at all: whatever they print is the runtime's.
+    if (m[1] === "toDateString" || m[1] === "toTimeString") found.push(call);
+    else if (m[1] === "toLocaleString" && !DATE_OPTION.test(args)) continue;
+    // `Intl.DateTimeFormat().resolvedOptions()` reads the zone; it renders nothing.
+    else if (m[1] === "DateTimeFormat" && /^\(\s*\)\s*\.\s*resolvedOptions\b/.test(code.slice(open))) continue;
+    else if (!NAMES_A_ZONE.test(args)) found.push(call);
+  }
+  return found;
+}
+
+/* Files allowed a known zone-less date, each until the row that fixes it
+   lands. `calls` is exact: one more is a new offender, one fewer means the
+   fix landed and this entry must go. */
+const ZONELESS_UNTIL_FIXED = {
+  "src/components/letters/drafts-strip.tsx": {
+    calls: 1,
+    why: "O-01 (bug audit 3, Phase F; listed 2026-10-30 by L3-05): the drafts strip's date, open until its own row lands",
+  },
+};
+
+test("no date is rendered without a time zone", () => {
+  /* toLocaleDateString with no timeZone reads the runtime's zone: UTC on the
+     server, the viewer's own in the browser. Both are wrong for a site whose
+     shared frame is the valley's day, and the disagreement between them is
+     what produced hydration flashes. Every call names a zone, in the call:
+     options built elsewhere and passed in are invisible to this sweep, which
+     is why utils.ts spells its options out at each call.
+
+     `lab` is the dev/preview wing: it renders fixtures and documents past
+     findings, so a date there is not shown to a member. Tests hold the
+     shapes as fixtures. scripts/ prints for the owner's own terminal; its
+     read side is raw-pg.test.mjs's (every timestamp a script reads is UTC). */
+  const offenders = [];
+  let calls = 0;
+  for (const full of walk(resolve(ROOT, "src"), {
+    skip: [...SKIP_DIRS, "lab"],
+    match: (name) => /\.(tsx?|mts|mjs)$/.test(name) && !/\.test\.mjs$/.test(name),
+  })) {
+    const src = readFileSync(full, "utf8");
+    calls += [...decomment(src).matchAll(/\b(?:toLocale(?:Date|Time)?String|DateTimeFormat)\s*\(/g)].length;
+    const rel = relative(ROOT, full);
+    const found = zonelessDates(src);
+    const allowed = ZONELESS_UNTIL_FIXED[rel];
+    if (allowed && found.length === allowed.calls) continue;
+    if (allowed) offenders.push(`${rel}: ${found.length} zone-less date(s), the exemption says ${allowed.calls}`);
+    else offenders.push(...found.map((call) => `${rel}: ${call}`));
+  }
+  assert.ok(calls >= 20, `only ${calls} date-rendering calls found; this sweep has drifted`);
   assert.deepEqual(offenders, [], `dates rendered with no time zone:\n${offenders.join("\n")}`);
+});
+
+test("the rendered-date sweep sees every shape a date is written in", () => {
+  /* The audit ran the old regex over eleven shapes and it flagged one. */
+  const zoneless = [
+    // O-01's own shape: a JSX child whose call closes `})}` over several lines.
+    `{new Date(d.updatedAt).toLocaleDateString("en-GB", {\n  day: "numeric",\n  month: "short",\n})}`,
+    `<span>{d.toLocaleDateString("en-GB")}</span>`,
+    "const s = `Edited ${d.toLocaleDateString(\"en-GB\")}`;",
+    `const s = ok ? d.toLocaleDateString("en-GB") : "";`,
+    `<time title={d.toLocaleString("en-GB", { day: "numeric", month: "short" })} />`,
+    `const f = new Intl.DateTimeFormat("en-GB", { month: "short" }).format(d);`,
+    `d.toLocaleTimeString("en-GB", { hour: "2-digit" /* timeZone: VALLEY_TIME_ZONE */ });`,
+    `d.toLocaleDateString("en-GB", { timeZone: undefined, day: "numeric" });`,
+    `const day = d.toDateString();`,
+  ];
+  for (const src of zoneless) assert.equal(zonelessDates(src).length, 1, `missed: ${src}`);
+
+  const zoned = [
+    `d.toLocaleDateString("en-GB", { timeZone: VALLEY_TIME_ZONE, day: "numeric" });`,
+    `{d.toLocaleDateString("en-GB", {\n  timeZone: "Asia/Kolkata",\n})}`,
+    `d.toLocaleDateString("en-GB", { timeZone, day: "numeric" });`,
+    `const people = (1240).toLocaleString("en-IN");`,
+    `const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;`,
+  ];
+  for (const src of zoned) assert.deepEqual(zonelessDates(src), [], `flagged: ${src}`);
+});
+
+/* The runtime's own calendar, read field by field. `getUTC*` is the UTC one
+   and is fine; these answer in UTC on the server and in the viewer's zone in
+   the browser. Minutes are on the list because IST is half an hour off
+   every whole-hour zone. Each file here says why its reading is harmless. */
+const LOCAL_CALENDAR = /\.(?:get|set)(?:FullYear|Month|Date|Day|Hours|Minutes)\s*\(/g;
+const LOCAL_CALENDAR_ALLOWED = {
+  "src/lib/storage.ts": "the year/month folder an upload's key is filed under: never shown, never compared, and a file filed a month either side is found by its full key",
+  "src/lib/utils.ts": "valleyYear's fallback, for a runtime whose Intl cannot format en-CA; argued in place",
+  "src/components/mascot/moments/rare-idle-behaviors.ts": "the hoopoe's monsoon flourish reads the viewer's own month in the browser; a day either side of a month changes nothing",
+};
+
+test("no date is read off the runtime's own calendar", () => {
+  const offenders = [];
+  for (const full of walk(resolve(ROOT, "src"), {
+    skip: [...SKIP_DIRS, "lab"],
+    match: (name) => /\.(tsx?|mts|mjs)$/.test(name) && !/\.test\.mjs$/.test(name),
+  })) {
+    const rel = relative(ROOT, full);
+    const reads = [...decomment(readFileSync(full, "utf8")).matchAll(LOCAL_CALENDAR)].length;
+    if (reads && !LOCAL_CALENDAR_ALLOWED[rel]) offenders.push(`${rel}: ${reads} local calendar read(s)`);
+    if (!reads && LOCAL_CALENDAR_ALLOWED[rel]) offenders.push(`${rel}: allowed, but reads nothing now; drop the entry`);
+  }
+  assert.deepEqual(
+    offenders,
+    [],
+    `the runtime's own calendar, read where the valley's is meant (valleyDayKey, valleyYear):\n${offenders.join("\n")}`
+  );
 });
 
 /* ---- Low 28: a calendar word must count calendar days ---------------- */
@@ -165,6 +288,41 @@ test("'tomorrow' is a calendar day away, not twenty-four hours", async () => {
 
 /* ---- C-143: SQL buckets the valley's calendar too ------------------- */
 
+/** Every SQL calendar cut over a real column in `src`, and the ones made on
+    UTC's calendar instead of the valley's. A cut is `date_trunc`/`to_char`, an
+    `EXTRACT`/`date_part` of a calendar field (an epoch is a duration, no
+    calendar in it), or a `::date` cast. */
+function sqlCalendarCuts(src) {
+  const code = decomment(src);
+  const cuts = [];
+  for (const m of code.matchAll(/\b(date_trunc|to_char|date_part|EXTRACT|extract)\s*\(/g)) {
+    const args = callArgs(code, m.index + m[0].length - 1);
+    if (/^extract$/i.test(m[1]) && !/^\(\s*[A-Za-z]+\s+FROM\b/i.test(args)) continue; // a JS extract(), not SQL
+    if (/^\(\s*(?:EPOCH\s+FROM|'epoch')/i.test(args)) continue;
+    cuts.push(args);
+  }
+  for (const m of code.matchAll(/::date\b/g)) {
+    // The operand before the cast: a parenthesised expression, or a column.
+    const before = code.slice(0, m.index);
+    let operand = (before.match(/(?:\w+\.)?"[A-Za-z]+"$/) ?? [""])[0];
+    if (before.endsWith(")")) {
+      let depth = 0;
+      for (let i = before.length - 1; i >= 0; i--) {
+        if (before[i] === ")") depth++;
+        else if (before[i] === "(" && --depth === 0) {
+          operand = before.slice(i);
+          break;
+        }
+      }
+    }
+    cuts.push(operand);
+  }
+  // Only cuts over a real column; to_char over a computed number, or a
+  // parameter cast like `$1::date`, is not a date bucket at all.
+  const real = cuts.filter((args) => /"[A-Za-z]+"/.test(args));
+  return { sites: real.length, naive: real.filter((args) => !/AT TIME ZONE 'Asia\/Kolkata'/.test(args)) };
+}
+
 test("every SQL date bucket converts to the valley's zone before truncating", () => {
   /* Prisma DateTime is `timestamp(3) without time zone` holding UTC wall
      time, so `date_trunc('month', "createdAt")` cuts the month at 05:30 IST on
@@ -176,40 +334,47 @@ test("every SQL date bucket converts to the valley's zone before truncating", ()
      A SWEEP, not two assertions. The whole failure was one file doing this
      correctly in four places and naively in two, so what is pinned is that no
      naive one exists -- and the sites are COUNTED, because a per-file check
-     passes on a file that has two and fixed one. */
-  /** The argument list of a call, read with a paren counter rather than a
-      regex -- `date_trunc('month', (x AT TIME ZONE 'UTC') AT TIME ZONE 'IST')`
-      has nested parens and a regex stops at the first `)`. */
-  const callArgs = (src, at) => {
-    let depth = 0;
-    for (let i = at; i < src.length; i++) {
-      if (src[i] === "(") depth++;
-      else if (src[i] === ")" && --depth === 0) return src.slice(at, i + 1);
-    }
-    return src.slice(at);
-  };
+     passes on a file that has two and fixed one.
 
+     It counted only date_trunc and to_char in src/**.ts until L3-05: the
+     heatmap's EXTRACT(DOW/HOUR) was converted correctly and would not have
+     been caught if it were not, and scripts/ was never read. */
   const naive = [];
   let sites = 0;
-  for (const file of walk(resolve(ROOT, "src"), { match: /\.ts$/ })) {
-    // Comments describe the bug; only real calls count.
-    const code = decomment(readFileSync(file, "utf8"));
-    for (const m of code.matchAll(/\b(date_trunc|to_char)\(/g)) {
-      const args = callArgs(code, m.index + m[0].length - 1);
-      // Only calls over a real column; to_char over a computed number is not a
-      // date bucket at all.
-      if (!/"[A-Za-z]+"/.test(args)) continue;
-      sites++;
-      if (!/AT TIME ZONE 'Asia\/Kolkata'/.test(args)) {
-        naive.push(`${relative(ROOT, file)}: ${args.slice(0, 100)}`);
-      }
+  for (const dir of ["src", "scripts"]) {
+    for (const file of walk(resolve(ROOT, dir), {
+      match: (name) => /\.(tsx?|mts|mjs)$/.test(name) && !/\.test\.mjs$/.test(name),
+    })) {
+      const found = sqlCalendarCuts(readFileSync(file, "utf8"));
+      sites += found.sites;
+      naive.push(...found.naive.map((args) => `${relative(ROOT, file)}: ${args.slice(0, 100)}`));
     }
   }
 
-  assert.ok(sites >= 6, `only found ${sites} SQL date buckets; this sweep has stopped matching`);
+  assert.ok(sites >= 8, `only found ${sites} SQL date buckets; this sweep has stopped matching`);
   assert.deepEqual(
     naive,
     [],
     "SQL date buckets that cut on UTC's calendar instead of the valley's:\n" + naive.join("\n")
   );
+});
+
+test("the SQL sweep sees each way a query cuts a calendar", () => {
+  const naive = [
+    `SELECT date_trunc('month', "createdAt") FROM "User"`,
+    `SELECT EXTRACT(DOW FROM "endedAt")::int FROM "Visit"`,
+    `SELECT date_part('hour', v."startedAt") FROM "Visit" v`,
+    `SELECT "createdAt"::date AS day FROM "Post"`,
+    `SELECT (u."createdAt" AT TIME ZONE 'UTC')::date FROM "User" u`,
+  ];
+  for (const sql of naive) assert.equal(sqlCalendarCuts(`const q = \`${sql}\`;`).naive.length, 1, `missed: ${sql}`);
+  const fine = [
+    `SELECT EXTRACT(HOUR FROM ("endedAt" AT TIME ZONE 'UTC') AT TIME ZONE 'Asia/Kolkata') FROM "Visit"`,
+    `SELECT max(EXTRACT(EPOCH FROM ("endedAt" - "startedAt"))) FROM "Visit"`,
+    `INSERT INTO "MetricSnapshot" ("day") VALUES ($1::date)`,
+    `SELECT (("createdAt" AT TIME ZONE 'UTC') AT TIME ZONE 'Asia/Kolkata')::date FROM "Post"`,
+  ];
+  for (const sql of fine) assert.deepEqual(sqlCalendarCuts(`const q = \`${sql}\`;`).naive, [], `flagged: ${sql}`);
+  // A JavaScript function that happens to be called extract() is not SQL.
+  assert.equal(sqlCalendarCuts(`const x = extract("createdAt");`).sites, 0);
 });
