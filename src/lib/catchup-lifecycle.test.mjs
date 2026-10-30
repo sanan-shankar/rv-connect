@@ -1096,3 +1096,25 @@ test("routed (a): a Keeper whose hat went in the race is refused, asked while th
     assert.match(body, /return \{ error: MEMBERSHIP_REFUSAL\.notKeeper \}/, `${name} refuses in the race without the Keeper sentence`);
   }
 });
+
+test("T3-23: removing someone asks first, and says what the removal will take", () => {
+  /* It was one tap on a 26px control a phone always shows beside the Keeper
+     sprout, with no confirmation and no undo, and an undo could not give back
+     what a removal now takes (C8-04). The People door's row opens the
+     confirmation; only the confirmation's handler calls the action. */
+  const door = decomment(read("src/components/catchups/home/people-door.tsx"));
+  const calls = door.match(/removeCatchupMember\(/g) ?? [];
+  assert.equal(calls.length, 1, "removeCatchupMember is called from more than one place in the People door");
+  const handler = balancedBody(door, "async function remove(");
+  assert.ok(handler && handler.includes("removeCatchupMember(catchupId, p.id)"), "the one call is not the confirmation's handler");
+  assert.match(door, /<RowButton label=\{`Remove \$\{p\.name\}`\} destructive disabled=\{busy\} onClick=\{\(\) => onRemove\(p\)\}>/, "the row removes without asking again");
+  assert.match(door, /<ConfirmDialog\s+open=\{asking\}[\s\S]*?onConfirm=\{\(\) => \(removing \? remove\(removing\) : Promise\.resolve\(\)\)\}/, "the confirmation no longer runs the removal");
+  assert.match(door, /description=\{removalLine\(running, !!inviteToken\)\}/);
+  // The line says what goes, only when something does.
+  const line = balancedBody(door, "function removalLine(");
+  assert.match(line, /running\s*\?\s*`Anything they wrote for this Edition goes with them\$\{link\}\. Editions already out keep their words\.`\s*:\s*`What they wrote stays\$\{link\}\.`/);
+  assert.match(line, /hasLink \? ", and the invite link changes" : ""/);
+  // Nothing else in the components calls it.
+  const home = decomment(read("src/components/catchups/home/catchup-home.tsx"));
+  assert.match(home, /running=\{!data\.idle && data\.catchupStatus !== "ended"\}/, "the door is not told whether an Edition is running");
+});

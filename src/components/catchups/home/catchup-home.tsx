@@ -316,6 +316,8 @@ export function CatchupHome({ data }: { data: CatchupHomeData }) {
            asking; this decides what is OFFERED, never what is allowed. */
         canManage={data.viewer.isKeeper && !data.isBatch}
         inviteToken={data.inviteToken}
+        // Running: collecting with a deadline or answering (idle is neither).
+        running={!data.idle && data.catchupStatus !== "ended"}
         open={people}
         onClose={() => setPeople(false)}
         onChanged={refresh}

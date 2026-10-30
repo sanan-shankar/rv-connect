@@ -452,7 +452,12 @@ inside the transaction, so the second finds the first (bug audit 3, T2a-08).
 - **The head** is the picture with the name on it, and two doors on the picture: **People** (a dialog
   on a laptop, a sheet on a phone; every row a link to that person; add, remove and make-a-Keeper on
   a person's row, for Keepers of a people Catch-up, and at its foot **Add someone** with **Copy invite
-  link** beside it while the Catch-up has not ended; §7.6) and **Settings** (§8).
+  link** beside it while the Catch-up has not ended; §7.6) and **Settings** (§8). Remove asks first,
+  in the one confirmation (`ConfirmDialog`), saying what the removal takes: "Anything they wrote for
+  this Edition goes with them, and the invite link changes. Editions already out keep their words."
+  while an Edition runs, "What they wrote stays, and the invite link changes." otherwise. It was one
+  tap on a control a phone shows beside the Keeper sprout (bug audit 3, T3-23); a confirmation and not
+  an undo, because adding someone back restores neither the link nor what the removal took.
 - **The Edition region** draws one thing per state. Collecting: the ask box (the question, a library
   button, and an eye in the box's corner that makes it anonymous), then the questions so far.
   Answering: the answering surface itself, on the page (§7.5). **Idle** (§3.5): Start, the page's

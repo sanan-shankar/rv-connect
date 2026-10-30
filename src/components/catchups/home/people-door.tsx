@@ -43,6 +43,14 @@
  *  link (bug audit 3, T3-17, his Q11). The transplant had dropped it, so a
  *  Keeper could add only people who already had accounts while every people
  *  Catch-up still minted a link and the join page still honoured one.
+ *
+ *  AND THE FIFTH, its confirmation before Remove (bug audit 3, T3-23). The
+ *  old panel put Remove behind one; the transplant made it a single tap on a
+ *  26px control a phone always shows 2px from the Keeper sprout. A
+ *  confirmation rather than an undo, because a removal is not one act an
+ *  undo can reverse: it changes the invite link, clears their bells, and
+ *  takes what they wrote for an Edition still running (C8-04), none of which
+ *  adding them back restores.
  * ------------------------------------------------------------------ */
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -55,6 +63,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { BottomSheet } from "@/components/ui/sheet";
+import { ConfirmDialog } from "@/components/common/confirm-dialog";
 import { callAction } from "@/lib/call-action";
 import {
   addCatchupMembers,
@@ -69,21 +78,21 @@ function PersonRow({
   p,
   catchupId,
   canManage,
-  hasLink,
   isYou,
   busy,
   onBusy,
   onChanged,
+  onRemove,
 }: {
   p: HomePersonRef;
   catchupId: string;
   canManage: boolean;
-  /** The Catch-up has an invite link, which a removal changes (L12-09). */
-  hasLink: boolean;
   isYou: boolean;
   busy: boolean;
   onBusy: (v: boolean) => void;
   onChanged: () => void;
+  /** Opens the confirmation; nothing is removed from the row itself (T3-23). */
+  onRemove: (p: HomePersonRef) => void;
 }) {
   /* A Keeper may not act on themselves or on the founder: both are refused
      server-side, so offering the control would only be a way to be told no. */
@@ -136,20 +145,7 @@ function PersonRow({
           >
             <Sprout className={cn("h-3.5 w-3.5", p.isKeeper && "text-cinnamon")} />
           </RowButton>
-          <RowButton
-            label={`Remove ${p.name}`}
-            destructive
-            disabled={busy}
-            onClick={() =>
-              /* The removal changed the link, so any copy the Keeper sent
-                 before now opens on "expired". Said once, here, where the
-                 Keeper can still act on it. */
-              run(
-                () => removeCatchupMember(catchupId, p.id),
-                hasLink ? `${p.name} was removed. The invite link has changed.` : `${p.name} was removed.`
-              )
-            }
-          >
+          <RowButton label={`Remove ${p.name}`} destructive disabled={busy} onClick={() => onRemove(p)}>
             <UserMinus className="h-3.5 w-3.5" />
           </RowButton>
         </span>
@@ -363,12 +359,23 @@ function InviteLink({ token }: { token: string }) {
   );
 }
 
+/** What a removal does, in the confirmation's one line. The first half only
+ *  while an Edition is running, the only time anything of theirs goes; the
+ *  link only when there is one (an ended Catch-up's page carries none). */
+function removalLine(running: boolean, hasLink: boolean): string {
+  const link = hasLink ? ", and the invite link changes" : "";
+  return running
+    ? `Anything they wrote for this Edition goes with them${link}. Editions already out keep their words.`
+    : `What they wrote stays${link}.`;
+}
+
 export function PeoplePanel({
   people,
   catchupId,
   viewerId,
   canManage,
   inviteToken,
+  running,
   open,
   onClose,
   onChanged,
@@ -383,6 +390,9 @@ export function PeoplePanel({
   /** The invite link's token, on a Keeper's page of a Catch-up that has not
    *  ended, and null everywhere else (the home's view model, L12-09). */
   inviteToken: string | null;
+  /** An Edition is collecting or answering, so a removal takes what the
+   *  person wrote for it (C8-04). The confirmation says so. */
+  running: boolean;
   open: boolean;
   onClose: () => void;
   onChanged: () => void;
@@ -391,8 +401,23 @@ export function PeoplePanel({
   phone: boolean;
 }) {
   const [busy, setBusy] = useState(false);
+  /* Who the confirmation is about, kept while it closes so its title does
+     not change under the exit animation; `asking` is whether it is open. */
+  const [removing, setRemoving] = useState<HomePersonRef | null>(null);
+  const [asking, setAsking] = useState(false);
   const panel = useRef<HTMLDivElement>(null);
   const inIds = useMemo(() => new Set(people.map((p) => p.id)), [people]);
+
+  /* Asked first, over the door (T3-23). The dialog shows its own refusal and
+     closes itself; the toast is the removal's. */
+  async function remove(p: HomePersonRef): Promise<{ error?: string } | void> {
+    const result = await removeCatchupMember(catchupId, p.id);
+    if (result && "error" in result && result.error) return { error: result.error };
+    /* The removal changed the link, so any copy the Keeper sent before now
+       opens on "expired". Said here as well, once it has happened. */
+    toast.success(inviteToken ? `${p.name} was removed. The invite link has changed.` : `${p.name} was removed.`);
+    onChanged();
+  }
 
   const list = (
     <ul className={cn("gap-x-6 gap-y-3", phone ? "space-y-3" : "grid grid-cols-2")}>
@@ -402,11 +427,14 @@ export function PeoplePanel({
             p={p}
             catchupId={catchupId}
             canManage={canManage}
-            hasLink={!!inviteToken}
             isYou={p.id === viewerId}
             busy={busy}
             onBusy={setBusy}
             onChanged={onChanged}
+            onRemove={(person) => {
+              setRemoving(person);
+              setAsking(true);
+            }}
           />
         </li>
       ))}
@@ -424,6 +452,17 @@ export function PeoplePanel({
           beside={inviteToken ? <InviteLink token={inviteToken} /> : null}
         />
       )}
+      {/* Mounted with the list, over whichever frame holds it: a dialog over
+          the laptop's dialog or the phone's sheet, the way Settings opens its
+          own confirmations over its list. */}
+      <ConfirmDialog
+        open={asking}
+        onClose={() => setAsking(false)}
+        title={removing ? `Remove ${removing.name}` : "Remove"}
+        description={removalLine(running, !!inviteToken)}
+        actionLabel="Remove"
+        onConfirm={() => (removing ? remove(removing) : Promise.resolve())}
+      />
     </>
   );
 
