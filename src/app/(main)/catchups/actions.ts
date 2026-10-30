@@ -52,7 +52,8 @@ import {
 import { isPoolPicture, isValidPictureFocus } from "@/lib/catchup-pictures";
 import { pickCatchupPicture } from "@/lib/catchup-picture-pick";
 import { requireVerifiedMember } from "@/lib/member-gate";
-import { rateLimit } from "@/lib/rate-limit";
+import { consume, hasBudget, rateLimit } from "@/lib/rate-limit";
+import { RATE_LIMITED } from "@/lib/rate-limit-message";
 import { ownedUploadUrls } from "@/lib/upload-ownership";
 import { ownedVoiceRecording } from "@/lib/voice-answer";
 import { purgeImageUrls } from "@/lib/image-purge";
@@ -2203,9 +2204,15 @@ async function loadKeeperScope(
  * to it (bug audit 3, T2a-03). The bound used to be on one request's list,
  * and the People door sends one person per request, so a Keeper could keep
  * going past a hundred, and every bell the Catch-up rings fans out per
- * member. The count and the insert share a SERIALIZABLE transaction: at READ
- * COMMITTED two adds landing together each see the room the other is about
- * to take, and five scripted requests would each fill it.
+ * member. The count and the insert run while the group's row is held
+ * (`lockGroup`): with nothing held, two adds landing together each see the
+ * room the other is about to take. Joining by link takes the same row, so a
+ * join cannot slip in either. (This was a SERIALIZABLE transaction, which kept
+ * two adds apart but not an add from a join, and answered a lost race with
+ * "try again"; held rows queue instead.)
+ *
+ * METERED PER PERSON ADDED, on `catchupAdds` (write-path review of A2): the
+ * shared `catchups` bucket gave a Keeper five adds an hour, one person each.
  */
 export async function addCatchupMembers(catchupId: string, userIds: string[]) {
   return runAction(async () => {
@@ -2242,16 +2249,19 @@ export async function addCatchupMembers(catchupId: string, userIds: string[]) {
     if (real.length === 0) return { error: "No one to add." };
     const realIds = real.map((u) => u.id);
 
-    // Every add rings the people it adds, so it draws on the bucket creation
-    // and Start share (T2a-03). After the cheap refusals, as Start does, so a
-    // press that was never going to work spends nothing.
-    const limited = await rateLimit("catchups", session.user.id);
-    if (!limited.ok) return { error: limited.error };
+    // Every add rings the people it adds, one bell each, so that is what is
+    // counted. Checked here, after the cheap refusals; spent below, once they
+    // are in, for the people actually added.
+    if (!(await hasBudget("catchupAdds", session.user.id, realIds.length))) {
+      return { error: RATE_LIMITED };
+    }
 
     let written: { room: number } | { added: number; newlyAdded: string[] };
     try {
       written = await prisma.$transaction(
         async (tx) => {
+          // The roster's lock, before anything is read (see the docblock).
+          await lockGroup(tx, catchup.groupId);
           /* Who is already in, read BEFORE the insert. It decides which of
              the people below are genuinely NEW, which is the only set whose
              filing state may be cleared and the only set that is told -- see
@@ -2280,12 +2290,11 @@ export async function addCatchupMembers(catchupId: string, userIds: string[]) {
             skipDuplicates: true,
           });
           return { added: created.count, newlyAdded };
-        },
-        { isolationLevel: "Serializable" }
+        }
       );
     } catch (err) {
-      // Somebody else changed this roster in the same instant; Postgres kept
-      // one of the two writes and the other is safe to repeat.
+      // With the roster's row held a lost race waits rather than fails; a
+      // deadlock is all that can still arrive here, and it wrote nothing.
       if (isSerializationFailure(err)) {
         return { error: "Somebody else was changing who is in this Catch-up. Try again." };
       }
@@ -2318,6 +2327,7 @@ export async function addCatchupMembers(catchupId: string, userIds: string[]) {
        so this only matters to a hand-made call -- which is exactly the kind
        that must not be able to do it. */
     if (newlyAdded.length > 0) {
+      await consume("catchupAdds", session.user.id, written.added);
       await prisma.catchupPref.updateMany({
         where: { catchupId, userId: { in: newlyAdded }, archivedAt: { not: null } },
         data: { archivedAt: null },

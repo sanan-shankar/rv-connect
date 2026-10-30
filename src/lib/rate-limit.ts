@@ -160,6 +160,16 @@ const LIMITS = {
   /** Per user. Catch-ups fan out invitations, so creation is the one
    *  community write kept deliberately slow. */
   catchups: { tokens: 5, window: "1 h" },
+  /** Per Keeper, counted PER PERSON ADDED to a Catch-up (bug audit 3,
+   *  write-path review of A2). Adding drew on `catchups` above, one token a
+   *  request, and the People door adds one person a request, so a Keeper's
+   *  sixth add in an hour, or a Start after five adds, was refused. A person
+   *  added is one bell, so that is the unit: 200 is a Catch-up filled to its
+   *  hundred twice over in one sitting, mistakes and all, and still well under
+   *  the 495 bells five creations of a hundred people may already ring in the
+   *  hour. Checked before the write and spent after it, for the people actually
+   *  added, so a refusal or a full roster costs nothing. */
+  catchupAdds: { tokens: 200, window: "1 h" },
   /** Per user. Every call mints a real Razorpay order and a real row, and
    *  nothing else stopped a script minting them in a loop (audit M57). Ten an
    *  hour leaves somebody genuinely retrying a failed payment three or four
@@ -292,32 +302,32 @@ export async function rateLimit(
 }
 
 /**
- * Is there budget left, WITHOUT spending any? The login path uses this at
- * the door and spends via `consume` only when the attempt fails, so
- * successful sign-ins — a member's, or a QA script's hundredth of the
- * day — never eat into anyone's allowance.
+ * Is there budget for `cost` more (one by default), WITHOUT spending any? The
+ * login path uses this at the door and spends via `consume` only when the
+ * attempt fails, so successful sign-ins — a member's, or a QA script's
+ * hundredth of the day — never eat into anyone's allowance.
  */
-export async function hasBudget(name: LimitName, key: string): Promise<boolean> {
+export async function hasBudget(name: LimitName, key: string, cost = 1): Promise<boolean> {
   if (IS_DEMO) return true;
   const limiter = limiterFor(name);
   if (!limiter) return true;
   try {
     const { remaining } = await limiter.getRemaining(key);
-    return remaining > 0;
+    return remaining >= cost;
   } catch (err) {
     reportLimiterFailure(name, "read", err);
     return true;
   }
 }
 
-/** Spend one token, verdict ignored — the failure-counting half of the
- *  `hasBudget`/`consume` pair. Never throws. */
-export async function consume(name: LimitName, key: string): Promise<void> {
+/** Spend `cost` tokens (one by default), verdict ignored — the spending half
+ *  of the `hasBudget`/`consume` pair. Never throws. */
+export async function consume(name: LimitName, key: string, cost = 1): Promise<void> {
   if (IS_DEMO) return;
   const limiter = limiterFor(name);
   if (!limiter) return;
   try {
-    await limiter.limit(key);
+    await limiter.limit(key, { rate: cost });
   } catch (err) {
     reportLimiterFailure(name, "consume", err);
   }

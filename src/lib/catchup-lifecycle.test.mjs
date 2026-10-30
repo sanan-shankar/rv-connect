@@ -400,31 +400,43 @@ test("T2a-07: a Catch-up cannot be ended while an Edition is running, and the En
   assert.match(group, /You can end it once this Edition is over/, "the End row no longer says when it can be pressed");
 });
 
-test("T2a-03: the roster holds MAX_CATCHUP_PEOPLE, counted inside the write that adds to it", () => {
+test("T2a-03: the roster holds MAX_CATCHUP_PEOPLE, counted inside the write that adds to it", async () => {
   /* The bound was on one request's list, and the People door sends one id
      per request, so a Keeper could keep adding past a hundred and every bell
-     the Catch-up rings fans out per member. The count has to sit in the same
-     SERIALIZABLE transaction as the insert: at READ COMMITTED, parallel adds
-     each see the room the others are about to take. */
+     the Catch-up rings fans out per member. The count has to run while the
+     group's row is held, the lock every roster change takes: with nothing
+     held, parallel adds (or an add and a join) each see the room the others
+     are about to take. */
   const src = decomment(read("src/app/(main)/catchups/actions.ts"));
   const fn = balancedBody(src, "export async function addCatchupMembers(");
   assert.ok(fn, "addCatchupMembers is gone; this pin is reading nothing");
 
   const tx = fn.indexOf("prisma.$transaction(");
+  const lock = fn.indexOf("await lockGroup(tx, catchup.groupId)");
   const count = fn.indexOf("tx.groupMember.count(");
   const cap = fn.indexOf("> MAX_CATCHUP_PEOPLE", count);
   const insert = fn.indexOf("tx.groupMember.createMany(");
-  assert.ok(tx > -1 && count > -1 && insert > -1, "the roster is no longer counted and written in one transaction");
-  assert.ok(tx < count && count < cap && cap < insert, "the roster is not counted and capped before the insert, inside the transaction");
-  assert.match(fn, /isolationLevel:\s*"Serializable"/, "the count and the insert run at READ COMMITTED again, so parallel adds overshoot");
-  assert.match(fn, /isSerializationFailure\(err\)/, "a lost race throws out as \"Something went wrong\" instead of asking to try again");
+  assert.ok(tx > -1 && lock > -1 && count > -1 && insert > -1, "the roster is no longer counted and written in one transaction holding the group");
+  assert.ok(tx < lock && lock < count && count < cap && cap < insert, "the roster is not counted and capped, after the group is held, before the insert");
+  assert.match(fn, /isSerializationFailure\(err\)/, "a deadlock throws out as \"Something went wrong\" instead of asking to try again");
   assert.doesNotMatch(fn.slice(insert), /prisma\.groupMember\.createMany\(/, "a second, uncounted insert appeared");
   assert.match(fn, /holds up to \$\{MAX_CATCHUP_PEOPLE\} people/, "a full roster refuses without saying the number");
 
-  // Metered like creation and Start, before anything is written.
-  const limited = fn.indexOf('rateLimit("catchups"');
-  assert.ok(limited > -1, "adding people is unmetered again, and every add rings the people it adds");
-  assert.ok(limited < tx, "the meter is spent after the write");
+  /* Metered per person added, on a bucket of its own (write-path review of
+     A2): on the shared `catchups` bucket, one token a request, a Keeper got
+     five adds an hour, one person each, and a Start after them was refused.
+     Checked before the write, spent after it for the people actually added. */
+  assert.doesNotMatch(fn, /rateLimit\("catchups"/, "adding draws on the bucket creation and Start share again");
+  const checked = fn.indexOf('hasBudget("catchupAdds", session.user.id, realIds.length)');
+  const spent = fn.indexOf('consume("catchupAdds", session.user.id, written.added)');
+  assert.ok(checked > -1 && checked < tx, "adding is not checked against its own meter before it writes");
+  assert.ok(spent > insert, "the meter is spent before anyone is added, so a refusal or a full roster costs a token");
+  const { MAX_CATCHUP_PEOPLE } = await import("./catchup-caps.ts");
+  const limits = decomment(read("src/lib/rate-limit.ts"));
+  const tokens = Number(limits.match(/catchupAdds: \{ tokens: (\d+), window: "1 h" \}/)?.[1]);
+  assert.ok(tokens >= MAX_CATCHUP_PEOPLE, "a Keeper can no longer fill a Catch-up to its cap within the hour");
+  assert.match(limits, /return remaining >= cost;/, "hasBudget no longer asks for the whole cost");
+  assert.match(limits, /await limiter\.limit\(key, \{ rate: cost \}\);/, "consume no longer spends the whole cost");
 });
 
 test("B-060's successor: there is always a way to start the next Edition", () => {

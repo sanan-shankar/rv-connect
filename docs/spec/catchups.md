@@ -286,7 +286,7 @@ Catch-up has ended; "idle" means refused while nothing is running (§3.5).
 | `renameCatchup` | Keeper | refused | |
 | `endCatchup` | Keeper, while nothing is running | refused | verified; off on the demo |
 | `setCatchupPicture` | Keeper | any member | pool or own upload only |
-| `addCatchupMembers` | Keeper, not ended; the roster holds 100 at most, counted in the write | refused | verified, rate-limited (`catchups`) |
+| `addCatchupMembers` | Keeper, not ended; the roster holds 100 at most, counted in the write while the group's row is held | refused | verified; metered per person added (`catchupAdds`, 200 an hour), spent once they are in |
 | `removeCatchupMember` | Keeper; not yourself, not the creator; changes the invite link | refused | verified |
 | `setCatchupKeeper` | Keeper; not on yourself or the creator; never the last hat; only to somebody a Catch-up may hold | refused | verified |
 | `leaveCatchup` | any member but the creator | refused | off on the demo |
