@@ -23,6 +23,8 @@ import { Pause, Play } from "@phosphor-icons/react";
 import { SPRINGS } from "@/components/common/motion";
 import { CAP, clock, usePlayer } from "@/components/catchups/voice-clip";
 import { cn } from "@/lib/utils";
+import { NO_CAPTURE } from "@/lib/posthog-privacy";
+import { whenPostHog } from "@/components/analytics/posthog-client";
 
 /** Wide enough for the 32px button, the clock and the air between them. */
 const TAPE_MIN = 104;
@@ -47,7 +49,12 @@ export function VoiceTape({
       <span aria-hidden className="absolute inset-x-0 top-1/2 border-t border-dashed border-border" />
       <m.button
         type="button"
-        onClick={player.toggle}
+        onClick={() => {
+          // A play, without whose answer: NO_CAPTURE takes the autocaptured
+          // click, and playing changes no address a pageview could count.
+          if (!player.playing) whenPostHog((ph) => ph.capture("recording_played"));
+          player.toggle();
+        }}
         onKeyDown={(e: KeyboardEvent<HTMLElement>) => {
           if (e.key === "ArrowRight") player.nudge(5);
           else if (e.key === "ArrowLeft") player.nudge(-5);
@@ -56,7 +63,10 @@ export function VoiceTape({
         whileTap={{ scale: 0.97 }}
         transition={SPRINGS.snappy}
         style={{ width: `max(${(share * 100).toFixed(2)}%, ${TAPE_MIN}px)` }}
-        className="state-layer relative flex h-11 items-center gap-2 overflow-hidden rounded-full bg-secondary pl-1.5 pr-3.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+        /* NO_CAPTURE: the label names whose answer it is (bug audit 3,
+           T7b-22's Catch-ups half). The play is still counted, by the named
+           event in onClick above. */
+        className={`${NO_CAPTURE} state-layer relative flex h-11 items-center gap-2 overflow-hidden rounded-full bg-secondary pl-1.5 pr-3.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring`}
       >
         {/* How far through it is, as a fill rather than a bar: one transform,
             no layout, and it reads at a glance on a phone. */}

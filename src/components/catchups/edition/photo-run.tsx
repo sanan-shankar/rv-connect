@@ -55,6 +55,8 @@ import {
 } from "@/components/common/lazy-image-viewer";
 import { byContributor, groupStarts, shotsOf, type WallShot } from "@/lib/photo-wall";
 import type { EditionEntry } from "@/lib/catchups-edition-view";
+import { NO_CAPTURE } from "@/lib/posthog-privacy";
+import { whenPostHog } from "@/components/analytics/posthog-client";
 
 /** One photograph on the wall, carrying the answer it came from so the heart
  *  still belongs to the answer. The flattening and the grouping live in
@@ -80,7 +82,7 @@ function FootLine({ shot }: { shot: Shot }) {
       <FlushAvatar person={shot.by} size={22} />
       <Link
         href={`/profile/${shot.by.id}`}
-        className="descender-room min-w-0 shrink truncate rounded-sm text-[13px] font-medium leading-none text-foreground transition-opacity duration-150 hover:underline active:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+        className={`${NO_CAPTURE} descender-room min-w-0 shrink truncate rounded-sm text-[13px] font-medium leading-none text-foreground transition-opacity duration-150 hover:underline active:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring`}
       >
         {shot.by.name}
       </Link>
@@ -177,11 +179,20 @@ export function PhotoRun({
                          photograph and a url is not an identity. */
                       key={`${k}-${s.src}`}
                       type="button"
-                      onClick={() => viewer.open(at)}
+                      onClick={() => {
+                        // The open, without whose photograph: NO_CAPTURE below
+                        // takes the whole autocaptured click, and the viewer
+                        // changes no address a pageview could count instead.
+                        whenPostHog((ph) => ph.capture("photo_opened", { surface: "catchup-wall" }));
+                        viewer.open(at);
+                      }}
                       onPointerEnter={preloadImageViewer}
                       onFocus={preloadImageViewer}
                       aria-label={`Open ${s.by.name}'s photograph, ${at + 1} of ${shots.length}`}
-                      className="group relative block overflow-hidden rounded-[var(--radius-md)] bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                      /* NO_CAPTURE: the label is the person's name (bug audit
+                         3, T7b-22's Catch-ups half). The open is still
+                         counted, by the named event in onClick above. */
+                      className={`${NO_CAPTURE} group relative block overflow-hidden rounded-[var(--radius-md)] bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring`}
                       style={{
                         height: "var(--band)",
                         width: `calc(var(--band) * ${s.ratio})`,

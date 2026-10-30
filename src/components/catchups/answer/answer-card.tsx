@@ -23,6 +23,7 @@ import Link from "@/components/common/link";
 import { BirdAvatar } from "@/components/common/bird-avatar";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { NO_CAPTURE } from "@/lib/posthog-privacy";
 import { RichTextArea } from "@/components/common/rich-text-area";
 import { PhotoAttachments } from "./photo-attachments";
 import { SongNameField } from "./song-attachment";
@@ -124,7 +125,9 @@ export function AnswerCard({
       </h2>
 
       {prompt.asker && (
-        <div className="mt-[var(--space-s)] flex items-center gap-2">
+        /* NO_CAPTURE: both links are the asker, by bird and by name (bug audit
+           3, T7b-22's Catch-ups half). */
+        <div className={`${NO_CAPTURE} mt-[var(--space-s)] flex items-center gap-2`}>
           <Link
             href={`/profile/${prompt.asker.id}`}
             aria-label={prompt.asker.name}

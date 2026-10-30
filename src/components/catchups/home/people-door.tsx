@@ -62,6 +62,7 @@ import {
   setCatchupKeeper,
 } from "@/app/(main)/catchups/actions";
 import { cn } from "@/lib/utils";
+import { NO_CAPTURE } from "@/lib/posthog-privacy";
 import type { HomePersonRef } from "./types";
 
 function PersonRow({
@@ -106,7 +107,10 @@ function PersonRow({
   }
 
   return (
-    <div className="group/row flex min-w-0 items-center gap-1">
+    /* NO_CAPTURE on the whole row: the link is the person's name and bird, and
+       the hat and Remove carry the name in their labels, so a tap anywhere on
+       it told PostHog who (bug audit 3, T7b-22's Catch-ups half). */
+    <div className={`${NO_CAPTURE} group/row flex min-w-0 items-center gap-1`}>
       {/* The link is a CHILD of the row rather than the row itself, because a
           button inside an anchor is not a thing. It still takes the whole
           width the controls leave, so the tap target is the row. */}
@@ -282,7 +286,7 @@ function AddSomeone({
                 type="button"
                 disabled={busy}
                 onClick={() => add(r.id, r.name)}
-                className="state-layer flex w-full min-w-0 items-center gap-2.5 rounded-[10px] px-2 py-1.5 text-left disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring"
+                className={`${NO_CAPTURE} state-layer flex w-full min-w-0 items-center gap-2.5 rounded-[10px] px-2 py-1.5 text-left disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring`}
               >
                 <BirdAvatar user={r} size={28} />
                 <span className="min-w-0 truncate text-[14.5px] text-foreground">{r.name}</span>

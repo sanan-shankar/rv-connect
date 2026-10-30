@@ -233,6 +233,16 @@ const SURFACES = [
   ["src/components/profile/letterhead-profile.tsx", /aria-label=\{`Admission number \$\{admissionNumber\}[^`]*`\}\s+className=\{`\$\{NO_CAPTURE\} /, "the admission number"],
   ["src/components/profile/letterhead-profile.tsx", /!live && NO_CAPTURE/, "the perched bird, while it is labelled with the name"],
   ["src/app/(main)/admin/layout.tsx", /<div className=\{`\$\{NO_CAPTURE\} contents`\}>/, "the admin area"],
+  // Catch-ups, track 1's half of the same ruling (bug audit 3, H1's add-on).
+  ["src/components/catchups/home/people-door.tsx", /<div className=\{`\$\{NO_CAPTURE\} group\/row /, "a Catch-up's People row"],
+  ["src/components/catchups/home/people-door.tsx", /onClick=\{\(\) => add\(r\.id, r\.name\)\}\s+className=\{`\$\{NO_CAPTURE\} /, "the People door's add list"],
+  ["src/components/catchups/answer/answer-card.tsx", /\{prompt\.asker && \(\s*<div className=\{`\$\{NO_CAPTURE\} /, "the asker over a question being answered"],
+  ["src/components/catchups/edition/reader-parts.tsx", /href=\{`\/profile\/\$\{asker\.id\}`\}\s+className=\{`\$\{NO_CAPTURE\} /, "Asked by, in the reader"],
+  ["src/components/catchups/edition/photo-run.tsx", /href=\{`\/profile\/\$\{shot\.by\.id\}`\}\s+className=\{`\$\{NO_CAPTURE\} /, "a name under the photo wall"],
+  ["src/components/catchups/edition/photo-run.tsx", /aria-label=\{`Open \$\{s\.by\.name\}'s photograph[^`]*`\}\s+className=\{`\$\{NO_CAPTURE\} /, "a photo wall tile"],
+  ["src/components/catchups/edition/voice-tape.tsx", /className=\{`\$\{NO_CAPTURE\} state-layer relative flex h-11/, "a recorded answer's play button"],
+  ["src/components/catchups/create/people-picker.tsx", /onClick=\{\(\) => add\(person\)\}[\s\S]{0,400}?className=\{`\$\{NO_CAPTURE\} /, "the new Catch-up's search results"],
+  ["src/components/catchups/create/people-picker.tsx", /<span className=\{cn\(NO_CAPTURE, CHIP_CLASS/, "a person chip on the new Catch-up"],
 ];
 
 test("every surface that shows a person carries NO_CAPTURE", () => {
@@ -262,6 +272,9 @@ test("the presses that open no page still count, without the person on them", ()
   );
   assert.match(decomment(read("src/components/collection/photo-river.tsx")), /ph\.capture\("photo_opened"\)/);
   assert.match(decomment(read("src/components/feed/new-post-cta.tsx")), /ph\.capture\("composer_opened"\)/);
+  // Catch-ups: a photo wall's tile opens the viewer; a recorded answer plays in place.
+  assert.match(decomment(read("src/components/catchups/edition/photo-run.tsx")), /ph\.capture\("photo_opened", \{ surface: "catchup-wall" \}\)/);
+  assert.match(decomment(read("src/components/catchups/edition/voice-tape.tsx")), /ph\.capture\("recording_played"\)/);
 });
 
 test("every sign-out ends the PostHog identity", () => {

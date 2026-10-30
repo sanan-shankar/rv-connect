@@ -61,6 +61,7 @@ import { renderRichText } from "@/lib/rich-text";
 import { linkRanges } from "@/lib/link-preview-core";
 import { MAX_IMAGES } from "@/lib/upload-ownership-rule";
 import { cn } from "@/lib/utils";
+import { NO_CAPTURE } from "@/lib/posthog-privacy";
 import type { CatchupPersonRef } from "@/lib/catchups-types";
 import type { EditionEntry } from "@/lib/catchups-edition-view";
 import type { ReaderAsker } from "./reader-types";
@@ -201,7 +202,7 @@ export function AskedBy({ asker, className }: { asker: ReaderAsker; className?: 
         Asked by{" "}
         <Link
           href={`/profile/${asker.id}`}
-          className="rounded-sm transition-colors duration-150 hover:text-foreground hover:underline active:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          className={`${NO_CAPTURE} rounded-sm transition-colors duration-150 hover:text-foreground hover:underline active:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring`}
         >
           {asker.name}
         </Link>

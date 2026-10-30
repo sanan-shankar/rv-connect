@@ -33,6 +33,7 @@ import { Button } from "@/components/ui/button";
 import { BirdAvatar } from "@/components/common/bird-avatar";
 import { useUserSearch } from "@/components/common/use-user-search";
 import { cn } from "@/lib/utils";
+import { NO_CAPTURE } from "@/lib/posthog-privacy";
 import { MAX_CATCHUP_PEOPLE } from "@/lib/catchup-caps";
 
 export interface PickedPerson {
@@ -193,7 +194,7 @@ export function PeoplePicker({
                 // wash: canopy is the app's SELECTION green (design system
                 // rule 4), and a search result under the cursor is not a
                 // selected one. The canopy border hint stays.
-                className="flex w-full items-center gap-[var(--space-s)] rounded-[var(--radius-md)] border border-transparent px-2.5 py-2 text-left transition-colors duration-150 state-layer hover:border-canopy/40 active:scale-[0.99] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                className={`${NO_CAPTURE} flex w-full items-center gap-[var(--space-s)] rounded-[var(--radius-md)] border border-transparent px-2.5 py-2 text-left transition-colors duration-150 state-layer hover:border-canopy/40 active:scale-[0.99] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring`}
               >
                 <BirdAvatar
                   user={{
@@ -265,7 +266,9 @@ export function PeoplePicker({
             <li key={person.id}>
               {/* Leaf tint from the protocol's chip trio (people = leaf; the
                   drab canopy/10 pairing is dead). */}
-              <span className={cn(CHIP_CLASS, canRemove && "pr-2")}>
+              {/* NO_CAPTURE: the chip is a person, and Remove carries the name
+                  in its label (bug audit 3, T7b-22's Catch-ups half). */}
+              <span className={cn(NO_CAPTURE, CHIP_CLASS, canRemove && "pr-2")}>
                 <BirdAvatar
                   user={{
                     id: person.id,
