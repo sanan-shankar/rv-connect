@@ -1,11 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
-import { execSync } from "node:child_process";
 import { resolve } from "node:path";
 
 import { decodeKeyset, encodeKeyset, keysetWhere, pageSize } from "./keyset.ts";
-import { ROOT, decomment } from "./test-kit.mjs";
+import { ROOT, decomment, filesContaining } from "./test-kit.mjs";
 
 /* Audits C-005 / C-124 / C-162 / C-171. Prisma's `cursor: { id }` names a ROW,
  * and answers nothing at all when that row has left the filtered set -- proved
@@ -107,12 +106,10 @@ test("both pagers that take a size from the client read it through pageSize", ()
 });
 
 test("no time-ordered query pages by naming a row", () => {
-  const files = execSync(
-    "git grep -l 'cursor: { id' -- src ':!src/generated' ':!*.test.*'",
-    { cwd: ROOT, encoding: "utf8" }
-  )
-    .split("\n")
-    .filter(Boolean);
+  // Read off the disk, not `git grep`: an unstaged new query pages too (L9-07).
+  const files = filesContaining("cursor: { id", {
+    match: (name) => /\.(tsx?|mts|mjs|cjs|js)$/.test(name) && !/\.test\./.test(name),
+  });
 
   for (const f of files) {
     const src = decomment(readFileSync(resolve(ROOT, f), "utf8"));

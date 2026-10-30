@@ -20,7 +20,6 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { execSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 
@@ -30,7 +29,7 @@ import {
   isEditionRunning,
   mayChangeCatchupPicture,
 } from "./catchups-core.ts";
-import { ROOT, read, decomment, balancedBody } from "./test-kit.mjs";
+import { ROOT, read, decomment, balancedBody, filesContaining } from "./test-kit.mjs";
 
 test("ten is the floor, and it is his number", () => {
   /* 2026-09-08: "for people whose batches have less than ten people, let's not
@@ -350,16 +349,12 @@ test("the self-heal runs only on an UNSCOPED sweep, and only these two make one"
     "src/app/api/catchups/tick/route.ts",
     "src/app/(main)/admin/catchups/(index)/page.tsx",
   ]);
-  /* Excluding the definition, and this file: `git grep` searches TRACKED
-     content, so the moment this test was committed it started matching its own
-     assertion text. */
-  const files = execSync(
-    "git grep -lF 'advanceDueCatchups()' -- 'src/*' " +
-      "':!src/lib/catchups.ts' ':!src/lib/batch-catchups.test.mjs'",
-    { cwd: ROOT, encoding: "utf8" }
-  )
-    .split("\n")
-    .filter(Boolean);
+  /* Excluding the definition, and this file, whose assertion text matches
+     itself. Read off the disk rather than `git grep`ped, which saw only what
+     was already staged (L9-07). */
+  const files = filesContaining("advanceDueCatchups()", { match: /\.(tsx?|mts|mjs|cjs|js)$/ }).filter(
+    (f) => f !== "src/lib/catchups.ts" && f !== "src/lib/batch-catchups.test.mjs"
+  );
   assert.deepEqual(
     files.filter((f) => !ALLOWED.has(f)),
     [],

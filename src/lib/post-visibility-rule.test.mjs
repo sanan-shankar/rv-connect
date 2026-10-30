@@ -1,9 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
-import { execSync } from "node:child_process";
 import { resolve } from "node:path";
-import { ROOT, decomment } from "./test-kit.mjs";
+import { ROOT, decomment, filesContaining } from "./test-kit.mjs";
 
 import {
   MAX_BATCH_TARGETS,
@@ -323,12 +322,8 @@ test("a caller that never fetched the author's standing is not told everything i
 const RULE_FACTS = ["isHidden", "cityScope", "targetBatches"];
 
 test("no page refuses a post ahead of the rule", () => {
-  const callers = execSync("git grep -l 'canViewPost(' -- 'src/app/**/page.tsx'", {
-    cwd: ROOT,
-    encoding: "utf8",
-  })
-    .split("\n")
-    .filter(Boolean);
+  // Read off the disk, not `git grep`: an unstaged new page refuses too (L9-07).
+  const callers = filesContaining("canViewPost(", { under: ["src/app"], match: (name) => name === "page.tsx" });
   assert.ok(callers.length > 0, "no page calls canViewPost; retarget this test");
 
   for (const f of callers) {

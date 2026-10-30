@@ -226,6 +226,31 @@ export function walk(dir, { skip = SKIP_DIRS, match = /\.tsx?$/ } = {}) {
 }
 
 /**
+ * Every file under `under` (repo-relative folders) whose name passes `match`
+ * and whose text matches `pattern`, repo-relative and sorted: what the sweeps
+ * used to ask `git grep -l` for, read off the disk instead.
+ *
+ * `git grep` sees TRACKED files only, so a file nobody had staged yet was
+ * invisible to every sweep built on it. CLAUDE.md's order is run the gate,
+ * then stage by name, so the laptop's gate was green on a new file the push's
+ * gate then failed, after the deploy (bug audit 3, L9-07; the same shape
+ * C-189 took out of two sweeps). Two of them also ended in `|| true`, which
+ * turns a git that cannot run into an empty, passing candidate list.
+ *
+ * The text is matched raw, comments included, as `git grep` matched it; the
+ * callers decomment what they then assert on. A string pattern is literal.
+ */
+export function filesContaining(pattern, { under = ["src"], match = /\.tsx?$/, skip = SKIP_DIRS } = {}) {
+  const re =
+    typeof pattern === "string" ? new RegExp(pattern.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")) : pattern;
+  return under
+    .flatMap((dir) => walk(resolve(ROOT, dir), { skip, match }))
+    .filter((full) => re.test(readFileSync(full, "utf8")))
+    .map((full) => relative(ROOT, full))
+    .sort();
+}
+
+/**
  * True if `s` contains an unpaired UTF-16 surrogate, i.e. half a character.
  *
  * What a naive `slice(0, n)` on a string containing an emoji produces, and what

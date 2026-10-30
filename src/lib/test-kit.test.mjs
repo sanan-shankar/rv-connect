@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { decomment, read } from "./test-kit.mjs";
+import { readFileSync } from "node:fs";
+import { relative, resolve } from "node:path";
+import { ROOT, decomment, read, walk } from "./test-kit.mjs";
 
 /* ------------------------------------------------------------------ *
  *  The comment stripper every shape test stands on (bug audit 3, L9-02).
@@ -97,4 +99,39 @@ test("the attach dialog keeps the header attach-well.test.mjs watches", () => {
   const dialog = decomment(read("src/components/common/attach-image-dialog.tsx"));
   assert.ok(dialog.includes('accept="image/*"'), "the file input is gone; move this probe");
   assert.ok(dialog.includes("<DialogHeader"), "decomment ate the dialog's header again");
+});
+
+/* ------------------------------------------------------------------ *
+ *  Where a sweep gets its candidates (bug audit 3, L9-07).
+ *
+ *  `git grep` and `git ls-files` see tracked files only. CLAUDE.md's order
+ *  is run the gate, then stage by name, so a sweep built on git is blind to
+ *  exactly the new file it exists to catch: green on the laptop, red in CI
+ *  after the push has deployed. walk() and filesContaining() read the disk.
+ * ------------------------------------------------------------------ */
+
+/* The tests still allowed to ask git, each with its reason. An entry whose
+   file stops asking must go. */
+const ASKS_GIT = {
+  "scripts/qa/scripts-ledger.test.mjs":
+    "deliberate: an unlisted script only matters once committed, and a walk would fail the gate on a peer session's work in progress (its header argues it)",
+  "src/lib/catchups-core.test.mjs":
+    "L9-07, listed 2026-10-30: the asker-surfaces sweep, in a file another fix track owned while this landed; move it to filesContaining() and drop this entry",
+};
+
+test("no sweep takes its candidates from git", () => {
+  const tests = ["src", "scripts"].flatMap((dir) => walk(resolve(ROOT, dir), { match: /\.test\.mjs$/ }));
+  assert.ok(tests.length >= 60, `only ${tests.length} test files found; this sweep has drifted`);
+  const ASK = /\bgit\s+(?:grep|ls-files)\b|["']git["']\s*,\s*\[\s*["'](?:grep|ls-files)["']/;
+  const asking = tests
+    .filter((full) => ASK.test(decomment(readFileSync(full, "utf8"))))
+    .map((full) => relative(ROOT, full));
+  assert.deepEqual(
+    asking.filter((f) => !ASKS_GIT[f]),
+    [],
+    "these take candidates from git, which cannot see an unstaged file; use walk() or filesContaining()"
+  );
+  for (const f of Object.keys(ASKS_GIT)) {
+    assert.ok(asking.includes(f), `${f} no longer asks git; drop its ASKS_GIT entry`);
+  }
 });

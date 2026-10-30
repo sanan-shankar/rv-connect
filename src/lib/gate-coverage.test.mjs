@@ -86,7 +86,7 @@ const fnBody = (text, name) =>
 const files = serverActionFiles().sort();
 
 test("there are server-action files to sweep", () => {
-  assert.ok(files.length >= 15, `only found ${files.length}; the git grep broke`);
+  assert.ok(files.length >= 15, `only found ${files.length}; the walk has drifted`);
 });
 
 test("no action file exports a shape this sweep cannot see", () => {

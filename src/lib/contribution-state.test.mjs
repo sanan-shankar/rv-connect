@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { execSync } from "node:child_process";
-import { ROOT, read, decomment } from "./test-kit.mjs";
+import { read, decomment, filesContaining } from "./test-kit.mjs";
 
 import {
   CONTRIBUTION_STATUSES,
@@ -161,12 +160,8 @@ test("no money surface reads a contribution sum's gross amount", () => {
   // call is written two ways in this repo (`prisma.contribution.aggregate(`
   // and the awaited-chain form with `.aggregate(` on its own line), so match
   // the pair rather than one spelling of it.
-  const files = execSync("git grep -l 'prisma.contribution' -- src ':!src/generated'", {
-    cwd: ROOT,
-    encoding: "utf8",
-  })
-    .split("\n")
-    .filter(Boolean)
+  // Read off the disk, not `git grep`: an unstaged new file sums money too (L9-07).
+  const files = filesContaining("prisma.contribution", { match: /\.(tsx?|mts|mjs|cjs|js)$/ })
     .map((f) => [f, decomment(read(f))])
     .filter(([, src]) => /\.aggregate\(/.test(src));
   assert.ok(files.length >= 6, "the contribution aggregates have moved; retarget this test");

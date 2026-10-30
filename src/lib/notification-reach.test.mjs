@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { execSync } from "node:child_process";
-import { ROOT, read, decomment } from "./test-kit.mjs";
+import { read, decomment, filesContaining } from "./test-kit.mjs";
 
 /* ------------------------------------------------------------------ *
  *  A notification leads somewhere.
@@ -75,13 +74,10 @@ test("every way a post stops being readable clears the bell rows that named it",
   /* Derived, so a fourth takedown path joins the sweep on the day it is
      written. A post becomes unreadable two ways: the row goes, or isHidden
      goes true. Either way the link in somebody's bell stops working. */
-  const files = execSync(`git grep -l 'isHidden: true\\|post.delete(' -- 'src/**/*.ts' || true`, {
-    cwd: ROOT,
-    encoding: "utf8",
-  })
-    .split("\n")
-    .filter(Boolean)
-    .filter((f) => !f.endsWith(".test.mjs"));
+  /* Read off the disk. This was `git grep ... || true`: a new file was
+     invisible until staged, and a git that could not run read as no takedown
+     paths at all (L9-07). */
+  const files = filesContaining(/isHidden: true|post\.delete\(/, { match: /\.ts$/ });
 
   const count = (src, re) => (src.match(re) ?? []).length;
   let sites = 0;

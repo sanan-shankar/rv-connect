@@ -1,8 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { execSync } from "node:child_process";
 import { relative, resolve } from "node:path";
-import { ROOT, read, decomment, balancedBody, walk } from "./test-kit.mjs";
+import { ROOT, read, decomment, balancedBody, walk, filesContaining } from "./test-kit.mjs";
 import { CATCHUP_PEOPLE } from "./catchup-caps.ts";
 
 /* ------------------------------------------------------------------ *
@@ -122,12 +121,9 @@ test("a Keeper can copy the invite link from the People door, and only a Keeper'
 });
 
 test("every people-search caller either asks for Catch-up people or says why not", () => {
-  const callers = execSync(
-    `git grep -l 'api/users/search\\|useUserSearch(' -- 'src/**/*.ts' 'src/**/*.tsx' || true`,
-    { cwd: ROOT, encoding: "utf8" }
-  )
-    .split("\n")
-    .filter(Boolean)
+  /* Read off the disk. This was `git grep ... || true`: a new caller was
+     invisible until staged, and a git that could not run read as none (L9-07). */
+  const callers = filesContaining(/api\/users\/search|useUserSearch\(/, { match: /\.tsx?$/ })
     // The endpoint itself and the hook that wraps it are the mechanism, not
     // callers of it.
     .filter((f) => f !== "src/app/api/users/search/route.ts")

@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { execSync } from "node:child_process";
-import { ROOT, read, decomment } from "../../lib/test-kit.mjs";
+import { read, decomment, filesContaining } from "../../lib/test-kit.mjs";
 
 /* ------------------------------------------------------------------ *
  *  ONE focus edge for every text field with a box (field-focus.ts,
@@ -64,13 +63,11 @@ const BORDERLESS = new Map([
 ]);
 
 test("every text field with a box wears FIELD_FOCUS (or is on the reasoned borderless list)", () => {
-  const files = execSync(
-    "git grep -lE '<input|<textarea|contentEditable' -- 'src/components/*.tsx' ':!src/app/lab'",
-    { cwd: ROOT, encoding: "utf8" }
-  )
-    .split("\n")
-    .filter(Boolean)
-    .filter((f) => !f.startsWith("src/app/lab"));
+  // Read off the disk, not `git grep`: an unstaged new field is a field (L9-07).
+  const files = filesContaining(/<input|<textarea|contentEditable/, {
+    under: ["src/components"],
+    match: /\.tsx$/,
+  });
   assert.ok(files.length >= 15, `suspiciously few field files (${files.length})`);
 
   const offenders = files.filter((f) => {

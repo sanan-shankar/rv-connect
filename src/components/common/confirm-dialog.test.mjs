@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { execSync } from "node:child_process";
-import { ROOT, read, decomment } from "../../lib/test-kit.mjs";
+import { resolve, relative } from "node:path";
+import { ROOT, read, decomment, walk } from "../../lib/test-kit.mjs";
 
 /* ------------------------------------------------------------------ *
  *  The browser's confirm() stays dead (owner, 2026-08-29: "we dont
@@ -20,12 +20,10 @@ import { ROOT, read, decomment } from "../../lib/test-kit.mjs";
  * ------------------------------------------------------------------ */
 
 test("no native confirm/alert/prompt dialogs in app code", () => {
-  const files = execSync("git ls-files 'src/app/*.ts*' 'src/components/*.ts*'", {
-    cwd: ROOT,
-    encoding: "utf8",
-  })
-    .split("\n")
-    .filter(Boolean);
+  // Walked, not `git ls-files`: an unstaged new file is code too (L9-07).
+  const files = ["src/app", "src/components"]
+    .flatMap((dir) => walk(resolve(ROOT, dir), { match: /\.tsx?$/ }))
+    .map((full) => relative(ROOT, full));
   assert.ok(files.length > 100, `suspiciously few files listed (${files.length})`);
 
   const banned = /window\.(confirm|alert|prompt)\(|!confirm\(|await confirm\(|!alert\(/;
