@@ -527,29 +527,37 @@ export async function createCatchupWithPeople(input: {
       ...realMembers.map((u) => ({ userId: u.id, role: "member" })),
     ];
 
-    /* The server half of the double-submit guard (audit Low 29).
-     *
-     * A duplicated invocation minted a WHOLE second Catch-up -- its own group,
-     * its own Edition 1 -- and notified up to a hundred people about it twice.
-     * The rate limit caps volume, not duplicates. A group is free text so no
-     * unique index can dedupe it; the same creator starting the same name
-     * seconds apart is a double press, and the first one is handed back as
-     * though this call had made it. */
-    const twin = await prisma.catchup.findFirst({
-      where: {
-        createdById: creatorId,
-        createdAt: { gte: new Date(Date.now() - DOUBLE_SUBMIT_MS) },
-        group: { name },
-      },
-      select: { id: true },
-    });
-    if (twin) {
-      revalidatePath("/catchups");
-      return { success: true as const, catchupId: twin.id };
-    }
-
     const now = new Date();
-    const catchupId = await prisma.$transaction(async (tx) => {
+    const made = await prisma.$transaction(async (tx) => {
+      /* ONE CREATION AT A TIME PER CREATOR (bug audit 3, T2a-08). The twin
+         read below ran before this transaction, and at READ COMMITTED two
+         requests in flight together (two tabs, a retried request) each missed
+         the other's uncommitted Catch-up and both made one, ringing everyone
+         named twice. Holding the creator's own row first, the second waits for
+         the first to commit, and its twin read, a fresh statement, finds it.
+         FOR NO KEY UPDATE is the lock a plain update of the row takes, so rows
+         that merely point at this member are not held up; Prisma cannot say
+         it, hence the raw read. */
+      await tx.$queryRaw`SELECT 1 FROM "User" WHERE "id" = ${creatorId} FOR NO KEY UPDATE`;
+
+      /* The server half of the double-submit guard (audit Low 29).
+       *
+       * A duplicated invocation minted a WHOLE second Catch-up -- its own
+       * group, its own Edition 1 -- and notified up to a hundred people about
+       * it twice. The rate limit caps volume, not duplicates. A group is free
+       * text so no unique index can dedupe it; the same creator starting the
+       * same name seconds apart is a double press, and the first one is handed
+       * back as though this call had made it. */
+      const twin = await tx.catchup.findFirst({
+        where: {
+          createdById: creatorId,
+          createdAt: { gte: new Date(Date.now() - DOUBLE_SUBMIT_MS) },
+          group: { name },
+        },
+        select: { id: true },
+      });
+      if (twin) return { catchupId: twin.id, twin: true };
+
       const group = await tx.group.create({
         data: {
           name,
@@ -593,12 +601,12 @@ export async function createCatchupWithPeople(input: {
         groupName: group.name,
         excludeUserId: creatorId,
       });
-      return catchup.id;
+      return { catchupId: catchup.id, twin: false };
     });
 
     revalidatePath("/catchups");
-    revalidatePath(`/catchups/${catchupId}`);
-    return { success: true as const, catchupId };
+    if (!made.twin) revalidatePath(`/catchups/${made.catchupId}`);
+    return { success: true as const, catchupId: made.catchupId };
   });
 }
 

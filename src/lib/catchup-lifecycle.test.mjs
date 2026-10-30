@@ -527,6 +527,22 @@ test("C-125: the answering surface actually sends the version it holds", () => {
   }
 });
 
+test("T2a-08: two creations in flight together find each other, so a double press makes one Catch-up", () => {
+  /* The twin read ran before the creating transaction, so two requests in
+     flight together each missed the other's uncommitted rows and both made a
+     Catch-up, ringing everyone named twice. It now runs inside, after the
+     creator's own row is held: the second waits, then finds the first. */
+  const src = decomment(read("src/app/(main)/catchups/actions.ts"));
+  const fn = balancedBody(src, "export async function createCatchupWithPeople(");
+  assert.ok(fn, "createCatchupWithPeople is gone; this pin is reading nothing");
+  const tx = fn.indexOf("prisma.$transaction(");
+  const lock = fn.search(/tx\.\$queryRaw`SELECT 1 FROM "User" WHERE "id" = \$\{creatorId\} FOR NO KEY UPDATE`/);
+  const twin = fn.indexOf("tx.catchup.findFirst(");
+  const create = fn.indexOf("tx.group.create(");
+  assert.ok(tx > -1 && lock > tx && twin > lock && create > twin, "the twin is no longer read inside the creating transaction, after the creator's row is held");
+  assert.doesNotMatch(fn, /prisma\.catchup\.findFirst\(/, "the twin is read outside the transaction again, where a request in flight cannot see it");
+});
+
 test("T2b-09: a reorder takes every question the soft cap can let in", () => {
   /* The insert cap tolerates a 41st question when two land together (C-029),
      and the reorder sends every accepted id, so a payload bound AT the cap

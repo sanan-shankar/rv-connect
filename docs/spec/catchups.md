@@ -391,7 +391,9 @@ One form: name, people. The viewer's batch year seeds an "everyone from my batch
 **when the batch already has its Catch-up the shortcut is a link to it instead** ("Your batch
 already has a Catch-up"), so a whole batch cannot be made into a second Catch-up from here (his
 answer, 2026-10-17: "Send them to it"). Questions are not picked here, and there is no rhythm to
-pick. Making it starts its first Edition.
+pick. Making it starts its first Edition. Two presses in flight together make one Catch-up: the
+creation holds the creator's own row and looks for its twin (same creator, same name, ten seconds)
+inside the transaction, so the second finds the first (bug audit 3, T2a-08).
 
 ### 7.3 The home, `/catchups/[catchupId]`
 
