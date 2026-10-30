@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { read, decomment, balancedBody } from "./test-kit.mjs";
+import { PURGE_ATTEMPTS, retryWriteConflicts } from "./purge-rule.ts";
 
 /* ------------------------------------------------------------------ *
  *  The purge has to be honest about what it removed.
@@ -325,4 +326,147 @@ test("C8-08: the purge deletes the member's questions nobody else answered, and 
   assert.ok(collected > -1 && prompts > collected, "questions go before the bytes of the member's own answers under them are collected");
   assert.ok(bells > -1 && prompts > bells, "the bells under the member's own answers are looked for after those answers are gone");
   assert.ok(deleted > prompts, "the questions are deleted outside the purge, after the member");
+});
+
+/* ------------------------------------------------------------------ *
+ *  A write that lands mid-purge is a retry, not a failed night (bug
+ *  audit 3, L1-04, T7a-09, T7a-10).
+ *
+ *  The purge runs at REPEATABLE READ (C-076), which refuses a write to any
+ *  row somebody changed after its snapshot instead of waiting: a heart on
+ *  the member's post, the member signing back in. Proved live on throwaway
+ *  accounts before the fix: a committed write on the member's group and the
+ *  member's own sign-in each ended the purge as P2034, "Could not delete the
+ *  account.", the second instead of counting the member as spared.
+ * ------------------------------------------------------------------ */
+
+const conflict = () => Object.assign(new Error("write conflict"), { code: "P2034" });
+const noPause = async () => {};
+
+test("L1-04: a write conflict is tried again, and the second try's answer stands", async () => {
+  let calls = 0;
+  const retried = [];
+  const out = await retryWriteConflicts(
+    async () => {
+      calls += 1;
+      if (calls === 1) throw conflict();
+      return "purged";
+    },
+    { attempts: PURGE_ATTEMPTS, pause: noPause, onRetry: (n) => retried.push(n) }
+  );
+  assert.equal(out, "purged");
+  assert.equal(calls, 2);
+  assert.deepEqual(retried, [1]);
+});
+
+test("L1-04: a conflict on every try gives up after the last one, with the conflict", async () => {
+  let calls = 0;
+  await assert.rejects(
+    retryWriteConflicts(
+      async () => {
+        calls += 1;
+        throw conflict();
+      },
+      { attempts: PURGE_ATTEMPTS, pause: noPause }
+    ),
+    (err) => err.code === "P2034"
+  );
+  assert.equal(calls, PURGE_ATTEMPTS);
+});
+
+test("L1-04: anything but a write conflict is thrown at once, the purge's own cancellation included", async () => {
+  class Cancelled extends Error {}
+  for (const thrown of [new Cancelled(), Object.assign(new Error("timeout"), { code: "P2028" }), new TypeError("bug")]) {
+    let calls = 0;
+    await assert.rejects(
+      retryWriteConflicts(
+        async () => {
+          calls += 1;
+          throw thrown;
+        },
+        { attempts: PURGE_ATTEMPTS, pause: noPause }
+      ),
+      (err) => err === thrown
+    );
+    assert.equal(calls, 1, `${thrown.constructor.name} was tried again`);
+  }
+});
+
+test("L1-04: the purge's transaction goes through the retry", () => {
+  const purge = balancedBody(decomment(read("src/lib/account-purge.ts")), "export async function purgeUserAccount(");
+  assert.ok(purge, "purgeUserAccount is gone; this pin is reading nothing");
+  assert.match(
+    purge,
+    /retryWriteConflicts\(\s*\(\) =>\s*prisma\.\$transaction\(/,
+    "the purge's transaction is no longer retried on a write conflict, so a heart on the member's post fails the night"
+  );
+  assert.match(purge, /attempts:\s*PURGE_ATTEMPTS/, "the purge retries with some other count");
+  assert.ok(PURGE_ATTEMPTS >= 2, "one attempt is no retry at all");
+});
+
+test("T7a-09: a purge or a merge that fails is reported, and nobody is sent to a server log", () => {
+  const purge = balancedBody(decomment(read("src/lib/account-purge.ts")), "export async function purgeUserAccount(");
+  assert.ok(purge, "purgeUserAccount is gone; this pin is reading nothing");
+  const catchAt = purge.indexOf("} catch (err) {");
+  assert.ok(catchAt > -1, "the purge no longer catches its own failure");
+  const reports = purge.slice(catchAt).match(/reportSwallowed\("purge", err/g) ?? [];
+  assert.equal(reports.length, 2, `${reports.length} of the purge's 2 failure branches reach Sentry; the rest are a console line`);
+  assert.doesNotMatch(purge, /console\.error\(/, "the purge logs a failure to the console alone again");
+
+  const people = decomment(read("src/app/(main)/admin/people/actions.ts"));
+  assert.doesNotMatch(people, /server log/i, "an admin is told to check a server log they cannot read");
+  const merge = balancedBody(people, "export async function adminMergeUsers(");
+  assert.ok(merge, "adminMergeUsers is gone; this pin is reading nothing");
+  assert.match(merge, /reportSwallowed\("merge", err/, "a failed merge is a console line again");
+  const del = balancedBody(people, "export async function adminDeleteUser(");
+  assert.ok(del, "adminDeleteUser is gone; this pin is reading nothing");
+  assert.match(del, /if \(!purged\.ok\) return \{ error: purged\.error \}/, "the admin no longer hears what the purge found");
+});
+
+test("T7a-10: a member who signs back in while every try collides is spared, not failed", () => {
+  const purge = balancedBody(decomment(read("src/lib/account-purge.ts")), "export async function purgeUserAccount(");
+  assert.ok(purge, "purgeUserAccount is gone; this pin is reading nothing");
+  const branch = purge.slice(purge.indexOf("if (isSerializationFailure(err)) {"));
+  assert.ok(branch.length > 0 && purge.includes("if (isSerializationFailure(err)) {"), "the purge no longer tells a collision from a failure");
+  const spared = branch.indexOf("cancelled: true");
+  const deferred = branch.indexOf("deferred: true");
+  assert.ok(
+    /stillDue\(userId, opts\.onlyIfRequestedBefore\)/.test(branch.slice(0, spared)),
+    "the sweep calls a collision a failure without asking whether the member signed back in"
+  );
+  assert.ok(spared > -1 && deferred > spared, "the spared answer comes after the failure it should replace");
+});
+
+test("L1-04: the sweep counts a deferred purge apart from a failed one", () => {
+  const src = decomment(read("src/lib/retention.ts"));
+  const loop = src.slice(src.indexOf("const purged = await purgeUserAccount"));
+  const guard = loop.slice(0, loop.indexOf("accountsPurged += 1"));
+  const deferredAt = guard.indexOf("purged.deferred");
+  const errorAt = guard.indexOf("errors.push");
+  assert.ok(deferredAt > -1, "the sweep no longer recognises a purge that collided until tomorrow");
+  assert.ok(deferredAt < errorAt, "a collision that settles itself turns the nightly job red");
+  assert.match(src, /accountsDeferred,/, "the night's audit line no longer says how many waited for tomorrow");
+});
+
+/* ------------------------------------------------------------------ *
+ *  The purge holds every group it leaves before it chooses a successor
+ *  (bug audit 3, Phase A review 2, after L1-03).
+ *
+ *  `lockGroup` is what leaving, removal, adding, joining and a merge take
+ *  first; the purge chose a Keeper's successor without it, so a nightly purge
+ *  of one Keeper and another Keeper leaving in the same instant each read the
+ *  other still wearing the hat and left a creator-less Catch-up untended.
+ * ------------------------------------------------------------------ */
+
+test("A-review: the purge holds every group the member is in before choosing anybody", () => {
+  const fn = balancedBody(decomment(read("src/lib/account-purge.ts")), "async function promoteOrphanedGroups(");
+  assert.ok(fn, "promoteOrphanedGroups is gone; this pin is reading nothing");
+  const joined = fn.search(/groupMember\.findMany\(\{\s*where:\s*\{\s*userId\s*\}/);
+  const sorted = fn.search(/\[\.\.\.new Set\(\[\.\.\.groupIds,\s*\.\.\.joined\.map\(\(m\) => m\.groupId\)\]\)\]\.sort\(\)/);
+  const locked = fn.indexOf("await lockGroup(db, groupId)");
+  const chosen = fn.indexOf("chooseGroupSuccessor(");
+  assert.ok(joined > -1, "the purge holds only the groups the member keeps, not every one they are leaving");
+  assert.ok(sorted > joined, "the groups are not held in one order, so two departures can deadlock");
+  assert.ok(locked > sorted, "the groups are read but never held");
+  assert.ok(chosen > locked, "a successor is chosen before the group is held");
 });

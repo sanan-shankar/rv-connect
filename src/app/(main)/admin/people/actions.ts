@@ -17,6 +17,8 @@ import { groupsKeptBy, purgeUserAccount } from "@/lib/account-purge";
 import { CATCHUP_PEOPLE } from "@/lib/catchup-caps";
 import { lockGroup, promoteGroupSuccessor } from "@/lib/group-succession";
 import { purgeImageUrls } from "@/lib/image-purge";
+import { isSerializationFailure } from "@/lib/prisma-errors";
+import { reportSwallowed } from "@/lib/report-error";
 import { OCCUPATION_MAX, batchTypeFromLeaving, valleyYear } from "@/lib/utils";
 import { parsePlaces, resolvePlaces } from "@/lib/place-input";
 import { replaceUserPlaces } from "@/lib/place-write";
@@ -522,8 +524,15 @@ export async function adminMergeUsers(
       { timeout: 30_000, maxWait: 5_000 }
     );
   } catch (err) {
-    console.error("adminMergeUsers failed:", err);
-    return { error: "Could not merge those accounts. Nothing was changed. Check the server log." };
+    // A deadlock against another change to one of the two accounts' groups:
+    // nothing was written, and pressing again is the answer.
+    if (isSerializationFailure(err)) {
+      return { error: "Somebody was changing one of these accounts at the same moment, so nothing was changed. Try again." };
+    }
+    // Reported, not just logged, and nobody is sent to a server log they
+    // cannot read (bug audit 3, T7a-09, the merge's half).
+    reportSwallowed("merge", err, { sourceId, targetId });
+    return { error: "Could not merge those accounts. Nothing was changed, and the error has been reported." };
   }
 
   // The one R2 object a merge otherwise strands (write-path review, Phase 8):
@@ -623,6 +632,7 @@ export async function adminDeleteUser(userId: string): Promise<AdminActionResult
     where: { id: userId },
     select: { name: true, email: true, role: true },
   });
+  if (!target) return { error: "That account no longer exists." };
 
   // The same two refusals blocking gets (B-023), asked BEFORE the purge rather
   // than inside it: purgeUserAccount runs its own transaction and reaches R2
@@ -632,7 +642,7 @@ export async function adminDeleteUser(userId: string): Promise<AdminActionResult
   if (actor.actorId === userId) {
     return { error: "You cannot delete your own account from here. Use Settings." };
   }
-  if (target?.role === "admin") {
+  if (target.role === "admin") {
     const others = await prisma.user.count({
       where: { role: "admin", isBlocked: false, id: { not: userId } },
     });
@@ -646,9 +656,10 @@ export async function adminDeleteUser(userId: string): Promise<AdminActionResult
   // one definition of "gone". The reports this member filed outlive them,
   // unnamed (bug audit 3, T7a-01).
   const purged = await purgeUserAccount(userId);
-  if (!purged.ok) {
-    return { error: "Could not delete this user. Check the server log." };
-  }
+  // The purge's own sentence: a write that collided three times says so, and
+  // anything else has already been reported (bug audit 3, T7a-09). This said
+  // "Check the server log", which the admin cannot read.
+  if (!purged.ok) return { error: purged.error };
 
   await writeAudit({
     actorId: actor.actorId,
@@ -656,11 +667,10 @@ export async function adminDeleteUser(userId: string): Promise<AdminActionResult
     targetType: "user",
     targetId: userId,
     ip: actor.ip,
-    detail: target
-      ? `${target.name} <${target.email}> — ${purged.imagesDeleted} stored image(s) removed` +
-        (purged.imagesFailed > 0 ? `, ${purged.imagesFailed} still queued` : "") +
-        (purged.groupsRehomed > 0 ? `, ${purged.groupsRehomed} group(s) handed on` : "")
-      : undefined,
+    detail:
+      `${target.name} <${target.email}> — ${purged.imagesDeleted} stored image(s) removed` +
+      (purged.imagesFailed > 0 ? `, ${purged.imagesFailed} still queued` : "") +
+      (purged.groupsRehomed > 0 ? `, ${purged.groupsRehomed} group(s) handed on` : ""),
   });
 
   revalidatePath("/directory");

@@ -2,10 +2,13 @@ import { prisma } from "./prisma";
 import { pickCatchupPicture } from "./catchup-picture-pick";
 import { forgetImages } from "./image-record";
 import { delImage } from "./storage";
-import { chooseGroupSuccessor } from "./group-succession";
+import { chooseGroupSuccessor, lockGroup } from "./group-succession";
 import { CATCHUP_PEOPLE } from "./catchup-caps";
 import { photoStoredUrls } from "./collection-photo";
 import { adminThreadLink, ownProfileLink, postNotificationLink } from "./notification-links";
+import { reportSwallowed } from "./report-error";
+import { isSerializationFailure } from "./prisma-errors";
+import { PURGE_ATTEMPTS, retryWriteConflicts } from "./purge-rule";
 import type { Prisma } from "@/generated/prisma/client";
 
 /**
@@ -67,9 +70,28 @@ export async function groupsKeptBy(db: Db, userId: string): Promise<string[]> {
  * can act are read, through `CATCHUP_PEOPLE`, and the hat is written as
  * "keeper". This path wrote "admin", which `setCatchupKeeper`'s revoke did not
  * match, so a successor made here could never be relieved of it.
+ *
+ * Every group the member is leaving is held first (`lockGroup`), in one order,
+ * before anybody is chosen: the lock every other change to who is in a
+ * Catch-up or who wears its hat already takes (leaving, removal, adding,
+ * joining, a merge, taking a hat back), and the purge was the one departure
+ * that did not (bug audit 3, Phase A review 2, after L1-03). Without it, a
+ * Keeper leaving one of this member's Catch-ups in the instant the nightly
+ * purge ran read the member still wearing the hat, the purge read the Keeper
+ * still wearing it, neither promoted anybody, and the Catch-up was left with
+ * nobody able to tend it. Held, one waits for the other: a leaver who comes
+ * second reads the member already gone, and a purge that comes second meets a
+ * group changed after its snapshot, which at REPEATABLE READ is a write
+ * conflict, so its retry reads the leaver's change. Every group the member is
+ * in, not only the ones they keep, because a Keeper leaving may be naming this
+ * member as successor, and an admin's delete (the member not "leaving", so
+ * still a candidate) must not take that hat away with them.
  */
-async function promoteOrphanedGroups(db: Db, userId: string): Promise<number> {
+async function promoteOrphanedGroups(db: Prisma.TransactionClient, userId: string): Promise<number> {
   const groupIds = await groupsKeptBy(db, userId);
+  const joined = await db.groupMember.findMany({ where: { userId }, select: { groupId: true } });
+  const leaving = [...new Set([...groupIds, ...joined.map((m) => m.groupId)])].sort();
+  for (const groupId of leaving) await lockGroup(db, groupId);
   if (groupIds.length === 0) return 0;
 
   const members = await db.groupMember.findMany({
@@ -85,12 +107,13 @@ async function promoteOrphanedGroups(db: Db, userId: string): Promise<number> {
     );
     if (!successor) continue;
     // updateMany, not update: `update` throws P2025 when its where matches
-    // nothing, and the successor was chosen from a snapshot read moments ago
-    // under READ COMMITTED with no lock on that row. A genuinely concurrent
-    // delete of the successor's own membership would then abort this whole
-    // transaction and fail a purge that had nothing wrong with it. A no-op is
-    // the right answer: if the person we picked has left too, there is nobody
-    // to promote, and their own removal is somebody else's transaction.
+    // nothing. The group is held, so every path that takes its lock waits for
+    // this one, but not every writer of a membership row does (moving a member
+    // between batch Catch-ups, batch-catchups.ts), and a successor whose row
+    // went in the same beat must be a no-op here rather than a failed purge:
+    // if the person we
+    // picked has gone too, there is nobody to promote, and their own removal
+    // is somebody else's transaction.
     const done = await db.groupMember.updateMany({
       where: { groupId, userId: successor },
       data: { role: "keeper" },
@@ -257,11 +280,16 @@ export type PurgeResult =
     }
   | {
       ok: false;
+      /** Said to the admin who pressed delete, as it stands. */
       error: string;
       /** The member cancelled between the sweep's due-list read and this
        *  purge's turn, so nothing was deleted. Not a failure -- the right
        *  outcome, and the caller must not count it as an error. */
       cancelled?: true;
+      /** Every attempt met another write to the member's rows, so nothing was
+       *  deleted this time. A race that settles itself, not a fault: the sweep
+       *  takes the account again tomorrow and an admin can press again. */
+      deferred?: true;
     };
 
 /**
@@ -413,84 +441,138 @@ export async function purgeUserAccount(
    * unconditional delete that member was erased anyway, irreversibly, after
    * the app had told them it was called off (bug-report-2 C-075).
    *
-   * A re-read at the top of the transaction would not close it: this runs at
-   * READ COMMITTED, so a sign-in committing mid-transaction is invisible to a
-   * snapshot already taken. The condition therefore rides on the DELETE
-   * itself, which locks the row and re-evaluates the predicate against the
-   * updated version. Zero rows deleted means they came back, and the whole
-   * transaction rolls back with them. */
+   * So the condition rides on the DELETE itself, and zero rows deleted rolls
+   * the whole transaction back. The transaction runs at REPEATABLE READ
+   * (C-076, below), and where the sign-in lands decides how the purge learns
+   * of it. Committed before the purge's snapshot, the delete matches nothing
+   * and the member is spared at once. Committed while the purge runs, the
+   * delete meets a row changed after its snapshot, and Postgres refuses it
+   * (40001, Prisma's P2034) rather than reading the new version; the
+   * transaction is then tried again from a fresh snapshot, which sees the
+   * sign-in, and spares them there. This comment used to say the purge ran at
+   * READ COMMITTED and that the delete re-read the row, which stopped being
+   * true when C-076 raised the isolation level: that sign-in turned the
+   * night's job red instead of counting the member as spared (bug audit 3,
+   * T7a-10). */
   opts?: { onlyIfRequestedBefore?: Date }
 ): Promise<PurgeResult> {
   let urls: string[];
   let groupsRehomed: number;
 
   try {
-    const outcome = await prisma.$transaction(
-      async (tx) => {
-        const rehomed = await promoteOrphanedGroups(tx, userId);
-        const collected = await collectImageUrls(tx, userId);
-        if (collected.length > 0) {
-          await tx.pendingImagePurge.createMany({
-            data: collected.map((url) => ({ url, reason: "purge" })),
-          });
-        }
-        await clearBellsPointingAtThisMember(tx, userId);
-        await deleteUnansweredPrompts(tx, userId);
-        /* Nothing here touches the reports this member FILED. They are
-           moderation history about somebody else, and they outlive the
-           account: Report.reporter is SetNull, so the delete below detaches
-           them and the Reports page shows "a member who has since left" (bug
-           audit 3, T7a-01; the owner's Q1, and the privacy page's promise).
-           The edge was RESTRICT, and the purge used to delete every one of
-           them here, pending ones included, so the delete could succeed (audit
-           H8).
-           Reports filed AGAINST the member still go with them, by Cascade. */
-        await tombstoneComments(tx, userId);
-        await clearCoversPointingAtThisMember(tx, userId);
-        await restoreCatchupPicturesUploadedBy(tx, userId);
-        const removed = await tx.user.deleteMany({
-          where: {
-            id: userId,
-            ...(opts?.onlyIfRequestedBefore
-              ? { deletionRequestedAt: { lt: opts.onlyIfRequestedBefore } }
-              : {}),
+    /* Tried again on a write conflict (bug audit 3, L1-04): RepeatableRead,
+       below, refuses a write to any row somebody else changed after this
+       transaction's snapshot, where READ COMMITTED would have waited for it.
+       Each new attempt starts again from the top with a fresh snapshot, so
+       everything it collects and deletes is read again. */
+    const outcome = await retryWriteConflicts(
+      () =>
+        prisma.$transaction(
+          async (tx) => {
+            const rehomed = await promoteOrphanedGroups(tx, userId);
+            const collected = await collectImageUrls(tx, userId);
+            if (collected.length > 0) {
+              await tx.pendingImagePurge.createMany({
+                data: collected.map((url) => ({ url, reason: "purge" })),
+              });
+            }
+            await clearBellsPointingAtThisMember(tx, userId);
+            await deleteUnansweredPrompts(tx, userId);
+            /* Nothing here touches the reports this member FILED. They are
+               moderation history about somebody else, and they outlive the
+               account: Report.reporter is SetNull, so the delete below detaches
+               them and the Reports page shows "a member who has since left" (bug
+               audit 3, T7a-01; the owner's Q1, and the privacy page's promise).
+               The edge was RESTRICT, and the purge used to delete every one of
+               them here, pending ones included, so the delete could succeed (audit
+               H8).
+               Reports filed AGAINST the member still go with them, by Cascade. */
+            await tombstoneComments(tx, userId);
+            await clearCoversPointingAtThisMember(tx, userId);
+            await restoreCatchupPicturesUploadedBy(tx, userId);
+            const removed = await tx.user.deleteMany({
+              where: {
+                id: userId,
+                ...(opts?.onlyIfRequestedBefore
+                  ? { deletionRequestedAt: { lt: opts.onlyIfRequestedBefore } }
+                  : {}),
+              },
+            });
+            if (removed.count === 0) throw new PurgeCancelled();
+            return { urls: collected, rehomed };
           },
-        });
-        if (removed.count === 0) throw new PurgeCancelled();
-        return { urls: collected, rehomed };
-      },
-      // The default 5s is a page-render budget, not a cascade budget: this one
-      // transaction deletes every row a long-standing member ever wrote.
-      // maxWait matches the pool's own connectionTimeoutMillis (prisma.ts):
-      // waiting longer than the pool will wait for a connection is dead
-      // configuration, and waiting less would fail before the pool gives up.
+          // The default 5s is a page-render budget, not a cascade budget: this one
+          // transaction deletes every row a long-standing member ever wrote.
+          // maxWait matches the pool's own connectionTimeoutMillis (prisma.ts):
+          // waiting longer than the pool will wait for a connection is dead
+          // configuration, and waiting less would fail before the pool gives up.
+          {
+            timeout: 30_000,
+            maxWait: 5_000,
+            /* RepeatableRead, because the comment on `collectImageUrls` claims
+               something READ COMMITTED does not give (audit C-076): that nothing
+               uploaded between reading the urls and deleting the rows can slip past.
+               Under READ COMMITTED every statement takes a fresh snapshot, so a post
+               committed mid-transaction is invisible to the collect and then deleted
+               by the cascade -- its bytes referenced by no row and reachable by no
+               sweep, which is unrecoverable, because nothing can enumerate the
+               bucket. Under RepeatableRead the whole transaction reads one snapshot
+               and a conflicting concurrent write aborts it instead, which is a retry
+               rather than a leak. */
+            isolationLevel: "RepeatableRead",
+          }
+        ),
       {
-      timeout: 30_000,
-      maxWait: 5_000,
-      /* RepeatableRead, because the comment on `collectImageUrls` claims
-         something READ COMMITTED does not give (audit C-076): that nothing
-         uploaded between reading the urls and deleting the rows can slip past.
-         Under READ COMMITTED every statement takes a fresh snapshot, so a post
-         committed mid-transaction is invisible to the collect and then deleted
-         by the cascade -- its bytes referenced by no row and reachable by no
-         sweep, which is unrecoverable, because nothing can enumerate the
-         bucket. Under RepeatableRead the whole transaction reads one snapshot
-         and a conflicting concurrent write aborts it instead, which is a retry
-         rather than a leak. */
-      isolationLevel: "RepeatableRead",
-    }
+        attempts: PURGE_ATTEMPTS,
+        onRetry: (failed) =>
+          console.info(
+            `[purge] ${userId}: another write landed on this account mid-purge; trying again (${failed + 1} of ${PURGE_ATTEMPTS})`
+          ),
+      }
     );
     urls = outcome.urls;
     groupsRehomed = outcome.rehomed;
   } catch (err) {
+    const sweep = !!opts?.onlyIfRequestedBefore;
     if (err instanceof PurgeCancelled) {
       // Everything above rolled back with the delete: the rehoming, the image
       // worklist, the tombstoned comments. The account is exactly as they left it.
       console.info(`[purge] ${userId} was not deleted: the request no longer stands`);
-      return { ok: false, cancelled: true, error: "That account is no longer due for deletion." };
+      return {
+        ok: false,
+        cancelled: true,
+        // Only the sweep's delete carries a condition; an admin's matches
+        // nothing only when the row is already gone.
+        error: sweep ? "That account is no longer due for deletion." : "That account no longer exists.",
+      };
     }
-    console.error("purgeUserAccount failed:", err);
-    return { ok: false, error: "Could not delete the account." };
+    if (isSerializationFailure(err)) {
+      /* Every attempt met another write. If one of them was the member
+         signing back in, the right answer is the one a cancellation gets
+         (T7a-10), so the sweep asks the row itself before calling it a
+         failure. */
+      if (opts?.onlyIfRequestedBefore && !(await stillDue(userId, opts.onlyIfRequestedBefore))) {
+        console.info(`[purge] ${userId} was not deleted: they signed back in while it ran`);
+        return { ok: false, cancelled: true, error: "That account is no longer due for deletion." };
+      }
+      // Three collisions in a row is unusual enough to want seeing, even
+      // though it settles itself (bug audit 3, T7a-09).
+      reportSwallowed("purge", err, { userId, sweep, attempts: PURGE_ATTEMPTS });
+      return {
+        ok: false,
+        deferred: true,
+        error: "Somebody was changing this account at the same moment, so nothing was deleted. Try again.",
+      };
+    }
+    /* Reported, not just logged (bug audit 3, T7a-09). This was a console line
+       on the one unattended destructive path: the nightly job went red with a
+       bare `purge:<id>`, Sentry never saw the cause, and an admin was told to
+       check a server log they cannot read. */
+    reportSwallowed("purge", err, { userId, sweep });
+    return {
+      ok: false,
+      error: "Could not delete this account. Nothing was removed, and the error has been reported.",
+    };
   }
 
   const drained = await drainPendingImagePurges(urls);
@@ -500,6 +582,20 @@ export async function purgeUserAccount(
     imagesFailed: drained.failed,
     groupsRehomed,
   };
+}
+
+/** Whether the member's request still stands by the sweep's cutoff. A read
+ *  that fails answers yes, so the failure it was asked about is reported as it
+ *  stands rather than called a cancellation. */
+async function stillDue(userId: string, requestedBefore: Date): Promise<boolean> {
+  try {
+    const n = await prisma.user.count({
+      where: { id: userId, deletionRequestedAt: { lt: requestedBefore } },
+    });
+    return n > 0;
+  } catch {
+    return true;
+  }
 }
 
 /**

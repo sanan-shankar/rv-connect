@@ -158,6 +158,11 @@ export type SweepResult = {
   /** Accounts that were due tonight and are still here, because the member
    *  signed in (which cancels the request) before their turn came round. */
   accountsSpared: number;
+  /** Accounts that were due tonight and wait for tomorrow's pass for a reason
+   *  that settles itself: every attempt at the purge met another write to
+   *  the member's rows (bug audit 3, L1-04). Not an error; the purge reports
+   *  each one to Sentry itself, so a run of them is still seen. */
+  accountsDeferred: number;
   /** Stored images an earlier purge could not remove, cleared on this pass. */
   imagesRetried: number;
   /** ...and how many R2 still refuses. A number that only ever grows is the
@@ -278,6 +283,7 @@ export async function runRetentionSweep(): Promise<SweepResult> {
      the id belonged to. */
   let accountsPurged = 0;
   let accountsSpared = 0;
+  let accountsDeferred = 0;
   const due = await step("accountsPurged:list", async () => {
     const rows = await prisma.user.findMany({
       where: { deletionRequestedAt: { lt: cutoff(DELETION_GRACE_DAYS) } },
@@ -306,6 +312,10 @@ export async function runRetentionSweep(): Promise<SweepResult> {
       if (!purged.ok) {
         if (purged.cancelled) {
           accountsSpared += 1;
+          continue;
+        }
+        if (purged.deferred) {
+          accountsDeferred += 1;
           continue;
         }
         errors.push(`purge:${row.id}`);
@@ -358,6 +368,7 @@ export async function runRetentionSweep(): Promise<SweepResult> {
     notificationsCapped,
     accountsPurged,
     accountsSpared,
+    accountsDeferred,
     imagesRetried,
     imagesStillPending,
     errors,
