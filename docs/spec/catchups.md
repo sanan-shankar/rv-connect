@@ -103,7 +103,9 @@ wrote `admin` until 2026-10-29, which the revoke never matched, so their Keepers
 relieved; bug audit 3, T7a-07). `admin` is left only on each creator's own row from creation. It
 was the group's moderation role once, and posts left groups on 2026-09-07, so it grants nothing a
 Keeper lacks, and revoking takes either word from anyone but the creator (T3-15). The creator is
-always a Keeper and cannot be demoted or removed. `isEffectiveKeeper` itself never returns true for a batch member --
+always a Keeper and cannot be demoted or removed. Nobody changes their own hat, and the last hat is
+never taken: the revoke asks `anyOtherHolder` inside a transaction that holds the group's row, so two
+Keepers taking each other's at once leave one wearing it (write-path review of A2, 2026-10-29). `isEffectiveKeeper` itself never returns true for a batch member --
 nobody there holds `createdById` or the role, and that does not change.
 
 **Every batch member holds the cycle instead** (owner, 2026-09-27: "make everyone a keeper"),
@@ -283,7 +285,7 @@ Catch-up has ended; "idle" means refused while nothing is running (§3.5).
 | `setCatchupPicture` | Keeper | any member | pool or own upload only |
 | `addCatchupMembers` | Keeper, not ended; the roster holds 100 at most, counted in the write | refused | verified, rate-limited (`catchups`) |
 | `removeCatchupMember` | Keeper; not yourself, not the creator; changes the invite link | refused | verified |
-| `setCatchupKeeper` | Keeper; not on the creator; only to somebody a Catch-up may hold | refused | verified |
+| `setCatchupKeeper` | Keeper; not on yourself or the creator; never the last hat; only to somebody a Catch-up may hold | refused | verified |
 | `leaveCatchup` | any member but the creator | refused | off on the demo |
 | `setCatchupArchived` | any member | same (the only exit) | off on the demo |
 | `setReminderPref` | any member | same | |
@@ -308,8 +310,10 @@ cleared (`clearCatchupNotifications`, matched by prefix on `/catchups/<id>` and
 Editions other people have read. If they were the last holder of Keeper powers,
 `promoteGroupSuccessor` hands the hat on first, to the longest-standing member who can act: someone
 a Catch-up may hold (§2.1), so never a blocked, leaving, teacher or unverified account, and a holder
-who can no longer act does not count as one (bug audit 3, T2a-09, L10-01). The account purge
-decides it the same way. The creator cannot leave; they are told to end it or
+who can no longer act does not count as one (bug audit 3, T2a-09, L10-01). Succession holds the
+group's row before it reads (`lockGroup`), so the last two Keepers leaving or removed in the same
+instant are decided one after the other rather than each seeing the other still wearing the hat
+(L1-03). The account purge decides it the same way, without that lock yet. The creator cannot leave; they are told to end it or
 make someone else a Keeper. A batch member cannot leave, because the nightly heal would put them
 straight back.
 

@@ -303,9 +303,8 @@ test("putting somebody into a Catch-up, or handing them the hat, asks the Catch-
     );
   }
   const keeper = fnBody("setCatchupKeeper");
-  const from = keeper.indexOf("const updated = isKeeper");
-  const to = keeper.indexOf(": await prisma.groupMember.updateMany", from);
-  assert.ok(from > -1 && to > from, "setCatchupKeeper's grant/revoke split moved; retarget this pin");
-  assert.match(keeper.slice(from, to), /user:\s*CATCHUP_PEOPLE/, "the hat can be handed to somebody a Catch-up may not hold");
+  const grant = keeper.match(/prisma\.groupMember\.updateMany\(\{([\s\S]*?)data: \{ role: "keeper" \}/);
+  assert.ok(grant, "setCatchupKeeper's grant moved; retarget this pin");
+  assert.match(grant[1], /user:\s*CATCHUP_PEOPLE/, "the hat can be handed to somebody a Catch-up may not hold");
   assert.match(keeper, /Only a verified member can be a Keeper\./, "a refused grant says nothing, or says it worked");
 });

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { chooseGroupSuccessor, promoteGroupSuccessor } from "./group-succession.ts";
+import { anyOtherHolder, chooseGroupSuccessor, promoteGroupSuccessor } from "./group-succession.ts";
 import { CATCHUP_PEOPLE } from "./catchup-caps.ts";
 import { read as readRepo, decomment, balancedBody } from "./test-kit.mjs";
 
@@ -64,11 +64,31 @@ test("a joinedAt tie resolves the same way whatever order the rows arrive in", (
 function fakeDb(rows) {
   const writes = [];
   const reads = [];
+  const events = [];
   return {
     writes,
     reads,
+    events,
+    group: {
+      async updateMany({ where, data }) {
+        events.push(`lock:${where.id}`);
+        assert.ok(data.updatedAt instanceof Date, "the group's lock writes something other than updatedAt");
+        return { count: 1 };
+      },
+    },
     groupMember: {
+      async count({ where }) {
+        events.push("count");
+        return rows.filter(
+          (r) =>
+            r.groupId === where.groupId &&
+            r.userId !== where.userId.not &&
+            where.role.in.includes(r.role) &&
+            (where.user !== CATCHUP_PEOPLE || r.canAct !== false)
+        ).length;
+      },
       async findMany({ where }) {
+        events.push("read");
         reads.push(where);
         return rows.filter(
           (r) => r.groupId === where.groupId && (where.user !== CATCHUP_PEOPLE || r.canAct !== false)
@@ -148,6 +168,61 @@ test("T2a-09: when nobody left can act, nobody is promoted", async () => {
   const db = fakeDb([inGroup("keeper", "keeper", "2026-01-01"), inGroup("only", "member", "2026-02-01", false)]);
   assert.equal(await promoteGroupSuccessor(db, "g", "keeper"), null);
   assert.deepEqual(db.writes, []);
+});
+
+/* ------------------------------------------------------------------ *
+ *  L1-03 and the write-path review of A2: the hat never goes with the last
+ *  holder, even when two people move at once.
+ *
+ *  Each departure read the roster and wrote only its own row, so the last two
+ *  Keepers leaving in the same instant each saw the other still wearing the
+ *  hat and nobody was promoted; two Keepers taking each other's hat did the
+ *  same through the revoke. Every one of these now holds the group's row
+ *  before it reads, so the second waits for the first and then sees it.
+ * ------------------------------------------------------------------ */
+
+test("L1-03: succession holds the group's row before it reads who is left", async () => {
+  const db = fakeDb([inGroup("keeper", "keeper", "2026-01-01"), inGroup("older", "member", "2026-02-01")]);
+  await promoteGroupSuccessor(db, "g", "keeper");
+  assert.deepEqual(db.events.slice(0, 2), ["lock:g", "read"], "succession reads the roster before it holds the group");
+});
+
+test("the last-hat question counts only others who can act, wearing either word", async () => {
+  const rows = [
+    inGroup("target", "keeper", "2026-01-01"),
+    inGroup("plain", "member", "2026-02-01"),
+    inGroup("stranded", "keeper", "2026-03-01", false),
+  ];
+  assert.equal(await anyOtherHolder(fakeDb(rows), "g", "target"), false, "a stranded holder or a plain member counted as keeping it");
+  rows.push(inGroup("creator", "admin", "2026-04-01"));
+  assert.equal(await anyOtherHolder(fakeDb(rows), "g", "target"), true, "a creator's admin row no longer counts as a hat");
+});
+
+test("L1-03: leaving and removal hand the hat on first thing in their transaction", () => {
+  const src = decomment(readRepo("src/app/(main)/catchups/actions.ts"));
+  for (const name of ["leaveCatchup", "removeCatchupMember"]) {
+    const fn = balancedBody(src, `export async function ${name}(`);
+    assert.ok(fn, `${name} is gone; this pin is reading nothing`);
+    assert.match(
+      fn,
+      /prisma\.\$transaction\(async \(tx\) => \{\s*await promoteGroupSuccessor\(tx,/,
+      `${name} reads or writes before succession holds the group, so two departures can cross again`
+    );
+  }
+});
+
+test("A2 review: the hat is never taken from yourself, nor from its last holder", () => {
+  const src = decomment(readRepo("src/app/(main)/catchups/actions.ts"));
+  const fn = balancedBody(src, "export async function setCatchupKeeper(");
+  assert.ok(fn, "setCatchupKeeper is gone; this pin is reading nothing");
+  assert.match(fn, /if \(userId === session\.user\.id\) return \{ error: "You cannot change your own Keeper hat\." \}/, "a Keeper can change their own hat again");
+  const tx = fn.indexOf("prisma.$transaction(");
+  const lock = fn.indexOf("await lockGroup(tx, catchup.groupId)");
+  const asked = fn.indexOf("anyOtherHolder(tx, catchup.groupId, userId)");
+  const revoke = fn.indexOf("tx.groupMember.updateMany(");
+  assert.ok(tx > -1 && lock > tx && asked > lock && revoke > asked, "the revoke no longer asks, inside a transaction holding the group, whether anyone else wears the hat");
+  assert.doesNotMatch(fn, /prisma\.groupMember\.updateMany\(\{\s*where: \{ groupId: catchup\.groupId, userId, role:/, "a revoke outside the transaction is back");
+  assert.match(fn, /That would leave this Catch-up with no Keeper/, "a refused last revoke says nothing, or says it worked");
 });
 
 /* ------------------------------------------------------------------ *

@@ -23,13 +23,17 @@ import { CATCHUP_PEOPLE } from "./catchup-caps.ts";
  */
 export type GroupMemberRow = { userId: string; role: string; joinedAt: Date };
 
+/** The two words a hat is written in: "keeper" by every path that hands it on,
+ *  "admin" only on a creator's own row from creation (docs/spec/catchups.md 2.2). */
+const HAT_ROLES = ["keeper", "admin"];
+
 export function chooseGroupSuccessor(
   members: GroupMemberRow[],
   leavingUserId: string
 ): string | null {
   const staying = members.filter((m) => m.userId !== leavingUserId);
   if (staying.length === 0) return null;
-  if (staying.some((m) => m.role === "admin" || m.role === "keeper")) return null;
+  if (staying.some((m) => HAT_ROLES.includes(m.role))) return null;
   // Sorted, not reduced, so two reads of the same table in a different row
   // order pick the same person: id breaks a joinedAt tie (two people added by
   // the same createMany share a timestamp to the millisecond).
@@ -38,6 +42,62 @@ export function chooseGroupSuccessor(
       a.joinedAt.getTime() - b.joinedAt.getTime() || (a.userId < b.userId ? -1 : 1)
   );
   return first.userId;
+}
+
+/**
+ * Hold the group's row for the rest of the transaction (bug audit 3, L1-03).
+ *
+ * Taken first by every transaction that changes who is in a Catch-up or who
+ * wears its hat: leaving and removal (through `promoteGroupSuccessor` below),
+ * taking a hat back, adding and joining. At READ COMMITTED each statement sees
+ * only what had committed when it began, and these transactions otherwise
+ * write only their own member rows, so they never waited for each other: the
+ * two last Keepers of a Catch-up with no creator, leaving in the same instant,
+ * each read the other still wearing the hat, nobody was promoted, and nobody
+ * was left to tend it. Holding the row, the second waits for the first to
+ * commit, and every statement it runs after that sees the first's change.
+ * Writing `updatedAt` is the lock; nothing reads a group's `updatedAt`.
+ */
+export type GroupLockDb = {
+  group: {
+    updateMany(args: { where: { id: string }; data: { updatedAt: Date } }): Promise<{ count: number }>;
+  };
+};
+
+export async function lockGroup(db: GroupLockDb, groupId: string): Promise<void> {
+  await db.group.updateMany({ where: { id: groupId }, data: { updatedAt: new Date() } });
+}
+
+/**
+ * Whether anybody but `exceptUserId` would still wear the hat: a member who
+ * can act (`CATCHUP_PEOPLE`, as succession reads them) holding either word.
+ * The question a revoke asks before it takes one (bug audit 3, write-path
+ * review of A2), inside a transaction that already holds the group, so two
+ * Keepers taking each other's hat in the same instant cannot both see the
+ * other still wearing one.
+ */
+export type HolderDb = {
+  groupMember: {
+    count(args: {
+      where: {
+        groupId: string;
+        userId: { not: string };
+        role: { in: string[] };
+        user: typeof CATCHUP_PEOPLE;
+      };
+    }): Promise<number>;
+  };
+};
+
+export async function anyOtherHolder(
+  db: HolderDb,
+  groupId: string,
+  exceptUserId: string
+): Promise<boolean> {
+  const others = await db.groupMember.count({
+    where: { groupId, userId: { not: exceptUserId }, role: { in: HAT_ROLES }, user: CATCHUP_PEOPLE },
+  });
+  return others > 0;
 }
 
 /**
@@ -57,13 +117,15 @@ export function chooseGroupSuccessor(
  * Catch-up keeps running on its clock, notifying a group that can no longer
  * steer it.
  *
- * Reads only the members who can act (`CATCHUP_PEOPLE`, see above), and
- * writes "keeper", the one role every path hands the hat on with.
+ * Holds the group's row first (`lockGroup`), so two departures in the same
+ * instant are decided one after the other. Reads only the members who can act
+ * (`CATCHUP_PEOPLE`, see above), and writes "keeper", the one role every path
+ * hands the hat on with.
  *
  * A no-op in the ordinary case -- somebody else still holds the powers, so
  * `chooseGroupSuccessor` returns null and nothing is written.
  */
-export type SuccessionDb = {
+export type SuccessionDb = GroupLockDb & {
   groupMember: {
     findMany(args: {
       where: { groupId: string; user: typeof CATCHUP_PEOPLE };
@@ -81,6 +143,7 @@ export async function promoteGroupSuccessor(
   groupId: string,
   leavingUserId: string
 ): Promise<string | null> {
+  await lockGroup(db, groupId);
   const members = await db.groupMember.findMany({
     where: { groupId, user: CATCHUP_PEOPLE },
     select: { userId: true, role: true, joinedAt: true },

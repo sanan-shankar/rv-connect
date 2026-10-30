@@ -102,7 +102,7 @@ import type {
   PromptCategory,
   ReminderMode,
 } from "@/lib/catchups-types";
-import { promoteGroupSuccessor } from "@/lib/group-succession";
+import { anyOtherHolder, lockGroup, promoteGroupSuccessor } from "@/lib/group-succession";
 import { clearCatchupNotifications } from "@/lib/catchup-notifications";
 import { isSerializationFailure, isUniqueViolation } from "@/lib/prisma-errors";
 import { DOUBLE_SUBMIT_MS } from "@/lib/double-submit";
@@ -2458,7 +2458,10 @@ export async function leaveCatchup(catchupId: string) {
          powers entirely in `GroupMember.role`, so the last role-holder walking
          out leaves nobody who can curate a question, publish an Edition or end
          it -- and no way to claim it, since making a Keeper needs a Keeper.
-         A no-op whenever somebody else still holds the powers. */
+         A no-op whenever somebody else still holds the powers. First in the
+         transaction, because it holds the group's row before it reads: the
+         last two Keepers leaving at once are decided one after the other
+         (bug audit 3, L1-03). */
       await promoteGroupSuccessor(tx, ctx.catchup.groupId, viewerId);
       // deleteMany, not delete: a second tap (or a Keeper removing them in the
       // same beat) has already taken the row, and P2025 out of a "leave" button
@@ -2553,36 +2556,52 @@ export async function setCatchupKeeper(catchupId: string, userId: string, isKeep
     if ("error" in scope) return { error: scope.error };
     const { catchup } = scope;
 
+    /* Not your own hat (write-path review of A2). The People door offers
+       nobody their own row, and says this is refused here; it was not, so a
+       lone Keeper of a Catch-up whose creator is gone could take theirs off
+       and leave nobody able to tend it. */
+    if (userId === session.user.id) return { error: "You cannot change your own Keeper hat." };
     if (catchup.createdById && userId === catchup.createdById) {
       return { error: "Whoever started a Catch-up is always its Keeper." };
     }
 
-    /* Either word comes off, and only the hat: the revoke writes "member" over
-       a "keeper" or an "admin" row and touches no other role (T3-15, see the
-       docblock). The creator, the one member whose "admin" row means more
-       than the hat, was refused just above. */
-    const updated = isKeeper
-      ? await prisma.groupMember.updateMany({
-          // Only to somebody a Catch-up may hold (L10-01). The hat is every
-          // Keeper control in this file, and the stage gate on each of them
-          // would turn an unproven Keeper away, leaving a Catch-up whose
-          // Keeper can do nothing.
-          where: { groupId: catchup.groupId, userId, user: CATCHUP_PEOPLE },
-          data: { role: "keeper" },
-        })
-      : await prisma.groupMember.updateMany({
+    if (isKeeper) {
+      const granted = await prisma.groupMember.updateMany({
+        // Only to somebody a Catch-up may hold (L10-01). The hat is every
+        // Keeper control in this file, and the stage gate on each of them
+        // would turn an unproven Keeper away, leaving a Catch-up whose
+        // Keeper can do nothing.
+        where: { groupId: catchup.groupId, userId, user: CATCHUP_PEOPLE },
+        data: { role: "keeper" },
+      });
+      if (granted.count === 0) {
+        // Not in the Catch-up, or somebody a Catch-up may not hold.
+        const stillHere = await prisma.groupMember.count({ where: { groupId: catchup.groupId, userId } });
+        return { error: stillHere === 0 ? "They are not in this Catch-up." : "Only a verified member can be a Keeper." };
+      }
+    } else {
+      /* NEVER THE LAST HAT, decided while the group is held (write-path
+         review of A2; the lock is L1-03's). Two Keepers of a Catch-up whose
+         creator is gone, each taking the other's hat in the same instant,
+         each saw the other still wearing one; now the second waits for the
+         first, sees its change, and is refused. Either word comes off, and
+         only the hat: "member" over a "keeper" or an "admin" row (T3-15, see
+         the docblock); the creator, whose "admin" row means more than the
+         hat, was refused above. */
+      const revoked = await prisma.$transaction(async (tx) => {
+        await lockGroup(tx, catchup.groupId);
+        if (!(await anyOtherHolder(tx, catchup.groupId, userId))) return "last" as const;
+        return tx.groupMember.updateMany({
           where: { groupId: catchup.groupId, userId, role: { in: ["keeper", "admin"] } },
           data: { role: "member" },
         });
-    if (updated.count === 0) {
-      // Matching nothing means they are not in the Catch-up; or, granting,
-      // that a Catch-up may not hold them; or, revoking, that they were not
-      // wearing the hat, which is the state asked for.
-      const stillHere = await prisma.groupMember.count({
-        where: { groupId: catchup.groupId, userId },
       });
-      if (stillHere === 0) return { error: "They are not in this Catch-up." };
-      if (isKeeper) return { error: "Only a verified member can be a Keeper." };
+      if (revoked === "last") return { error: "That would leave this Catch-up with no Keeper, so nothing changed." };
+      if (revoked.count === 0) {
+        // Not in the Catch-up; or not wearing the hat, which is the state asked for.
+        const stillHere = await prisma.groupMember.count({ where: { groupId: catchup.groupId, userId } });
+        if (stillHere === 0) return { error: "They are not in this Catch-up." };
+      }
     }
 
     revalidatePath(`/catchups/${catchupId}`);
