@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { Readable } from "node:stream";
 import { vetPhotoDownload } from "@/lib/api-gate";
 import { getImageBuffer, keyForUrl } from "@/lib/storage";
-import { sharpImage } from "@/lib/image";
+import { sharpImage, takeImageSlot } from "@/lib/image";
 
 /* ------------------------------------------------------------------ *
  *  Saving a photograph as something a person can open.
@@ -79,8 +79,17 @@ export async function GET(request: Request) {
      the first form the owner asked for on 2026-09-01: the file a classmate
      saves should file itself under 1978 in their photo app, not under today.
      No `.rotate()` -- the stored copy was uprighted at upload and carries no
-     orientation tag, so rotating again would tip it over. */
+     orientation tag, so rotating again would tip it over.
+
+     A decode slot first (image.ts, IMAGE_SLOTS): this streams rather than
+     buffers, so sharpImage's own wrapper never sees it, and a few presses of
+     Download on the archive's largest photographs are exactly the concurrent
+     decodes the slot exists to queue (L8-08). Given back when the stream
+     closes, which it does on the last byte and on a download cancelled
+     part-way, or on an error. */
+  const release = await takeImageSlot();
   const encoded = sharpImage(original).keepExif().jpeg({ quality: JPEG_QUALITY, mozjpeg: true });
+  encoded.once("close", release).once("error", release);
 
   return new Response(Readable.toWeb(encoded) as ReadableStream<Uint8Array>, {
     headers: {

@@ -12,10 +12,15 @@ import { MAX_INPUT_PIXELS } from "./upload-shared.ts";
  *
  * `sequentialRead` lets libvips stream rows instead of holding the whole
  * decoded image where the operation allows it, trimming the peak.
+ *
+ * And every buffered result waits for a decode slot (IMAGE_SLOTS below), so
+ * the ceiling on one decode is not undone by several at once. `metadata()`
+ * reads only the header and is left alone; a streamed pipeline takes its slot
+ * where it is consumed (`/api/photo/download`).
  */
 
 export function sharpImage(input: Buffer): Sharp {
-  return sharp(input, {
+  const image = sharp(input, {
     limitInputPixels: MAX_INPUT_PIXELS,
     sequentialRead: true,
     // Fail only on a real decode ERROR, not on a libpng WARNING. sharp 0.35
@@ -28,6 +33,50 @@ export function sharpImage(input: Buffer): Sharp {
     // throws.
     failOn: "error",
   });
+  /* sharp's chain methods return the same instance, so this survives every
+     .rotate().resize().webp() a caller adds. Nothing inside sharp calls
+     toBuffer, so a slot is never taken twice. The callback form is passed
+     through untouched; nothing here uses it. */
+  const toBuffer = image.toBuffer.bind(image) as unknown as (options?: unknown) => Promise<unknown>;
+  image.toBuffer = ((options?: unknown) =>
+    typeof options === "function"
+      ? toBuffer(options)
+      : takeImageSlot().then((release) => toBuffer(options).finally(release))) as Sharp["toBuffer"];
+  return image;
+}
+
+/**
+ * How many images one server instance decodes at once.
+ *
+ * MAX_INPUT_PIXELS bounds ONE decode, and that was the whole budget while a
+ * function ran one request at a time. Under Fluid compute one instance runs
+ * many at once inside a fixed 2GB, so the bound has to be on how many run
+ * together (bug audit 3, L8-08). Measured 2026-10-30 on one libvips thread,
+ * which is sharp's default on Vercel's Linux, with the Collection's own encode
+ * of a 40-megapixel image: about 650MB of the process at the peak for one,
+ * 2.1GB for four at once, past the instance before the server's own share.
+ * Two keeps the worst case near 1.3GB and costs nothing on a single vCPU,
+ * where two encodes already take turns on the core; a third waits for a slot
+ * instead of taking the instance, and every request on it, down.
+ */
+const IMAGE_SLOTS = 2;
+let slotsInUse = 0;
+const slotQueue: Array<() => void> = [];
+
+/** A decode slot; the function it resolves to gives it back, once. */
+export async function takeImageSlot(): Promise<() => void> {
+  if (slotsInUse < IMAGE_SLOTS) slotsInUse++;
+  else await new Promise<void>((resolve) => slotQueue.push(resolve));
+  let held = true;
+  return () => {
+    if (!held) return;
+    held = false;
+    // Handed straight to the next in line, so a newcomer cannot slip in
+    // between this release and that waiter waking, and make it three.
+    const next = slotQueue.shift();
+    if (next) next();
+    else slotsInUse--;
+  };
 }
 
 /**

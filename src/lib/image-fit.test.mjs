@@ -1,6 +1,15 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { MAX_STORED_PIXELS, storedPixelFit, storedResizeBox, WEBP_MAX_DIM } from "./image.ts";
+import sharp from "sharp";
+import { read, decomment } from "./test-kit.mjs";
+import {
+  MAX_STORED_PIXELS,
+  sharpImage,
+  storedPixelFit,
+  storedResizeBox,
+  takeImageSlot,
+  WEBP_MAX_DIM,
+} from "./image.ts";
 
 test("an ordinary photo is left completely alone", () => {
   assert.equal(storedPixelFit(4000, 3000), null, "a 12MP phone photo");
@@ -98,4 +107,67 @@ test("C-067/C-070: sharp still behaves the way the box assumes", async () => {
     .resize(box.width, box.height, { fit: "inside", withoutEnlargement: true })
     .toBuffer({ resolveWithObject: true });
   assert.ok(out.info.height > out.info.width, "the stored image came out on its side");
+});
+
+/* ------------------------------------------------------------------ *
+ *  The decode budget is per instance, not per request (bug audit 3,
+ *  L8-08). One 40-megapixel encode measured about 650MB at its peak and
+ *  four at once 2.1GB, past a Fluid instance's 2GB, so decodes take
+ *  turns: two at a time, the rest wait for a slot.
+ * ------------------------------------------------------------------ */
+
+/** True if the promise settles within a few turns of the event loop. */
+async function settlesSoon(promise) {
+  let done = false;
+  promise.then(() => (done = true), () => (done = true));
+  for (let i = 0; i < 20; i++) await new Promise((r) => setImmediate(r));
+  return done;
+}
+
+test("L8-08: two decodes at a time, a third waits for a slot, and a slot is given back once", async () => {
+  const a = await takeImageSlot();
+  const b = await takeImageSlot();
+  const c = takeImageSlot();
+  assert.equal(await settlesSoon(c), false, "a third decode started while two held the instance");
+  a();
+  const releaseC = await c;
+  a(); // a second release of the same slot must not free another one
+  const d = takeImageSlot();
+  assert.equal(await settlesSoon(d), false, "a slot given back twice let a third decode in");
+  b();
+  const releaseD = await d;
+  releaseC();
+  releaseD();
+});
+
+test("L8-08: a buffered result from sharpImage waits for a slot, and a header read does not", async () => {
+  const input = await sharp({ create: { width: 64, height: 48, channels: 3, background: "#235c49" } }).png().toBuffer();
+  const a = await takeImageSlot();
+  const b = await takeImageSlot();
+  try {
+    const meta = await sharpImage(input).metadata();
+    assert.equal(meta.width, 64, "metadata() should answer while every slot is held: it decodes nothing");
+    const encode = sharpImage(input).rotate().resize(32).webp().toBuffer();
+    assert.equal(await settlesSoon(encode), false, "an encode ran with every slot held");
+    a();
+    const out = await encode;
+    assert.ok(out.length > 0, "the encode did not finish once a slot was free");
+  } finally {
+    a();
+    b();
+  }
+});
+
+test("L8-08: the streamed download takes a slot too, and gives it back when the stream closes", () => {
+  /* /api/photo/download pipes sharp straight into the response, so it never
+     calls toBuffer and the wrapper never sees it; a few presses of Download
+     on the largest archive photographs are the concurrent decodes in the
+     finding. "close" comes on the last byte and on a download cancelled
+     part-way (checked against sharp's stream); "error" covers the rest. */
+  const src = decomment(read("src/app/api/photo/download/route.ts"));
+  const take = src.search(/await takeImageSlot\(\)/);
+  const build = src.search(/sharpImage\(original\)/);
+  assert.ok(take !== -1 && take < build, "the download no longer takes a decode slot before it builds the pipeline");
+  assert.match(src, /\.once\("close", release\)/, "the download's slot is not given back when its stream closes");
+  assert.match(src, /\.once\("error", release\)/, "the download's slot is not given back on an error");
 });
