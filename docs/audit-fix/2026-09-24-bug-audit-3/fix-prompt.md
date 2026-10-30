@@ -71,7 +71,7 @@ the rest of the phase runs.
 | Phase | Status | Rows left | Blocked on |
 |---|---|---|---|
 | A — Trust: who counts as verified, and who may press what in a Catch-up | DONE | 0 | — |
-| B — Privacy: what leaves the site, and what outlives a member | PARTIAL | 2 (0 H, 1 M, 1 L) | — |
+| B — Privacy: what leaves the site, and what outlives a member | DONE | 0 | — |
 | O — Budgets: what one account or one script may spend of what everyone shares | OPEN | 11 (2 H, 8 M, 1 L) | — |
 | E — The Collection | OPEN | 27 (3 H, 6 M, 18 L) | — |
 | F — Letters, the feed and the composer | OPEN | 26 (2 H, 6 M, 18 L) | — |
@@ -515,9 +515,10 @@ closes one strikes it here in its own commit.
 - **Phase O:** `joinCatchupByToken` has no rate limit (A4 note).
 - **The demo unit (track 3):** the demo database also lacks `Notification_userId_createdAt_idx` (L3).
 - **Phase F, O-01's fix:** delete `drafts-strip.tsx`'s entry from the date sweep's exemption list (L2).
-- **The privacy page unit (T8b-06):** the sentences B1 (Sentry), B2 (PostHog), B3a (reports outlive
+- ~~**The privacy page unit (T8b-06):** the sentences B1 (Sentry), B2 (PostHog), B3a (reports outlive
   the reporter; answered Catch-up questions stay unnamed) and B4 (what "Download your data" holds and
-  leaves out; a leaving member's writing hidden for the sixty days) reported, in their month entries.
+  leaves out; a leaving member's writing hidden for the sixty days) reported, in their month entries.~~
+  Done in B5 (ledger, T8b-06), each read again in the code first.
 - ~~**Track 1 (Catch-ups), under Q6 (b) (B4, L10-02):** a member inside their sixty days after "Delete my
   account" now leaves every list outside the Catch-ups through `AUTHOR_IN_GOOD_STANDING`, and their comments
   under answers with it (comment-thread.ts serves both, as it already did for a blocked member). The
@@ -539,6 +540,13 @@ closes one strikes it here in its own commit.
   "local"; `off-production-rule.test.mjs` can pin it. And whoever next holds `src/app/(main)/admin/people/actions.ts`:
   `blockWrite`'s comment still says "a valid 30-day token" and "the only way to end one" (sessions are ninety days,
   and the isBlocked clause ends one too; L9-05).
+- **Track 2, whoever next holds the data download (T6-03's residue, found in B5):** `LoginAttempt` (by
+  `email` and a bare `userId`) and `AuditLog` (`actorId`/`targetId`, with `ip`) are not User relations,
+  so `account-export-rule.test.mjs`'s walk never asks about them, and the file leaves out a member's
+  sign-in attempts and the audit lines about them, which Q24 (a) reads as included. The privacy page
+  now says those logs are not in the file and to write in for them; `docs/SECURITY.md`'s export
+  paragraph and the route's header still say "everything". Change the page's sentence in the same
+  commit as the fix.
 
 ## Ledger
 
@@ -688,3 +696,5 @@ evidence stays in `work/`; this ledger is the record of what the campaign did.
 - Routed (a) — DONE (fix(catchups): a Keeper whose hat went in a race is refused, asked while the group is held); `stillKeeps` (actions.ts) reads the caller's row inside the transaction once `lockGroup` holds the group, in `addCatchupMembers`, `removeCatchupMember` (which now takes the lock itself before succession, so a refused removal writes nothing), and both halves of `setCatchupKeeper` (the grant moved into a transaction holding the group too); refused with the membership controls' sentence. Pinned in catchup-lifecycle, group-succession and batch-catchup-keeper-rule (the L1-03 pin accepts the lock or succession first). Proved live on a throwaway Catch-up the Anonymous account started, the test account wearing a plain "keeper" hat: a held transaction took the hat while the test account pressed Remove; the removal waited on the group, then said "Only a Keeper can change who is in this Catch-up.", and the member, the invite link and the bell were all unchanged. Committed with `npm run check` red only on stats-exclusion-rule.test.mjs, which reads another track's in-flight `src/app/(policies)/privacy/page.tsx` (waited and re-ran once)
 - T3-23 — DONE (fix(catchups): removing someone from a Catch-up asks first, and says what it will take); a confirmation, not an undo: a removal changes the invite link, clears the member's bells and takes what they wrote for an Edition still running (C8-04), and adding them back restores none of it. Remove on a person's row opens `ConfirmDialog` (the design system's one confirmation, the old panel's choice): "Remove <name>", then "Anything they wrote for this Edition goes with them, and the invite link changes. Editions already out keep their words." while an Edition runs, or "What they wrote stays, and the invite link changes." otherwise, Cancel then a red Remove; the action is called only from its handler, and the toast stays the removal's; spec §7.3; pinned in catchup-lifecycle (one call, in the handler; the row opens the dialog; the line's two cases). Shown at 1440 (over the People dialog) and 390 (over the sheet); live on a throwaway: Remove opened the dialog and removed nobody, Cancel kept them, Remove removed them and toasted "Anonymous was removed. The invite link has changed."; visual 25/25. The 2px gap to the sprout is unchanged: a mis-tap now costs a Cancel
 - T2b-12 — DONE (fix(catchups): the blank answer from before the withdrawal rule is deleted); Q28: `prisma/migrations-manual/2026-10-30-empty-catchup-answers.sql` deletes every answer whose content columns are all null (named as the table has them when it runs, so it works on either side of the song and vote drops) and that has no comment under it, refusing above five; dry-run first in a rolled-back transaction on production, then applied to production (194 answers to 193: the one blank row from August, and its one heart, given while empty answers were still drawn, by cascade) and the demo (no answers, nothing deleted), read back 0 blank on both
+- T8b-06 — DONE (fix(privacy): the privacy page says what the site really does); every sentence the entry names, rewritten for today's code: "settings" (four places) is your profile; the sign-in email cannot yet be changed from inside the site, so write to the admins from Reach out (T5-01 updates it), and the contact email is only what members see; the download says what it holds and that the sign-in and security logs are not in it (routed above); reports filed outlive the filer unnamed, answered Catch-up questions stay unnamed and unanswered ones go, and the sixty days hide the profile, posts, letters and comments while Collection photographs and Catch-up answers stay up; rows for visit statistics and search history (90 days) and for what was opened (until the account is deleted); the usage records named; Vercel in Mumbai; Cloudflare's voice recordings and robot check; Upstash added; PostHog and Sentry as B2 and B1 left them, in the EU. Kept: the email kinds, the table's numbers, 60 days, the CDN caveat, the backup sentence (Q14 c), the entry question and "to no one else" (Q18). The `contentViews` cutoff is PARKED: all seven ContentView reads in the analytics room count every view ever (profile opens, each letter's opens and readers, photo and Edition opens, Compare's profile opens, "Members nobody has responded to"), so a 90-day cut would empty them for anything nobody opened lately, against Q10; `presence-rule.test.mjs` fails a cutoff while any of those reads is unwindowed. `privacy-contract.test.mjs` reads KEEP_DAYS, DELETION_GRACE_DAYS, vercel.json's region, the pages-opened rule and every cookie write against the page; it failed on the old page in five places and on each mutation tried
+- C4-04 — DONE (fix(privacy): the privacy page says what the site really does); the cookie half: the section is a table of all nine cookies, `rv_trivia_id` (30 days, from the first entry question) and the two short gate passes among them, and `privacy-contract.test.mjs` sweeps every cookie write in src for a name the table does not carry; the download half rode T6-03 (010419eb)

@@ -18,7 +18,7 @@ export const metadata: Metadata = {
 export default function PrivacyPage() {
   return (
     <article>
-      <DocTitle updated="4 September 2026">Privacy policy</DocTitle>
+      <DocTitle updated="30 October 2026">Privacy policy</DocTitle>
 
       <Section title="The short version">
         <P>
@@ -68,8 +68,14 @@ export default function PrivacyPage() {
             <>
               <strong>Security and usage records:</strong> sign-in attempts, the network
               address requests come from (used for rate limiting and abuse prevention),
-              and basic, first-party usage analytics that help us understand which parts
-              of the site are used.
+              and a record of how you use the site. For each visit that is when it began
+              and ended, the pages you went through, the site that sent you, your kind of
+              device, its operating system and browser, your language, and your
+              approximate location (country, region and city) worked out from your network
+              address. The site also keeps what you search for, and which profiles,
+              letters, photographs and Catch-up Editions you open and how often. PostHog,
+              an analytics service listed below, separately records the pages you open and
+              what you press on them.
             </>,
           ]}
         />
@@ -102,7 +108,7 @@ export default function PrivacyPage() {
           In legal terms: most processing is necessary to provide the service you signed
           up for; security, verification and analytics rest on legitimate interest; and
           optional profile details are processed because you chose to add them, which you
-          can undo at any time in settings.
+          can undo at any time by editing your profile.
         </P>
       </Section>
 
@@ -132,12 +138,13 @@ export default function PrivacyPage() {
           headers={["Provider", "What it does"]}
           rows={[
             ["Supabase", "The database, hosted in Mumbai, India"],
-            ["Vercel", "Hosts and serves the website (United States and global edge)"],
-            ["Cloudflare", "Stores and serves images"],
+            ["Vercel", "Runs the website, in Mumbai, India, and delivers it through a global network"],
+            ["Cloudflare", "Stores and serves images and voice recordings, and checks that sign-ups and sign-ins come from a person"],
             ["Resend", "Sends the site's emails (United States)"],
             ["Razorpay", "Processes contributions (India); card details never reach us"],
-            ["PostHog", "First-party usage analytics"],
-            ["Sentry", "Error reporting, so breakages get noticed and fixed"],
+            ["Upstash", "Short-lived counters for rate limiting, such as recent sign-in attempts from one network address"],
+            ["PostHog", "Usage analytics, in the European Union: the pages opened and what is pressed on them, with browser and device details, under an account number and batch year rather than a name. Clicks on anything showing a person, such as a name, photo or contact details, are not sent, and search words are hidden"],
+            ["Sentry", "Error reporting, in the European Union: server errors, and timings for one request in ten, with the page address and browser type, but not your sign-in cookie, your location or your searches"],
           ]}
         />
       </Section>
@@ -157,6 +164,8 @@ export default function PrivacyPage() {
             ["Sign-in and security logs", "1 year"],
             ["Answers at the entry question", "1 year"],
             ["Email delivery records", "180 days"],
+            ["Visit statistics and search history", "90 days"],
+            ["What you opened, and how often", "Until your account is deleted"],
             ["A deleted account", "Fully erased 60 days after you ask (see below)"],
           ]}
         />
@@ -164,40 +173,75 @@ export default function PrivacyPage() {
 
       <Section title="Deleting your account">
         <P>
-          You can delete your account yourself, from settings, at any time. To protect
+          You can delete your account yourself, from your profile, at any time. To protect
           you from someone else doing it with a borrowed session, deletion asks for your
           password, and then waits 60 days before becoming final. During those 60 days
-          your profile disappears from the directory, and simply signing in again cancels
-          the deletion. After 60 days the account, your posts, comments, photographs and
-          profile are permanently erased, including the stored image files.
+          your profile, posts, letters and comments are hidden from other members, while
+          your photographs in the Collection and your Catch-up answers stay up; simply
+          signing in again cancels the deletion and brings everything back. After 60 days
+          the account, your posts, letters, comments, photographs, Catch-up answers,
+          messages to the admin and profile are permanently erased, including the stored
+          image files and voice recordings.
         </P>
         <P>
           A few things outlive deletion, deliberately: contribution records (kept for tax
-          purposes, no longer linked to a profile), reports that were part of moderation
-          decisions, and a one-line audit record that the deletion happened. Backups age
-          out on their own cycle within a few weeks.
+          purposes, no longer linked to a profile), reports you filed (kept in the
+          moderation record without your name), Catch-up questions you asked that someone
+          answered (kept without your name; questions nobody answered are erased), and a
+          one-line audit record that the deletion happened. Your sign-in and security
+          logs, your answers at the entry question and your searches stay until their
+          time in the table above runs out, the last two no longer linked to you.
+          Backups age out on their own cycle within a few weeks.
         </P>
       </Section>
 
       <Section title="Your rights">
         <P>
-          You can see and change everything on your profile in settings. You can download
-          a copy of your data, as one file, from the same place. You can delete your
-          account as described above. If you believe something about you is wrong and you
-          cannot fix it yourself, or you want to object to how something is handled,
-          write to the address below. If you are in the UK or the EU you also have the
-          right to complain to your data protection authority, which in the UK is the
-          ICO (ico.org.uk).
+          You can see and change everything on your profile by editing it, except the
+          email address you sign in with: that cannot yet be changed from inside the
+          site, so to change it, write to the admins from Reach out, in the site&apos;s
+          menu. The email in your contact details is only the one other members see, and
+          changing it does not change the address you sign in with.
+        </P>
+        <P>
+          You can download a copy of your data, as one file, with &ldquo;Request your
+          data&rdquo; on your profile. It holds your profile; everything you wrote, posted
+          and uploaded; your hearts, saved posts and poll votes; your Catch-ups and their
+          reminders; your contributions; and the site&apos;s record of your visits,
+          searches, what you opened, your answers at the entry question, your
+          notifications and the emails it sent you. It leaves out what would help someone
+          get into your account and what belongs to other people, such as reports they
+          filed about you and the admins&apos; own notes, and names those inside the file.
+          The sign-in and security logs are not in it; write to the address below if you
+          want them too.
+        </P>
+        <P>
+          You can delete your account as described above. If you believe something about
+          you is wrong and you cannot fix it yourself, or you want to object to how
+          something is handled, write to the address below. If you are in the UK or the EU
+          you also have the right to complain to your data protection authority, which in
+          the UK is the ICO (ico.org.uk).
         </P>
       </Section>
 
       <Section title="Cookies">
         <P>
-          The site uses a small number of first-party cookies: one that keeps you signed
-          in, one that remembers your theme, one short-lived cookie that groups a
-          browsing session for the visit statistics, and the analytics described above.
-          There are no advertising or third-party tracking cookies.
+          The site uses a small number of first-party cookies, all listed here. There are
+          no advertising or third-party tracking cookies.
         </P>
+        <FactTable
+          headers={["Cookie", "What it does"]}
+          rows={[
+            ["Signed in", "Keeps you signed in, for 90 days or until you sign out"],
+            ["Sign-in form", "Two cookies the sign-in form needs while you sign in, gone when you close your browser"],
+            ["Theme", "Remembers whether you chose light or dark on this device, for a year"],
+            ["Visits", "Groups the pages of one visit for the visit statistics, and lapses 30 minutes after your last page"],
+            ["Entry question", "Recognises the same browser at the entry question for 30 days, so that someone who tries again on another day is counted once"],
+            ["Entry question passed", "Remembers for 30 minutes that you got the entry question right, so you can finish signing up"],
+            ["Robot check", "After you sign up or reset your password, lets you sign in without a second robot check, for 5 minutes"],
+            ["Analytics", "PostHog's identifier for this browser, which it also keeps in the browser's storage; it lasts a year from your last visit, and signing out replaces it with a new one"],
+          ]}
+        />
       </Section>
 
       <Section title="Changes">

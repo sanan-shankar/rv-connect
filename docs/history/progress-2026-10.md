@@ -1,3 +1,50 @@
+## 2026-10-30 (privacy) — bug audit 3, unit B5: the privacy page says what the site really does, every cookie is on it, and phase B is done
+
+Two rows, one commit, because T8b-06 and C4-04 are one page. `npm run check` green; `npm run visual`
+23 of 25, with only the privacy page's two shots moved, both read whole before they were rebaselined
+(the page is about 1,400 px longer on a laptop and 2,200 on a phone).
+
+The page (T8b-06). It sent members to a settings page that does not exist, in four places; it now
+says "your profile". It said they could change everything, and nobody can change the email they sign
+in with from inside the site yet: it says so, says to write to the admins from Reach out, and says
+the email in their contact details is only the one other members see (T5-01 builds the change and
+updates the sentence). The download, the sixty days and what outlives an erasure come from B3a's and
+B4's facts, each read again in the code: reports a member filed stay without their name, answered
+Catch-up questions stay unnamed and unanswered ones go, and during the sixty days the profile, posts,
+letters and comments are hidden while Collection photographs and Catch-up answers stay up. B4's
+sentence called the download "everything the site keeps"; it is not, because sign-in attempts and
+audit lines are not User relations and the schema walk never asked about them, so the page says
+those logs are not in the file (routed). The usage records are named: each visit's times, pages,
+referring site, device, language and rough location; searches; what was opened and how often.
+Vercel runs in Mumbai, Cloudflare also keeps voice recordings and runs the robot check, Upstash's
+rate-limit counters get a row, and PostHog and Sentry are described as B2 and B1 left them, both in
+the EU. Kept as they were: the email kinds, the table's numbers, the sixty days, the CDN caveat, the
+backup sentence (Q14 c), the entry question and "to no one else" (Q18).
+
+What it parks. The audit's fix was a 90-day cutoff on ContentView, the pages-opened counter. All
+seven of its reads in the analytics room count every view ever: "Profile opens" (recorded since
+19 August), each letter's opens and readers, photo and Edition opens, the per-member profile opens in
+Compare, and "Members nobody has responded to". A cutoff would turn those into the last 90 days and
+empty them for whatever nobody opened lately, against the owner's word that nothing he sees there may
+be lost (Q10). So there is no cutoff, the page says the rows last until the account is deleted, and
+SECURITY.md's table says the same. A new test in `presence-rule.test.mjs` holds the rule: a
+ContentView cutoff fails while any of the room's reads of it is unwindowed, and once all are
+windowed it must equal the deepest.
+
+Cookies (C4-04). The paragraph named four of the nine. The section is now a table of all of them:
+the sign-in cookie and the sign-in form's two, theme, the visit cookie, the entry question's 30-day
+browser id and its 30-minute pass, the five-minute robot-check pass, and PostHog's identifier.
+
+The pins. `privacy-contract.test.mjs` reads each `KEEP_DAYS` window, `DELETION_GRACE_DAYS`,
+vercel.json's region, the pages-opened rule and every cookie write in `src` against the page, and
+fails on "settings"; it failed on the old page in five places and on each mutation tried (a window,
+a cookie row, the gate cookie's life). The first gate run caught the cookie table's "Visit" label
+as a read of the Visit table in `stats-exclusion-rule.test.mjs`; the label is "Visits".
+
+Visible: the privacy page, for everyone, signed in or not. Its "Changes" section promises an
+announcement on the site before a change that matters takes effect; whether this one is such a
+change is the owner's call.
+
 ## 2026-10-30 (catchups) — bug audit 3, unit H3: who is inside a Catch-up and what leaves with them: unsent writing goes with a leaver, blocked and leaving members leave its people, counts and bells, Remove asks first, and dropped photographs leave the bucket
 
 Ten items in eight commits: six Lows from phase H (T2a-13, T2b-05, C8-04, T2b-12, T3-14, T3-23), two

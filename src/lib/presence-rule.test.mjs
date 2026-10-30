@@ -163,6 +163,47 @@ test("presence is kept exactly as long as the deepest analytics view reads", () 
   );
 });
 
+test("pages opened are kept exactly as long as the analytics room reads them (T8b-06)", () => {
+  /* ContentView is the counter behind "Profile opens" (recorded since 19 Aug
+     2026), "How each letter did", "Photo opens", "Catch-up Edition opens",
+     the per-member profile opens and "Members nobody has responded to", and
+     every one of those reads counts each view ever made. A cutoff on it, the
+     90 days the audit proposed (bug audit 3, T8b-06), would quietly turn them
+     into "the last 90 days" and empty them for whatever nobody opened lately,
+     and the owner's word on the analytics room is that nothing he sees there
+     may be lost (Q10). So ContentView has no cutoff, and the privacy page says
+     the rows last until the account is deleted (privacy-contract.test.mjs).
+     The rule is the presence one above, applied to this table: window every
+     read first, and the cutoff may then equal the deepest of them. */
+  const analytics = decomment(read("src/lib/admin-analytics.ts"));
+  const reads = analytics
+    .split("`")
+    .filter((_, i) => i % 2 === 1)
+    .filter((sql) => /"ContentView"/.test(sql));
+  assert.ok(reads.length >= 5, `only found ${reads.length} ContentView reads in the analytics room; the scrape has drifted`);
+  const windows = reads.map((sql) => {
+    const m = /"(?:lastAt|firstAt)"\s*>=?\s*now\(\)\s*-\s*interval\s*'(\d+) days'/.exec(sql);
+    return m ? Number(m[1]) : Infinity;
+  });
+
+  const retention = decomment(read("src/lib/retention.ts"));
+  const cuts = /prisma\.contentView\.deleteMany/.test(retention);
+  const whole = windows.filter((w) => w === Infinity).length;
+  if (whole > 0) {
+    assert.ok(
+      !cuts,
+      `retention.ts deletes ContentView rows, but ${whole} of the analytics room's ${reads.length} reads of it count ` +
+        `every view ever: a cutoff empties them for anything nobody opened lately. Window those reads first (Q10), ` +
+        `and change the privacy page's pages-opened row with the cutoff.`
+    );
+    return;
+  }
+  const step = /key:\s*"contentViews",\s*days:\s*KEEP_DAYS\.(\w+)/.exec(retention);
+  assert.ok(step && cuts, "every ContentView read in the analytics room is windowed, so the rows past the deepest window are ones nothing reads: add a contentViews step");
+  const days = Number(new RegExp(`\\b${step[1]}:\\s*(\\d+)`).exec(retention)?.[1]);
+  assert.equal(days, Math.max(...windows), "ContentView is kept a different number of days from the deepest read of it");
+});
+
 test("the documented retention window says the same number", () => {
   const presence = Number(/presence:\s*(\d+)/.exec(decomment(read("src/lib/retention.ts")))?.[1]);
   const doc = read("docs/SECURITY.md");

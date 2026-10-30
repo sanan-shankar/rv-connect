@@ -109,6 +109,7 @@ gate or a written public-by-design reason.
 | Login + audit logs | 1 year |
 | Sent-email log | 180 days |
 | Presence + search telemetry (`Visit`, `SearchLog`) | 90 days |
+| Pages opened (`ContentView`) | until the account goes: the analytics room counts it whole (bug audit 3, T8b-06) |
 | Trivia gate log (`TriviaEvent`) | 1 year |
 | Deleted accounts | purged 60 days after the request |
 
