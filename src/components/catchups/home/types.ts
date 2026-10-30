@@ -85,7 +85,9 @@ export type CatchupHomeData = {
    *  a row written before the column existed. */
   inviteToken: string | null;
   groupId: string;
-  groupName: string;
+  /** The name it goes by (`catchupDisplayName`). There is no `groupName`
+   *  beside it: nothing read one, and a group's own name is the one a rename
+   *  does not change (bug audit 3, T3-09). */
   title: string;
   catchupStatus: CatchupStatus;
   /** Nothing is running and it has not ended: the newest Edition is out, or
@@ -152,5 +154,6 @@ export type CatchupHomeData = {
 
 export type CatchupHomeResult =
   | { kind: "not-found" }
-  | { kind: "not-member"; groupId: string; groupName: string }
+  /** `name` is `catchupDisplayName`'s, the name the Catch-up goes by. */
+  | { kind: "not-member"; groupId: string; name: string }
   | ({ kind: "ok" } & CatchupHomeData);

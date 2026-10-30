@@ -937,7 +937,7 @@ test("C-141: nothing prints a countdown from a raw millisecond gap any more", ()
      Catch-up's home, where the deadline is a DATE rather than a count of days
      ("Answers close Thursday 20 August"), so the two surfaces C-141 caught
      disagreeing can no longer phrase the same instant two ways. */
-  assert.match(read("src/lib/catchups-notify.ts"), /answerReminderMessage\(ctx\.groupName, ctx\.closesAt/);
+  assert.match(read("src/lib/catchups-notify.ts"), /answerReminderMessage\(ctx\.catchupName, ctx\.closesAt/);
   // ...and the deadline actually reaches the bell.
   assert.match(read("src/lib/catchups.ts"), /closesAt: before\.answersCloseAt,/);
   /* The home's line comes off the same column, through the one helper, so it

@@ -253,11 +253,19 @@ export type CatchupIndexCard = {
  */
 export type CatchupDb = PrismaClient | Prisma.TransactionClient;
 
-type NotifyBaseCtx = {
+/**
+ * The Catch-up's name as its members read it: `catchupDisplayName(title,
+ * group.name)`, the spelling every page prints. Never the group's own name on
+ * its own, which a rename does not touch: the field was `groupName`, filled
+ * from `group.name` everywhere, so a renamed Catch-up announced itself in every
+ * bell by the name it had given up (bug audit 3, T2a-02).
+ */
+type CatchupName = { catchupName: string };
+
+type NotifyBaseCtx = CatchupName & {
   catchupId: string;
   editionId: string;
   groupId: string;
-  groupName: string;
 };
 
 export type NotifyQuestionsOpenFn = (
@@ -315,11 +323,10 @@ export type NotifySealedFn = (
  */
 export type NotifyCommentFn = (
   db: CatchupDb,
-  ctx: {
+  ctx: CatchupName & {
     catchupId: string;
     editionId: string;
     groupId: string;
-    groupName: string;
     entryId: string;
     /** Who hears about it. */
     recipientId: string;
@@ -332,13 +339,12 @@ export type NotifyCommentFn = (
 
 export type NotifyLoveFn = (
   db: CatchupDb,
-  ctx: {
+  ctx: CatchupName & {
     catchupId: string;
     editionId: string;
     /** The group behind the Catch-up, so the author's reachability can be
      *  checked before they are written to (audit C-030). */
     groupId: string;
-    groupName: string;
     entryId: string;
     authorId: string;
     likerId: string;
@@ -357,9 +363,8 @@ export type NotifyLoveFn = (
  */
 export type NotifyAddedFn = (
   db: CatchupDb,
-  ctx: {
+  ctx: CatchupName & {
     catchupId: string;
-    groupName: string;
     addedByName: string;
     userIds: string[];
   }

@@ -702,6 +702,51 @@ test("C-030: a heart does not nudge somebody the Edition has closed to", () => {
   );
 });
 
+test("T2a-02 and T3-09: a Catch-up is called by the name its pages print, in every bell and on its invitation", () => {
+  /* A rename writes only `Catchup.title`. The bells took `groupName`, filled
+     from `group.name` at every call site, and the invitation printed the same
+     column, so a renamed Catch-up was announced by the name it had given up,
+     in every bell, for good. The name is `catchupDisplayName`'s now, and the
+     field says so. */
+  const notify = decomment(read("src/lib/catchups-notify.ts"));
+  assert.doesNotMatch(notify, /groupName|group\.name/, "a bell takes the group's own name again");
+  const builders = [...notify.matchAll(/export const (notify\w+)/g)].map((m) => m[1]);
+  assert.ok(builders.length >= 8, `only ${builders.length} notify builders found; retarget this pin`);
+  for (const name of builders) {
+    const body = balancedBody(notify, `export const ${name}`);
+    assert.match(body, /ctx\.catchupName/, `${name} names the Catch-up some other way`);
+  }
+
+  /* Every place that reads a group's name to call a Catch-up something hands
+     it to the helper, with the title beside it. A bare `group.name` is how the
+     bug looked at all eight sites. */
+  for (const file of [
+    "src/lib/catchups.ts",
+    "src/app/(main)/catchups/actions.ts",
+    "src/app/catchups/join/[token]/page.tsx",
+    "src/app/(main)/catchups/[catchupId]/(home)/page.tsx",
+  ]) {
+    const src = decomment(read(file));
+    const bare = [...src.matchAll(/(?:\w+\.)*group\.name\b/g)].filter(
+      (m) => !/catchupDisplayName\([^()]*$/.test(src.slice(Math.max(0, m.index - 120), m.index))
+    );
+    /* One exception, said by name: the advance input hands the group's id and
+       name over together, title beside them, for `loadMeta` to combine. */
+    const allowed = bare.filter((m) => !/group: \{ id: catchup\.group\.id, name: catchup\.group\.name \}/.test(src.slice(m.index - 40, m.index + 40)));
+    assert.deepEqual(allowed.map((m) => m[0]), [], `${file} names a Catch-up by its group's name alone`);
+    assert.doesNotMatch(src, /groupName:/, `${file} hands a notification the group's name`);
+  }
+
+  // The clock's bells: an included row counts only when its caller selected
+  // the title, so leaving it out costs a read, never the right name.
+  const lib = decomment(read("src/lib/catchups.ts"));
+  const meta = balancedBody(lib, "async function loadMeta(");
+  assert.ok(meta, "loadMeta is gone; this pin is reading nothing");
+  assert.match(meta, /included\?\.group && included\.title !== undefined/, "loadMeta trusts a caller that did not select the title");
+  assert.match(meta, /title: true/, "loadMeta's own read does not fetch the title");
+  assert.equal((meta.match(/catchupDisplayName\(/g) ?? []).length, 2, "one of loadMeta's two ways out names the Catch-up without the helper");
+});
+
 test("C-149: every swallowed failure on the clock is reported, not just logged", () => {
   /* advanceEdition never re-throws -- an edition that cannot advance must not
      take down the page it was called from -- so the reportSwallowed calls in

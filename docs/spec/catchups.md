@@ -472,7 +472,10 @@ to jump between questions and Back beside Next. There is no "Skip for now".
 Outside `(main)` and public in `src/proxy.ts`, because the person following it may have no account.
 Signed in and not a member: an invitation with Join. Already a member: straight in. Signed out: the
 same invitation with sign in and sign up, both carrying `?next=` back to the link. A stranger sees the
-name, who keeps it and how many are in it; nothing anyone wrote.
+name, who keeps it and how many are in it; nothing anyone wrote. The name is the one the Catch-up
+goes by, a Keeper's title included, on the page and in the "You're in" toast; both printed the
+group's own name until 2026-10-30 (bug audit 3, T3-09), as did the card a non-member gets on the
+home.
 
 **Where a Keeper gets it**: Copy invite link in the People door, beside Add someone. It copies the
 join address for the host the Keeper is on and toasts "Link copied. Anyone with it can join."; where
@@ -586,6 +589,12 @@ photograph. The grouping is pinned by `photo-wall.test.mjs` rather than by a scr
 ## 11. Notifications
 
 Written by `src/lib/catchups-notify.ts` into `Notification`; `type` is a free string.
+
+**Every bell names the Catch-up the way its pages do**: `catchupDisplayName(title, group.name)`, so
+a Keeper's rename reaches every bell written after it. The builders took the group's own name until
+2026-10-30, which a rename never touches, so a renamed Catch-up went on being announced by the name
+it had given up (bug audit 3, T2a-02). The field is `catchupName`, and
+`catchup-lifecycle.test.mjs` fails a bare `group.name` at any call site.
 
 **Two bells an Edition for anybody not taking part** (owner, 2026-10-17: "Only 'a round started' and
 'it's published'. No reminders unless you've turned them on yourself"). Taking part means asking a

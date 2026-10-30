@@ -143,8 +143,8 @@ export const notifyQuestionsOpen: NotifyQuestionsOpenFn = async (db, ctx) => {
     members,
     "catchup_questions_open",
     ctx.starterName
-      ? `${ctx.starterName} started a new Edition of ${ctx.groupName}. Add a question you want everyone to answer.`
-      : `${ctx.groupName} is starting a Catch-up. Add a question you want everyone to answer.`,
+      ? `${ctx.starterName} started a new Edition of ${ctx.catchupName}. Add a question you want everyone to answer.`
+      : `${ctx.catchupName} is starting a Catch-up. Add a question you want everyone to answer.`,
     `/catchups/${ctx.catchupId}`
   );
 };
@@ -165,7 +165,7 @@ export const notifyAnswersOpen: NotifyAnswersOpenFn = async (db, ctx) => {
     db,
     members,
     "catchup_answers_open",
-    `Answers are open for ${ctx.groupName}'s Catch-up. Share yours.`,
+    `Answers are open for ${ctx.catchupName}'s Catch-up. Share yours.`,
     /* The HOME, not `/answer`. Answering moved onto the Catch-up's own home
        in build phase 7 and `/catchups/[id]/answer` is a 308 to it; a bell
        link that has to bounce through a redirect is one avoidable round trip
@@ -241,7 +241,7 @@ export const notifyReminder: NotifyReminderFn = async (db, ctx) => {
     db,
     recipients,
     "catchup_reminder",
-    answerReminderMessage(ctx.groupName, ctx.closesAt, new Date()),
+    answerReminderMessage(ctx.catchupName, ctx.closesAt, new Date()),
     link
   );
 };
@@ -256,8 +256,8 @@ export const notifyPublished: NotifyPublishedFn = async (db, ctx) => {
     members,
     "catchup_published",
     ctx.capsule
-      ? `The ${ctx.groupName} time capsule is open.`
-      : `Your ${ctx.groupName} Catch-up is ready to read.`,
+      ? `The ${ctx.catchupName} time capsule is open.`
+      : `Your ${ctx.catchupName} Catch-up is ready to read.`,
     `/catchups/edition/${ctx.editionId}`
   );
 };
@@ -280,7 +280,7 @@ export const notifySealed: NotifySealedFn = async (db, ctx) => {
     db,
     members,
     "catchup_sealed",
-    `${ctx.groupName}'s Catch-up is sealed until ${formatDisplayDateLong(ctx.opensAt)}.`,
+    `${ctx.catchupName}'s Catch-up is sealed until ${formatDisplayDateLong(ctx.opensAt)}.`,
     `/catchups/${ctx.catchupId}`
   );
 };
@@ -319,7 +319,7 @@ export const notifyLove: NotifyLoveFn = async (db, ctx) => {
     data: {
       userId: ctx.authorId,
       type: "catchup_love",
-      message: `${ctx.likerName} loved your answer in ${ctx.groupName}'s Catch-up.`,
+      message: `${ctx.likerName} loved your answer in ${ctx.catchupName}'s Catch-up.`,
       link,
     },
   });
@@ -367,8 +367,8 @@ export const notifyComment: NotifyCommentFn = async (db, ctx) => {
 
   const message =
     ctx.kind === "reply"
-      ? `${ctx.writerName} replied to you in ${ctx.groupName}'s Catch-up.`
-      : `${ctx.writerName} commented on your answer in ${ctx.groupName}'s Catch-up.`;
+      ? `${ctx.writerName} replied to you in ${ctx.catchupName}'s Catch-up.`
+      : `${ctx.writerName} commented on your answer in ${ctx.catchupName}'s Catch-up.`;
 
   /* The per-writer bucket, keyed on the WHOLE sentence. `Notification` has no
      column for who sent it, and the sentence is the only place the writer is
@@ -406,7 +406,7 @@ export const notifyAdded: NotifyAddedFn = async (db, ctx) => {
     db,
     ctx.userIds,
     "catchup_added",
-    `${ctx.addedByName} added you to ${ctx.groupName}'s Catch-up.`,
+    `${ctx.addedByName} added you to ${ctx.catchupName}'s Catch-up.`,
     `/catchups/${ctx.catchupId}`
   );
 };

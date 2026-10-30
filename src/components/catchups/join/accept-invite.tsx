@@ -15,7 +15,14 @@ import { useEmailGate } from "@/components/auth/verify-email-dialog";
  * declining an invitation is just not accepting it, and recording a refusal
  * would only create a row nobody will ever read.
  */
-export function AcceptInvite({ token, groupName }: { token: string; groupName: string }) {
+export function AcceptInvite({
+  token,
+  name,
+}: {
+  token: string;
+  /** The name the invitation printed (`catchupDisplayName`), for the toast. */
+  name: string;
+}) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   /* The two gates get their own dialogs here, the same as everywhere else that
@@ -39,7 +46,7 @@ export function AcceptInvite({ token, groupName }: { token: string; groupName: s
         return;
       }
       if ("catchupId" in result && result.catchupId) {
-        toast.success(`You're in ${groupName}.`);
+        toast.success(`You're in ${name}.`);
         // replace, not push: the invite link has done its job, and leaving it in
         // history means Back walks into a page that would just bounce forward.
         router.replace(`/catchups/${result.catchupId}`);

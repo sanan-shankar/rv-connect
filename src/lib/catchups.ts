@@ -29,6 +29,7 @@ import type {
 } from "@/lib/catchups-types";
 import {
   ANSWERED_ENTRY_WHERE,
+  catchupDisplayName,
   isEditionRunning,
   isMissingCatchupTable,
   nextEditionStatus,
@@ -57,7 +58,8 @@ export * from "./catchups-core";
 type AdvanceMeta = {
   catchupId: string;
   groupId: string;
-  groupName: string;
+  /** What the bells call it (`catchupDisplayName`), see `CatchupName`. */
+  catchupName: string;
   catchupStatus: CatchupStatus;
 };
 
@@ -67,6 +69,10 @@ export type AdvanceEditionInput = EditionTiming & {
   catchup?: {
     id?: string;
     status?: string | null;
+    /** The Keeper's own name for it. A caller that selected it passes it,
+     *  `null` included; one that did not leaves it out, and `loadMeta` reads
+     *  the row rather than guess the name from the group (T2a-02). */
+    title?: string | null;
     group?: { id: string; name: string } | null;
   } | null;
 };
@@ -103,13 +109,23 @@ function toTiming(row: {
   };
 }
 
+/**
+ * Who the clock's bells go to, and what they call the Catch-up.
+ *
+ * THE NAME IS THE ONE THE PAGES PRINT: the Keeper's title when there is one,
+ * else the group's name. It was the group's name always, and a rename writes
+ * only the title, so every bell after a rename used the name it replaced (bug
+ * audit 3, T2a-02). The included row is used only when its caller selected the
+ * title (`null` counts: no title), because a caller that did not would have
+ * the same bug back by omission.
+ */
 async function loadMeta(edition: AdvanceEditionInput): Promise<AdvanceMeta | null> {
   const included = edition.catchup;
-  if (included?.group) {
+  if (included?.group && included.title !== undefined) {
     return {
       catchupId: edition.catchupId,
       groupId: included.group.id,
-      groupName: included.group.name,
+      catchupName: catchupDisplayName(included.title, included.group.name),
       catchupStatus: (included.status as CatchupStatus) ?? "active",
     };
   }
@@ -118,6 +134,7 @@ async function loadMeta(edition: AdvanceEditionInput): Promise<AdvanceMeta | nul
     select: {
       id: true,
       status: true,
+      title: true,
       group: { select: { id: true, name: true } },
     },
   });
@@ -125,7 +142,7 @@ async function loadMeta(edition: AdvanceEditionInput): Promise<AdvanceMeta | nul
   return {
     catchupId: c.id,
     groupId: c.group.id,
-    groupName: c.group.name,
+    catchupName: catchupDisplayName(c.title, c.group.name),
     catchupStatus: c.status as CatchupStatus,
   };
 }
@@ -400,7 +417,9 @@ export async function advanceEdition(
  * whichever comes second sees the first.
  */
 export async function openEdition(
-  catchup: { id: string; group: { id: string; name: string } },
+  /** `name` is what the bell calls it: `catchupDisplayName`, never the
+   *  group's name alone (T2a-02). */
+  catchup: { id: string; groupId: string; name: string },
   starter: { id: string; name: string },
   now: Date
 ): Promise<{ editionId: string } | { refused: "running" | "moved" | "ended" }> {
@@ -448,8 +467,8 @@ export async function openEdition(
       await notify.notifyQuestionsOpen(tx, {
         catchupId: catchup.id,
         editionId,
-        groupId: catchup.group.id,
-        groupName: catchup.group.name,
+        groupId: catchup.groupId,
+        catchupName: catchup.name,
         excludeUserId: starter.id,
         starterName: starter.name,
       });
@@ -538,7 +557,7 @@ export async function advanceDueCatchups(userId?: string): Promise<void> {
         await advanceEdition(
           {
             ...ed,
-            catchup: { id: c.id, status: c.status, group: c.group },
+            catchup: { id: c.id, status: c.status, title: c.title, group: c.group },
           } as AdvanceEditionInput,
           now
         );

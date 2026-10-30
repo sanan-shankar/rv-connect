@@ -63,6 +63,7 @@ import {
   advanceEdition,
   openEdition,
   answeringPatch,
+  catchupDisplayName,
   planExtension,
   isEffectiveKeeper,
   isBatchCatchup,
@@ -248,6 +249,9 @@ type EditionContext = {
   catchup: {
     createdById: string | null;
     status: CatchupStatus;
+    /** What its members call it, title or group (`catchupDisplayName`): the
+     *  only name a bell may use (bug audit 3, T2a-02). */
+    name: string;
     group: { id: string; name: string; batchYear: number | null };
   };
 };
@@ -288,6 +292,8 @@ async function readEditionBase(editionId: string) {
         select: {
           createdById: true,
           status: true,
+          // The Keeper's own name for it, which every bell must use (T2a-02).
+          title: true,
           // `batchYear` is the whole test for "this is a batch Catch-up" (F6),
           // which the Keeper controls below ask before they ask who keeps it.
           group: { select: { id: true, name: true, batchYear: true } },
@@ -325,28 +331,31 @@ async function advanceAndReload(base: EditionBase): Promise<EditionContext | nul
     catchup: {
       createdById: base.catchup.createdById,
       status: base.catchup.status as CatchupStatus,
+      name: catchupDisplayName(base.catchup.title, base.catchup.group.name),
       group: base.catchup.group,
     },
   };
 }
 
 async function loadCatchupContext(catchupId: string, userId: string) {
-  const catchup = await prisma.catchup.findUnique({
+  const row = await prisma.catchup.findUnique({
     where: { id: catchupId },
     select: {
       id: true,
       createdById: true,
       status: true,
       groupId: true,
+      title: true,
       // See readEditionBase: the batch test, for the guard in loadKeeperScope
       // and for the two exits that refuse a batch Catch-up by name. `name`
-      // is added for `addCatchupMembers`'s notification, the same field
-      // readEditionBase already carries for every notify call in this file.
+      // and `title` make the name Start's and an add's bells say.
       group: { select: { name: true, batchYear: true } },
     },
   });
-  if (!catchup) return null;
-  const membership = await loadMembership(catchup.groupId, userId);
+  if (!row) return null;
+  const membership = await loadMembership(row.groupId, userId);
+  // The one name its bells may use, as on readEditionBase's side (T2a-02).
+  const catchup = { ...row, name: catchupDisplayName(row.title, row.group.name) };
   return { catchup, membership };
 }
 
@@ -618,7 +627,9 @@ export async function createCatchupWithPeople(input: {
         catchupId: catchup.id,
         editionId: edition.id,
         groupId: group.id,
-        groupName: group.name,
+        // No title yet at creation, so this is the name just typed; through
+        // the helper all the same, so no bell ever reads `group.name` bare.
+        catchupName: catchupDisplayName(catchup.title, group.name),
         excludeUserId: creatorId,
       });
       return { catchupId: catchup.id, twin: false };
@@ -680,7 +691,7 @@ export async function joinCatchupByToken(token: string) {
 
     const catchup = await prisma.catchup.findUnique({
       where: { inviteToken: token },
-      select: { id: true, status: true, groupId: true, group: { select: { name: true } } },
+      select: { id: true, status: true, groupId: true },
     });
     if (!catchup) return { error: "That invite link is not valid." };
     if (catchup.status === "ended") {
@@ -715,7 +726,10 @@ export async function joinCatchupByToken(token: string) {
     }
     revalidatePath("/catchups");
     revalidatePath(`/catchups/${catchup.id}`);
-    return { success: true as const, catchupId: catchup.id, groupName: catchup.group.name };
+    /* No name back: the invitation already printed it, through
+       `catchupDisplayName`, and says it in the toast. This sent the group's
+       name, which a rename does not change (bug audit 3, T3-09). */
+    return { success: true as const, catchupId: catchup.id };
   });
 }
 
@@ -742,11 +756,14 @@ export async function joinCatchupByToken(token: string) {
  *
  * WAITS FOR A VERIFIED MEMBER, like every control here (write-path review of
  * A2; his Q13, 2026-10-29: a Catch-up's controls wait for a confirmed member).
- * It stood outside the gate because it reaches nobody, no bell and no mail,
- * but it changes the page every member reads, and a Keeper whose verification
- * an admin removed could still do it. An ended Catch-up is not refused, for
- * the reason `setCatchupPicture` gives: the freeze is on the Edition clock, and
- * a name is not part of the cycle.
+ * It stood outside the gate on the reasoning that it reaches nobody. It rings
+ * no bell itself, but it changes the page every member reads, and every bell
+ * written after it, all of which name the Catch-up the way the pages do
+ * (`catchupDisplayName`; bug audit 3, T2a-02: they took the group's name, so a
+ * renamed Catch-up went on being announced by the old one). A Keeper whose
+ * verification an admin removed could still do it. An ended Catch-up is not
+ * refused, for the reason `setCatchupPicture` gives: the freeze is on the
+ * Edition clock, and a name is not part of the cycle.
  */
 export async function renameCatchup(catchupId: string, title: string) {
   return runAction(async () => {
@@ -1221,7 +1238,7 @@ export async function openAnswering(editionId: string) {
         catchupId: edition.catchupId,
         editionId,
         groupId: edition.catchup.group.id,
-        groupName: edition.catchup.group.name,
+        catchupName: edition.catchup.name,
         excludeUserId: session.user.id,
       });
       return "opened" as const;
@@ -1308,7 +1325,7 @@ export async function closeAndPublish(editionId: string) {
           catchupId: edition.catchupId,
           editionId,
           groupId: edition.catchup.group.id,
-          groupName: edition.catchup.group.name,
+          catchupName: edition.catchup.name,
           opensAt,
           excludeUserId: session.user.id,
         });
@@ -1346,7 +1363,7 @@ export async function closeAndPublish(editionId: string) {
         catchupId: edition.catchupId,
         editionId,
         groupId: edition.catchup.group.id,
-        groupName: edition.catchup.group.name,
+        catchupName: edition.catchup.name,
         excludeUserId: session.user.id,
       });
       return "published" as const;
@@ -1407,7 +1424,7 @@ export async function startEdition(catchupId: string) {
     if (!limited.ok) return { error: limited.error };
 
     const opened = await openEdition(
-      { id: catchupId, group: { id: ctx.catchup.groupId, name: ctx.catchup.group.name } },
+      { id: catchupId, groupId: ctx.catchup.groupId, name: ctx.catchup.name },
       { id: session.user.id, name: session.user.name ?? "Someone" },
       new Date()
     );
@@ -1899,7 +1916,7 @@ export async function toggleEntryLove(entryId: string) {
         catchupId: edition.catchupId,
         editionId: entry.editionId,
         groupId: edition.catchup.group.id,
-        groupName: edition.catchup.group.name,
+        catchupName: edition.catchup.name,
         entryId,
         authorId: entry.authorId,
         likerId: session.user.id,
@@ -2043,7 +2060,7 @@ export async function createEntryComment(
         catchupId: edition.catchupId,
         editionId: entry.editionId,
         groupId: edition.catchup.group.id,
-        groupName: edition.catchup.group.name,
+        catchupName: edition.catchup.name,
         entryId,
         writerId: session.user.id,
         writerName: session.user.name,
@@ -2402,7 +2419,7 @@ export async function addCatchupMembers(catchupId: string, userIds: string[]) {
          a member of their own Catch-up). */
       await notifyAdded(prisma, {
         catchupId,
-        groupName: catchup.group.name,
+        catchupName: catchup.name,
         addedByName: session.user.name,
         userIds: newlyAdded,
       });

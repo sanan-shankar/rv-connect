@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { Button } from "@/components/ui/button";
 import { BirdAvatar } from "@/components/common/bird-avatar";
 import { Wordmark } from "@/components/layout/peaks-mark";
-import { isMissingCatchupTable } from "@/lib/catchups";
+import { catchupDisplayName, isMissingCatchupTable } from "@/lib/catchups";
 import { AcceptInvite } from "@/components/catchups/join/accept-invite";
 import { IDENTITY_SELECT } from "@/lib/people-select";
 
@@ -54,6 +54,7 @@ export default async function JoinCatchupPage({
     id: string;
     status: string;
     groupId: string;
+    title: string | null;
     group: { name: string; _count: { members: number } };
     createdBy: { id: string; name: string; photoUrl: string | null; birdOverride: string | null } | null;
   } | null = null;
@@ -66,6 +67,7 @@ export default async function JoinCatchupPage({
           id: true,
           status: true,
           groupId: true,
+          title: true,
           group: { select: { name: true, _count: { select: { members: true } } } },
           createdBy: { select: IDENTITY_SELECT },
         },
@@ -116,6 +118,11 @@ export default async function JoinCatchupPage({
   const here = `/catchups/join/${token}`;
   const keeper = catchup.createdBy;
   const others = catchup.group._count.members;
+  /* The name it goes by, the one its home and its list card print: a Keeper's
+     title when there is one. This page printed the group's own name, which a
+     rename never touches, so a renamed Catch-up invited people to something
+     called by a name it no longer had (bug audit 3, T3-09). */
+  const name = catchupDisplayName(catchup.title, catchup.group.name);
 
   return (
     <Shell>
@@ -130,7 +137,7 @@ export default async function JoinCatchupPage({
       )}
 
       <h1 className="font-heading text-[28px] leading-tight tracking-[-0.02em] text-foreground">
-        {catchup.group.name}
+        {name}
       </h1>
       <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">
         A Catch-up is a letter this group writes together. Someone asks a few questions, everyone
@@ -146,7 +153,7 @@ export default async function JoinCatchupPage({
       </p>
 
       {session?.user?.id ? (
-        <AcceptInvite token={token} groupName={catchup.group.name} />
+        <AcceptInvite token={token} name={name} />
       ) : (
         <div className="mt-6 flex flex-col gap-2.5">
           {/* Both carry ?next= back here, so whichever door they come through

@@ -121,7 +121,16 @@ async function loadHome(catchupId: string, viewerId: string): Promise<CatchupHom
     where: { groupId_userId: { groupId: catchup.groupId, userId: viewerId } },
     select: { role: true },
   });
-  if (!membership) return { kind: "not-member", groupId: catchup.groupId, groupName: catchup.group.name };
+  /* The name it goes by, a Keeper's title included: this card printed the
+     group's own, so a renamed Catch-up turned a stranger away under the name
+     it had given up (bug audit 3, T3-09). */
+  if (!membership) {
+    return {
+      kind: "not-member",
+      groupId: catchup.groupId,
+      name: catchupDisplayName(catchup.title, catchup.group.name),
+    };
+  }
 
   const isKeeper = isEffectiveKeeper({
     viewerId,
@@ -145,6 +154,8 @@ async function loadHome(catchupId: string, viewerId: string): Promise<CatchupHom
       publishAt: latestRaw.publishAt,
       catchup: {
         status: catchup.status,
+        // So the clock's bells call it what this page calls it (T2a-02).
+        title: catchup.title,
         group: { id: catchup.group.id, name: catchup.group.name },
       },
     };
@@ -429,7 +440,6 @@ async function loadHome(catchupId: string, viewerId: string): Promise<CatchupHom
        join, so nobody else is sent it. A batch Catch-up has none. */
     inviteToken: isKeeper && catchup.status !== "ended" ? catchup.inviteToken : null,
     groupId: catchup.groupId,
-    groupName: catchup.group.name,
     title: catchupDisplayName(catchup.title, catchup.group.name),
     catchupStatus: catchup.status as CatchupStatus,
     idle,
@@ -544,7 +554,7 @@ export default async function CatchupHomePage({
     return (
       <NotAvailableCard
         title="This Catch-up is for group members."
-        body={`Join ${result.groupName} to add questions, answer, and read the archive.`}
+        body={`Join ${result.name} to add questions, answer, and read the archive.`}
         cta={{ href: "/catchups", label: "Back to Catch-ups" }}
       />
     );

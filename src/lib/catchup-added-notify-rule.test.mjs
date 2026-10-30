@@ -42,7 +42,7 @@ test("notifyAdded writes exactly the userIds it is given, never audience math", 
   );
   assert.match(
     fn,
-    /`\$\{ctx\.addedByName\} added you to \$\{ctx\.groupName\}'s Catch-up\.`/,
+    /`\$\{ctx\.addedByName\} added you to \$\{ctx\.catchupName\}'s Catch-up\.`/,
     "the added notification's wording changed; update this pin and the spec table together"
   );
   assert.match(fn, /`\/catchups\/\$\{ctx\.catchupId\}`/, "notifyAdded no longer links to the Catch-up's home");
