@@ -1,6 +1,6 @@
 ## 2026-10-30 (db) — bug audit 3, unit L3: the database
 
-Thirteen rows in four commits, `npm run check` green before each: nine done, four parked.
+Thirteen rows in four commits, `npm run check` green before each: ten done, three parked.
 
 Indexes (T1-20, T1-21, T1-22, L5-09, L5-10). Measured before building: pg_stat_statements, open
 since July, names each query (poll options by post on every feed page, 24,977 calls; the rail's
