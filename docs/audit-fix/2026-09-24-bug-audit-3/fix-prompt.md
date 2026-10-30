@@ -60,6 +60,47 @@ before committing, `git diff` them, and if a hunk is not yours, stage only your 
 A peer session is fixing Collection things in parallel (`55246d6a` closed most of T4b-05): check
 `git log` on every cited file before editing it.
 
+## Runner's handover (2026-10-30, after the first session)
+
+The first runner closed Phases A and B and most of L and H (110 of 353 rows, every unit verified by
+the runner: diff read, gate re-run, screenshots looked at, a write-path review on every unit that
+touched a server action, auth, the purge or the schema), pushed once, and handed over with a full
+context. **The next runner starts here**, then reads the board, the routed follow-ups and the
+common brief (`work/fix-brief-common.md`), which every worker reads first.
+
+- **Three tracks run at once** (the owner asked for more parallel work on 2026-10-29), at most
+  five agents in flight. They never edit one file at once: the shared docs and the schema are behind
+  `/tmp/rv-ba3-docs.lock`, the gates take turns behind `/tmp/rv-ba3-visual.lock`, and a worker never
+  edits a file that shows someone else's uncommitted changes. Track 1 is Catch-ups; track 2 the main
+  sequence; track 3 platform and the cold phases.
+- **Next units:** track 1, the last Phase H unit (L4-01, T3-11, L2-04, T3-08, T3-12, T3-24, T2b-10,
+  plus routed (b), (e), (f), (h) and the blocked-member withhold). Track 2, Phase O's one budget
+  design (O-09) before any instance, then E, F, D, C, G in that order (C after D; G applies O's
+  helper). Track 3, Phase L's demo unit (L12-08, L9-10, T8a-08, T8a-09, T8a-10, T8a-17, T7a-18 and the
+  demo's missing index), then I, K, J, M, N. L8-01 and T7b-10 are parked on the ledger with reasons.
+- **Pushes:** the owner allows them "as few times as possible". The first went out with Phases A and
+  B. The next is at the very end, after a production build of the final commit in a throwaway
+  worktree (`git worktree add --detach /tmp/rv-build-check HEAD`, a copy-on-write `cp -Rc` of
+  `node_modules` into it, since Turbopack refuses a symlinked one, then `next build`).
+- **Watch for:** workers that land the board and progress line as a separate docs commit (it rides in
+  the unit's last fix commit); destructive behaviour the owner did not approve (H3 deleted a blocked
+  member's unsent answers at a close; withdrawn in 33ffec72 before the push, nothing lost); the dev
+  server holding stale server modules (`roster.ts`, `purge-rule.ts`, `catchups-core.ts`; a restart by
+  whoever owns it clears them); `npm run verify:shot` signing in as the owner rather than the test
+  account.
+- **The peer session** is building an announcement feature with uncommitted edits in
+  `src/app/(main)/layout.tsx`, `feed/page.tsx`, `support-contribute.tsx`, the guide and
+  `src/components/announcement/`; it was told that its new `User.announcementSeenAt` must join
+  `EXPORT_PROFILE` (or `LEFT_OUT`) in `src/lib/account-export-rule.ts`.
+- **Questions for the owner since gate 1** (ask them at the close, in his format: what happens now,
+  the problem, the change, what he would notice, the risk, options with a default): keep the "pages
+  opened" records for good or cut them at 90 days (seven admin-room numbers count every open ever);
+  whether the privacy page's rewrite needs the on-site announcement its "Changes" section promises;
+  delete or keep the 330 abandoned originals already in the photo backup. Things to tell him: Vercel's
+  usage command still bills a "Pro" line after his downgrade (only Settings → Billing can say); the
+  egress reading turns on with a `SUPABASE_ACCESS_TOKEN` repository secret; the end list he agreed to
+  do is checks A, D, E, F, G, H and K.
+
 ## Campaign board
 
 Where the campaign is, in the order the phases run. **This is the resume anchor**: the next session reads
