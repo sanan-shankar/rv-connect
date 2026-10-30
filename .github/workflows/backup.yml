@@ -17,7 +17,8 @@ name: backup
 # doc itself names: a scheduled copy to a second bucket. The sync deliberately
 # never passes --delete, so a photo deleted from rv-alumni-media -- including
 # by the C2 arbitrary-delete bug -- survives here until someone consciously
-# removes it from the backup too.
+# removes it from the backup too. Everything is copied except staging/, which
+# only ever holds uploads in flight or abandoned (the sync step says why).
 #
 # Restore, when you need it. Every night the "Rehearse the restore" step runs
 # exactly this against a scratch database, so it is known to work:
@@ -387,10 +388,23 @@ jobs:
           # So: "default", with the threshold raised to S3's single-copy
           # ceiling. A photograph is megabytes, so nothing goes multipart,
           # and one that ever did would fail loudly here, not silently.
+          #
+          # Everything except staging/ (bug audit 3, L11-02). That folder only
+          # ever holds uploads in flight or abandoned: every finished one, a
+          # post's photo, a Collection photograph or a recording, is re-encoded
+          # or copied out of it and its staged original deleted
+          # (api/upload/finalize, contributePhotoDirect,
+          # api/upload/audio/finalize), so nothing there is ever the only copy
+          # of anything. What it does hold is phone originals with their GPS
+          # still in them, which is why the successful path deletes them
+          # (audit M12). Asked whether keeping them had any use, the owner's
+          # answer was to stop. The 330 copied before this stay where they
+          # are, by the same decision.
           aws configure set default.s3.multipart_threshold 5GB
           aws s3 sync "s3://rv-alumni-media" "s3://$BUCKET/media/" \
             --endpoint-url "$ENDPOINT" --no-progress \
-            --copy-props default
+            --copy-props default \
+            --exclude "staging/*"
 
       - name: Verify the backup holds at least everything live
         env:
@@ -405,11 +419,19 @@ jobs:
           # The backup may hold MORE objects than the live bucket (that means
           # it preserved something that was deleted -- working as intended).
           # It may never hold fewer.
-          LIVE=$(aws s3 ls "s3://rv-alumni-media" --recursive --endpoint-url "$ENDPOINT" | wc -l | tr -d ' ')
-          SAVED=$(aws s3 ls "s3://$BUCKET/media/" --recursive --endpoint-url "$ENDPOINT" | wc -l | tr -d ' ')
-          echo "live: $LIVE objects, backup: $SAVED objects"
+          #
+          # Both sides counted without staging/, which the sync no longer
+          # copies: abandoned uploads waiting there would otherwise count as
+          # missing from the backup, and the staged originals copied before
+          # 2026-10-30 would stand in for real photographs that were missing.
+          # A recursive listing prints whole keys, so the backup's keys start
+          # with media/; the pattern takes either form.
+          kept() { awk 'NF >= 4 && $4 !~ /^(media\/)?staging\// { n++ } END { print n + 0 }'; }
+          LIVE=$(aws s3 ls "s3://rv-alumni-media" --recursive --endpoint-url "$ENDPOINT" | kept)
+          SAVED=$(aws s3 ls "s3://$BUCKET/media/" --recursive --endpoint-url "$ENDPOINT" | kept)
+          echo "outside staging/: live $LIVE objects, backup $SAVED objects"
           if [ "$SAVED" -lt "$LIVE" ]; then
-            echo "::error::Backup holds $SAVED objects but the live bucket holds $LIVE. Sync is incomplete."
+            echo "::error::Backup holds $SAVED objects but the live bucket holds $LIVE, staging/ aside. Sync is incomplete."
             exit 1
           fi
-          echo "### Media backup: $SAVED objects (live bucket: $LIVE)" >> "$GITHUB_STEP_SUMMARY"
+          echo "### Media backup: $SAVED objects (live bucket: $LIVE), staging/ aside" >> "$GITHUB_STEP_SUMMARY"

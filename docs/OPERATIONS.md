@@ -139,13 +139,22 @@ to the place list is added last). Find the matching place list with
 `aws s3api head-object --key postgres/rv-connect-YYYY-MM-DD.dump --query Metadata.place`.
 Dumps from before 2026-09-30 still hold the place list and restore in one command.
 
-The same workflow's **`media` job** copies every object in `rv-alumni-media` into the
-private bucket under `media/`, server-side, **never with `--delete`**. This is the photo
-archive's undelete: Cloudflare R2 has no object versioning on any plan, so the security
-audit's "enable versioning" remediation (C2/C4) is impossible as written and this
-scheduled copy is its named fallback. A photo deleted from the live bucket survives in
-the backup until deliberately removed there. The job fails if the backup ever holds
-fewer objects than the live bucket. Restore one photo:
+The same workflow's **`media` job** copies every object in `rv-alumni-media` except those
+under `staging/` into the private bucket under `media/`, server-side, **never with
+`--delete`**. This is the photo archive's undelete: Cloudflare R2 has no object versioning
+on any plan, so the security audit's "enable versioning" remediation (C2/C4) is impossible
+as written and this scheduled copy is its named fallback. A photo deleted from the live
+bucket survives in the backup until deliberately removed there. The job fails if the backup
+ever holds fewer objects than the live bucket, both counted without `staging/`.
+
+**`staging/` is not copied** (since 2026-10-30, bug audit 3 L11-02). It only ever holds
+uploads in flight or abandoned: every finished upload is re-encoded or copied out of it and
+its staged original deleted, so nothing there is the only copy of anything, and what waits
+there is phone originals with their GPS still in them. Asked whether keeping them had any
+use, the owner's answer was to stop. The 330 copied before then are still in
+`media/staging/`, by the same decision. `scripts/qa/backup-rule.test.mjs` runs the steps'
+own shell against stand-in listings and fails if the exclusion or the count drifts. Restore
+one photo:
 ```
 aws s3 cp "s3://$R2_BACKUP_BUCKET/media/<key>" "s3://rv-alumni-media/<key>" --endpoint-url "https://<account-id>.r2.cloudflarestorage.com"
 ```
