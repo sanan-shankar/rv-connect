@@ -91,10 +91,12 @@ so scrolling past the same card again renders it again. Every signed-in route he
 `/profile/[id]` rendered 27,841 times against ~546 real profile views, a third of all Active CPU;
 the site rendered ~18 pages per page a member opened, and that took the owner off Vercel Hobby at
 ~150 members. All links now go through `src/components/common/link.tsx` (prefetch off by default),
-pinned by `link-import-rule.test.mjs`. **Measure platform cost, never estimate it per visit:**
-`vercel metrics vercel.function_invocation.function_cpu_time_ms -p rv-alumni -a sum --since 7d
---group-by route` (from `/tmp`, the repo is not `vercel link`ed; `--since 30d` times out), against
-real views in `Visit.paths`.
+pinned by `link-import-rule.test.mjs`. **Measure platform cost, never estimate it per visit.** On
+Pro with Observability Plus that meant `vercel metrics vercel.function_invocation.function_cpu_time_ms
+-p rv-alumni -a sum --since 7d --group-by route` (from `/tmp`, the repo is not `vercel link`ed;
+`--since 30d` times out), against real views in `Visit.paths`. On Hobby, since 2026-10-23, that
+command answers `payment_required` and `vercel usage` bills nothing, so the dashboard's Usage page,
+over the plan's trailing 30 days, is the measurement (OPERATIONS.md, "Re-measuring").
 
 **The NextAuth session is a JSON payload, so a `Date` on `session.user` arrives as a string.**
 Adding `lastSeenAt: true` to the session callback's select and reading `session.user.lastSeenAt`

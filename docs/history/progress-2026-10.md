@@ -1,3 +1,50 @@
+## 2026-10-30 (ops) — bug audit 3, unit L4b: the backups keep what they should and name every night, the snapshot reads Supabase's egress once given a token, a laptop cannot pass for production, and the session and bell pins see what they missed
+
+Seven rows in seven commits (L11-02 from phase B; L5-07's one half and five Lows from phase L),
+every new pin shown failing against its mutation. `npm run check` green on each, one of them
+committed while it was red only on two of track 1's uncommitted files (re-run once). No migration,
+and nothing a member sees changes.
+
+The backups (L11-02, L3-07). The owner asked why unfinished uploads were kept. Re-derived at HEAD,
+`staging/` holds only uploads in flight or abandoned: every finished one is re-encoded or copied
+out and its staged original deleted. So the nightly media sync leaves it out, and the verify step
+counts both buckets without it. Retention, the monthlies, the privacy page and the 330 staged
+originals already copied are untouched, as he decided. The dump was named by the run's UTC date
+while GitHub starts the job hours late, so a night that began after midnight UTC was overwritten
+by the next: five nights lost between August and October. It is named by the UTC minute now, and
+the prune keeps one dump per month's 1st, that day's last, the file the old name kept.
+`scripts/qa/backup-rule.test.mjs` runs the steps' own shell under GitHub's flags with a stand-in
+`aws` and `date`.
+
+Egress (L5-07, the half the campaign takes; the cut stays deferred to about 1,000 members). The
+snapshot reads the organisation's egress from Supabase's own meter, through the endpoint its
+dashboard uses (the documented v1 API has none), and fails the job at 70% of the plan's
+allowance. It runs once a `SUPABASE_ACCESS_TOKEN` repository secret exists, and with one a failed
+read fails the job too. Never run against Supabase, since no token exists, so whether that
+endpoint takes a personal token is unproven. Dry-run here: skipped cleanly with no token; with an
+invalid one it named the 401, kept the other 33 metrics and exited 1.
+
+The laptop (L11-06). Without R2 credentials `delImage` answered "gone" for every photograph it
+could not reach, so a laptop sweep struck the worklist clean while the bytes stayed public. It
+now answers false, the address stays queued for production, and the live host is known in code.
+The sweep route refuses anywhere but production unless the server sets `SWEEP_IN_DEV=1`. Routed:
+the audit line's `ranOn` stamp, in track 2's `retention.ts`.
+
+The pins (L9-05, L9-08). The three writes that end a member's sessions, the reset, the deletion
+request and the block, are asserted inside their own writes, and a sweep fails any password write
+without the bump, the break-glass script included. The bell sweep knew two of the five ways a post
+stops opening; it now holds an erasure to the purge's bell clear or the merge's re-home, counts
+`deleteMany` and `updateMany`, and says why a block or a deletion request clears nothing.
+
+Measuring (V-L-c-01). OPERATIONS "Re-measuring", TRAPS and the platform-health handover say what
+still measures on Hobby: `vercel metrics` answers `payment_required` (re-checked today) and
+`vercel usage` reads $0 for every usage line, so the dashboard's Usage page is the meter. For the
+owner: `vercel usage` still lists a flat "Pro" line of $0.645 a day through 10-29, after the
+downgrade, and only Settings → Billing settles which plan is billed.
+
+Visible: nothing in the app. For the owner, OPERATIONS' new "Egress" section says how to switch
+the egress reading on: one repository secret.
+
 ## 2026-10-30 (privacy) — bug audit 3, unit B4: the data download carries everything the site keeps, a leaving member's writing goes with them, the support bar keeps its figures, and the audit log says when an erased account's files are gone
 
 Four rows and B3b's follow-up in five commits, and a sixth from the write-path review, each pinned

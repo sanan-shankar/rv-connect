@@ -530,9 +530,19 @@ said Hobby would hold 2,000 members; at ~150 the site hit Hobby's CPU ceiling an
 Pro, because Next's link prefetching was rendering ~18 pages on the server for every page a
 member opened (TRAPS.md, "Next.js"; fixed 2026-09-29). Every figure below comes from
 `vercel metrics`, `vercel usage`, SQL or the Supabase dashboard, dated. Anything projected says
-so. Re-measure before trusting a projection; the commands are at the end.
+so. Re-measure before trusting a projection; the commands are at the end. On Hobby, since
+2026-10-23, the first of those refuses and the second meters nothing, so the end of this section
+says what still measures.
 
-### Vercel (Pro: $20 a month, which includes $20 of usage credit)
+### Vercel (Hobby since 2026-10-23; the measurements below were taken on Pro)
+
+**Hobby since 2026-10-23**, the owner's call once the prefetch fix had cut the cost: 4 hours of
+Active CPU a month, counted over the **trailing 30 days** and summed across every project on the
+account, the demo included, and going over can pause functions for up to 30 days. Steady use
+since the fix measured about 4 minutes a day, about 2 hours a month (2026-10-23, the dashboard).
+Hobby's other allowances (5,000 image transformations, 1,000,000 function invocations, 10 GB of
+Fast Origin Transfer a month) are shared the same way. The table and the projection below are the
+Pro-era measurement that decision rested on.
 
 | | Week before the prefetch fix (09-22..28) | 8 days after (09-30..10-07) |
 |---|---|---|
@@ -549,9 +559,11 @@ of the $20 credit, so the bill stays at or near the $20 plan fee. **Hobby cannot
 members**, and Hobby is for non-commercial use while the site takes contributions. Pro is the
 plan for 2,000.
 
-A bot can still spend money that members never would. Vercel's default only *emails*, at $200.
-**Spend Management** (Settings → Billing) can pause the project at a hard cap instead; that is
-the owner's switch.
+A bot can still spend what members never would. On Hobby it spends allowance rather than money:
+a script at ten requests a second uses a month's requests in about a day, and a few thousand
+query-string variations of one photo use the month's image transformations (bug audit 3, L8-04
+and C5-01). The one firewall rate-limit rule Hobby allows per project is the owner's switch
+(check D). On Pro, **Spend Management** (Settings → Billing) caps the money instead.
 
 ### Supabase (Free)
 
@@ -574,13 +586,35 @@ fits the Free plan with less room, and egress is the line to watch: the nightly 
 Supabase's own meter once its token is set (§2, "Egress"), and until then only the dashboard does. Supabase Pro ($25 a month: 8 GB database, 250 GB egress) is the answer
 when either line gets near.
 
-### Re-measuring (from `/tmp`; the repo is not `vercel link`ed)
+### Re-measuring (last verified 2026-10-30, on Hobby)
+
+The two CLI meters this section was built on no longer measure on Hobby (bug audit 3, V-L-c-01):
+
+- `vercel metrics` answers `payment_required` for every query: per-route CPU and invocations need
+  Observability Plus, which Vercel sells on Pro and Enterprise only (refused on 2026-10-24 and
+  again on 2026-10-30).
+- `vercel usage` still answers, but every usage line has read $0 since 2026-10-24, because Hobby
+  bills no usage. It still lists a flat "Pro" line of $0.645 a day through 2026-10-29, after the
+  downgrade, while the team API has reported the plan as "hobby" since a sync on 2026-10-20: which
+  plan is really billed, only Settings → Billing says.
+
+What still measures:
+
+- **The dashboard's Usage page** (the team → Usage): Active CPU, invocations, Fast Origin Transfer
+  and image transformations, each against Hobby's line over the trailing 30 days. It is the only
+  live meter of the Vercel lines now (owner check B, weekly); Vercel emails at 75%. Before saying
+  a plan fits, reconstruct the window that plan enforces, not today's daily rate.
+- Real page views, to divide by: `SELECT sum(views) FROM "Visit" WHERE "startedAt" > now() - interval '1 day'`.
+- Database size: `db.database.bytes` in `/admin/analytics`, or `SELECT pg_size_pretty(pg_database_size(current_database()))`.
+- Supabase egress: `supabase.egress.cycle_gb` in the snapshot once its token is set (§2, "Egress"),
+  otherwise the organisation's Usage page.
+
+Per-route CPU comes back with Pro plus Observability Plus, if it is ever worth paying for. The
+commands for that day, run from `/tmp` (the repo is not `vercel link`ed):
 
 - CPU by route: `vercel metrics vercel.function_invocation.function_cpu_time_ms -p rv-alumni -a sum --since 1d --group-by route --order-by value -F json`
 - The same split by `--group-by function_start_type`: deploys make cold starts, which are not traffic.
 - Money: `vercel usage --from YYYY-MM-DD --to YYYY-MM-DD`.
-- Real page views, to divide by: `SELECT sum(views) FROM "Visit" WHERE "startedAt" > now() - interval '1 day'`.
-- Database size: `db.database.bytes` in `/admin/analytics`, or `SELECT pg_size_pretty(pg_database_size(current_database()))`.
 
 ## Still to do
 - **Staging database** — a second Supabase project so schema changes get a rehearsal.

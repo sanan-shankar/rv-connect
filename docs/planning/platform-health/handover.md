@@ -60,6 +60,11 @@ are minimal (`log_statement=ddl`, no connection logging), so the app is not the 
 
 ## Commands
 
+**On Hobby, since 2026-10-23, the first two measure nothing** (re-checked 2026-10-30, bug audit 3
+V-L-c-01): `vercel metrics` answers `payment_required`, since Observability Plus is Pro-only, and
+`vercel usage` reads $0 for every usage line. The dashboard's Usage page is the meter; OPERATIONS.md
+"Re-measuring" is kept current. The two stay below for the day the plan changes back.
+
 - CPU by route (run from `/tmp`; the repo is not `vercel link`ed; `--since 30d` times out):
   `vercel metrics vercel.function_invocation.function_cpu_time_ms -p rv-alumni -a sum --since 1d --group-by route --order-by value -l 20 -F json`
   and the same with `vercel.function_invocation.count`. Compare against the 7-day baseline above
