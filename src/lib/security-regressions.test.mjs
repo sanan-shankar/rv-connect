@@ -10,6 +10,7 @@ import {
   walk,
   SKIP_DIRS,
   serverActionFiles,
+  nextConfig,
 } from "./test-kit.mjs";
 
 /* ------------------------------------------------------------------ *
@@ -142,32 +143,89 @@ test("the C2 exemption list names only files that still exist", () => {
 
 /* ------------------ C-134: the image optimizer vouches for named hosts only */
 
-test("no wildcard host is allowed to be fetched or optimised", () => {
+/* The wildcards that stay, each argued for in next.config.ts beside it, and
+   each in the ONE directive it is argued for. None is an optimizer host.
+     - r2.cloudflarestorage.com is the presigned-PUT endpoint: account-scoped,
+       and reached only with a URL our own server signed.
+     - razorpay.com is a third-party SDK host whose own subdomains move.
+     - spotifycdn.com is album art: its shard letters rotate, and img-src only
+       says which images the browser may paint. It stood in the file from
+       2026-09-06 without this pin ever seeing it (bug audit 3, L9-01).
+   posthog.com was a fourth until 2026-09-05, when it came out of img-src and
+   connect-src: posthog-js is configured with api_host "/ingest" and the
+   browser makes every analytics request first-party (checked live: 43
+   resources on /login, none to posthog.com). Adding any host back should have
+   to argue for itself here. */
+const ARGUED_WILDCARDS = {
+  "connect-src": ["https://*.r2.cloudflarestorage.com"],
+  "img-src": ["https://*.razorpay.com", "https://*.spotifycdn.com"],
+};
+
+/** Every host the config vouches for by pattern rather than by name: a `*` in an
+    optimizer hostname or a CSP source, or a bare scheme (`https:` is every host).
+    `data:` and `blob:` name no host. */
+async function wildcardHosts(config) {
+  const offenders = [];
+  // A pattern object and a URL (both forms Next accepts) each carry a hostname.
+  for (const { hostname } of config.images?.remotePatterns ?? []) {
+    if (hostname.includes("*")) offenders.push(`images.remotePatterns: ${hostname}`);
+  }
+  for (const d of config.images?.domains ?? []) if (d.includes("*")) offenders.push(`images.domains: ${d}`);
+
+  const policies = (await config.headers())
+    .flatMap((rule) => rule.headers)
+    .filter((h) => h.key.toLowerCase() === "content-security-policy")
+    .map((h) => h.value);
+  assert.ok(policies.length > 0, "found no Content-Security-Policy in headers(); this pin has drifted");
+  for (const policy of policies) {
+    for (const directive of policy.split(";").map((d) => d.trim()).filter(Boolean)) {
+      const [name, ...sources] = directive.split(/\s+/);
+      for (const source of sources) {
+        const pattern = source.includes("*") || /^[a-z][a-z0-9+.-]*:$/.test(source);
+        if (!pattern || source === "data:" || source === "blob:") continue;
+        if (!(ARGUED_WILDCARDS[name] ?? []).includes(source)) offenders.push(`${name}: ${source}`);
+      }
+    }
+  }
+  return offenders;
+}
+
+test("no wildcard host is allowed to be fetched or optimised", async () => {
   /* /_next/image is reachable signed out (avatars render on /login) and
      transforms whatever host remotePatterns vouches for. `*.r2.dev` matched
      every free self-serve Cloudflare bucket in the world, so anybody could
      have this project's Vercel account fetch and transform their bytes, once
      per unique URL, in a loop. The same wildcard sat in img-src and
-     connect-src. Named hosts only, in all three. */
-  const src = decomment(read("next.config.ts"));
-  const wildcards = [...src.matchAll(/["'`](?:https:\/\/)?\*\.[A-Za-z0-9.-]+["'`]/g)].map((m) => m[0]);
-  /* Three stay, and none is an optimizer host. r2.cloudflarestorage.com is the
-     presigned-PUT endpoint: account-scoped, and reached only with a URL our
-     own server signed. razorpay.com is a third-party SDK host whose own
-     subdomains move. spotifycdn.com is album art, in img-src only: its shard
-     letters rotate, and img-src only tells the browser which images it may
-     paint. Each carries its reasoning in next.config.ts beside it.
-     spotifycdn.com stood in the file since 2026-09-06 without this test ever
-     seeing it: the old comment stripper ate the line (bug audit 3, L9-02).
-     posthog.com was a fourth until 2026-09-05, when it came out of img-src and
-     connect-src: posthog-js is configured with api_host "/ingest" and the
-     browser makes every analytics request first-party (checked live: 43
-     resources on /login, none to posthog.com). Adding it back should have to
-     argue for itself here. */
-  const offenders = wildcards.filter(
-    (w) => !/r2\.cloudflarestorage\.com|razorpay\.com|spotifycdn\.com/.test(w)
-  );
-  assert.deepEqual(offenders, [], `next.config.ts vouches for wildcard hosts: ${offenders.join(", ")}`);
+     connect-src. Named hosts only, in all three.
+
+     Over the EVALUATED config. This used to grep the file, and the grep was
+     blind twice over: the comment stripper ate most of the CSP before it ran,
+     and its regex knew only the `*.` spelling, so Next's documented
+     `**.r2.dev` passed it wherever it was written (bug audit 3, L9-01). */
+  const config = await nextConfig();
+  assert.ok(config.images?.remotePatterns?.length > 0, "no remotePatterns found; this pin has drifted");
+  assert.deepEqual(await wildcardHosts(config), [], "next.config.ts vouches for hosts by pattern");
+});
+
+test("the wildcard pin sees each shape that used to walk past it", async () => {
+  /* The audit's two mutations, run against the same check as the real config,
+     plus the bare-scheme and argued-elsewhere shapes. */
+  const real = await nextConfig();
+  const withCsp = (extra) => ({
+    ...real,
+    async headers() {
+      return [{ source: "/:path*", headers: [{ key: "Content-Security-Policy", value: extra }] }];
+    },
+  });
+  const cases = [
+    [withCsp("connect-src 'self' https://*.r2.dev"), "connect-src: https://*.r2.dev"],
+    [{ ...real, images: { remotePatterns: [{ protocol: "https", hostname: "**.r2.dev" }] } }, "images.remotePatterns: **.r2.dev"],
+    [withCsp("img-src 'self' https:"), "img-src: https:"],
+    [withCsp("connect-src 'self' https://*.spotifycdn.com"), "connect-src: https://*.spotifycdn.com"],
+  ];
+  for (const [config, expected] of cases) {
+    assert.ok((await wildcardHosts(config)).includes(expected), `the pin missed ${expected}`);
+  }
 });
 
 test("the optimizer's host list still covers every base the app accepts", () => {

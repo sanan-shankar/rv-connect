@@ -26,9 +26,9 @@
  */
 
 import { readFileSync, readdirSync } from "node:fs";
-import { createRequire } from "node:module";
+import { createRequire, registerHooks } from "node:module";
 import { dirname, join, relative, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 export { balancedBody } from "./test-fn-body.mjs";
 
@@ -41,6 +41,43 @@ export const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 
 /** Read a repo-relative path as UTF-8 text. */
 export const read = (p) => readFileSync(resolve(ROOT, p), "utf8");
+
+/**
+ * next.config.ts as Next reads it: the evaluated object, not its text.
+ *
+ * A grep over that file has to guess what it says, and the C-134 pin guessed
+ * wrong twice (bug audit 3, L9-01): the old comment stripper ate the lines its
+ * regex was looking for, and the regex knew one spelling of a wildcard, so
+ * Next's own `**.r2.dev` would have passed it anywhere. The object has no
+ * spellings: `images.remotePatterns` and the headers() array are what ships.
+ *
+ * `@sentry/nextjs` is swapped, for this one importer, for an identity
+ * `withSentryConfig`. The wrapper adds build plumbing (env, webpack) and
+ * touches neither images nor headers, and the real SDK takes seconds to load
+ * and prints a deprecation notice into every run.
+ */
+export async function nextConfig() {
+  const url = pathToFileURL(resolve(ROOT, "next.config.ts")).href;
+  if (!configHooked) {
+    configHooked = true;
+    registerHooks({
+      resolve(specifier, context, next) {
+        if (specifier !== "@sentry/nextjs" || context.parentURL !== url) return next(specifier, context);
+        return {
+          url: "data:text/javascript,export const withSentryConfig = (config) => config;",
+          shortCircuit: true,
+        };
+      },
+      /* Said out loud so Node does not guess (package.json names no module
+         type) and print a warning about guessing. */
+      load(href, context, next) {
+        return next(href, href === url ? { ...context, format: "module-typescript" } : context);
+      },
+    });
+  }
+  return (await import(url)).default;
+}
+let configHooked = false;
 
 /**
  * Strip comments so an assertion cannot pass (or fail) on prose.
