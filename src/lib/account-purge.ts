@@ -9,7 +9,7 @@ import { adminThreadLink, ownProfileLink, postNotificationLink } from "./notific
 import { noteReportsOnErasedMember } from "./admin-threads-server";
 import { reportSwallowed } from "./report-error";
 import { isSerializationFailure } from "./prisma-errors";
-import { PURGE_ATTEMPTS, retryWriteConflicts } from "./purge-rule";
+import { PURGE_ATTEMPTS, drainQueue, retryWriteConflicts } from "./purge-rule";
 import type { Prisma } from "@/generated/prisma/client";
 
 /**
@@ -603,56 +603,86 @@ async function stillDue(userId: string, requestedBefore: Date): Promise<boolean>
   }
 }
 
+/** How long a drain keeps starting deletes when its caller names no budget of
+ *  its own: an admin's delete, a post's, a declined photograph's. At 25 at a
+ *  time that is thousands of objects, far past any one member's archive. */
+const DRAIN_BUDGET_MS = 20_000;
+
 /**
  * Work through the pending-delete list: remove the object, then the row that
  * remembered it. A row that survives is a byte that survived.
  *
- * Called twice: once by the purge that queued the URLs (so the common case
- * finishes in the same request), and once a night by the retention sweep for
- * anything left behind by a crash or a bad minute at R2.
+ * Called with the urls a caller has just queued (an erasure, a post's delete,
+ * a merge, a declined photograph), so the common case finishes in the same
+ * request, and once a night by the retention sweep with no urls, for
+ * everything still queued. Rounds of parallel deletes until the worklist is
+ * empty or `budgetMs` is spent (`drainQueue`, purge-rule.ts); it used to take
+ * 500 rows and delete them one at a time, so a large archive waited nights
+ * (bug audit 3, T7a-21).
+ *
+ * The count returned is objects actually gone, not attempts (B-013).
  */
 export async function drainPendingImagePurges(
   onlyUrls?: string[],
-  limit = 500
-): Promise<{ deleted: number; failed: number }> {
-  const rows = await prisma.pendingImagePurge.findMany({
-    where: onlyUrls ? { url: { in: onlyUrls } } : {},
-    orderBy: { createdAt: "asc" },
-    take: limit,
-    select: { id: true, url: true },
-  });
+  budgetMs = DRAIN_BUDGET_MS
+): Promise<{ deleted: number; failed: number; finished: boolean }> {
+  // An empty list means nothing to do. Never let `in: []` decide whether it
+  // means everything (docs/TRAPS.md, "Do not depend on how an empty array
+  // compiles").
+  if (onlyUrls && onlyUrls.length === 0) return { deleted: 0, failed: 0, finished: true };
+  const scope: Prisma.PendingImagePurgeWhereInput = onlyUrls ? { url: { in: onlyUrls } } : {};
 
-  let deleted = 0;
-  let failed = 0;
-  /* The `Image` rows for whatever actually goes. This is the second of the two
-     places bytes are deleted (the other is `purgeImageUrls`), and it is the one
-     that finishes the job for a post or an account, whose urls are queued
-     inside a transaction rather than handed over directly. Collected and
-     forgotten in one statement after the loop rather than one at a time. */
-  const gonePermanently: string[] = [];
-  for (const row of rows) {
-    const gone = await delImage(row.url);
-    if (gone) {
-      gonePermanently.push(row.url);
-      await prisma.pendingImagePurge.delete({ where: { id: row.id } }).catch(() => {
-        // Row already taken by a concurrent drain; the object is gone either
-        // way, which is the part that matters.
-      });
-      deleted += 1;
-    } else {
-      failed += 1;
-      /* updateMany, not update (audit C-118). The success branch beside this one
-         already tolerates a concurrent drain having taken the row; this one did
-         not, and Prisma's `update` throws P2025 on a missing row -- so the
-         BOOKKEEPING for a failure could itself throw out of the sweep and stop
-         every remaining purge behind it. `updateMany` no-ops on zero matches,
-         which is the honest answer: somebody else already dealt with it. */
-      await prisma.pendingImagePurge.updateMany({
-        where: { id: row.id },
-        data: { attempts: { increment: 1 }, lastError: "delete refused by storage" },
-      });
-    }
-  }
-  await forgetImages(gonePermanently);
-  return { deleted, failed };
+  return drainQueue(
+    {
+      // Oldest first, and a page after the last one by (createdAt, id): one
+      // createMany gives every row the same createdAt, so the id breaks ties.
+      page: (after, limit) =>
+        prisma.pendingImagePurge.findMany({
+          where: after
+            ? {
+                AND: [
+                  scope,
+                  {
+                    OR: [
+                      { createdAt: { gt: after.createdAt } },
+                      { createdAt: after.createdAt, id: { gt: after.id } },
+                    ],
+                  },
+                ],
+              }
+            : scope,
+          orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+          take: limit,
+          select: { id: true, url: true, createdAt: true },
+        }),
+      remove: delImage,
+      settle: async (gone, refused) => {
+        if (gone.length > 0) {
+          // deleteMany: a row a concurrent drain already took is simply not
+          // counted, and the object is gone either way, which is the part
+          // that matters.
+          await prisma.pendingImagePurge.deleteMany({ where: { id: { in: gone.map((r) => r.id) } } });
+          /* The `Image` rows for whatever actually went. This is the second
+             of the two places bytes are deleted (the other is
+             `purgeImageUrls`), the one that finishes the job for a post or an
+             account, whose urls are queued inside a transaction rather than
+             handed over directly. Forgotten each round, so a drain cut off
+             mid-way leaves no record of an object it already removed. */
+          await forgetImages(gone.map((r) => r.url));
+        }
+        if (refused.length > 0) {
+          /* updateMany, not update (audit C-118): `update` throws P2025 on a
+             missing row, so the BOOKKEEPING for a refusal could itself throw
+             out of the sweep and stop every remaining purge behind it.
+             updateMany no-ops on zero matches, which is the honest answer:
+             somebody else already dealt with it. */
+          await prisma.pendingImagePurge.updateMany({
+            where: { id: { in: refused.map((r) => r.id) } },
+            data: { attempts: { increment: 1 }, lastError: "delete refused by storage" },
+          });
+        }
+      },
+    },
+    { deadline: Date.now() + budgetMs }
+  );
 }

@@ -118,11 +118,20 @@ test("C-076: the purge transaction runs at the isolation its comment relies on",
 });
 
 test("C-118: the purge drain's failure branch cannot throw", () => {
+  /* The drain settles a round at a time since T7a-21 (bug audit 3), so the
+     refused rows are one updateMany by id rather than one per row; the rule is
+     the same: never `update`, which throws P2025 on a row a concurrent drain
+     already took. */
   const src = decomment(read("src/lib/account-purge.ts"));
   assert.match(
     src,
-    /prisma\.pendingImagePurge\.updateMany\(\{\s*where: \{ id: row\.id \}/,
-    "the bookkeeping for a failed delete still throws P2025 when a concurrent drain took the row"
+    /prisma\.pendingImagePurge\.updateMany\(\{\s*where: \{ id: \{ in: refused\.map\(/,
+    "the bookkeeping for a failed delete no longer marks the refused rows with updateMany"
+  );
+  assert.doesNotMatch(
+    src,
+    /pendingImagePurge\.(update|delete)\(/,
+    "the bookkeeping for a delete still throws P2025 when a concurrent drain took the row"
   );
 });
 

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { read, decomment, balancedBody } from "./test-kit.mjs";
-import { PURGE_ATTEMPTS, retryWriteConflicts } from "./purge-rule.ts";
+import { DRAIN_PARALLEL, PURGE_ATTEMPTS, drainQueue, retryWriteConflicts } from "./purge-rule.ts";
 
 /* ------------------------------------------------------------------ *
  *  The purge has to be honest about what it removed.
@@ -497,4 +497,104 @@ test("B3a-review: the purge answers whoever waits on a report it is about to tak
   const deleted = purge.indexOf("tx.user.deleteMany(");
   assert.ok(tx > -1 && noted > tx, "the reporters are answered outside the purge's transaction");
   assert.ok(deleted > noted, "the reporters are looked for after the account, and their reports with it, are gone");
+});
+
+/* ------------------------------------------------------------------ *
+ *  The worklist drains in one sitting (bug audit 3, T7a-21).
+ *
+ *  The drain took 500 rows and deleted them one at a time, so a member with
+ *  a large Collection contribution stayed publicly fetchable for nights after
+ *  their account went. It now pages through the whole worklist in rounds of
+ *  parallel deletes until a time budget is spent.
+ * ------------------------------------------------------------------ */
+
+/** An in-memory worklist with the drain's three doors, counting what it saw. */
+function fakeQueue(n, { refuse = () => false, remove } = {}) {
+  const base = Date.parse("2026-10-30T00:00:00Z");
+  // Five rows to each createdAt, as one createMany writes them.
+  let rows = Array.from({ length: n }, (_, i) => ({
+    id: `row-${String(i).padStart(5, "0")}`,
+    url: `https://img.example/${i}.webp`,
+    createdAt: new Date(base + Math.floor(i / 5)),
+  }));
+  const tried = new Map();
+  let inFlight = 0;
+  let maxInFlight = 0;
+  const after = (row, cursor) =>
+    !cursor || row.createdAt > cursor.createdAt || (+row.createdAt === +cursor.createdAt && row.id > cursor.id);
+  return {
+    io: {
+      page: async (cursor, limit) => rows.filter((r) => after(r, cursor)).slice(0, limit),
+      remove:
+        remove ??
+        (async (url) => {
+          tried.set(url, (tried.get(url) ?? 0) + 1);
+          inFlight += 1;
+          maxInFlight = Math.max(maxInFlight, inFlight);
+          await new Promise((r) => setImmediate(r));
+          inFlight -= 1;
+          return !refuse(url);
+        }),
+      settle: async (gone) => {
+        const ids = new Set(gone.map((r) => r.id));
+        rows = rows.filter((r) => !ids.has(r.id));
+      },
+    },
+    left: () => rows.length,
+    tried,
+    maxInFlight: () => maxInFlight,
+  };
+}
+
+test("T7a-21: a 1,200-object archive drains in one call, 25 at a time", async () => {
+  const q = fakeQueue(1200);
+  const out = await drainQueue(q.io, { deadline: Date.now() + 60_000 });
+  assert.deepEqual(out, { deleted: 1200, failed: 0, finished: true });
+  assert.equal(q.left(), 0, "rows were left on the worklist");
+  assert.equal(q.tried.size, 1200);
+  assert.ok([...q.tried.values()].every((n) => n === 1), "an object was deleted twice in one pass");
+  assert.equal(q.maxInFlight(), DRAIN_PARALLEL, "the deletes are not running in parallel rounds");
+});
+
+test("T7a-21: a refused object is counted, kept, and not tried again in the same pass", async () => {
+  const q = fakeQueue(300, { refuse: (url) => /\/(7|150|299)\.webp$/.test(url) });
+  const out = await drainQueue(q.io, { deadline: Date.now() + 60_000 });
+  assert.deepEqual(out, { deleted: 297, failed: 3, finished: true });
+  assert.equal(q.left(), 3, "a refused object's row went, and with it the only record of the bytes");
+  assert.ok([...q.tried.values()].every((n) => n === 1), "a refused object was retried in a loop");
+});
+
+test("T7a-21: the deadline stops it between rounds, and says it did not finish", async () => {
+  const q = fakeQueue(500);
+  let clock = 0;
+  const out = await drainQueue(q.io, {
+    deadline: 3,
+    // Each round reads the clock once before it starts; the fourth finds it spent.
+    now: () => clock++,
+  });
+  assert.equal(out.finished, false);
+  assert.equal(out.deleted, 2 * DRAIN_PARALLEL, `${out.deleted} deleted: a round started after the deadline`);
+  assert.equal(q.left(), 500 - out.deleted, "a finished round was not settled");
+});
+
+test("T7a-21: a delete that throws or never answers is a refusal, not a stalled drain", async () => {
+  let n = 0;
+  const q = fakeQueue(4, {
+    remove: async () => {
+      n += 1;
+      if (n === 1) throw new Error("socket hang up");
+      if (n === 2) return new Promise(() => {});
+      return true;
+    },
+  });
+  const out = await drainQueue(q.io, { deadline: Date.now() + 60_000, removeTimeoutMs: 25 });
+  assert.deepEqual(out, { deleted: 2, failed: 2, finished: true });
+});
+
+test("T7a-21: the app's drain is the budgeted loop, not a fixed slice", () => {
+  const fn = balancedBody(decomment(read("src/lib/account-purge.ts")), "export async function drainPendingImagePurges(");
+  assert.ok(fn, "drainPendingImagePurges is gone; this pin is reading nothing");
+  assert.match(fn, /return drainQueue\(/, "the drain no longer goes through the budgeted parallel loop");
+  assert.match(fn, /deadline: Date\.now\(\) \+ budgetMs/, "the drain has no time budget, so a large archive is either cut short or unbounded");
+  assert.doesNotMatch(fn, /for \(const row of rows\)/, "the drain deletes one row at a time again");
 });
