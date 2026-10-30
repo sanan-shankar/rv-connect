@@ -76,8 +76,9 @@ The owner looked at the page again and found four things wrong with the top:
   Jerdon's Leafbird and Wire-tailed Swallow. The Hoopoe should be first, and he suggested
   swapping the owls.
 
-In the same round the grid itself changed (`GALLERY_GRID` in `bird-gallery-order.ts`): from `sm`
-up each bird fills its column, seven columns at desktop instead of five, because he found the
+In the same round the grid itself changed (`GALLERY_GRID` in `bird-gallery-order.ts`): seven
+columns at desktop instead of five, each bird filling its column up to 100px (145px was too
+crowded), because he found the
 Support page's twelve birds cosy and full, and this page sparse beside them. So the order is now
 checked at 2, 4, 6 and 7 columns, not 2, 3, 4 and 5.
 

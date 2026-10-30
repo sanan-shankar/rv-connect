@@ -10,14 +10,16 @@
  * comparison). Before, a fixed 96px bird sat in a 210px column at desktop, with 130px of air
  * between neighbours. Seven columns because seventy birds make exactly ten full rows, and the names
  * still fit on one line at that width; eight made smaller birds, wrapped names and a ragged last
- * row. A phone keeps its two columns of 96px birds: his comparison was of the desktop pages.
+ * row. Each bird is capped at 100px: filling the whole 145px column was too big and too close
+ * together for seventy birds (owner, same day: overstimulating), so the cap leaves about 60px
+ * between birds and a wider row gap. A phone keeps its two columns of 96px birds: his comparison was of the desktop pages.
  */
 export const GALLERY_GRID =
-  "grid grid-cols-2 gap-x-[var(--space-m)] gap-y-[var(--space-l)] sm:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7";
+  "grid grid-cols-2 gap-x-[var(--space-m)] gap-y-[var(--space-l)] sm:grid-cols-4 sm:gap-y-[var(--space-xl)] lg:grid-cols-6 xl:grid-cols-7";
 
-/** One bird's box in that grid: 96px on a phone, the full column from `sm` up. */
+/** One bird's box in that grid: 96px on a phone, the column's width up to 100px from `sm` up. */
 export const GALLERY_GLYPH =
-  "relative grid size-24 shrink-0 place-items-center sm:aspect-square sm:h-auto sm:w-full [&>svg]:size-full";
+  "relative grid size-24 shrink-0 place-items-center sm:aspect-square sm:h-auto sm:w-full sm:max-w-25 [&>svg]:size-full";
 
 /** The name under each bird. Balanced, so a name that wraps splits evenly rather than at a hyphen
  *  ("Green-" over "Pigeon"). The picker adds its hover and selected colours to it. */

@@ -20,8 +20,9 @@ look-alike, colour and black-bird rule at 2, 4, 6 and 7 columns.
 He also found the page sparse beside the Support plate on desktop. The gallery's grid, glyph box
 and name are now shared constants (`GALLERY_GRID`, `GALLERY_GLYPH`, `GALLERY_NAME`) used by the
 birds page, the paid picker and its skeleton, which had been copies kept in step by comments. From
-`sm` up each bird fills its column, seven columns at `xl`, so a desktop bird is 145px with 16px
-between columns where it was 96px in a 210px column. A phone keeps two columns of 96px birds, as
+`sm` up each bird fills its column up to 100px, seven columns at `xl`, with more room between rows.
+A first cut let the birds fill the whole 145px column; he found that crowded and overstimulating,
+so the cap sits between that and the old 96px bird in a 210px column. A phone keeps two columns of 96px birds, as
 his comparison was of desktop. Names balance across two lines rather than breaking at a hyphen.
 Visible: the birds page and the picker.
 
