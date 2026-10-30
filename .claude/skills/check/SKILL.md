@@ -33,11 +33,16 @@ template had been deleted and ESLint was never run.
 |---|---|
 | `ok` | clean |
 | `warn` | findings that are a matter of degree; read them, decide, do not ignore |
-| `FAIL` | a real defect. `types`, `lab`, `tests`, `deps` and `security` are blocking; the run exits 1 |
+| `FAIL` | a real defect. `types`, `lint`, `lab`, `tests`, `deps` and `security` are blocking; the run exits 1 |
 
-`lint` and `protocol` are deliberately non-blocking. `eslint.config.mjs` sets
+ESLint blocks on an error and only counts warnings. `eslint.config.mjs` sets
 every design rule to `warn`, never `error`, on purpose: per DESIGN-SYSTEM these
 "nudge, they never break the build." Do not "fix" that by making them errors.
+What arrives at `error` is eslint-config-next's correctness set (rules-of-hooks,
+jsx-key, jsx-no-undef and the rest), where a hit is a page that crashes; until
+bug audit 3 (L9-03) those printed `FAIL` and CI still went green. A crashed
+ESLint blocks too: it cannot vouch for zero errors. `protocol` stays
+non-blocking: it reports comment false positives a human triages.
 
 ## When a gate fails
 

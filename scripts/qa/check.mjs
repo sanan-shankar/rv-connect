@@ -15,8 +15,9 @@
  *  explicit that the design rules "nudge, they never break the build",
  *  and eslint.config.mjs sets every one of them to `warn` for exactly
  *  that reason. So this reports, ranks and exits non-zero on the things
- *  that are genuinely broken (types, stranded lab rooms, failing tests)
- *  and merely COUNTS the things that are matters of degree (lint).
+ *  that are genuinely broken (types, ESLint ERRORS, stranded lab rooms,
+ *  failing tests) and merely COUNTS the things that are matters of degree
+ *  (ESLint warnings, the protocol audit).
  *  It does run before every push (scripts/dev/git-hooks/pre-push): a
  *  push is a deploy, and CI runs this same gate on it anyway.
  *
@@ -26,14 +27,11 @@
  * ------------------------------------------------------------------ */
 
 import { spawn } from "node:child_process";
-import { readdirSync } from "node:fs";
+import { readdirSync, realpathSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
-process.chdir(ROOT);
-
-const only = process.argv[2]; // optional: run one gate by name
 
 /** Run a command, capture everything, never throw. */
 function run(cmd, args) {
@@ -97,9 +95,12 @@ function findUnrunTests(dir, acc = []) {
 
 /* ------------------------------------------------------------------ *
  *  The gates. `blocking` means a failure here is a real defect, not a
- *  matter of taste, so the whole run exits 1.
+ *  matter of taste, so the whole run exits 1. Exported, with each
+ *  gate's reading of its tool split out as a pure `read`, so the tests
+ *  can prove a failure still blocks (check-gates.test.mjs,
+ *  ci-parity.test.mjs) without running the tool.
  * ------------------------------------------------------------------ */
-const GATES = {
+export const GATES = {
   types: {
     label: "TypeScript",
     blocking: true,
@@ -112,17 +113,28 @@ const GATES = {
 
   lint: {
     label: "ESLint",
-    blocking: false, // by design: see the header, and eslint.config.mjs
+    /* Errors block; warnings only count (bug audit 3, L9-03). The two kinds
+       are different things. Every design rule in eslint.config.mjs is `warn`
+       on purpose -- they nudge, they never break the build -- and stay that
+       way. What arrives at `error` is the framework's correctness set from
+       eslint-config-next: rules-of-hooks, jsx-key, jsx-no-undef and some sixty
+       more, where a hit is a page that crashes. This gate used to be
+       non-blocking whole, so a conditional hook printed FAIL and CI shipped
+       it green. */
+    blocking: true,
     async run() {
-      const { code, out } = await run("npx", ["eslint", "src"]);
+      return GATES.lint.read(await run("npx", ["eslint", "src"]));
+    },
+    read({ code, out }) {
       const m = out.match(/(\d+) problems? \((\d+) errors?, (\d+) warnings?\)/);
       /* A CRASHED eslint -- a broken config, a plugin that will not load --
          prints no summary line, and so did a clean one: the parse fell through
          to zero problems and this gate said "clean" while lint enforcement was
          simply off (audit C-190). The exit code was captured all along and
          thrown away. Non-zero AND no summary is the crash; non-zero WITH a
-         summary is eslint doing its job and reporting errors. */
-      if (!m && code !== 0) return { ok: false, soft: true, detail: "tool crashed", out };
+         summary is eslint doing its job and reporting errors. A crash blocks:
+         an eslint that did not run cannot say there were no errors. */
+      if (!m && code !== 0) return { ok: false, detail: "tool crashed", out };
       const errors = m ? Number(m[2]) : 0;
       const warnings = m ? Number(m[3]) : 0;
       return {
@@ -247,35 +259,55 @@ const GATES = {
   },
 };
 
+/** A result's row: "pass", "soft" (a warning) or "fail". */
+export const stateOf = (result) => (result.ok ? "pass" : result.soft ? "soft" : "fail");
+
+/** Whether a gate's result stops the run (exit 1). */
+export const blocks = (gate, result) => stateOf(result) === "fail" && gate.blocking === true;
+
 /* ------------------------------------------------------------------ */
-const names = only ? [only] : Object.keys(GATES);
-if (only && !GATES[only]) {
-  console.error(`unknown gate "${only}". known: ${Object.keys(GATES).join(", ")}`);
-  process.exit(2);
-}
+async function main() {
+  process.chdir(ROOT);
+  const only = process.argv[2]; // optional: run one gate by name
+  const names = only ? [only] : Object.keys(GATES);
+  if (only && !GATES[only]) {
+    console.error(`unknown gate "${only}". known: ${Object.keys(GATES).join(", ")}`);
+    process.exit(2);
+  }
 
-console.log("");
-const started = Date.now();
-const results = await Promise.all(
-  names.map(async (name) => ({ name, ...GATES[name], ...(await GATES[name].run()) }))
-);
-
-const MARK = { pass: "  ok  ", soft: " warn ", fail: " FAIL " };
-let blocked = false;
-
-for (const r of results) {
-  const state = r.ok ? "pass" : r.soft ? "soft" : "fail";
-  if (state === "fail" && r.blocking) blocked = true;
-  console.log(`${MARK[state]} ${r.label.padEnd(24)} ${r.detail}`);
-}
-
-console.log("");
-for (const r of results) {
-  if (r.ok) continue;
-  console.log(`--- ${r.label} ---`);
-  console.log(r.out.split("\n").filter((l) => !l.startsWith("[BABEL]")).slice(0, 40).join("\n").trim());
   console.log("");
+  const started = Date.now();
+  const results = await Promise.all(
+    names.map(async (name) => ({ gate: GATES[name], result: await GATES[name].run() }))
+  );
+
+  const MARK = { pass: "  ok  ", soft: " warn ", fail: " FAIL " };
+  let blocked = false;
+
+  for (const { gate, result } of results) {
+    if (blocks(gate, result)) blocked = true;
+    console.log(`${MARK[stateOf(result)]} ${gate.label.padEnd(24)} ${result.detail}`);
+  }
+
+  console.log("");
+  for (const { gate, result } of results) {
+    if (result.ok) continue;
+    console.log(`--- ${gate.label} ---`);
+    console.log(result.out.split("\n").filter((l) => !l.startsWith("[BABEL]")).slice(0, 40).join("\n").trim());
+    console.log("");
+  }
+
+  console.log(`${((Date.now() - started) / 1000).toFixed(1)}s`);
+  process.exit(blocked ? 1 : 0);
 }
 
-console.log(`${((Date.now() - started) / 1000).toFixed(1)}s`);
-process.exit(blocked ? 1 : 0);
+/* The gate runs when this file is run, and only then: the tests import it.
+   `import.meta.main` answers that on any path (Node 24.2 and up). The
+   fallback compares real paths, not `file://${argv[1]}`, which never equals
+   the URL of a checkout under a folder with a space in its name or reached
+   through a symlink -- the guard that let the dependency gate print nothing
+   and read as clean (bug audit 3, C1-08). */
+const isEntryPoint =
+  import.meta.main ??
+  (Boolean(process.argv[1]) && realpathSync(process.argv[1]) === fileURLToPath(import.meta.url));
+if (isEntryPoint) await main();
