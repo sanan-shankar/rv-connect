@@ -21,7 +21,6 @@ import {
 } from "@/lib/account-purge";
 import { CATCHUP_PEOPLE } from "@/lib/catchup-caps";
 import { lockGroup, promoteGroupSuccessor } from "@/lib/group-succession";
-import { purgeImageUrls } from "@/lib/image-purge";
 import { isSerializationFailure } from "@/lib/prisma-errors";
 import { reportSwallowed } from "@/lib/report-error";
 import { OCCUPATION_MAX, batchTypeFromLeaving, valleyYear } from "@/lib/utils";
@@ -366,8 +365,8 @@ export async function adminMergeUsers(
   if (sourceId === targetId) return { error: "That is the same account." };
 
   const [source, target] = await Promise.all([
-    prisma.user.findUnique({ where: { id: sourceId }, select: { id: true, role: true, photoUrl: true } }),
-    prisma.user.findUnique({ where: { id: targetId }, select: { id: true, photoUrl: true } }),
+    prisma.user.findUnique({ where: { id: sourceId }, select: { id: true, role: true } }),
+    prisma.user.findUnique({ where: { id: targetId }, select: { id: true } }),
   ]);
   if (!source) return { error: "The duplicate account no longer exists." };
   if (!target) return { error: "Could not find the account to merge into." };
@@ -521,8 +520,23 @@ export async function adminMergeUsers(
         });
         await tx.report.updateMany({ where: { reportedUserId: sourceId }, data: { reportedUserId: targetId } });
 
-        await tx.user.delete({ where: { id: sourceId } });
-        return droppedUrls;
+        /* The duplicate's avatar, the one object a merge otherwise strands
+           (write-path review, Phase 8): it lives under `avatars/<sourceId>/`
+           and no moved row points at it. Read off the row as the row is
+           deleted, so it is the avatar the account last wore, and queued in
+           this transaction with the dropped answers' files, so a request cut
+           off after the commit cannot strand it; it was deleted after the
+           commit and queued only if storage refused (bug audit 3, B3b's
+           write-path review). Never an object the survivor itself displays.
+           The coverPhoto is NOT touched: that URL belongs to a Collection
+           Photo row, re-pointed at the survivor above and still alive. */
+        const gone = await tx.user.delete({ where: { id: sourceId }, select: { photoUrl: true } });
+        const survivor = await tx.user.findUnique({ where: { id: targetId }, select: { photoUrl: true } });
+        const avatar = gone.photoUrl && gone.photoUrl !== survivor?.photoUrl ? [gone.photoUrl] : [];
+        if (avatar.length > 0) {
+          await tx.pendingImagePurge.createMany({ data: avatar.map((url) => ({ url, reason: "merge" })) });
+        }
+        return [...droppedUrls, ...avatar];
       },
       // Interactive, because the hat now hangs on a read. The 5 s default is
       // a page render's budget, not thirty statements' (the purge's reasoning,
@@ -553,25 +567,12 @@ export async function adminMergeUsers(
     detail:
       `merged ${sourceId} into ${targetId}` +
       (handedOn > 0 ? `; ${handedOn} Catch-up(s) handed to another member, the survivor cannot keep one` : "") +
-      (queued.length > 0 ? `; ${queued.length} stored image(s) from answers both accounts gave queued for deletion` : ""),
+      (queued.length > 0 ? `; ${queued.length} of the duplicate's stored image(s) queued for deletion` : ""),
   });
 
-  // The one R2 object a merge otherwise strands (write-path review, Phase 8):
-  // the duplicate's avatar. It lives under `avatars/<sourceId>/`, no moved row
-  // points at it, and the target keeps its own photo, so without this it sat
-  // publicly fetchable forever with nothing left to find it by (the H9
-  // failure mode, via merge instead of delete). The coverPhoto is NOT
-  // touched: that URL belongs to a Collection Photo row, which has just been
-  // re-pointed at the target and is still alive. Guarded and best-effort:
-  // only after the transaction committed, and never an object the target
-  // itself displays.
-  if (source.photoUrl && source.photoUrl !== target.photoUrl) {
-    // Queued for the nightly drain if storage refuses: this is the one object
-    // a merge strands, and a console line is not a worklist (audit C-069).
-    await purgeImageUrls([source.photoUrl], "merge");
-  }
-  // And the dropped answers' bytes, queued in the transaction above. What the
-  // drain cannot reach waits for tonight's sweep, which is the queue's job.
+  // The files queued in the transaction above: the dropped answers' and the
+  // duplicate's avatar. What the drain cannot reach, or storage refuses,
+  // waits for tonight's sweep, which is the queue's job.
   if (queued.length > 0) {
     try {
       await drainPendingImagePurges(queued);

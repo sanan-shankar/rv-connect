@@ -691,7 +691,7 @@ test("V-T7a-02: a merge queues the dropped answers' files with the drop, and dra
   assert.ok(fn, "adminMergeUsers is gone; this pin is reading nothing");
   const dropped = fn.indexOf("await dropCollidingAnswers(tx, sourceId, targetId)");
   const moved = fn.indexOf("await tx.catchupEntry.updateMany({ where: { authorId: sourceId }");
-  const committed = fn.indexOf("return droppedUrls;");
+  const committed = fn.indexOf("return [...droppedUrls, ...avatar];");
   const drained = fn.indexOf("await drainPendingImagePurges(queued)");
   assert.ok(dropped > -1 && moved > dropped, "the merge moves answers before dropping the ones that collide, or drops them some other way");
   assert.ok(committed > moved && drained > committed, "the files are not drained after the merge commits");
@@ -773,4 +773,19 @@ test("T7a-19: the request, its audit line and its email name one day", () => {
   assert.match(fn, /deletionRequestedAt: requestedAt,/, "the stored request and the promised day come from two different clocks");
   assert.match(fn, /purge due \$\{purgeDay\}/, "the audit line names some other day than the one promised");
   assert.match(fn, /purgeDate: valleyMidnight\(purgeDay\)\.toLocaleDateString\(/, "the email names some other day than the one the sweep keeps");
+});
+
+test("B3b-review: a merge queues the duplicate's avatar with the delete, not after the commit", () => {
+  /* The avatar was deleted after the merge committed and queued only if
+     storage refused, so a request cut off in between stranded a public
+     avatar nothing named. It is read off the row as the row goes and queued in
+     the same transaction. */
+  const fn = balancedBody(decomment(read("src/app/(main)/admin/people/actions.ts")), "export async function adminMergeUsers(");
+  assert.ok(fn, "adminMergeUsers is gone; this pin is reading nothing");
+  const gone = fn.search(/const gone = await tx\.user\.delete\(\{\s*where:\s*\{\s*id:\s*sourceId\s*\},\s*select:\s*\{\s*photoUrl:\s*true\s*\}/);
+  const queued = fn.indexOf('await tx.pendingImagePurge.createMany({ data: avatar.map((url) => ({ url, reason: "merge" })) })');
+  const returned = fn.indexOf("return [...droppedUrls, ...avatar];");
+  assert.ok(gone > -1, "the avatar is not read off the row the merge deletes");
+  assert.ok(queued > gone && returned > queued, "the avatar is not queued inside the merge's transaction");
+  assert.doesNotMatch(fn, /purgeImageUrls\(/, "the avatar is deleted after the commit again, outside the worklist");
 });
