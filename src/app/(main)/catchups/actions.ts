@@ -101,6 +101,7 @@ import {
   notifySealed,
 } from "@/lib/catchups-notify";
 import { PROMPT_CATEGORIES } from "@/lib/catchups-types";
+import type { Prisma } from "@/generated/prisma/client";
 import type {
   CatchupStatus,
   EditionStatus,
@@ -2350,6 +2351,29 @@ const MEMBERSHIP_REFUSAL = {
 } as const;
 
 /**
+ * Whether the caller still wears the hat, asked inside a transaction that
+ * already holds the group (`lockGroup`), so nothing can take it between this
+ * and the write (routed follow-up (a), Phase A review 1).
+ *
+ * `loadKeeperScope` reads the hat before the transaction. A second Keeper
+ * taking it, or removing the caller, in that gap committed first, and the
+ * removed Keeper's add, removal or hat change then went through anyway, for
+ * the length of the race. Every one of those writes holds the group first,
+ * so the read here sees anything that took the hat before it.
+ */
+async function stillKeeps(
+  tx: Prisma.TransactionClient,
+  catchup: { groupId: string; createdById: string | null },
+  viewerId: string
+): Promise<boolean> {
+  const row = await tx.groupMember.findUnique({
+    where: { groupId_userId: { groupId: catchup.groupId, userId: viewerId } },
+    select: { role: true },
+  });
+  return !!row && isEffectiveKeeper({ viewerId, createdById: catchup.createdById, groupRole: row.role });
+}
+
+/**
  * The Catch-up a Keeper is acting on, or the reason they may not. Builds on
  * `loadCatchupContext` rather than re-reading the same two rows, so nine
  * actions share one Keeper gate instead of each restating it.
@@ -2454,12 +2478,14 @@ export async function addCatchupMembers(catchupId: string, userIds: string[]) {
       return { error: RATE_LIMITED };
     }
 
-    let written: { room: number } | { added: number; newlyAdded: string[] };
+    let written: { room: number } | { added: number; newlyAdded: string[] } | { notKeeper: true };
     try {
       written = await prisma.$transaction(
         async (tx) => {
           // The roster's lock, before anything is read (see the docblock).
           await lockGroup(tx, catchup.groupId);
+          // Still a Keeper, now that nobody can be taking the hat (routed (a)).
+          if (!(await stillKeeps(tx, catchup, session.user.id))) return { notKeeper: true as const };
           /* Who is already in, read BEFORE the insert. It decides which of
              the people below are genuinely NEW, which is the only set whose
              filing state may be cleared and the only set that is told -- see
@@ -2498,6 +2524,7 @@ export async function addCatchupMembers(catchupId: string, userIds: string[]) {
       }
       throw err;
     }
+    if ("notKeeper" in written) return { error: MEMBERSHIP_REFUSAL.notKeeper };
     if ("room" in written) {
       return {
         error:
@@ -2596,6 +2623,11 @@ export async function removeCatchupMember(catchupId: string, userId: string) {
     }
 
     const removed = await prisma.$transaction(async (tx) => {
+      /* The group held first, then whether the caller still wears the hat:
+         a hat taken from them since the gate read it refuses here, before
+         succession or anything else writes (routed (a)). */
+      await lockGroup(tx, catchup.groupId);
+      if (!(await stillKeeps(tx, catchup, session.user.id))) return "notKeeper" as const;
       // The same succession as leaving: a Keeper can remove a second Keeper,
       // and on a Catch-up with no creator left that could be the last one
       // (audit C-023).
@@ -2614,6 +2646,7 @@ export async function removeCatchupMember(catchupId: string, userId: string) {
       const dropped = await dropUnsentWriting(tx, catchupId, userId);
       return { count: gone.count, dropped };
     });
+    if (removed === "notKeeper") return { error: MEMBERSHIP_REFUSAL.notKeeper };
     if (removed.count === 0) return { error: "They are not in this Catch-up." };
 
     // Their pending nudges point at a Catch-up they can no longer open. This
@@ -2807,14 +2840,20 @@ export async function setCatchupKeeper(catchupId: string, userId: string, isKeep
     }
 
     if (isKeeper) {
-      const granted = await prisma.groupMember.updateMany({
-        // Only to somebody a Catch-up may hold (L10-01). The hat is every
-        // Keeper control in this file, and the stage gate on each of them
-        // would turn an unproven Keeper away, leaving a Catch-up whose
-        // Keeper can do nothing.
-        where: { groupId: catchup.groupId, userId, user: CATCHUP_PEOPLE },
-        data: { role: "keeper" },
+      const granted = await prisma.$transaction(async (tx) => {
+        // Held, and the caller still a Keeper, like the revoke (routed (a)).
+        await lockGroup(tx, catchup.groupId);
+        if (!(await stillKeeps(tx, catchup, session.user.id))) return "notKeeper" as const;
+        return tx.groupMember.updateMany({
+          // Only to somebody a Catch-up may hold (L10-01). The hat is every
+          // Keeper control in this file, and the stage gate on each of them
+          // would turn an unproven Keeper away, leaving a Catch-up whose
+          // Keeper can do nothing.
+          where: { groupId: catchup.groupId, userId, user: CATCHUP_PEOPLE },
+          data: { role: "keeper" },
+        });
       });
+      if (granted === "notKeeper") return { error: MEMBERSHIP_REFUSAL.notKeeper };
       if (granted.count === 0) {
         // Not in the Catch-up, or somebody a Catch-up may not hold.
         const stillHere = await prisma.groupMember.count({ where: { groupId: catchup.groupId, userId } });
@@ -2831,12 +2870,14 @@ export async function setCatchupKeeper(catchupId: string, userId: string, isKeep
          hat, was refused above. */
       const revoked = await prisma.$transaction(async (tx) => {
         await lockGroup(tx, catchup.groupId);
+        if (!(await stillKeeps(tx, catchup, session.user.id))) return "notKeeper" as const;
         if (!(await anyOtherHolder(tx, catchup.groupId, userId))) return "last" as const;
         return tx.groupMember.updateMany({
           where: { groupId: catchup.groupId, userId, role: { in: ["keeper", "admin"] } },
           data: { role: "member" },
         });
       });
+      if (revoked === "notKeeper") return { error: MEMBERSHIP_REFUSAL.notKeeper };
       if (revoked === "last") return { error: "That would leave this Catch-up with no Keeper, so nothing changed." };
       if (revoked.count === 0) {
         // Not in the Catch-up; or not wearing the hat, which is the state asked for.

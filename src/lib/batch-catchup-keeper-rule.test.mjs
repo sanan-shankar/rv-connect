@@ -317,7 +317,7 @@ test("putting somebody into a Catch-up, or handing them the hat, asks the Catch-
     );
   }
   const keeper = fnBody("setCatchupKeeper");
-  const grant = keeper.match(/prisma\.groupMember\.updateMany\(\{([\s\S]*?)data: \{ role: "keeper" \}/);
+  const grant = keeper.match(/(?:prisma|tx)\.groupMember\.updateMany\(\{([\s\S]*?)data: \{ role: "keeper" \}/);
   assert.ok(grant, "setCatchupKeeper's grant moved; retarget this pin");
   assert.match(grant[1], /user:\s*CATCHUP_PEOPLE/, "the hat can be handed to somebody a Catch-up may not hold");
   assert.match(keeper, /Only a verified member can be a Keeper\./, "a refused grant says nothing, or says it worked");

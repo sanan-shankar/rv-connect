@@ -210,9 +210,12 @@ test("L1-03: leaving and removal hand the hat on first thing in their transactio
   for (const name of ["leaveCatchup", "removeCatchupMember"]) {
     const fn = balancedBody(src, `export async function ${name}(`);
     assert.ok(fn, `${name} is gone; this pin is reading nothing`);
+    /* The group's row first, through succession or taken plainly before it
+       (removal holds it, then asks whether its caller still keeps the hat,
+       routed follow-up (a)); either way nothing is read before it is held. */
     assert.match(
       fn,
-      /prisma\.\$transaction\(async \(tx\) => \{\s*await promoteGroupSuccessor\(tx,/,
+      /prisma\.\$transaction\(async \(tx\) => \{\s*(?:\/\*[\s\S]*?\*\/\s*)?await (?:promoteGroupSuccessor\(tx,|lockGroup\(tx, (?:catchup|ctx\.catchup)\.groupId\);)/,
       `${name} reads or writes before succession holds the group, so two departures can cross again`
     );
   }
@@ -223,11 +226,15 @@ test("A2 review: the hat is never taken from yourself, nor from its last holder"
   const fn = balancedBody(src, "export async function setCatchupKeeper(");
   assert.ok(fn, "setCatchupKeeper is gone; this pin is reading nothing");
   assert.match(fn, /if \(userId === session\.user\.id\) return \{ error: "You cannot change your own Keeper hat\." \}/, "a Keeper can change their own hat again");
-  const tx = fn.indexOf("prisma.$transaction(");
-  const lock = fn.indexOf("await lockGroup(tx, catchup.groupId)");
-  const asked = fn.indexOf("anyOtherHolder(tx, catchup.groupId, userId)");
-  const revoke = fn.indexOf("tx.groupMember.updateMany(");
+  // The revoke's branch: the grant above it holds the group too (routed (a)).
+  const branch = fn.slice(fn.indexOf("} else {"));
+  const tx = branch.indexOf("prisma.$transaction(");
+  const lock = branch.indexOf("await lockGroup(tx, catchup.groupId)");
+  const keeps = branch.indexOf("stillKeeps(tx, catchup, session.user.id)");
+  const asked = branch.indexOf("anyOtherHolder(tx, catchup.groupId, userId)");
+  const revoke = branch.indexOf("tx.groupMember.updateMany(");
   assert.ok(tx > -1 && lock > tx && asked > lock && revoke > asked, "the revoke no longer asks, inside a transaction holding the group, whether anyone else wears the hat");
+  assert.ok(keeps > lock && keeps < revoke, "the revoke no longer asks whether its caller still keeps the hat, holding the group");
   assert.doesNotMatch(fn, /prisma\.groupMember\.updateMany\(\{\s*where: \{ groupId: catchup\.groupId, userId, role:/, "a revoke outside the transaction is back");
   assert.match(fn, /That would leave this Catch-up with no Keeper/, "a refused last revoke says nothing, or says it worked");
 });

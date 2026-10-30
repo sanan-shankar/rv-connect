@@ -1069,3 +1069,30 @@ test("T3-14: the create form never offers the viewer, nor anyone already picked"
   // Found, but already on the list: not "No one found".
   assert.match(picker, /results\.length > 0\s*\?\s*"Already on the list\."/, "a name already on the list reads as nobody found");
 });
+
+test("routed (a): a Keeper whose hat went in the race is refused, asked while the group is held", () => {
+  /* loadKeeperScope reads the hat before the transaction, so a Keeper whose
+     hat a second Keeper took, or who was removed, in that gap still added,
+     removed or changed hats. Each of these writes holds the group, then asks
+     again, before it writes anything. */
+  const src = decomment(read("src/app/(main)/catchups/actions.ts"));
+  const helper = balancedBody(src, "async function stillKeeps(");
+  assert.match(helper, /tx\.groupMember\.findUnique\(/);
+  assert.match(helper, /isEffectiveKeeper\(\{ viewerId, createdById: catchup\.createdById, groupRole: row\.role \}\)/);
+  const sites = [
+    ["addCatchupMembers", balancedBody(src, "export async function addCatchupMembers("), "tx.groupMember.createMany("],
+    ["removeCatchupMember", balancedBody(src, "export async function removeCatchupMember"), "promoteGroupSuccessor(tx,"],
+  ];
+  const keeper = balancedBody(src, "export async function setCatchupKeeper(");
+  const elseAt = keeper.indexOf("} else {");
+  sites.push(["setCatchupKeeper's grant", keeper.slice(0, elseAt), "tx.groupMember.updateMany("]);
+  sites.push(["setCatchupKeeper's revoke", keeper.slice(elseAt), "anyOtherHolder(tx,"]);
+  for (const [name, body, write] of sites) {
+    const lock = body.indexOf("await lockGroup(tx, catchup.groupId)");
+    const keeps = body.indexOf("await stillKeeps(tx, catchup, session.user.id)");
+    const first = body.indexOf(write);
+    assert.ok(lock > -1 && keeps > lock, `${name} no longer asks again, holding the group, whether its caller keeps the hat`);
+    assert.ok(first > keeps, `${name} writes or reads the roster before it asks`);
+    assert.match(body, /return \{ error: MEMBERSHIP_REFUSAL\.notKeeper \}/, `${name} refuses in the race without the Keeper sentence`);
+  }
+});
