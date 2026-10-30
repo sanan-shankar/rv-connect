@@ -232,44 +232,50 @@ test("settings offers no rhythm, no hold and no Start, and end stays on the narr
  *  removing questions, opening answering, extending, closing and
  *  publishing. The people Catch-up's Keeper verbs had none either.
  *
- *  Pinned as a property of the file, not a list: any exported action that
- *  opts a batch in, goes through a Keeper or Edition preamble, starts an
- *  Edition, or rings anyone, calls requireVerifiedMember() before its first
- *  load or write -- or is on REACHES_NOBODY with its reason.
+ *  Pinned as a property of the file, not a list, and inverted after the
+ *  write-path review of A2 found the picture outside it: EVERY exported action
+ *  calls requireVerifiedMember() before its first load or write, unless it
+ *  only reads or only touches the caller's own copy, and those are named
+ *  below with their reason. A new action is born gated. (The first version
+ *  matched actions that looked like they reached other members, and the
+ *  picture, which re-skins a whole batch's Catch-up, did not look like it.)
  * ------------------------------------------------------------------ */
 
-const REACHES_NOBODY = {
-  renameCatchup:
-    "changes one word on a page its people are already reading, with no bell and no mail (its docblock)",
+/* What an account below Stage 2 may still run: his Q13 (a) keeps a signup
+   reading its batch's Catch-up, and leaving or filing your own copy must
+   never wait on anybody. */
+const OWN_COPY_OR_READ = {
+  leaveCatchup: "takes the caller out of a people Catch-up; leaving must always work",
+  setCatchupArchived: "files the caller's own copy away; nobody else sees it",
+  setReminderPref: "the caller's own reminder setting",
+  loadEntryComments: "a read, which answers an empty page to anyone it would refuse",
 };
 
-const REACHES_OTHERS =
-  /allowBatch:\s*true|loadKeeperScope\(|loadKeeperEdition\(|loadMemberEdition\(|openEdition\(|\bnotify[A-Z]\w*\(/;
 const FIRST_LOAD_OR_WRITE =
   /loadKeeperScope\(|loadKeeperEdition\(|loadMemberEdition\(|loadCatchupContext\(|loadCommentableEntry\(|prisma\./;
 
-test("every control that reaches other members asks for a verified member before anything else", () => {
+test("every action asks for a verified member before anything else, unless it only reads or touches the caller's own copy", () => {
   const names = [...actions.matchAll(/export async function ([A-Za-z0-9_]+)\(/g)].map((m) => m[1]);
-  let candidates = 0;
+  // 24 on 2026-10-30. If the pattern stopped matching, this would pass over nothing.
+  assert.ok(names.length >= 20, `only ${names.length} actions found; the sweep has drifted`);
   for (const name of names) {
     const body = fnBody(name);
-    if (!REACHES_OTHERS.test(body)) continue;
-    candidates += 1;
-    if (REACHES_NOBODY[name]) continue;
     const gate = body.search(/requireVerifiedMember\(\)/);
+    if (OWN_COPY_OR_READ[name]) {
+      assert.equal(gate, -1, `${name} waits for a verified member now, which his Q13 (a) keeps open: ${OWN_COPY_OR_READ[name]}`);
+      continue;
+    }
     assert.ok(
       gate > -1,
-      `${name} reaches other members and never asks for a verified member; an account that has ` +
-        `confirmed nothing (or a signup in its claimed batch) can press it`
+      `${name} never asks for a verified member; an account that has confirmed nothing (or a signup in its ` +
+        `claimed batch) can press it. Gate it, or name it in OWN_COPY_OR_READ with the reason it may not need to be.`
     );
     const first = body.search(FIRST_LOAD_OR_WRITE);
     assert.ok(first === -1 || gate < first, `${name} loads or writes before it checks the caller's stage`);
   }
-  // 16 on 2026-10-29. If the pattern stopped matching, this would pass over nothing.
-  assert.ok(candidates >= 14, `only ${candidates} actions look like they reach other members; the sweep has drifted`);
 });
 
-test("the seven controls the audit found open each carry the gate by name", () => {
+test("the controls the audit and its reviews found open each carry the gate by name", () => {
   for (const name of [
     "curatePrompt",
     "openAnswering",
@@ -278,15 +284,23 @@ test("the seven controls the audit found open each carry the gate by name", () =
     "endCatchup",
     "removeCatchupMember",
     "setCatchupKeeper",
+    // The write-path review of A2: the picture re-skins a batch's Catch-up for
+    // the whole class, and the name is every member's page.
+    "setCatchupPicture",
+    "renameCatchup",
   ]) {
     assert.match(fnBody(name), /requireVerifiedMember\(\)/, `${name} lost its stage gate (L10-01)`);
   }
 });
 
-test("the reaches-nobody list names only actions that still exist, and still reach nobody", () => {
-  for (const name of Object.keys(REACHES_NOBODY)) {
+test("the own-copy list names only actions that still exist, and that reach nobody", () => {
+  for (const name of Object.keys(OWN_COPY_OR_READ)) {
     const body = fnBody(name);
-    assert.doesNotMatch(body, /\bnotify[A-Z]\w*\(|allowBatch:\s*true/, `${name} now rings people or opens to a batch; take it off REACHES_NOBODY`);
+    assert.doesNotMatch(
+      body,
+      /\bnotify[A-Z]\w*\(|allowBatch:\s*true|loadKeeperScope\(|loadKeeperEdition\(/,
+      `${name} now rings people or acts as a Keeper; take it off OWN_COPY_OR_READ and gate it`
+    );
   }
 });
 

@@ -121,7 +121,10 @@ the trust model's Stage 2, the same gate asking, answering and Start always had.
 four cycle controls and the people Catch-up's Keeper controls (end, remove, the hat) asked nobody's
 stage, so a signup that had confirmed nothing could publish its class's Edition early, extend it or
 delete its questions the moment a classmate pressed Start (bug audit 3, L10-01). Rename and the
-picture stay ungated: they reach nobody. The hat itself goes only to somebody a Catch-up may hold
+picture wait too, though they reach nobody: on a batch Catch-up anyone may change the picture, so a
+signup that had confirmed nothing could re-skin its class's Catch-up (write-path review of A2). Only
+reading, leaving, filing your own copy and your reminder setting stay open below Stage 2, and
+`batch-catchup-keeper-rule.test.mjs` fails any other action that does not ask. The hat itself goes only to somebody a Catch-up may hold
 (§2.1), so it cannot be handed to an account its own controls would turn away.
 
 **Starting an Edition is wider than the cycle**: anyone in any Catch-up, batch or people, Keeper or
@@ -283,9 +286,9 @@ Catch-up has ended; "idle" means refused while nothing is running (§3.5).
 | `setEditionTimeCapsule` | Keeper, while collecting | any member, while collecting | verified, ended; nothing calls it yet |
 | `submitEntry` (answer) | any member, while answering | same | verified, ended |
 | `toggleEntryLove`, comments | any member, published only | same | verified; comments rate-limited |
-| `renameCatchup` | Keeper | refused | |
+| `renameCatchup` | Keeper | refused | verified |
 | `endCatchup` | Keeper, while nothing is running | refused | verified; off on the demo |
-| `setCatchupPicture` | Keeper | any member | pool or own upload only |
+| `setCatchupPicture` | Keeper | any member | verified; pool or own upload only |
 | `addCatchupMembers` | Keeper, not ended; the roster holds 100 at most, counted in the write while the group's row is held | refused | verified; metered per person added (`catchupAdds`, 200 an hour), spent once they are in |
 | `removeCatchupMember` | Keeper; not yourself, not the creator; changes the invite link | refused | verified |
 | `setCatchupKeeper` | Keeper; not on yourself or the creator; never the last hat; only to somebody a Catch-up may hold | refused | verified |

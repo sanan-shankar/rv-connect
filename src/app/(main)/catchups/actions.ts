@@ -721,16 +721,20 @@ export async function joinCatchupByToken(token: string) {
  * the Catch-up back to being called after its group. An empty string is stored
  * as NULL rather than as "", so the fallback is one test and not two.
  *
- * Not gated on `requireVerifiedMember`: this reaches nobody. It sends no
- * notification and no email, and it changes one word on a page the people
- * involved are already reading. An ended Catch-up is not refused for the same
- * reason `setCatchupPicture` is not -- the freeze is on the Edition clock, and
+ * WAITS FOR A VERIFIED MEMBER, like every control here (write-path review of
+ * A2; his Q13, 2026-10-29: a Catch-up's controls wait for a confirmed member).
+ * It stood outside the gate because it reaches nobody, no bell and no mail,
+ * but it changes the page every member reads, and a Keeper whose verification
+ * an admin removed could still do it. An ended Catch-up is not refused, for
+ * the reason `setCatchupPicture` gives: the freeze is on the Edition clock, and
  * a name is not part of the cycle.
  */
 export async function renameCatchup(catchupId: string, title: string) {
   return runAction(async () => {
     const session = await auth();
     if (!session?.user?.id) return { error: "Not authenticated" };
+    const gate = await requireVerifiedMember();
+    if (!gate.ok) return { error: gate.error };
     if (typeof catchupId !== "string" || !catchupId) return { error: "Invalid request." };
     const parsed = renameCatchupSchema.safeParse({ title });
     if (!parsed.success) return { error: parsed.error.issues[0].message };
@@ -777,10 +781,12 @@ export async function renameCatchup(catchupId: string, title: string) {
  * `pictureFocus` is interpolated into a style attribute, so it is matched
  * against a pattern rather than trusted.
  *
- * Not gated on `requireVerifiedMember`: this reaches nobody. It sends no
- * notification and no email, it changes one picture on a page the people
- * involved are already reading, and the next person who dislikes it changes it
- * back.
+ * WAITS FOR A VERIFIED MEMBER (write-path review of A2; his Q13, 2026-10-29).
+ * It stood outside the gate because it reaches nobody and the next person who
+ * dislikes it changes it back, but on a batch Catch-up anyone in the batch may
+ * change it, and a signup joins their claimed batch before confirming
+ * anything: an account that had proved nothing could re-skin a whole class's
+ * Catch-up. Reading stays open to them; pressing waits, as everywhere here.
  *
  * An ended Catch-up is NOT refused, and that is deliberate: the freeze is on
  * the Edition clock (`refuseIfEnded`), and a photograph is not part of the
@@ -793,6 +799,8 @@ export async function setCatchupPicture(
   return runAction(async () => {
     const session = await auth();
     if (!session?.user?.id) return { error: "Not authenticated" };
+    const gate = await requireVerifiedMember();
+    if (!gate.ok) return { error: gate.error };
     if (typeof catchupId !== "string" || !catchupId) return { error: "Invalid request." };
     const src = typeof picture?.src === "string" ? picture.src : "";
     const focus = typeof picture?.focus === "string" ? picture.focus : "";
