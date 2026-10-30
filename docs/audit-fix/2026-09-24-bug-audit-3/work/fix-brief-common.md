@@ -58,6 +58,10 @@ keep that safe:
 
 1. **Your files are yours alone.** Edit only what your unit names or plainly needs. If you must touch a
    file your brief says another track owns, stop and report instead of editing it.
+   Before your first edit to any file, run `git status --short -- <file>`: if it already shows
+   changes you did not make, it is another worker's file in flight (a commit by pathspec would carry
+   their half-done edit, or yours would ride in theirs). Do not edit it; do the rest of your unit,
+   check again later, and park the row if it is still busy.
 2. **The shared files are behind one lock.** `fix-prompt.md`, `progress.md`,
    `docs/history/progress-2026-10.md`, `prisma/schema.prisma` and anything in `prisma/migrations-manual/`
    are edited only while you hold it, and you commit before you let go:
