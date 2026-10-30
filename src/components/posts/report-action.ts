@@ -334,11 +334,15 @@ export async function reportUser(reportedUserId: string, reason: string) {
   // the threshold the admin hears a chorus, not a single voice — the standing
   // still changes only by the admin's hand, per Phase 3's decision to make
   // verifyState a capability rather than a badge one report could strip.
-  const distinctReporters = await prisma.report.groupBy({
-    by: ["reporterId"],
+  /* A count of rows, not a group by reporter: `@@unique([reporterId,
+     reportedUserId])` already makes each row one member's flag, and a member
+     who has since left keeps theirs with reporterId NULL (T7a-01), each of
+     which a group by reporterId folded into one "member", so the chorus
+     shrank as its voices left (bug audit 3, B3a's write-path review). A flag
+     from somebody who has left was still a member flagging them. */
+  const flagCount = await prisma.report.count({
     where: { reportedUserId, targetType: "user" },
   });
-  const flagCount = distinctReporters.length;
 
   await notifyAdmins(
     flagCount >= FLAG_ESCALATION_THRESHOLD

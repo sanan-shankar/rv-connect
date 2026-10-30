@@ -695,3 +695,26 @@ test("V-T7a-02: a merge queues the dropped answers' files with the drop, and dra
   assert.ok(committed > moved && drained > committed, "the files are not drained after the merge commits");
   assert.doesNotMatch(fn, /catchupEntry\.deleteMany/, "the merge drops answers itself again, without queueing what they hold");
 });
+
+/* ------------------------------------------------------------------ *
+ *  A departed reporter's flag still counts (bug audit 3, B3a's write-path
+ *  review, after T7a-01).
+ *
+ *  Reports outlive their reporter with reporterId NULL. The "flagged by N
+ *  members" count grouped by reporterId, so every departed reporter folded
+ *  into one, and a harasser's count shrank as the people who flagged them
+ *  left, the thing the owner's Q1 kept the reports to prevent.
+ * ------------------------------------------------------------------ */
+
+test("B3a-review: the flag count counts every member who flagged, departed ones included", () => {
+  const fn = balancedBody(decomment(read("src/components/posts/report-action.ts")), "export async function reportUser(");
+  assert.ok(fn, "reportUser is gone; this pin is reading nothing");
+  assert.match(
+    fn,
+    /const flagCount = await prisma\.report\.count\(\{\s*where:\s*\{\s*reportedUserId,\s*targetType:\s*"user"\s*\}/,
+    "the flag count no longer counts one row per member's flag"
+  );
+  assert.doesNotMatch(fn, /groupBy\(\{\s*by:\s*\["reporterId"\]/, "every departed reporter folds into one member again");
+  // One row per member is the unique's promise; the count leans on it.
+  assert.match(read("prisma/schema.prisma"), /@@unique\(\[reporterId, reportedUserId\]\)/, "a member can flag the same person twice, so a row count overcounts");
+});

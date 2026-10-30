@@ -97,7 +97,7 @@ const NO_INDEX_NEEDED = {
   "CatchupPref.userId":
     "every live read leads with catchupId (the reminder fan-out, the bin sweep, the member's own row); only adminMergeUsers filters by userId alone, once, by hand",
   "Report.reportedUserId":
-    "the flag-count groupBy in reportUser is the only reader, on a moderation table that grows by a handful of rows a month",
+    "the flag count in reportUser is the only reader, on a moderation table that grows by a handful of rows a month",
 };
 
 /** Is this column the owning side of a real relation, not just a name ending in Id? */
