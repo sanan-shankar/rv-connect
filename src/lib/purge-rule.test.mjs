@@ -2,13 +2,17 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { read, decomment, balancedBody } from "./test-kit.mjs";
 import {
+  DELETION_GRACE_DAYS,
   DRAIN_PARALLEL,
   DRAIN_REMOVE_TIMEOUT_MS,
   PURGE_ATTEMPTS,
+  deletionDayKey,
+  deletionDueBefore,
   drainQueue,
   entryStoredUrls,
   retryWriteConflicts,
 } from "./purge-rule.ts";
+import { valleyDayKey, valleyMidnight } from "./utils.ts";
 
 /* ------------------------------------------------------------------ *
  *  The purge has to be honest about what it removed.
@@ -163,14 +167,12 @@ test("the purge's delete is conditional, and losing the condition rolls it back"
 
 test("the sweep purges by the same cutoff it selected by", () => {
   // Two different cutoffs would be worse than none: the list would say due
-  // and the delete would say no, every night, forever.
+  // and the delete would say no, every night, forever. One instant, read once
+  // before the list (bug audit 3, T7a-19), so they cannot drift apart.
   const src = decomment(read("src/lib/retention.ts"));
-  const listed = /deletionRequestedAt:\s*\{\s*lt:\s*(cutoff\([A-Z_]+\))/.exec(src);
-  assert.ok(listed, "the due-list read no longer filters on deletionRequestedAt");
-  assert.ok(
-    new RegExp(`onlyIfRequestedBefore:\\s*${listed[1].replace(/[()]/g, "\\$&")}`).test(src),
-    `the purge call does not pass ${listed[1]}, the cutoff the due list was read with`
-  );
+  assert.match(src, /const dueBefore = deletionDueBefore\(\);/, "the sweep no longer reads its cutoff once, in whole valley days");
+  assert.match(src, /deletionRequestedAt:\s*\{\s*lt:\s*dueBefore\s*\}/, "the due-list read no longer filters on the sweep's cutoff");
+  assert.match(src, /purgeUserAccount\(row\.id, \{ onlyIfRequestedBefore: dueBefore \}\)/, "the purge call does not pass the cutoff the due list was read with");
 });
 
 test("a cancelled purge is a skip, not an error", () => {
@@ -717,4 +719,58 @@ test("B3a-review: the flag count counts every member who flagged, departed ones 
   assert.doesNotMatch(fn, /groupBy\(\{\s*by:\s*\["reporterId"\]/, "every departed reporter folds into one member again");
   // One row per member is the unique's promise; the count leans on it.
   assert.match(read("prisma/schema.prisma"), /@@unique\(\[reporterId, reportedUserId\]\)/, "a member can flag the same person twice, so a row count overcounts");
+});
+
+/* ------------------------------------------------------------------ *
+ *  The member is erased on the day the email names (bug audit 3, T7a-19).
+ *
+ *  The email named the request's valley day plus sixty; the sweep purged at
+ *  its first run after the exact instant sixty days on, which it reaches
+ *  between about 04:00 and 08:00 IST, so anything asked later in the day than
+ *  that went the morning after the named day. The sweep now purges in whole
+ *  valley days, and the date given is the first day after the sixty.
+ * ------------------------------------------------------------------ */
+
+test("T7a-19: the day the member is told is the day the sweep erases them, and never inside sixty days", () => {
+  const DAY = 86_400_000;
+  // A year of request times, 97 minutes apart, so every hour of the valley's
+  // day is asked on many days; each against a sweep at the start, the usual
+  // hours and the last minute of the promised day, and of the day before.
+  let cases = 0;
+  for (let t = Date.parse("2026-01-01T00:00:00Z"); t < Date.parse("2027-01-01T00:00:00Z"); t += 97 * 60_000) {
+    const requested = new Date(t);
+    const promised = valleyMidnight(deletionDayKey(requested)).getTime();
+    assert.ok(promised > t + DELETION_GRACE_DAYS * DAY, `asked ${requested.toISOString()}, erased inside sixty days`);
+    for (const minute of [0, 250, 468, 1439]) {
+      const onTheDay = new Date(promised + minute * 60_000);
+      const dayBefore = new Date(promised - DAY + minute * 60_000);
+      assert.ok(requested < deletionDueBefore(onTheDay), `asked ${requested.toISOString()}, not erased on the day it was told`);
+      assert.ok(!(requested < deletionDueBefore(dayBefore)), `asked ${requested.toISOString()}, erased the day before it was told`);
+    }
+    cases += 1;
+  }
+  assert.ok(cases > 5000);
+});
+
+test("T7a-19: worked examples at the valley's day boundary", () => {
+  // 10:00 IST and 23:59 IST on 1 November both go on 1 January; 00:01 IST on
+  // 2 November (still 1 November in UTC) goes on 2 January.
+  assert.equal(deletionDayKey(new Date("2026-11-01T04:30:00Z")), "2027-01-01");
+  assert.equal(deletionDayKey(new Date("2026-11-01T18:29:00Z")), "2027-01-01");
+  assert.equal(deletionDayKey(new Date("2026-11-01T18:31:00Z")), "2027-01-02");
+  // The sweep on 1 January, whenever it lands, takes requests up to the end of
+  // 1 November IST and none after.
+  for (const at of ["2026-12-31T18:30:00Z", "2027-01-01T01:00:00Z", "2027-01-01T18:29:00Z"]) {
+    assert.equal(valleyDayKey(new Date(at)), "2027-01-01");
+    assert.equal(deletionDueBefore(new Date(at)).toISOString(), "2026-11-01T18:30:00.000Z");
+  }
+});
+
+test("T7a-19: the request, its audit line and its email name one day", () => {
+  const fn = balancedBody(decomment(read("src/components/settings/actions.ts")), "export async function requestAccountDeletion(");
+  assert.ok(fn, "requestAccountDeletion is gone; this pin is reading nothing");
+  assert.match(fn, /const requestedAt = new Date\(\);\s*const purgeDay = deletionDayKey\(requestedAt\);/, "the promised day is no longer worked out from the request's own instant");
+  assert.match(fn, /deletionRequestedAt: requestedAt,/, "the stored request and the promised day come from two different clocks");
+  assert.match(fn, /purge due \$\{purgeDay\}/, "the audit line names some other day than the one promised");
+  assert.match(fn, /purgeDate: valleyMidnight\(purgeDay\)\.toLocaleDateString\(/, "the email names some other day than the one the sweep keeps");
 });

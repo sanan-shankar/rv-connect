@@ -1,6 +1,7 @@
 import { prisma } from "./prisma";
 import { writeAudit } from "./audit";
-import { purgeUserAccount, drainPendingImagePurges, DELETION_GRACE_DAYS } from "./account-purge";
+import { purgeUserAccount, drainPendingImagePurges } from "./account-purge";
+import { deletionDueBefore } from "./purge-rule";
 import { reportSwallowed } from "./report-error";
 import { valleyDayKey } from "./utils";
 
@@ -306,9 +307,16 @@ export async function runRetentionSweep(): Promise<SweepResult> {
   let accountsPurged = 0;
   let accountsSpared = 0;
   let accountsDeferred = 0;
+  /* In whole valley days: every request whose erasure day (the day the member
+     was emailed, `deletionDayKey`) is today or earlier, whatever hour this
+     runs. The cutoff was the instant sixty days ago, which erased anything
+     asked later in the day than the sweep's own hour on the morning AFTER the
+     emailed date (bug audit 3, T7a-19). Read once, so the list and every
+     purge's condition below are the same instant. */
+  const dueBefore = deletionDueBefore();
   const due = await step("accountsPurged:list", async () => {
     const rows = await prisma.user.findMany({
-      where: { deletionRequestedAt: { lt: cutoff(DELETION_GRACE_DAYS) } },
+      where: { deletionRequestedAt: { lt: dueBefore } },
       select: { id: true, name: true, email: true, deletionRequestedAt: true },
       // Oldest first. Not capped by count any more: the purge loop below stops
       // starting purges when the night's time is spent (LAST_PURGE_STARTS_MS),
@@ -327,9 +335,7 @@ export async function runRetentionSweep(): Promise<SweepResult> {
          erase them anyway, minutes after telling them it was cancelled
          (bug-report-2 C-075). Passing the same cutoff makes the delete itself
          conditional; a cancellation is a skip, not a failure. */
-      const purged = await purgeUserAccount(row.id, {
-        onlyIfRequestedBefore: cutoff(DELETION_GRACE_DAYS),
-      });
+      const purged = await purgeUserAccount(row.id, { onlyIfRequestedBefore: dueBefore });
       if (!purged.ok) {
         if (purged.cancelled) {
           accountsSpared += 1;

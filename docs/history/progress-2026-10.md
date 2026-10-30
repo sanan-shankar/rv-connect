@@ -1,3 +1,48 @@
+## 2026-10-30 (privacy) — bug audit 3, unit B3b: account deletion that finishes, on the day it says
+
+Eight rows, Phase A's routed follow-up and two notes from the write-path review of B3a, in seven
+commits across the account purge, the admin delete and merge, the nightly sweep and its workflow,
+and the flag count. Every file this unit touched passed `npm run check` before each commit; the
+red between them was other tracks' work in flight (a comment-count refactor, the voice rule, and
+L3's progress line, whose index text does not begin with its heading).
+
+A purge that meets another write tries again (L1-04, T7a-10, T7a-09). The purge runs at
+RepeatableRead, which refuses a write to any row changed after its snapshot instead of waiting,
+and nothing retried: a heart on the member's post failed the purge until the next night, and the
+member's own sign-in mid-purge turned the job red instead of sparing them. Both were reproduced on
+throwaway accounts with the real purge first (P2034, "Could not delete the account."), then ended
+in a clean purge and in "spared" after the fix, which retries from a fresh snapshot three times at
+most. A run of collisions waits for tomorrow, counted as `accountsDeferred`; any other failure
+reaches Sentry, and the admin hears a sentence instead of "Check the server log", as a failed merge
+now does. The purge also holds every group the member is in before choosing a successor (Phase A's
+follow-up), proved by a write held on a group the throwaway only belonged to.
+
+Reporters are answered when an erasure takes what they reported (B3a's review): a pending report
+on the member's post, or a flag against them, gets the closing line a post's own delete writes,
+worded for an account that has gone. A flag from a member who has since left still counts in
+"flagged by N members", which a group by reporter had folded into one.
+
+The files go in one sitting, after the record (T7a-21, T7a-05, L11-07, V-T7a-02). The worklist
+drained 500 objects one at a time; it now pages through all of it, 25 deletes at a time, until a
+time budget is spent. The purge only queues the files: an admin's delete writes its audit line,
+then drains; the sweep writes each erasure's line as its purge returns, starts no purge after 150
+seconds and drains once with the rest of its 270; the workflow now waits seven minutes and curl
+310 seconds, past the function's 300. A merge queues the files of the Catch-up answers it drops,
+which had stayed in R2 for ever.
+
+The member goes on the day the email names (T7a-19). The email named the request's day plus
+sixty, while the sweep purged at its first run after the exact instant, so anything asked after
+the sweep's hour (about 04:00 to 08:00 IST) went the morning after. The sweep now purges in whole
+valley days and the email names the first day after the sixty: the date moves one day later, the
+words do not. Moving the purge earlier instead would have cut the privacy page's sixty days short.
+
+Visible: the deletion email's date, a day later; new sentences when an admin's delete or merge
+fails; "queued for deletion" where the `admin.delete` and `account.purge` lines said "removed";
+`accountsDeferred`, and `imagesDeleted` for `imagesRetried`, in the night's `retention.sweep` line.
+Not run: the sweep itself, which acts on every member's rows; its pieces were, on throwaways. Found
+on the way: a jiti harness needs `nativeModules: ["@prisma/client"]`, or Prisma's error path
+crashes on `path.sep` and every database failure reads as a TypeError.
+
 ## 2026-10-30 (db) — bug audit 3, unit L3: the database
 
 Thirteen rows in four commits, `npm run check` green before each: ten done, three parked.

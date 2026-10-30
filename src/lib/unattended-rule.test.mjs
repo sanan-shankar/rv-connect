@@ -272,8 +272,13 @@ test("C-146: an audit-log date is a valley day, like the email beside it", () =>
     "an audit-log detail names a UTC day again while the member is told a valley one:\n" +
       offenders.join("\n")
   );
+  /* The request's line names the erasure day from `deletionDayKey`, which is
+     a valley day by construction and pinned so in purge-rule.test.mjs (bug
+     audit 3, T7a-19); the sweep's line formats its own. */
   assert.ok(
-    /valleyDayKey\(/.test(files["src/components/settings/actions.ts"]) &&
+    /purge due \$\{purgeDay\}/.test(files["src/components/settings/actions.ts"]) &&
+      /const purgeDay = deletionDayKey\(/.test(files["src/components/settings/actions.ts"]) &&
+      /valleyDayKey\(/.test(decomment(read("src/lib/purge-rule.ts"))) &&
       /valleyDayKey\(/.test(files["src/lib/retention.ts"]),
     "an audit date stopped going through valleyDayKey"
   );

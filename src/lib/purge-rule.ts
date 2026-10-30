@@ -1,5 +1,5 @@
 import { isSerializationFailure } from "./prisma-errors.ts";
-import { parseJsonArray } from "./utils.ts";
+import { parseJsonArray, valleyDayKey, valleyDayStart } from "./utils.ts";
 
 /* ------------------------------------------------------------------ *
  *  The account purge's rules that need no database, so the unit tests
@@ -7,6 +7,52 @@ import { parseJsonArray } from "./utils.ts";
  *  post-visibility-rule.ts make). The purge itself, which does need one,
  *  is account-purge.ts.
  * ------------------------------------------------------------------ */
+
+/**
+ * How long a deletion request sits before the purge makes it final. The
+ * owner's retention decision (2026-08-19): "deleted accounts purged after a
+ * 60-day grace period". Signing in at any point inside the window cancels
+ * the request -- see authorize() in src/lib/auth.ts.
+ */
+export const DELETION_GRACE_DAYS = 60;
+
+const DAY_MS = 86_400_000;
+
+/**
+ * The valley day an account asked to be deleted at `requestedAt` is erased
+ * on: the first valley day that begins after the sixty days are up, which is
+ * the request's own valley day plus sixty-one.
+ *
+ * The member is emailed this date ("On <date> the account ... will be
+ * permanently removed") and the audit line records it, and the sweep keeps
+ * it: it purges in whole valley days (`deletionDueBefore`), so the account
+ * goes on the morning of that day whatever time of day it was asked. Before,
+ * the email named the request's day plus sixty while the sweep purged at its
+ * first run after the exact instant sixty days on; it lands between about
+ * 04:00 and 08:00 IST, so anything asked later in the day than that was
+ * erased the morning after the date it was given (bug audit 3, T7a-19).
+ *
+ * Of the two ways to make the promise and the act agree, the sweep moved to
+ * whole days and the promise moved to the day after the sixtieth, rather
+ * than the purge moving earlier: the privacy page says a deletion "waits 60
+ * days before becoming final", and a purge on the sixtieth morning would cut
+ * that short by most of a day for anyone who asked in the evening. IST keeps
+ * no daylight saving, so a valley midnight plus whole days is a valley
+ * midnight.
+ */
+export function deletionDayKey(requestedAt: Date): string {
+  return valleyDayKey(new Date(valleyDayStart(requestedAt).getTime() + (DELETION_GRACE_DAYS + 1) * DAY_MS));
+}
+
+/**
+ * The sweep's cutoff on the day it runs: the start of the valley day sixty
+ * days before today's. A request made before it was made at least sixty-one
+ * valley days ago, so its `deletionDayKey` is today or earlier, and it is
+ * due; one made after it is not, whatever the hour the sweep arrives.
+ */
+export function deletionDueBefore(now: Date = new Date()): Date {
+  return new Date(valleyDayStart(now).getTime() - DELETION_GRACE_DAYS * DAY_MS);
+}
 
 /**
  * The stored bytes a set of Catch-up answers name: every photograph in each

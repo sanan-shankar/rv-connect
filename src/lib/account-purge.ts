@@ -26,16 +26,9 @@ import type { Prisma } from "@/generated/prisma/client";
  *
  * Used by both deletion routes: `adminDeleteUser` (immediate, an admin's
  * deliberate hand) and the retention sweep (a member's own request, after the
- * 60-day grace window has passed — audit M35).
+ * 60-day grace window has passed — audit M35). When that is, to the day, is
+ * `deletionDayKey` and `deletionDueBefore` in purge-rule.ts.
  */
-
-/**
- * How long a deletion request sits before the purge makes it final. The
- * owner's retention decision (2026-08-19): "deleted accounts purged after a
- * 60-day grace period". Signing in at any point inside the window cancels
- * the request — see authorize() in src/lib/auth.ts.
- */
-export const DELETION_GRACE_DAYS = 60;
 
 /** Anything that can run a query: the client, or a transaction's client. */
 type Db = Prisma.TransactionClient | typeof prisma;

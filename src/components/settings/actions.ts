@@ -4,7 +4,7 @@ import { createId } from "@paralleldrive/cuid2";
 import bcrypt from "bcryptjs";
 import { auth } from "@/lib/auth";
 import { hasBudget, consume, rateLimit } from "@/lib/rate-limit";
-import { DELETION_GRACE_DAYS } from "@/lib/account-purge";
+import { deletionDayKey } from "@/lib/purge-rule";
 import { enqueueMail } from "@/lib/email-queue";
 import { IS_DEMO } from "@/lib/demo";
 import { prisma } from "@/lib/prisma";
@@ -19,7 +19,7 @@ import {
   isImageFile,
   isUnsupportedHeic,
 } from "@/lib/upload-shared";
-import { valleyDayKey, VALLEY_TIME_ZONE } from "@/lib/utils";
+import { valleyMidnight, VALLEY_TIME_ZONE } from "@/lib/utils";
 import { titleCase } from "@/lib/normalize";
 import { writeAudit } from "@/lib/audit";
 import { revalidatePath } from "next/cache";
@@ -209,11 +209,17 @@ export async function requestAccountDeletion(formData: FormData) {
     return { error: "That password isn't right." };
   }
 
-  const purgeAt = new Date(Date.now() + DELETION_GRACE_DAYS * 86_400_000);
+  /* The day the sweep will erase them, which the audit line and the email
+     below both name: the first valley day after sixty whole days, the morning
+     the sweep then keeps (purge-rule.ts, bug audit 3, T7a-19). The email used
+     to name the request's day plus sixty, and anything asked after the
+     sweep's own hour was erased the morning after it. */
+  const requestedAt = new Date();
+  const purgeDay = deletionDayKey(requestedAt);
   await prisma.user.update({
     where: { id: userId },
     data: {
-      deletionRequestedAt: new Date(),
+      deletionRequestedAt: requestedAt,
       /* Ends every session this account holds, everywhere, right now — the
          same epoch bump a block uses (audit M4). The person confirming just
          proved the password, so THEY can sign straight back in (which is
@@ -232,7 +238,7 @@ export async function requestAccountDeletion(formData: FormData) {
        between midnight and 05:30 IST wrote one date into the audit log and
        posted a different one to the member -- and an admin cross-checking the
        two would find them a day apart with nothing to say which was right. */
-    detail: `${me.name} <${me.email}> — purge due ${valleyDayKey(purgeAt)}`,
+    detail: `${me.name} <${me.email}> — purge due ${purgeDay}`,
   });
 
   // The written confirmation, and the takeover alarm: if somebody else did
@@ -246,7 +252,7 @@ export async function requestAccountDeletion(formData: FormData) {
       // The purge happens on a valley day, so the member is told a valley
       // date. Formatted in UTC it named the day BEFORE for anyone who asked
       // between midnight and 05:30 IST (audit Lows 19/47/91/94).
-      purgeDate: purgeAt.toLocaleDateString("en-GB", {
+      purgeDate: valleyMidnight(purgeDay).toLocaleDateString("en-GB", {
         timeZone: VALLEY_TIME_ZONE,
         day: "numeric",
         month: "long",

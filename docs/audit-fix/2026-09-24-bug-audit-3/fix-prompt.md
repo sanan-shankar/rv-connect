@@ -71,7 +71,7 @@ the rest of the phase runs.
 | Phase | Status | Rows left | Blocked on |
 |---|---|---|---|
 | A — Trust: who counts as verified, and who may press what in a Catch-up | DONE | 0 | — |
-| B — Privacy: what leaves the site, and what outlives a member | PARTIAL | 14 (0 H, 3 M, 11 L) | — |
+| B — Privacy: what leaves the site, and what outlives a member | PARTIAL | 9 (0 H, 3 M, 6 L) | — |
 | O — Budgets: what one account or one script may spend of what everyone shares | OPEN | 11 (2 H, 8 M, 1 L) | — |
 | E — The Collection | OPEN | 27 (3 H, 6 M, 18 L) | — |
 | F — Letters, the feed and the composer | OPEN | 26 (2 H, 6 M, 18 L) | — |
@@ -80,9 +80,9 @@ the rest of the phase runs.
 | G — Sign-up, sign-in and the confirmation mail | OPEN | 23 (0 H, 10 M, 13 L) | — |
 | H — Catch-ups: answering, reading, and the words on the clock | PARTIAL | 27 (0 H, 9 M, 18 L) | — |
 | J — Support and payments | OPEN | 11 (0 H, 6 M, 5 L) | — |
-| I — Admin, moderation and the analytics room | PARTIAL | 42 (0 H, 3 M, 39 L) | — |
+| I — Admin, moderation and the analytics room | PARTIAL | 40 (0 H, 3 M, 37 L) | — |
 | K — Text that breaks things: names, numbers, search, links | OPEN | 21 (0 H, 2 M, 19 L) | — |
-| L — Platform, database, demo and scripts | PARTIAL | 22 (2 H, 1 M, 19 L) | — |
+| L — Platform, database, demo and scripts | PARTIAL | 21 (2 H, 1 M, 18 L) | — |
 | M — The hoopoe | OPEN | 11 (0 H, 2 M, 9 L) | — |
 | N — Feel and truth: presses, taps, comments and docs that lie | OPEN | 14 (0 H, 0 M, 14 L) | — |
 
@@ -624,3 +624,4 @@ evidence stays in `work/`; this ledger is the record of what the campaign did.
 - V-T7a-02 — DONE (fix(privacy): a merge takes the files of the answers it drops); `dropCollidingAnswers` (account-purge.ts, beside `groupsKeptBy`, so the server action never handles a url column and C2's sweep has no reason to flag it) holds the colliding answers with an UPDATE ... RETURNING while their photographs and recording are read (`entryStoredUrls`, purge-rule.ts, which the purge's own collect now shares), queues them with reason "merge" in the same transaction, drops the answers by those ids, and the merge drains the urls after its commit; the merge's audit line now comes before its R2 work and counts what it queued; `updateManyAndReturn` with the merge's exact where proved to run through the adapter, live, matching nothing
 - C7a-04 — DONE (fix(catchups): the Edition's question list fits a small phone's screen); the verdict's direction: the lab's 560 and 480 kept, each also capped at the small viewport height less what sits above the panel (the 56px bar on a phone, the strip's 16px float from md), the strip at its tallest (a question docked over two lines, 64px) and 16px; the comment that called the phone's cap the shorter one now says what the code does; reader-geometry.test.mjs derives the strip's height from its own type and padding. Proved live on the throwaway's published Edition: at 375x548 the panel's foot moved from 661 to 513, held sideways at 932x430 from 542 to 396; unchanged at 390x844 and 1024x600
   - T7b-22, Catch-ups half (H1 add-on) — DONE (fix(privacy): Catch-ups' people leave PostHog too); NO_CAPTURE, the way 5e48e3a8 put it everywhere else, on the People row (its hat and Remove carry the name in their labels) and the add list, the asker over a question being answered, Asked by in the reader, the photo wall's names and its tiles (labelled with the name), the recorded answer's play button (likewise), and the new Catch-up's search results and chips; a wall photo opening and a recording playing change no address, so each keeps a nameless count (`photo_opened` with `surface: "catchup-wall"`, `recording_played`); posthog-rule.test.mjs lists all nine surfaces. Checked in the rendered page: the asker's links and the People rows sit inside the class
+- T7a-19 — DONE (fix(privacy): a member is erased on the day their email names); the sweep moved, and the date with it: `deletionDueBefore` purges in whole valley days (the start of the valley day sixty days back), `deletionDayKey` is the request's valley day plus sixty-one, the first day after the sixty, and the email, the `account.delete_request` line and the stored request all come from one instant; the deletion email's sentence is unchanged ("On <date> the account, your posts, comments, photos and profile will be permanently removed."), its date one day later than before; moving the purge a day earlier instead would have cut the privacy page's "waits 60 days before becoming final" short by most of a day for an evening request; a year of request times, 97 minutes apart, against sweeps at four hours of the promised day and the day before, pins the two to the day and outside sixty days; the dialog's "60 days from now" stays true (nothing goes sooner); the one account pending on production (asked 5 October) was already due the morning of 5 December by the old sweep and still is
