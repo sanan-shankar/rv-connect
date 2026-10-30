@@ -31,22 +31,21 @@
 import { readFileSync, existsSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { balancedBody } from "../../src/lib/test-fn-body.mjs";
+/* Source with comments removed. Every probe that asks "does this file still
+   mention X" MUST go through it. The first run of this script reported C1-a
+   and C1-c as still open because the probes were matching the comments
+   explaining that those very findings had been fixed -- a status board that
+   punishes you for writing down why.
+
+   The suite's one stripper, not a copy. This file kept its own regex, the
+   one that read `"https://*.` or `accept="image/*"` as the start of a comment
+   and deleted the code after it (bug audit 3, L9-02); test-kit's parses. */
+import { decomment } from "../../src/lib/test-kit.mjs";
 
 const ROOT = process.cwd();
 const read = (p) => { try { return readFileSync(join(ROOT, p), "utf8"); } catch { return ""; } };
 const has = (p) => existsSync(join(ROOT, p));
 const pkg = () => { try { return JSON.parse(read("package.json")); } catch { return {}; } };
-
-/** Source with comments removed.
- *
- *  Every probe that asks "does this file still mention X" MUST go through
- *  this. The first run of this script reported C1-a and C1-c as still open
- *  because the probes were matching the comments explaining that those very
- *  findings had been fixed -- a status board that punishes you for writing
- *  down why. `//` is only treated as a comment when it is not part of a
- *  scheme like https://, which is the one case that matters here. */
-const decomment = (src) =>
-  src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:"'`\\])\/\/.*$/gm, "$1");
 
 /** Every file under a directory, recursively, filtered by extension. */
 function walk(dir, exts = [".ts", ".tsx", ".mjs"], acc = []) {

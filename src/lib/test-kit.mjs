@@ -18,11 +18,15 @@
  * one.
  *
  * Same constraints as `test-fn-body.mjs`, for the same reason: plain `.mjs`,
- * `node:` imports only, and NOT named `*.test.mjs` so the runner does not try
- * to execute it.
+ * nothing the bare `node` runner cannot resolve, and NOT named `*.test.mjs` so
+ * the runner does not try to execute it. The one import that is not `node:` is
+ * `typescript`, which `decomment` loads on its first call: a devDependency that
+ * `npm ci` installs everywhere the gate runs, and resolved from node_modules
+ * like any package, so the no-resolver rule still holds.
  */
 
 import { readFileSync, readdirSync } from "node:fs";
+import { createRequire } from "node:module";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -41,15 +45,114 @@ export const read = (p) => readFileSync(resolve(ROOT, p), "utf8");
 /**
  * Strip comments so an assertion cannot pass (or fail) on prose.
  *
- * The guard character class is what separates this from the weak variant the
- * suite also carried. `[^:]` alone spares `https://`; adding `"'` and a
- * backtick also spares a `//` written at the very start of a string or template
- * literal, and the backslash spares one inside a regex. It is a heuristic, not
- * a parser — a `//` further inside a string still reads as a comment — but it
- * errs by leaving prose in, and surviving prose can only fail an assertion
- * loudly, never make one pass on nothing.
+ * Read by TypeScript's parser, not by a regex, because the regex this used to
+ * be did not know when it was inside a string (bug audit 3, L9-02). Every
+ * `accept="image/*"`, `"https://*.razorpay.com"` or `Accept: "*\/*"` opened a
+ * "comment" that ran to the next real `*\/` and deleted the live code between:
+ * ninety lines of next.config.ts, including every security header, and the
+ * very DialogHeader attach-well.test.mjs exists to watch. A negative assertion
+ * over a deleted span passes on nothing, and its docblock promised the
+ * opposite ("errs by leaving prose in"). It erred both ways.
+ *
+ * How: parse the text, mark every literal the parser found (strings, template
+ * pieces, regular expressions, JSX text), and remove `//` and `/*` runs only
+ * outside them. Outside a literal those two openers can only start a comment,
+ * so what is removed is exactly what TypeScript calls a comment. Checked across
+ * all 1,072 sources under src/, scripts/ and next.config.ts on 2026-10-30: all
+ * 19,095 comments gone, and the code that remains prints identically to the
+ * original's with its comments dropped.
+ *
+ * The output is shaped as before, so no caller had to change: a block comment
+ * is removed whole, a line comment up to (not including) its line break.
+ *
+ * Text that parses neither as TSX nor as TS (the one SQL migration a test
+ * reads, or a fragment sliced through the middle of a token) gets the old
+ * regex, which is right for SQL's block comments and is the only reading
+ * there is for broken source. Everything a test reads whole is parsed.
  */
-export const decomment = (src) =>
+export function decomment(src) {
+  if (!src.includes("//") && !src.includes("/*")) return src;
+  let out = stripped.get(src);
+  if (out === undefined) {
+    const literals = literalSpans(src);
+    out = literals ? stripOutside(src, literals) : decommentByRegex(src);
+    stripped.set(src, out);
+  }
+  return out;
+}
+
+/** Tests strip the same file more than once (`decomment(src).slice(decomment(src)…)`). */
+const stripped = new Map();
+
+const require = createRequire(import.meta.url);
+let ts;
+/** Loaded on the first call: most tests never strip a comment, and the compiler is 9 MB. */
+const typescript = () => (ts ??= require("typescript"));
+
+/** `[start, end)` of every literal in `src`, sorted, or null when it does not parse. */
+function literalSpans(src) {
+  const t = typescript();
+  const LITERAL = new Set([
+    t.SyntaxKind.StringLiteral,
+    t.SyntaxKind.NoSubstitutionTemplateLiteral,
+    t.SyntaxKind.TemplateHead,
+    t.SyntaxKind.TemplateMiddle,
+    t.SyntaxKind.TemplateTail,
+    t.SyntaxKind.RegularExpressionLiteral,
+    t.SyntaxKind.JsxText,
+  ]);
+  /* TSX first: a .tsx file does not parse as TS, while the only TS a TSX parse
+     refuses (a `<T>value` cast, a `<T>(x) => x` arrow) is rare here. */
+  for (const [name, kind] of [
+    ["decomment.tsx", t.ScriptKind.TSX],
+    ["decomment.ts", t.ScriptKind.TS],
+  ]) {
+    const options = { languageVersion: t.ScriptTarget.Latest, jsDocParsingMode: t.JSDocParsingMode?.ParseNone };
+    const file = t.createSourceFile(name, src, options, false, kind);
+    if (file.parseDiagnostics.length > 0) continue;
+    const spans = [];
+    const visit = (node) => {
+      if (!LITERAL.has(node.kind)) return void t.forEachChild(node, visit);
+      /* JSX text has no leading trivia to skip: a `//` in "Visit us // soon" is
+         text, and TypeScript's own getStart() refuses to read it as a comment. */
+      spans.push([node.kind === t.SyntaxKind.JsxText ? node.pos : node.getStart(file), node.end]);
+    };
+    visit(file);
+    return spans.sort((a, b) => a[0] - b[0]);
+  }
+  return null;
+}
+
+function stripOutside(src, literals) {
+  let out = "";
+  let from = 0; // the first character not yet copied to `out`
+  let next = 0; // the first literal not yet stepped over
+  for (let i = 0; i < src.length; ) {
+    while (next < literals.length && literals[next][1] <= i) next++;
+    if (next < literals.length && literals[next][0] <= i) {
+      i = literals[next][1]; // inside a literal nothing is a comment
+      continue;
+    }
+    if (src[i] === "/" && (src[i + 1] === "/" || src[i + 1] === "*")) {
+      out += src.slice(from, i);
+      if (src[i + 1] === "*") {
+        const close = src.indexOf("*/", i + 2);
+        i = close < 0 ? src.length : close + 2;
+      } else {
+        const lineBreak = src.slice(i).search(/[\n\r\u2028\u2029]/);
+        i = lineBreak < 0 ? src.length : i + lineBreak;
+      }
+      from = i;
+      continue;
+    }
+    i++;
+  }
+  return out + src.slice(from);
+}
+
+/** The old heuristic, kept for text that is not TypeScript at all. The guard
+ *  class spares `https://` and a `//` that opens a string or sits in a regex. */
+const decommentByRegex = (src) =>
   src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:"'`\\])\/\/.*$/gm, "$1");
 
 /** Directories no source sweep should descend into. */

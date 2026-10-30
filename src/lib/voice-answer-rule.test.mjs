@@ -202,9 +202,10 @@ test("both audio routes go through the upload door and refuse the demo", () => {
 });
 
 test("the site may ask for its own microphone, and nobody else's frame may", () => {
-  /* Read raw: `decomment` loses this file past its first `https://` inside a
-     template literal, and the header list sits below several of them. */
-  const src = read("next.config.ts");
+  /* Decommented like every other read since the stripper became a parser
+     (bug audit 3, L9-02). It used to lose this file past its first
+     `"https://*.` string, which is why this one test read it raw. */
+  const src = decomment(read("next.config.ts"));
   assert.match(src, /microphone=\(self\)/, "the Permissions-Policy blocks the microphone outright, so no recorder can start");
   assert.doesNotMatch(src, /microphone=\*/, "the microphone is open to any embedded frame");
   const media = src.slice(src.indexOf('"media-src"'));

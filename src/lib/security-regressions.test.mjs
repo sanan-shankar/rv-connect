@@ -151,17 +151,21 @@ test("no wildcard host is allowed to be fetched or optimised", () => {
      connect-src. Named hosts only, in all three. */
   const src = decomment(read("next.config.ts"));
   const wildcards = [...src.matchAll(/["'`](?:https:\/\/)?\*\.[A-Za-z0-9.-]+["'`]/g)].map((m) => m[0]);
-  /* Two stay, and neither is an image host. r2.cloudflarestorage.com is the
+  /* Three stay, and none is an optimizer host. r2.cloudflarestorage.com is the
      presigned-PUT endpoint: account-scoped, and reached only with a URL our
      own server signed. razorpay.com is a third-party SDK host whose own
-     subdomains move. Each carries its reasoning in next.config.ts beside it.
-     posthog.com was a third until 2026-09-05, when it came out of img-src and
+     subdomains move. spotifycdn.com is album art, in img-src only: its shard
+     letters rotate, and img-src only tells the browser which images it may
+     paint. Each carries its reasoning in next.config.ts beside it.
+     spotifycdn.com stood in the file since 2026-09-06 without this test ever
+     seeing it: the old comment stripper ate the line (bug audit 3, L9-02).
+     posthog.com was a fourth until 2026-09-05, when it came out of img-src and
      connect-src: posthog-js is configured with api_host "/ingest" and the
      browser makes every analytics request first-party (checked live: 43
      resources on /login, none to posthog.com). Adding it back should have to
      argue for itself here. */
   const offenders = wildcards.filter(
-    (w) => !/r2\.cloudflarestorage\.com|razorpay\.com/.test(w)
+    (w) => !/r2\.cloudflarestorage\.com|razorpay\.com|spotifycdn\.com/.test(w)
   );
   assert.deepEqual(offenders, [], `next.config.ts vouches for wildcard hosts: ${offenders.join(", ")}`);
 });
