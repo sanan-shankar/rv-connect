@@ -739,8 +739,10 @@ Each of these was checked in the code on 2026-09-14.
   browser's own transcript in the body. **Underneath is built** (2026-09-14): `CatchupEntry.audioUrl`,
   `audioSeconds`, `audioIsAuto`; the upload path `/api/upload/audio` then `/finalize`, staged under
   `staging/<id>/` and kept under `audio/<id>/`; `submitEntry`'s optional `audio`, owner-checked;
-  the purge and both exports. The rules are `src/lib/voice-answer-rule.ts`. **No surface records or
-  plays yet**: the drawings are `/lab/catchups/voice`, waiting for the owner's pick.
+  the purge and both exports. The rules are `src/lib/voice-answer-rule.ts`. **The surface shipped
+  too** (`9e6721df`): the answering card records and saves through `submitEntry`, and the reader
+  plays. This line said nothing recorded or played, from when the drawings at `/lab/catchups/voice`
+  were waiting for the owner's pick (bug audit 3, T2a-11).
 - **Phase 13, a question the group votes on**: **DELETED 2026-10-09**, the owner's word (*"no need
   to vote. let's ditch that. I don't like it particularly cause it takes up real estate in the UI and
   I don't think anyone's gonna use it"*). Every line of it is out of the code. `CatchupPromptOption`

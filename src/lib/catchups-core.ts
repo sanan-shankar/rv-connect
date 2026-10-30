@@ -35,19 +35,22 @@ import type {
 } from "@/lib/catchups-types";
 
 /* ------------------------------------------------------------------ *
- *  Why the runtime deps (prisma, the notify builders) load via dynamic
- *  import instead of a static `import`:
+ *  No database in this file, statically or lazily.
  *
- *  The pure state machine below (computeStatus, planNextAction, the
- *  patch helpers, calendar math) is unit-tested with
- *  `node --test src/lib/catchups-core.test.mjs` and MUST run with no database.
- *  Node strips `import type` entirely, so the only remaining static import
- *  here is erased at load; a static `import { prisma }` would instead pull
- *  the generated Prisma client (and a live client instantiation) into the
- *  test's module graph and break it. Loading prisma / the notify module
- *  lazily inside the impure drivers keeps the pure top level dependency
- *  free while the real app (Next resolves the `@/` alias for dynamic
- *  imports too) is unaffected. Do NOT convert these back to static imports.
+ *  The pure state machine below (computeStatus, planNextAction, the patch
+ *  helpers, the calendar math) is unit-tested with
+ *  `node --test src/lib/catchups-core.test.mjs` and must load with no
+ *  database: a static `import { prisma }` here would pull the generated
+ *  client into the test's module graph and break it. So Prisma, the notify
+ *  builders and the error reporter are imported by `catchups.ts`, statically,
+ *  and never by this file.
+ *
+ *  This block used to defend loading them lazily, through dynamic imports
+ *  inside this file, and said never to undo it; the split in the header made
+ *  the dynamic imports unnecessary and they went, and the instruction stayed
+ *  (bug audit 3, T2a-11). It also never closed, so it read as one comment
+ *  with the docblock under it.
+ * ------------------------------------------------------------------ */
 
 /**
  * Whether a question shows who asked it.

@@ -196,8 +196,10 @@ const submitEntrySchema = z.object({
      and leaves the words; absent leaves the column alone, like every field
      here. `transcribed` says the body came from the browser's speech
      recognition. Shape only: whose recording it is, and whether its length is
-     inside the cap, is `ownedVoiceRecording` below. NOTHING SENDS THIS YET --
-     the recorder is in the lab until the owner picks. */
+     inside the cap, is `ownedVoiceRecording` below. The answering surface's
+     recorder sends it (`answer-experience.tsx`), since the question you can
+     answer out loud shipped; this said nothing sent it, from when the
+     recorder was still a lab room (bug audit 3, T2a-11). */
   audio: z
     .object({ url: z.string().max(2000), seconds: z.number(), transcribed: z.boolean() })
     .nullable()
@@ -2155,14 +2157,18 @@ export async function toggleEntryCommentLike(commentId: string) {
 //  action picks it up at once.
 
 /**
- * Why the demo says no to leaving, archiving and deleting.
+ * Why the demo says no to leaving and archiving.
  *
- * Every visitor to the demo arrives as the SAME seeded persona, so these
- * three -- which are personal by design and change only the acting member's
- * own list -- would in that one place change it for whoever else is looking.
- * `leaveCatchup` would also be refused by the demo's write guard anyway
- * (`GroupMember` is not on `ALLOWED_WRITE_MODELS`), but as a generic "Something
- * went wrong" rather than as an answer (write-path review, 2026-08-21).
+ * Every visitor to the demo arrives as the SAME seeded persona, so these two,
+ * which are personal by design and change only the acting member's own list,
+ * would in that one place change it for whoever else is looking. (Deleting
+ * your copy was the third, until build phase 5 made it leaving.)
+ *
+ * THIS REFUSAL IS THE ONLY THING STOPPING THEM. The demo's write guard lets
+ * both through: `GroupMember` and `CatchupPref` have been on its
+ * `ALLOWED_WRITE_MODELS` since starting a Catch-up was made to work there
+ * (audit C-113). This said the guard would refuse a leave anyway, which
+ * stopped being true then (bug audit 3, T2a-11).
  */
 const DEMO_SHARED_COPY_REFUSAL =
   "Everyone exploring the demo shares one account, so this would change the list for whoever else is looking. The demo leaves it switched off.";

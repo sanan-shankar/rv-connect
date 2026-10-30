@@ -270,14 +270,20 @@ export async function syncBatchGroupQuietly(userId: string): Promise<void> {
 /**
  * Tick pass one: every member is in their own batch group, and no other.
  *
- * THIS FAILURE HAS ALREADY HAPPENED. `registerUser` calls `joinBatchGroup`
- * inside a best-effort try/catch, and the comment beside it said so in as many
- * words: "there is no self-heal anywhere: nothing re-checks 'an alumnus with a
- * batchYear and no batch-group row', so a pool timeout during a launch-day
- * burst left that member out of their batch permanently, with no witness but a
- * Vercel log line." Measured on 2026-09-08: one member, Rukmini Rau, carries
- * `batchYear` 2024 and was not in the Batch of 2024 group. The one-time repair
- * is in the migration; this is what stops the next one lasting.
+ * WHY IT EXISTS. `registerUser` calls `joinBatchGroup` inside a best-effort
+ * try/catch, and nothing re-checked "an alumnus with a batchYear and no
+ * batch-group row", so a pool timeout during a launch-day burst would leave
+ * that member out of their batch for good, with no witness but a Vercel log
+ * line. This is what stops one lasting.
+ *
+ * The case that prompted it was not that, as it turned out. The member found
+ * on 2026-09-08 with `batchYear` 2024 and no place in the Batch of 2024 group
+ * had joined a batch at signup, under the year they first gave, and was
+ * stranded when that year was corrected, because a correction moved no
+ * membership. This pass now adds a member to their corrected batch, and
+ * `syncBatchGroup` below takes them out of the old one (bug audit 3, T2a-01).
+ * This paragraph named them, and blamed a failed join (T2a-11). The one-time
+ * repair is in the migration.
  *
  * Since 2026-09-27 it also finds the opposite fault: a member still in a batch
  * group that is not theirs, whose year changed by some path that did not call

@@ -213,9 +213,11 @@ export async function loadPublishedEditionView(
       showAsker: p.showAsker,
       accepted: p.accepted,
       position: p.position,
-      // A null author is a member who has since left, or an asker who deleted
-      // their account. The question stays in the Edition — it is what everyone
-      // else answered — and the byline goes.
+      // A null author is an asker whose account was erased: the purge deletes
+      // their questions nobody answered and keeps the rest without a name,
+      // because a question is what everyone else answered (bug audit 3,
+      // C8-08). Leaving a Catch-up keeps the author; this said it did not
+      // (T2a-11).
       asker: revealAsker && p.author ? toPersonRef(p.author) : null,
       /* And the reading a page prints, decided here rather than in a
          component, because `askerVisible` above is the only thing entitled to

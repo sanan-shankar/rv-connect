@@ -1,3 +1,50 @@
+## 2026-10-30 (catchups) — bug audit 3, unit H2: every deadline names its hour, India time, a renamed Catch-up keeps its new name in every bell, and the admin room waits for the tick
+
+Six rows and two routed follow-ups in six commits, every new pin shown failing against its
+mutation; check green on each (one re-run waited out another track's half-written export file),
+visual 25/25 on both UI commits.
+
+The words on the clock (T7b-15, his Q9 answered (b)). Every deadline lands on 07:00 IST and
+answering stops at 06:55, so "Answers close Sunday 25 October" named a day nobody could answer on,
+the Saturday evening before in the Americas, and the last reminder said "tomorrow". One helper,
+`deadlineWords`, says the hour, the day and whose clock: "Answers close 7 am Sunday 25 October,
+India time" on the home and the list card, "7 am 25 October, India time" on the extend row and the
+full form in its toast (routed (g)), and "07:00 IST" on the admin room's Due line. The clock face
+is fixed-offset arithmetic, so the server's and the browser's ICU cannot spell "am" two ways.
+Every reminder names the hour; the one written as the last 24 hours open says only "Answers for
+X's Catch-up close 7 am ...". `clearReminders` takes a round's reminders at its publish or seal,
+at either extension, and an author's own once their answer has something in it, inside its write.
+"Nobody has answered yet" (routed (d)) promised nothing would go out until someone answered; it
+now says what the clock will do, read from whether its one zero-answer extension is spent.
+
+A Catch-up's name (T2a-02, T3-09). A rename writes only the title and every bell took the group's
+name, so a renamed Catch-up was announced by the name it had given up. `catchupName` replaces
+`groupName` in every notify context, filled through `catchupDisplayName`; `loadMeta` trusts an
+included row only when its caller selected the title. The invitation, its toast and the home's
+not-member card print the same name, and `catchup-bells.test.mjs` runs the real builders on a fake
+client.
+
+The admin room (L3-03). On Hobby the 02:00 UTC tick runs anywhere in its hour, 30 to 89 minutes
+after a deadline, so each deadline morning listed every Edition closing that day as stuck until it
+came. The rule waits three hours (`STUCK_AFTER_MS`); "within thirty minutes" is corrected in the
+docblock and the spec.
+
+Comments (T2a-11, T7b-03). Five lifecycle comments now say what the code does, among them a block
+that never closed and a heal rationale that named a member; the rest of the verdict's thirteen
+were fixed since. T7b-03's migration, read first and still correct, ran on production and the
+demo and found 0 rows on both: the 30-day sweep had taken all 22, and the four claims that it had
+moved them say so.
+
+Visible: the deadline line on every Catch-up's home and list card, the extend row and its toast,
+every reminder, the no-answers dialog, a renamed Catch-up's name in bells and on its invitation,
+the admin Due line's hour, and no stuck Edition before the tick. Verified on a throwaway Catch-up
+holding only the test account, at 1440 and 390: every line fits on one line at 390, the extend
+row's worst case ("Questions close 7 am 30 September, India time") 263 of 269 px; the toast and
+both dialog branches shown; deleted after in one guarded transaction, no bell written. The L3-03
+commit also carried another track's T6-03 ledger line, uncommitted in the file when this unit took
+the lock; that track's commit landed under the subject the line names. Not done: a phone narrower
+than 390 truncates the extend row's worst case.
+
 ## 2026-10-30 (platform) — bug audit 3, unit L4a: the presence beat every three minutes, a tighter proxy, a pool Vercel can suspend, uploads that fit the proxy, and images that take turns
 
 Seven rows in seven commits: six done, one parked. `npm run check` was green before each, or red only
