@@ -506,6 +506,25 @@ test("C-125: the answering surface actually sends the version it holds", () => {
   }
 });
 
+test("T2b-06: the empty-answer withdrawal deletes the row only while it is still empty", async () => {
+  /* The write that empties an answer commits first, and the delete follows.
+     A second device with no version upserts onto the same row in between, so
+     a delete by id alone took its paragraph after telling it "Saved". The
+     delete names every column the test for "empty" reads, and nothing else
+     says what empty means. */
+  const { EMPTY_ENTRY_WHERE } = await import("./catchups-core.ts");
+  const src = decomment(read("src/app/(main)/catchups/actions.ts"));
+  const fn = balancedBody(src, "export async function submitEntry(");
+  assert.ok(fn, "submitEntry is gone; this pin is reading nothing");
+  const test_ = fn.match(/if \((!entry\.\w+(?: && !entry\.\w+)*)\) \{\s*const withdrawn/);
+  assert.ok(test_, "the withdrawal's test for an empty answer moved; retarget this pin");
+  const tested = test_[1].split(" && ").map((s) => s.replace("!entry.", "")).sort();
+  assert.deepEqual(Object.keys(EMPTY_ENTRY_WHERE).sort(), tested, "the delete's predicate and the test for empty name different columns");
+  assert.ok(Object.values(EMPTY_ENTRY_WHERE).every((v) => v === null), "EMPTY_ENTRY_WHERE matches something other than an empty column");
+  assert.match(fn, /catchupEntry\.deleteMany\(\{\s*where: \{ id: entry\.id, \.\.\.EMPTY_ENTRY_WHERE \},?\s*\}\)/, "the withdrawal deletes without asking the row is still empty");
+  assert.doesNotMatch(fn, /deleteMany\(\{ where: \{ id: entry\.id \} \}\)/, "a delete by id alone is back");
+});
+
 test("C-020 is closed by deletion: there is no bin left to disarm", () => {
   /* The bug: binning your own copy stamped `CatchupPref.deletedAt`, which
      stopped every broadcast and armed a nightly sweep to take your membership

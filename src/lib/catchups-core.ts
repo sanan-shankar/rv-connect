@@ -1097,6 +1097,15 @@ export const RUNNING_EDITION_WHERE = {
   OR: [{ status: "answering" }, { status: "collecting", questionsCloseAt: { not: null } }],
 };
 
+/**
+ * An answer with nothing left in it: no words, no photograph, no recording, the
+ * three things `submitEntry` writes. Erasing all three withdraws the member from
+ * the Edition (audit Low 36), and the delete that does it carries exactly this,
+ * so a save from another device that has just put something back into the row
+ * is never deleted with it (bug audit 3, T2b-06).
+ */
+export const EMPTY_ENTRY_WHERE = { body: null, images: null, audioUrl: null };
+
 // ─── Friendly status copy (shared so every surface reads the same) ────────────
 
 /**

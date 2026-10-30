@@ -69,6 +69,7 @@ import {
   DEFAULT_REMINDER_MODE,
   isEditionRunning,
   RUNNING_EDITION_WHERE,
+  EMPTY_ENTRY_WHERE,
   EmptyAfterSwap,
   unlessEmpty,
   isMissingCatchupTable,
@@ -1713,10 +1714,22 @@ export async function submitEntry(input: {
     }
 
     if (!entry.body && !entry.images && !entry.audioUrl) {
-      await prisma.catchupEntry.deleteMany({ where: { id: entry.id } });
-      revalidatePath(`/catchups/${edition.catchupId}`);
-      // No row, so no version: the next save creates one afresh.
-      return { success: true, entryId: null, updatedAt: null };
+      /* Only while it is still empty (bug audit 3, T2b-06). The write that
+         emptied it has committed, and a second device holding no version
+         (its page was drawn before the row existed) upserts straight onto
+         the same row: deleting by id alone took that device's paragraph,
+         after telling it "Saved". */
+      const withdrawn = await prisma.catchupEntry.deleteMany({
+        where: { id: entry.id, ...EMPTY_ENTRY_WHERE },
+      });
+      if (withdrawn.count > 0 || (await prisma.catchupEntry.count({ where: { id: entry.id } })) === 0) {
+        revalidatePath(`/catchups/${edition.catchupId}`);
+        // No row, so no version: the next save creates one afresh.
+        return { success: true, entryId: null, updatedAt: null };
+      }
+      /* Filled again from elsewhere: the row is that save's now. This one
+         keeps its own version below, so its next save is told the answer
+         changed somewhere else instead of writing over it. */
     }
 
     /* A link pasted into the answer starts resolving now, after the response

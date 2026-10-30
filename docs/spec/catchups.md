@@ -442,7 +442,10 @@ to jump between questions and Back beside Next. There is no "Skip for now".
 - **Autosave on blur** through `submitEntry`, which re-checks the Edition is still answering inside
   the write's own transaction, and refuses a save whose `baseUpdatedAt` is stale, so a second device
   cannot silently replace what the first wrote.
-- **Clearing every field deletes the answer**, which withdraws you from the Edition.
+- **Clearing every field deletes the answer**, which withdraws you from the Edition. The delete asks
+  that the row is still empty (`EMPTY_ENTRY_WHERE`: no words, photograph or recording), so a save
+  from a second device that refilled it in between stays, and the device that emptied it keeps its
+  own version and is told the answer changed elsewhere (bug audit 3, T2b-06).
 - Photographs must be the caller's own uploads (`ownedUploadUrls`).
 
 ### 7.6 The invite link, `/catchups/join/[token]`
