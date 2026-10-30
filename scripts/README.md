@@ -166,9 +166,10 @@ verify. Needs the dev server and `DEV_LOGIN_SECRET`.
 
 ## Nightly operations (`ops/`)
 
-Both run from `.github/workflows/snapshot.yml`, not by hand. See `docs/OPERATIONS.md`.
+All three run from `.github/workflows/snapshot.yml`, not by hand. See `docs/OPERATIONS.md`.
 
 | Script | Does |
 |---|---|
 | `snapshot.mjs` | Writes a nightly metric snapshot, because Sentry keeps 30 days and PostHog a year, and neither of them will say in 2028 what this site looked like in 2026. |
+| `supabase-egress.mjs` | Reads Supabase's own egress meter for the snapshot, with its alarm, once a `SUPABASE_ACCESS_TOKEN` secret exists: the Free plan's 5 GB a cycle is the first line growth reaches, and nothing else watched it. |
 | `prune.mjs` | Nightly pruning of the tables that grow without bound, notifications first. |

@@ -21,16 +21,17 @@
  *  the ones that matter and the only ones that are exact.
  *
  *  --day backfills a SPECIFIC PAST day, and only PostHog can honestly answer
- *  one: PostHog is a real time series, but the database, Sentry and GitHub
- *  sources are point-in-time counts with no history behind them. Recording
- *  today's member count under last Tuesday's date would be a lie in a table
- *  whose whole purpose is a time series, so a backfill collects PostHog alone
- *  and leaves the other three absent for that row rather than wrong
- *  (audit Low 104).
+ *  one: PostHog is a real time series, but the database, Sentry, GitHub and
+ *  Supabase sources are point-in-time counts with no history behind them.
+ *  Recording today's member count under last Tuesday's date would be a lie in
+ *  a table whose whole purpose is a time series, so a backfill collects
+ *  PostHog alone and leaves the other four absent for that row rather than
+ *  wrong (audit Low 104).
  * ------------------------------------------------------------------ */
 
 import { config as loadEnv } from "dotenv";
 import { pgClient } from "../dev/_pg.mjs";
+import { readEgress, egressAlarm as egressAlarmFor } from "./supabase-egress.mjs";
 
 loadEnv({ path: ".env", quiet: true });
 
@@ -305,13 +306,46 @@ async function collectGithub() {
   return `last backup ${last?.conclusion ?? "unknown (no completed run in last 10)"}`;
 }
 
+/* ---------------------------------------------------------------- *
+ *  5. Supabase's egress meter: the organisation's egress this billing
+ *     cycle, as Supabase bills it (bug audit 3, L5-07). The first plan
+ *     line ordinary growth reaches, so it carries an alarm like the
+ *     database size does. scripts/ops/supabase-egress.mjs says how it
+ *     is read and why that read can fail.
+ * ---------------------------------------------------------------- */
+let egressAlarm = null;
+
+async function collectSupabase() {
+  const token = process.env.SUPABASE_ACCESS_TOKEN;
+  if (!token) return "skipped (no SUPABASE_ACCESS_TOKEN)";
+  try {
+    const reading = await readEgress({ token, databaseUrl: process.env.DIRECT_URL ?? process.env.DATABASE_URL });
+    /* A point-in-time reading of the cycle so far, stamped like the database
+     * counts with the day that just ended. Ten minutes past midnight UTC it
+     * is that day's figure, except on a cycle's last day, whose row reads the
+     * new cycle's first minutes: a cycle total resets, and its reset lands
+     * one row early. */
+    add("supabase", "egress.cycle_gb", reading.gb);
+    if (reading.includedGb) add("supabase", "egress.included_gb", reading.includedGb);
+    egressAlarm = egressAlarmFor(reading);
+    return `egress ${reading.gb.toFixed(2)}${reading.includedGb ? ` of ${reading.includedGb}` : ""} GB this billing cycle`;
+  } catch (err) {
+    /* Unlike the other vendors, this one is an alarm the owner switched on by
+     * adding the token. One that cannot read must not pass for one with
+     * nothing to say, so the job fails and names why. Removing the secret
+     * turns the reading off. */
+    egressAlarm = `Could not read Supabase's egress meter (${err.message}). Look at docs/OPERATIONS.md, "Egress".`;
+    throw err;
+  }
+}
+
 /* ---------------------------------------------------------------- */
 
 async function main() {
   await db.connect();
   /* A backfill can only honestly supply PostHog (see the header comment) --
-   * db/sentry/github are skipped outright rather than run and discarded, so
-   * a --dry run also shows the true shape of what gets written. */
+   * db/sentry/github/supabase are skipped outright rather than run and
+   * discarded, so a --dry run also shows the true shape of what gets written. */
   const sources = BACKFILL
     ? [["posthog", collectPostHog]]
     : [
@@ -319,10 +353,11 @@ async function main() {
         ["sentry", collectSentry],
         ["posthog", collectPostHog],
         ["github", collectGithub],
+        ["supabase", collectSupabase],
       ];
   if (BACKFILL) {
     console.log(
-      "  backfill  -- db/sentry/github skipped, point-in-time sources with no history to backfill",
+      "  backfill  -- db/sentry/github/supabase skipped, point-in-time sources with no history to backfill",
     );
   }
 
@@ -339,8 +374,9 @@ async function main() {
 
   /* The exit code only; the write below still runs, so the size that tripped
    * the alarm is on the chart too. */
-  if (dbAlarm) {
-    console.error(`::error::${dbAlarm}`);
+  for (const alarm of [dbAlarm, egressAlarm]) {
+    if (!alarm) continue;
+    console.error(`::error::${alarm}`);
     process.exitCode = 1;
   }
 

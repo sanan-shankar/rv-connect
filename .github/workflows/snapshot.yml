@@ -71,6 +71,12 @@ jobs:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           POSTHOG_PERSONAL_API_KEY: ${{ secrets.POSTHOG_PERSONAL_API_KEY }}
           POSTHOG_PROJECT_ID: ${{ secrets.POSTHOG_PROJECT_ID }}
+          # Supabase's egress meter and its 70% alarm (bug audit 3, L5-07).
+          # A personal access token, which carries the whole Supabase
+          # account's reach, hence only this step sees it. Unlike the keys
+          # above, once it is set a failed read fails the job: it is an alarm.
+          # docs/OPERATIONS.md, "Egress".
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           # Provided automatically by Actions; no secret to create.
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}

@@ -235,6 +235,42 @@ months away. When it fires:
 4. Supabase Pro ($25 a month) raises the line to 8 GB. That is the answer once the members'
    own data is what fills it.
 
+#### Egress
+
+Supabase's Free plan includes **5 GB of egress a billing cycle for the whole organisation**, and
+every query result through the pooler counts. Past it Supabase warns, grants a grace period, then
+may pause the project, make the database read-only or refuse requests until the cycle resets (its
+billing FAQ). It is the first plan line ordinary growth reaches (bug audit 3, L5-07), and until
+2026-10-30 nothing here watched it.
+
+The snapshot reads **Supabase's own meter**, the number on Organization → Usage → Egress, records
+it as `supabase.egress.cycle_gb` (this cycle so far) beside `supabase.egress.included_gb` (the
+plan's allowance), and **fails the job, which emails the owner, at 70% of the allowance**, the
+share the database-size alarm uses. It is a reading, never a figure worked out from page views:
+an answer without the meter is an error, not a zero (`scripts/ops/supabase-egress.mjs`). The
+reading is the cycle so far, stamped like the database counts with the day that just ended, so a
+cycle's last day reads the new cycle's first minutes.
+
+**It is off until one repository secret exists: `SUPABASE_ACCESS_TOKEN`.** To turn it on, in
+Supabase: Account → Access Tokens (`supabase.com/dashboard/account/tokens`) → Generate new token,
+named for this job. Then in GitHub: Settings → Secrets and variables → Actions → New repository
+secret, named `SUPABASE_ACCESS_TOKEN`, holding the token. Nothing else: the project and its
+organisation are found from the database address the job already has. Two things to know first:
+
+- A personal access token carries the whole Supabase account's reach (it can manage every
+  project), which is why only the snapshot's collect step is given it. Revoking it on the same
+  page turns the reading off.
+- The meter comes from the endpoint the dashboard itself uses,
+  `/platform/organizations/<slug>/usage`. The documented Management API has no usage endpoint,
+  so this one may refuse a personal token or change shape without notice. The job then fails and
+  says why, every night, rather than passing for an alarm with nothing to say; deleting the
+  secret silences it, and the dashboard is the reading again.
+
+Without the secret the snapshot logs `supabase skipped`, records nothing, and the dashboard is the
+only meter (owner check E). When the alarm fires: the levers L5-07 lists (the directory's map pins
+and the Collection's geometry are the two largest per-view reads), or Supabase Pro ($25 a month,
+250 GB of egress).
+
 ### Minute budget
 Private repos get **2,000 free minutes a month** and the account spending limit is **$0 by
 default**, so exhausting them stops runs rather than producing a bill. Expected usage is
@@ -515,7 +551,7 @@ the database read-only, or answer 402 to every request (its billing FAQ). So eac
 | Quota | 2026-09-29 | At 2,000 members (projected) | Guard |
 |---|---|---|---|
 | Database size | 140 MB on Supabase's meter; 119 MB by Postgres, of which 97 MB is the static place list and 23 MB everything else | ~270–290 MB (the 23 MB scaled 7×, plus the place list) | nightly alarm at 350 MB (§2, `snapshot.yml`); sign-in failure rows capped at 120 an hour |
-| Egress | 0.39 of 5 GB, 10-01..08 (cycle runs 1st to 1st). **~60 KB per real page view**, steady across days (10-01: 153 MB / 2,364 views; 10-05: 25 MB / 427; 10-07: 14 MB / 227) | ~4.7 GB a month at the steady 1.3 views/member/day, more in a busy month: **the binding Free-plan limit, reached somewhere between ~1,100 and 2,000 members** | the organisation Usage page's daily chart; cut the bytes per page, or Supabase Pro when it nears |
+| Egress | 0.39 of 5 GB, 10-01..08 (cycle runs 1st to 1st). **~60 KB per real page view**, steady across days (10-01: 153 MB / 2,364 views; 10-05: 25 MB / 427; 10-07: 14 MB / 227) | ~4.7 GB a month at the steady 1.3 views/member/day, more in a busy month: **the binding Free-plan limit, reached somewhere between ~1,100 and 2,000 members** | Supabase's own meter in the nightly snapshot, alarm at 70%, once `SUPABASE_ACCESS_TOKEN` is set (§2, "Egress"); until then the organisation Usage page's daily chart. Cut the bytes per page, or Supabase Pro when it nears |
 | Log ingestion | 1.55 of 1 GB in September (over); 0.435 GB 10-01..08, still the Data API loop. Marked UPCOMING, not yet enforced | ~0 from that source since the owner pointed both projects' Data API at `api` alone on 2026-10-08 | re-read the meter a few days later: it should stop climbing |
 | Connections | peak 12 of 60 | pooled; not the constraint | — |
 | CPU / RAM (nano) | 2% / 53% | — | — |
@@ -523,8 +559,8 @@ the database read-only, or answer 402 to every request (its billing FAQ). So eac
 **For the next month**, at ~300 members: database ~25% of its limit, egress well under once the
 backup change lands, log ingestion back under once the Data API setting is changed. That last one
 is the only open item, and it needs the owner's dashboard. **At 2,000 members** the projection
-fits the Free plan with less room, and egress is the line to watch: nothing measures the app's
-share of it directly yet. Supabase Pro ($25 a month: 8 GB database, 250 GB egress) is the answer
+fits the Free plan with less room, and egress is the line to watch: the nightly snapshot reads
+Supabase's own meter once its token is set (§2, "Egress"), and until then only the dashboard does. Supabase Pro ($25 a month: 8 GB database, 250 GB egress) is the answer
 when either line gets near.
 
 ### Re-measuring (from `/tmp`; the repo is not `vercel link`ed)
