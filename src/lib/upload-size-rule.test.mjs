@@ -7,8 +7,10 @@ import { read, decomment } from "./test-kit.mjs";
 /* ------------------------------------------------------------------ *
  *  Nothing ships raw camera bytes to our own server.
  *
- *  Vercel rejects a request body over roughly 4.5MB at the PLATFORM, with a
- *  413 the function never sees. `serverActions: { bodySizeLimit: "25mb" }`
+ *  Vercel rejects an oversized request body at the PLATFORM, with a 413 the
+ *  function never sees, and with every request passing the proxy the line
+ *  is Routing Middleware's 4MB, not the function's 4.5MB (bug audit 3,
+ *  L8-03). `serverActions: { bodySizeLimit: "25mb" }`
  *  in next.config.ts lifts only Next's own guard and cannot raise that. A
  *  normal phone photo is 5 to 12MB, so three paths failed silently on real
  *  files (bug audit B-030): the onboarding avatar step, which validated only
@@ -45,8 +47,16 @@ const SENDERS = [
 const SHRINKS = /shrinkForUpload|downscaleImage|useAvatarUpload|uploadOneImage/;
 
 test("the limit is under what the platform will actually carry", () => {
-  const PLATFORM_CAP = 4.5 * 1024 * 1024;
-  assert.ok(UPLOAD_BODY_LIMIT < PLATFORM_CAP, "the limit is above Vercel's own body cap");
+  /* Not the function's 4.5MB: every request passes src/proxy.ts first, and
+     Routing Middleware carries at most "4 MB" of body, read here the strict
+     way, as decimal (bug audit 3, L8-03). The files must fit with room for
+     the multipart framing and the fields beside them. */
+  const ROUTING_MIDDLEWARE_CAP = 4_000_000;
+  const FRAMING = 64 * 1024;
+  assert.ok(
+    UPLOAD_BODY_LIMIT + FRAMING <= ROUTING_MIDDLEWARE_CAP,
+    "files at the limit, framed, are over the proxy's 4MB body cap, which refuses them before any code runs"
+  );
   assert.ok(UPLOAD_BODY_LIMIT > 2 * 1024 * 1024, "the limit is so low it refuses ordinary photos");
 });
 
@@ -56,7 +66,7 @@ for (const file of SENDERS) {
     assert.ok(
       SHRINKS.test(src),
       `${file} posts a picked file straight to our own server; anything over ` +
-        `~4.5MB dies at Vercel's edge with no message the member can act on (B-030)`
+        `~4MB dies at Vercel's edge with no message the member can act on (B-030)`
     );
   });
 }

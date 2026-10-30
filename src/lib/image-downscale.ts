@@ -81,13 +81,18 @@ export async function downscaleImage(file: File): Promise<File> {
 /**
  * The most bytes a request body may carry to this app's own server.
  *
- * Vercel rejects request bodies above roughly 4.5MB at the PLATFORM, with a
- * 413 the function never sees, before any of our code runs -- and
- * `serverActions: { bodySizeLimit: "25mb" }` in next.config.ts only lifts
- * Next's own guard, so it cannot raise this. 4MB leaves room for the multipart
- * framing and the other form fields that travel alongside the file.
+ * Vercel refuses an oversized body at the PLATFORM, before any of our code
+ * runs, and the line that binds here is not the function's 4.5MB: every
+ * request this app answers passes through src/proxy.ts first, and Routing
+ * Middleware takes at most 4MB of body (Vercel's routing-middleware limits).
+ * This was sized against the 4.5MB until 2026-10-30, so a set of files coming
+ * to just under 4MiB passed this check and died at the edge with a bare "Try
+ * again" (bug audit 3, L8-03). 3.8 million bytes reads "4MB" the strict,
+ * decimal way and still leaves room for the multipart framing and the form
+ * fields that travel with the files. `serverActions: { bodySizeLimit }` in
+ * next.config.ts lifts only Next's own guard and cannot raise any of this.
  */
-export const UPLOAD_BODY_LIMIT = 4 * 1024 * 1024;
+export const UPLOAD_BODY_LIMIT = 3_800_000;
 
 /**
  * Get a set of picked files ready to be POSTed to our own server, or say why
