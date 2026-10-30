@@ -4,7 +4,8 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import pg from "pg";
 import { PrismaPg } from "@prisma/adapter-pg";
-import { ROOT, decomment, walk } from "./test-kit.mjs";
+import { attachDatabasePool } from "@vercel/functions/db-connections";
+import { ROOT, decomment, read, walk } from "./test-kit.mjs";
 
 /* ------------------------------------------------------------------ *
  *  The connection pool has to stay bounded and impatient.
@@ -106,9 +107,9 @@ test("a pool-level error is not swallowed", () => {
  *  Under Fluid compute an idle instance is suspended, and timers do not run
  *  while it sleeps, so a connection still open then keeps its Supavisor slot
  *  for the whole sleep and can wake as a socket the pooler already dropped.
- *  prisma.ts therefore builds the pg Pool itself (the object Vercel's
- *  `attachDatabasePool` takes, once the project carries @vercel/functions)
- *  and closes idle clients sooner than pg's 10s default.
+ *  prisma.ts therefore builds the pg Pool itself, closes idle clients
+ *  sooner than pg's 10s default, and hands the pool to Vercel's
+ *  `attachDatabasePool`, which keeps the instance awake until they close.
  * ------------------------------------------------------------------ */
 
 const singleton = () => sites.find((s) => s.file === "src/lib/prisma.ts")?.src ?? "";
@@ -165,3 +166,58 @@ test("the adapter adopts the app's pool rather than building a second one, and e
   assert.equal(pool.ended, true, "disposing the adapter left the app's pool open");
 });
 
+
+test("L5-04: the pool the client uses is the one handed to Vercel's suspend lifecycle", () => {
+  /* Fluid suspends an idle instance and its timers stop while it sleeps, so
+     the 5s idle close above only runs if something holds the instance awake
+     for it. attachDatabasePool does: on every release it asks the request
+     to wait (waitUntil) for the idle timeout plus 100ms. Attaching a
+     different pool from the one PrismaPg was given would hold the instance
+     for connections nothing uses. */
+  const src = singleton();
+  assert.match(
+    src,
+    /import\s*\{\s*attachDatabasePool\s*\}\s*from\s*["']@vercel\/functions(\/db-connections)?["']/,
+    "prisma.ts no longer imports attachDatabasePool"
+  );
+  const pool = src.match(/\bconst\s+(\w+)\s*=\s*new\s+Pool\s*\(/)?.[1];
+  assert.ok(pool, "prisma.ts no longer builds its own pg Pool");
+  assert.match(src, new RegExp(`\\battachDatabasePool\\(\\s*${pool}\\s*\\)`), "the app's pool is not the one attached");
+  const deps = JSON.parse(read("package.json")).dependencies ?? {};
+  assert.ok(deps["@vercel/functions"], "@vercel/functions is not a runtime dependency, so production cannot load it");
+});
+
+test("L5-04: attachDatabasePool takes a pg pool, holds the instance on Vercel, and only listens elsewhere", async () => {
+  /* The installed package, not its README. It must recognise a pg Pool (it
+     throws "Unsupported database pool type" for anything it cannot classify,
+     which in prisma.ts would take the whole data layer down). A release must
+     arm no hold without VERCEL_URL and VERCEL_REGION, which keeps it inert on
+     the laptop, in scripts and in a build; with them, a release asks the
+     request to wait, and with no request in scope here it says so instead. */
+  const pool = new pg.Pool({ max: 1, idleTimeoutMillis: 5_000 });
+  const before = pool.listenerCount("release");
+  attachDatabasePool(pool);
+  assert.equal(pool.listenerCount("release"), before + 1, "attachDatabasePool did not listen for the pool's release");
+
+  const saved = { url: process.env.VERCEL_URL, region: process.env.VERCEL_REGION, warn: console.warn };
+  const warnings = [];
+  console.warn = (...args) => warnings.push(args.join(" "));
+  try {
+    delete process.env.VERCEL_URL;
+    delete process.env.VERCEL_REGION;
+    pool.emit("release", undefined, {});
+    assert.deepEqual(warnings, [], "off Vercel a release armed a hold");
+    process.env.VERCEL_URL = "rv-alumni.vercel.app";
+    process.env.VERCEL_REGION = "bom1";
+    pool.emit("release", undefined, {});
+    assert.match(warnings.join("\n"), /request scope/i, "on Vercel a release no longer asks the request to wait");
+  } finally {
+    console.warn = saved.warn;
+    for (const [key, value] of [["VERCEL_URL", saved.url], ["VERCEL_REGION", saved.region]]) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+    attachDatabasePool(pool); // clears the one hold the module keeps, so this file exits at once
+    await pool.end();
+  }
+});

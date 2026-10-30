@@ -1,6 +1,9 @@
 import { readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { Pool } from "pg";
+// The subpath, not the package root: the root also loads Vercel's OIDC
+// helpers and their dependencies, none of which this needs.
+import { attachDatabasePool } from "@vercel/functions/db-connections";
 import { PrismaClient, Prisma } from "@/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { IS_DEMO, DemoWriteError, demoWriteAllowed } from "./demo";
@@ -46,10 +49,7 @@ function createPrismaClient() {
   //                         dropped, failing the next member's first query
   //                         (Vercel KB, "Connection pooling with Vercel
   //                         Functions"; L5-04). The other half of that fix is
-  //                         `attachDatabasePool(pool)` from @vercel/functions,
-  //                         which holds the instance awake until its idle
-  //                         clients have closed; the project does not carry
-  //                         that package, so it is not called here.
+  //                         `attachDatabasePool(pool)` below.
   //   query_timeout      -- 20s, client-side. Nothing here should take a
   //                         fifth of that; it exists so one stuck query
   //                         cannot pin a request open.
@@ -76,6 +76,13 @@ function createPrismaClient() {
     idleTimeoutMillis: 5_000,
     query_timeout: 20_000,
   });
+  // Every time a request hands a connection back, Vercel is told to keep the
+  // instance awake for the idle timeout plus 100ms (waitUntil), so the idle
+  // clients close before Fluid can suspend it, rather than sleeping with it
+  // and waking dead (L5-04). It only listens for the pool's `release`, and
+  // does nothing off Vercel (it needs VERCEL_URL and VERCEL_REGION): no timer
+  // locally, in a script or in a build.
+  attachDatabasePool(pool);
   const adapter = new PrismaPg(pool, {
     // The adapter leaves a pool it was handed open when the client
     // disconnects, since it did not make it. This one is nobody else's, and
