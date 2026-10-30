@@ -29,8 +29,10 @@ const { catchupDisplayName } = await import("./catchups-core.ts");
 /** A client that answers the reads the builders make and keeps their writes. */
 function fakeDb() {
   const written = [];
+  const deleted = [];
   return {
     written,
+    deleted,
     groupMember: {
       findMany: async () => [{ userId: "u-member" }, { userId: "u-starter" }],
       count: async () => 1,
@@ -50,7 +52,10 @@ function fakeDb() {
         return data;
       },
       findFirst: async () => null,
-      deleteMany: async () => ({ count: 0 }),
+      deleteMany: async ({ where }) => {
+        deleted.push(where);
+        return { count: 0 };
+      },
     },
   };
 }
@@ -92,4 +97,28 @@ test("T2a-02: every bell names the Catch-up the same way", async () => {
       assert.doesNotMatch(row.message, /asdf/, `${name}: ${row.message}`);
     }
   }
+});
+
+/* A reminder names a deadline, so it is untrue once the deadline passes, and
+   nothing took it back: the last one of a round sat unread on the badge after
+   the Edition came out, until the thirty-day sweep (bug audit 3, T7b-15). */
+const REMINDERS_HERE = { type: "catchup_reminder", link: "/catchups/c1" };
+
+test("T7b-15: publishing or sealing an Edition takes its reminders out of every bell", async () => {
+  for (const [name, ctx] of [
+    ["notifyPublished", { ...base }],
+    ["notifyPublished", { ...base, capsule: true }],
+    ["notifySealed", { ...base, opensAt: new Date("2027-09-14T01:30:00Z") }],
+  ]) {
+    const db = fakeDb();
+    await notify[name](db, ctx);
+    // Everyone's, not one member's: no userId narrows it.
+    assert.deepEqual(db.deleted, [REMINDERS_HERE], name);
+  }
+});
+
+test("T7b-15: an author's own reminder goes when they answer, and nobody else's", async () => {
+  const db = fakeDb();
+  await notify.clearReminders(db, "c1", "u-member");
+  assert.deepEqual(db.deleted, [{ ...REMINDERS_HERE, userId: "u-member" }]);
 });

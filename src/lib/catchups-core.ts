@@ -23,7 +23,7 @@
  *  No em dashes. User-facing copy says "Rishi Valley", never "Alumni".
  * ------------------------------------------------------------------ */
 import { randomUUID } from "node:crypto";
-import { valleyDaysBetween } from "./utils.ts";
+import { formatDayAndDate, valleyDaysBetween } from "./utils.ts";
 import { isMissingTable } from "./prisma-errors.ts";
 import type {
   CatchupStatus,
@@ -162,7 +162,8 @@ export function withDailyBucket(remindersSent: number, daysLeft: number): number
 
 /**
  * Whole days left before `closeAt`, floored at 1 while the window is still
- * open. 1 means "last day", which is what the copy says. Returns 0 once the
+ * open. 1 means the window's last 24 hours, whose reminder is the last one
+ * and names only the hour (`answerReminderMessage`). Returns 0 once the
  * moment has passed, because then the answer is a transition, not a nudge.
  */
 export function daysLeftUntil(closeAt: Date | string | null | undefined, now: Date): number {
@@ -1145,33 +1146,77 @@ export function valleyDaysLeft(
 }
 
 /**
- * The bell's sentence for a deadline.
+ * The valley's clock face for an instant: "7 am", "7:30 am", "12 pm".
  *
- * It lives here next to `valleyDaysLeft`, the count it shares with every other
- * surface that names a last day, because the whole of C-141/C-031 was three
- * surfaces phrasing the same deadline from two different arithmetics -- the
- * cards counting 24-hour blocks while the answering page counted IST calendar
- * days, so the bell said "Last day to answer" from the morning before a page
- * saying "Answers close tomorrow".
+ * Arithmetic on India's one fixed offset rather than `Intl`, on purpose. The
+ * settings surface renders this on the server and again in the browser, and
+ * two ICU builds disagree about how a twelve-hour clock is spelled ("7 am",
+ * "7 AM", "7 a.m."), which React reports as a hydration mismatch. The offset
+ * is the same constant `DEADLINE_HOUR_UTC_MS` already leans on.
+ */
+function valleyClock(at: Date | string): string {
+  const dayMinutes = 24 * 60;
+  const minutes =
+    ((Math.floor((new Date(at).getTime() + IST_OFFSET_MS) / 60_000) % dayMinutes) + dayMinutes) %
+    dayMinutes;
+  const hour = Math.floor(minutes / 60);
+  const minute = minutes % 60;
+  const face = `${hour % 12 || 12}${minute ? `:${String(minute).padStart(2, "0")}` : ""}`;
+  return `${face} ${hour < 12 ? "am" : "pm"}`;
+}
+
+/**
+ * A deadline as every surface says it: the hour, the day, and whose clock.
+ * "7 am Sunday 25 October, India time" with `formatDayAndDate`, the default;
+ * the settings row passes `formatDayMonth` for "7 am 25 October, India time",
+ * where the weekday is the announcement's job, not the value's.
  *
- * ITS SIBLING, `answersCloseSentence`, IS GONE, and so is the class of bug.
- * That one printed the same countdown on the answering page. Build phase 7
- * moved answering onto the Catch-up's home, where the deadline is stated as a
- * DATE -- "Answers close Thursday 20 August" -- by `homeStateLine`, which is
- * the drawn design (he cut the second half of that line himself: "you don't
- * need to say it comes out the same day"). A date and a countdown cannot
- * contradict each other, so there is now exactly ONE countdown left in the
- * app and it is this one.
+ * THE HOUR IS THE WHOLE POINT (bug audit 3, T7b-15; his Q9, answered (b) on
+ * 2026-10-29: name the hour, India time, wherever a deadline is named). Every
+ * deadline lands on 07:00 IST, so a line naming only the day named one on
+ * which answering was already shut, at 06:55 IST, and that is the evening
+ * before for a member in the Americas. The day alone told a member in Pune to
+ * answer on Sunday and one in California on Saturday night, and was right for
+ * neither. Read from the instant itself, so a deadline that is not on the hour
+ * still reads true.
+ */
+export function deadlineWords(
+  at: Date | string,
+  date: (d: Date | string) => string = formatDayAndDate
+): string {
+  return `${valleyClock(at)} ${date(at)}, India time`;
+}
+
+/**
+ * The bell's sentence for a deadline: every reminder names the hour, in the
+ * same words the page it links to uses (`deadlineWords`).
+ *
+ * THE LAST ONE SAYS NOTHING BUT THE HOUR (bug audit 3, T7b-15). It is written
+ * as the window's final 24 hours open, the morning before the close, and it
+ * said "Answers close tomorrow": true in Pune until midnight, wrong from then
+ * until 06:55, and for a member in the Americas, whose tomorrow starts after
+ * the close, wrong all along. Its "Last day to answer" branch needed a
+ * reminder written between midnight and 06:55 on the closing day, which the
+ * once-a-day bucket had already spent, so it never ran. Decided by the bucket's
+ * own 24-hour count, so the sentence is the last one exactly when the reminder
+ * is, the one a member who chose "On the last day" receives.
+ *
+ * Earlier ones lead with how many valley days are left, the count C-141/C-031
+ * settled every countdown on, and then name the hour. A count of days is a
+ * length rather than a day, so it holds wherever the member is; it was a day
+ * word on its own that did not.
  */
 export function answerReminderMessage(
-  groupName: string,
+  catchupName: string,
   closeAt: Date | string | null | undefined,
   now: Date
 ): string {
-  const days = valleyDaysLeft(closeAt, now);
-  if (days === null || days === 0) return `Last day to answer ${groupName}'s Catch-up.`;
-  if (days === 1) return `Answers close tomorrow for ${groupName}'s Catch-up.`;
-  return `${days} days left to answer ${groupName}'s Catch-up.`;
+  const close = ms(closeAt);
+  if (close == null) return `Answers are still open for ${catchupName}'s Catch-up.`;
+  const when = deadlineWords(new Date(close));
+  if (daysLeftUntil(closeAt, now) <= 1) return `Answers for ${catchupName}'s Catch-up close ${when}.`;
+  const days = valleyDaysLeft(closeAt, now) ?? 0;
+  return `${days} ${days === 1 ? "day" : "days"} left to answer ${catchupName}'s Catch-up. Answers close ${when}.`;
 }
 
 function daysUntilLabel(t: Date | string | null | undefined, now: Date): string | null {
@@ -1247,8 +1292,10 @@ export function describeEditionStatus(
  * It is deliberately NOT `describeEditionStatus`. That one answers "where is
  * this Edition in the machine" for the console and the admin room, and says
  * "Answering now, 3 days left"; this one answers "what is this Catch-up doing"
- * for somebody choosing which card to open, and says "Answers close Thursday
- * 20 August". A countdown belongs on the page you are already on.
+ * for somebody choosing which card to open, and says "Answers close 7 am
+ * Thursday 20 August, India time" (`deadlineWords`; it named the day alone
+ * until bug audit 3, T7b-15). A countdown belongs on the page you are already
+ * on.
  *
  * ENDED CARRIES NO DATE, and that is a data fact rather than a design one.
  * The drawing says "Ended 17 April", but nothing records WHEN a Catch-up
@@ -1275,6 +1322,10 @@ export function describeEditionStatus(
  * carries the deadline and nothing else. Out returns null as well: the place
  * under the cover is where Start goes, and "The next one opens 6 December"
  * went with the rhythm that booked it (2026-10-17).
+ *
+ * The deadline is the hour and the day, India time (`deadlineWords`): "Answers
+ * close 7 am Sunday 25 October, India time". The day alone named one on which
+ * answering had already shut at 06:55 IST (bug audit 3, T7b-15, his Q9).
  */
 export function homeStateLine(
   catchupStatus: CatchupStatus,
@@ -1292,7 +1343,9 @@ export function homeStateLine(
   if (catchupStatus === "ended") return "Ended";
   if (!edition) return null;
   if (edition.status === "answering") {
-    return edition.answersCloseAt ? `Answers close ${fmt.dayAndDate(edition.answersCloseAt)}` : null;
+    return edition.answersCloseAt
+      ? `Answers close ${deadlineWords(edition.answersCloseAt, fmt.dayAndDate)}`
+      : null;
   }
   return null;
 }
@@ -1332,7 +1385,7 @@ export function catchupStageLine(
       return "Open for questions";
     case "answering":
       return edition.answersCloseAt
-        ? `Answers close ${fmt.dayAndDate(edition.answersCloseAt)}`
+        ? `Answers close ${deadlineWords(edition.answersCloseAt, fmt.dayAndDate)}`
         : "Open for answers";
     case "published":
       return edition.publishedAt ? `Out ${fmt.longDate(edition.publishedAt)}` : "Out now";

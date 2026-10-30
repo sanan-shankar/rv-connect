@@ -223,6 +223,8 @@ async function applyEditionAction(
         data: action.patch,
       });
       if (cas.count === 0) return false;
+      // The deadline every waiting reminder names has just moved three days.
+      await notify.clearReminders(tx, meta.catchupId);
       await notify.notifyAnswersOpen(tx, { ...meta, editionId, onlyNonAnswerers: true });
       return true;
     }

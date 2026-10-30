@@ -176,6 +176,10 @@ All in `src/lib/catchups-core.ts`.
   the two in step.
 - **`TICK_GRACE_MS` = 5 minutes**: a deadline counts as passed five minutes early, so scheduler
   jitter cannot push a phase back a whole day.
+- **How a deadline is said, everywhere**: its hour, its day and whose clock, "7 am Sunday 25 October,
+  India time" (`deadlineWords`). His Q9, answered (b) on 2026-10-29. Every surface named the close's
+  day alone until then, a day on which answering had already shut at 06:55 IST and, for a member in
+  the Americas, the evening before the close (bug audit 3, T7b-15).
 - **`publishedAt` is the real instant**, not the snapped deadline, because it is the Edition's name.
 - **A time capsule opens** on `capsuleOpensAt(sealedAt)`: the same calendar date next year in IST,
   at 07:00 IST. 29 February opens on 28 February. It is stored in `publishAt`.
@@ -378,8 +382,9 @@ Every Catch-up has a photograph, always. `Catchup.pictureSrc` is NOT NULL, with 
 `(index)/page.tsx`. A shelf of cards, 1096px wide at most, two up from 1180px. **A card is the
 photograph**, with the Catch-up's name (two lines at most) and one state line written on it over a
 scrim. No birds, counts, Edition numbers or buttons; the whole card is the door. The state line is
-`catchupStageLine`: Ended, Open for questions, "Answers close Thursday 20 August", "Out 15 August
-2026", and for an idle `collecting` row No Editions yet (never started) or Nothing running (fizzled).
+`catchupStageLine`: Ended, Open for questions, "Answers close 7 am Thursday 20 August, India time",
+"Out 15 August 2026", and for an idle `collecting` row No Editions yet (never started) or Nothing
+running (fizzled).
 
 Order: answering first, then collecting, then published and idle, then by name.
 
@@ -418,8 +423,9 @@ inside the transaction, so the second finds the first (bug audit 3, T2a-08).
   one primary action -- under the latest Edition's cover, right-aligned, once one is out; otherwise a
   card with one serif line (No Editions yet, or Nothing running) and the pill. Start opens a
   confirmation that says how many people it tells. Ended: no region.
-- **The state line** under it: "Answers close Thursday 20 August" while answering, "Ended" when
-  ended, nothing otherwise (`homeStateLine`). The slot under a published cover is Start's.
+- **The state line** under it: "Answers close 7 am Thursday 20 August, India time" while answering,
+  "Ended" when ended, nothing otherwise (`homeStateLine`). The slot under a published cover is
+  Start's.
 - **The sidebar** holds the earlier Editions as the same cover cards the list draws. When the
   Catch-up has ended, every published Edition is there, the latest included.
 
@@ -515,9 +521,10 @@ Leave).
 
 **Give everyone longer** unfolds three pills, and they are acts, never a setting: none is drawn
 pressed, and the row's line is the deadline it moves ("Questions close" while collecting, "Answers
-close" while answering), read from the page. The press sends that date back, `extendDeadline` swaps
-on it, so two taps from one page add one extension and the second is told the deadline moved; a
-toast says the new date. Until 2026-10-29 a picked pill stayed pressed, a second tap added the
+close" while answering), with its hour, India time, and no weekday ("Answers close 7 am 25 October,
+India time"), read from the page. The press sends that date back, `extendDeadline` swaps on it, so
+two taps from one page add one extension and the second is told the deadline moved; a toast says
+the new deadline the way the home does, hour and weekday included. Until 2026-10-29 a picked pill stayed pressed, a second tap added the
 extension again, and the line said "A week more" from local state (bug audit 3, T3-06).
 
 **Close and send it out** with nobody's answers in the Edition has nothing to send: the press opens
@@ -607,7 +614,7 @@ pins all of it.
 |---|---|---|---|
 | `catchup_questions_open` | an Edition starts: creation of a people Catch-up, or somebody pressing Start, named in the bell. Never a batch reaching ten, and never the empty-window extension | every member but whoever did it | `/catchups/<id>` |
 | `catchup_answers_open` | answering opens; re-sent on the no-answers extension | the people taking part, but whoever opened it; on the extension, the non-answerers among them | `/catchups/<id>` |
-| `catchup_reminder` | once a day while answering | non-answerers by preference: Daily every day, On the last day on the last day, Never (the default) not at all. Today's replaces yesterday's | `/catchups/<id>` |
+| `catchup_reminder` | once a day while answering, naming the hour: "N days left to answer X's Catch-up. Answers close 7 am Sunday 25 October, India time.", and in the last 24 hours only "Answers for X's Catch-up close ..." (it said "Answers close tomorrow" until 2026-10-30, wrong for anyone abroad and after midnight; T7b-15) | non-answerers by preference: Daily every day, On the last day on the last day, Never (the default) not at all. Today's replaces yesterday's, and every one leaves the bell when it stops being true: all of a round's at its publish or seal and when either extension moves the deadline, and a member's own once they answer (`clearReminders`) | `/catchups/<id>` |
 | `catchup_published` | published, by the clock or a Keeper; or a time capsule opening | every member but the Keeper who closed it | `/catchups/edition/<editionId>` |
 | `catchup_sealed` | a time capsule closes, saying the day it opens | every member but the Keeper who closed it | `/catchups/<id>` |
 | `catchup_love` | a heart on your answer | the answer's author, if still a member; at most one unread per author per Edition | `/catchups/edition/<editionId>` |

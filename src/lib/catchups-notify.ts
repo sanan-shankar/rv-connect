@@ -109,6 +109,29 @@ async function answeredUserIds(db: CatchupDb, editionId: string): Promise<Set<st
   return new Set(rows.map((r) => r.authorId));
 }
 
+/**
+ * Take a Catch-up's reminders out of the bell: everyone's, or one member's.
+ *
+ * A reminder names a deadline ("Answers close 7 am Sunday ..."), so it stops
+ * being true the moment the deadline passes or moves, and for one member the
+ * moment they answer. Nothing took them back: only the next day's reminder,
+ * a Keeper's extension or leaving cleared one, so the last of a round sat
+ * unread on the badge after the Edition had come out, until the thirty-day
+ * sweep (bug audit 3, T7b-15; his Q9 asked for them cleared). Used by the
+ * close (`notifyPublished`, `notifySealed`), both extensions, and an answer
+ * being saved. Matched on type and the home's exact link, which is all
+ * `notifyReminder` writes.
+ */
+export async function clearReminders(
+  db: CatchupDb,
+  catchupId: string,
+  userId?: string
+): Promise<void> {
+  await db.notification.deleteMany({
+    where: { type: "catchup_reminder", link: `/catchups/${catchupId}`, ...(userId ? { userId } : {}) },
+  });
+}
+
 async function createMany(
   db: CatchupDb,
   userIds: string[],
@@ -233,13 +256,12 @@ export const notifyReminder: NotifyReminderFn = async (db, ctx) => {
   }
   if (recipients.length === 0) return;
 
-  /* The sentence counts valley calendar days, the same way the answer page it
-     links to does. `days` above is a 24-hour count and stays that way: it keys
-     the once-a-day bucket and decides who a "last day only" member is, and
-     re-timing every nudge is not what fixing a sentence should do. Before
-     this, a deadline at 07:30 IST had the bell saying "Last day to answer"
-     from half past seven the morning BEFORE, with the page one tap away
-     saying "Answers close tomorrow" (audits C-141/C-031). */
+  /* The sentence names the hour, India time, in the page's own words, and
+     counts valley calendar days before that (audits C-141/C-031); the last
+     one is the hour alone (bug audit 3, T7b-15). `days` above is a 24-hour
+     count and stays that way: it keys the once-a-day bucket and decides who a
+     "last day only" member is, and re-timing every nudge is not what fixing a
+     sentence should do. */
   await createMany(
     db,
     recipients,
@@ -249,8 +271,13 @@ export const notifyReminder: NotifyReminderFn = async (db, ctx) => {
   );
 };
 
-/** Edition enters `published`: the reveal notification, the moment the ritual pays off. */
+/**
+ * Edition enters `published`: the reveal notification, the moment the ritual
+ * pays off. The round's reminders leave the bell in the same transaction:
+ * they name a deadline that has just passed (`clearReminders`).
+ */
 export const notifyPublished: NotifyPublishedFn = async (db, ctx) => {
+  await clearReminders(db, ctx.catchupId);
   const members = (await groupMemberIds(db, ctx.groupId)).filter(
     (id) => id !== ctx.excludeUserId
   );
@@ -273,9 +300,11 @@ export const notifyPublished: NotifyPublishedFn = async (db, ctx) => {
  * saying so is a dead end. Everyone in the group, writers or not, because the
  * rhythm moves on without them either way.
  *
- * Copy is a stand-in until the owner picks the sealed Edition's look.
+ * Copy is a stand-in until the owner picks the sealed Edition's look. The
+ * round's reminders go, as they do when an Edition publishes.
  */
 export const notifySealed: NotifySealedFn = async (db, ctx) => {
+  await clearReminders(db, ctx.catchupId);
   const members = (await groupMemberIds(db, ctx.groupId)).filter(
     (id) => id !== ctx.excludeUserId
   );

@@ -46,6 +46,8 @@ import {
   editionCountdownLabel,
   describeEditionStatus,
   catchupStageLine,
+  homeStateLine,
+  deadlineWords,
   isMissingCatchupTable,
   CATCHUP_PROMPT_SETS,
   dailyBucket,
@@ -57,7 +59,7 @@ import {
   REMINDER_QUESTIONS_EXTENDED,
 } from "./catchups-core.ts";
 import { PROMPT_CATEGORIES } from "./catchups-types.ts";
-import { formatDayAndDate, formatDisplayDateLong } from "./utils.ts";
+import { formatDayAndDate, formatDayMonth, formatDisplayDateLong } from "./utils.ts";
 import { read, decomment } from "./test-kit.mjs";
 
 // A fixed clock so every case is deterministic.
@@ -671,7 +673,7 @@ test("catchupStageLine: the Catch-up's own state outranks the Edition's", () => 
   const live = { status: "answering", answersCloseAt: "2026-08-20T01:30:00.000Z" };
   /* A legacy paused row runs like any other since 2026-10-17, so it says what
      its Edition is doing. Nothing pauses a Catch-up any more. */
-  assert.equal(catchupStageLine("paused", live, FMT), "Answers close Thursday 20 August");
+  assert.equal(catchupStageLine("paused", live, FMT), "Answers close 7 am Thursday 20 August, India time");
   /* No date after "Ended": nothing records when a Catch-up ended, and
      inventing a column for one line on one card is a migration. */
   assert.equal(catchupStageLine("ended", live, FMT), "Ended");
@@ -681,7 +683,7 @@ test("catchupStageLine: a stage, in words, and never a number", () => {
   assert.equal(catchupStageLine("active", { status: "collecting" }, FMT), "Open for questions");
   assert.equal(
     catchupStageLine("active", { status: "answering", answersCloseAt: "2026-08-20T01:30:00.000Z" }, FMT),
-    "Answers close Thursday 20 August"
+    "Answers close 7 am Thursday 20 August, India time"
   );
   assert.equal(
     catchupStageLine("active", { status: "published", publishedAt: "2026-08-15T01:30:00.000Z" }, FMT),
@@ -882,13 +884,18 @@ test("C-141: the countdown, the page sentence and the bell agree, hour by hour",
 
     if (days === 0) {
       assert.equal(label, "last day", `${now.toISOString()}`);
-      assert.match(bell, /^Last day to answer/);
     } else if (days === 1) {
       assert.equal(label, "closes tomorrow");
-      assert.match(bell, /^Answers close tomorrow/);
     } else {
       assert.equal(label, `${days} days left`);
-      assert.match(bell, new RegExp(`^${days} days left`));
+    }
+    /* The bell names the hour every time (bug audit 3, T7b-15), and its
+       count, when it has one, is the same valley-day count as the label. */
+    assert.ok(bell.endsWith(`close ${deadlineWords(CLOSE)}.`), bell);
+    if (daysLeftUntil(CLOSE, now) <= 1) {
+      assert.equal(bell, `Answers for Batch of '23's Catch-up close ${deadlineWords(CLOSE)}.`);
+    } else {
+      assert.match(bell, new RegExp(`^${days} days? left to answer`), bell);
     }
   }
 });
@@ -905,12 +912,12 @@ test("C-031: 'last day' means the day it closes, not the day before", () => {
   // as "last day" too, but only by accident of the same threshold.
   const justAfterValleyMidnight = iso("2026-06-14T19:00:00.000Z");
   assert.equal(valleyDaysLeft(CLOSE, justAfterValleyMidnight), 0);
-  /* Said through the bell, which is the only countdown left in the app: the
-     answering page's own sentence went with build phase 7, when answering
-     moved onto the home and the deadline there became a date. */
-  assert.match(
+  /* The bell says neither "last day" nor "tomorrow" any more, only the hour
+     (bug audit 3, T7b-15): either word is a day in the valley's calendar,
+     which is not the reader's when they are abroad. */
+  assert.equal(
     answerReminderMessage("Batch of '23", CLOSE, justAfterValleyMidnight),
-    /^Last day to answer/
+    "Answers for Batch of '23's Catch-up close 7:30 am Monday 15 June, India time."
   );
   // Past it: a transition, not a countdown.
   assert.equal(valleyDaysLeft(CLOSE, iso("2026-06-15T03:00:00.000Z")), null);
@@ -947,6 +954,70 @@ test("C-141: nothing prints a countdown from a raw millisecond gap any more", ()
   assert.ok(
     !/answersCloseSentence/.test(home),
     "the deleted countdown sentence is back on the answering surface"
+  );
+});
+
+/* ------------------------------------------------------------------ *
+ *  T7b-15: a deadline is named by its hour, India time.
+ *
+ *  Every deadline lands on 07:00 IST and answering stops at 06:55, so a line
+ *  naming the close's DAY named one nobody could answer on, and for a member
+ *  in the Americas the close falls the evening before it. His Q9, answered
+ *  (b) on 2026-10-29: the hour, India time, on every surface and in the
+ *  reminders. The last reminder said "Answers close tomorrow".
+ * ------------------------------------------------------------------ */
+
+/** The valley's hour for an instant, read through Intl rather than through
+ *  the arithmetic under test. */
+const valleyHour = (d) =>
+  Number(new Date(d).toLocaleString("en-GB", { timeZone: "Asia/Kolkata", hour: "2-digit", hourCycle: "h23" }));
+
+test("T7b-15: every line that names a deadline names the moment answering stops", () => {
+  // Every snapped deadline for a month of openings, at every hour of the day.
+  for (let h = 0; h < 24 * 30; h += 5) {
+    const close = deadlineIn(at(h * HOUR_MS), 7);
+    const words = deadlineWords(close);
+    assert.equal(valleyHour(close), 7, close.toISOString());
+    assert.equal(words, `7 am ${formatDayAndDate(close)}, India time`);
+    const line = homeStateLine("active", { status: "answering", answersCloseAt: close }, FMT);
+    assert.equal(line, `Answers close ${words}`);
+    assert.equal(catchupStageLine("active", { status: "answering", answersCloseAt: close }, FMT), line);
+    // The named moment is when it stops: still open six minutes before, and
+    // out at it (the grace is five minutes, a wobble no hour can show).
+    const ed = edition({ status: "answering", answersCloseAt: close });
+    assert.equal(computeStatus(ed, new Date(close.getTime() - 6 * 60_000)), "answering");
+    assert.equal(computeStatus(ed, close), "published");
+  }
+});
+
+test("T7b-15: the words read the instant, so a deadline off the hour is still told true", () => {
+  assert.equal(deadlineWords(new Date("2026-06-15T02:00:00Z")), "7:30 am Monday 15 June, India time");
+  assert.equal(deadlineWords(new Date("2026-06-15T06:30:00Z")), "12 pm Monday 15 June, India time");
+  assert.equal(deadlineWords(new Date("2026-06-14T18:30:00Z")), "12 am Monday 15 June, India time");
+  // The settings row's shorter date: the value, not the announcement.
+  assert.equal(deadlineWords(new Date("2026-10-25T01:30:00Z"), formatDayMonth), "7 am 25 October, India time");
+});
+
+test("T7b-15: the last reminder names the hour and no day it cannot keep", () => {
+  const close = new Date("2026-10-25T01:30:00Z"); // 07:00 IST, Sunday
+  const said = "close 7 am Sunday 25 October, India time.";
+  /* Written as the window's last 24 hours open: the morning before, by the
+     tick or the first page view, whenever that lands before the close. */
+  for (const hoursBefore of [24, 23.5, 20, 12, 6, 1]) {
+    const now = new Date(close.getTime() - hoursBefore * HOUR_MS + 60_000);
+    const bell = answerReminderMessage("Batch of 2024", close, now);
+    assert.equal(daysLeftUntil(close, now), 1);
+    assert.equal(bell, `Answers for Batch of 2024's Catch-up ${said}`, `${hoursBefore}h before`);
+    assert.doesNotMatch(bell, /tomorrow|today|last day/i);
+  }
+  // Earlier ones count the valley's days, then name the same hour.
+  assert.equal(
+    answerReminderMessage("Batch of 2024", close, new Date(close.getTime() - 3 * DAY_MS + HOUR_MS)),
+    `3 days left to answer Batch of 2024's Catch-up. Answers ${said}`
+  );
+  assert.equal(
+    answerReminderMessage("Batch of 2024", close, new Date(close.getTime() - 30 * HOUR_MS)),
+    `1 day left to answer Batch of 2024's Catch-up. Answers ${said}`
   );
 });
 

@@ -7,7 +7,7 @@ import { overdueEditionWhere } from "@/lib/catchups-core";
 import { ADMIN_MEASURE, AdminEmpty, AdminSection } from "@/components/admin/admin-chrome";
 import { Chip } from "@/components/admin/admin-chip";
 import { editionChip, SERIES_STATUS } from "@/components/admin/catchup-status";
-import { formatDisplayDate, metaLine } from "@/lib/utils";
+import { formatDisplayDate, formatDisplayDateTime, metaLine } from "@/lib/utils";
 import { advanceDueCatchups } from "@/lib/catchups";
 
 export const metadata: Metadata = {
@@ -155,7 +155,9 @@ export default async function AdminCatchupsPage() {
               edition.publishedAt
                 ? `Sent ${formatDisplayDate(edition.publishedAt)}`
                 : due
-                  ? `${isStuck ? "Was due" : "Due"} ${formatDisplayDate(due)}`
+                  ? // With its hour: every deadline is 07:00 IST, so the date
+                    // alone read as a day still open (bug audit 3, T7b-15).
+                    `${isStuck ? "Was due" : "Due"} ${formatDisplayDateTime(due)}`
                   : null
             )}
           </p>

@@ -86,7 +86,8 @@ import {
 } from "@/components/ui/dialog";
 import { EASE_OUT_SMOOTH } from "@/components/common/motion";
 import { callAction } from "@/lib/call-action";
-import { cn, formatDayAndDate, formatDayMonth } from "@/lib/utils";
+import { cn, formatDayMonth } from "@/lib/utils";
+import { deadlineWords } from "@/lib/catchups-core";
 import type { ReminderMode } from "@/lib/catchups-types";
 import {
   closeAndPublish,
@@ -189,14 +190,16 @@ function editionGroup(c: SettingsCatchup): Group | null {
      after a pick, from local state, which hid the real date and survived
      into the next Edition, while a second tap on the still-pressed pill
      quietly added another week (bug audit 3, T3-06). A pick is an act, not
-     a setting, so the line is the date and nothing else. */
+     a setting, so the line is the deadline and nothing else: its hour too,
+     India time, like every surface that names one (T7b-15, his Q9). No
+     weekday, which is the announcement's job rather than this value's. */
   const closes = deadlineSeen(c);
   const longer: Row = {
     key: "extend",
     label: "Give everyone longer",
     icon: CalendarClock,
     line: closes
-      ? `${c.state === "collecting" ? "Questions" : "Answers"} close ${formatDayMonth(closes)}`
+      ? `${c.state === "collecting" ? "Questions" : "Answers"} close ${deadlineWords(closes, formatDayMonth)}`
       : "Push the deadline back",
     choose: "extend",
   };
@@ -833,8 +836,9 @@ export function useSettings(c: SettingsCatchup, onGone: () => void) {
     }
     const result = await run(() => extendDeadline(c.editionId!, days, seen));
     if (!result || !("closesAt" in result) || !result.closesAt) return false;
+    // The new deadline in the page's own words, the hour included (T7b-15).
     toast.success(
-      `${result.phase === "questions" ? "Questions" : "Answers"} now close ${formatDayAndDate(result.closesAt)}.`,
+      `${result.phase === "questions" ? "Questions" : "Answers"} now close ${deadlineWords(result.closesAt)}.`,
     );
     return true;
   }

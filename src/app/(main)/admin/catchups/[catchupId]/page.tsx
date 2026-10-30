@@ -9,7 +9,7 @@ import { ADMIN_MEASURE, AdminEmpty, AdminSection } from "@/components/admin/admi
 import { Chip } from "@/components/admin/admin-chip";
 import { editionChip, SERIES_STATUS } from "@/components/admin/catchup-status";
 import { BirdAvatar } from "@/components/common/bird-avatar";
-import { formatDisplayDate, metaLine } from "@/lib/utils";
+import { formatDisplayDate, formatDisplayDateTime, metaLine } from "@/lib/utils";
 import { renderRichText } from "@/lib/rich-text";
 import { IDENTITY_SELECT } from "@/lib/people-select";
 
@@ -203,7 +203,8 @@ export default async function AdminCatchupReadingRoom({
                     edition.publishedAt
                       ? `Sent ${formatDisplayDate(edition.publishedAt)}`
                       : due
-                        ? `Due ${formatDisplayDate(due)}`
+                        ? // With its hour: every deadline is 07:00 IST (T7b-15).
+                          `Due ${formatDisplayDateTime(due)}`
                         : null
                   )}
                 </p>

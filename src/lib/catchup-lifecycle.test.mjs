@@ -747,6 +747,43 @@ test("T2a-02 and T3-09: a Catch-up is called by the name its pages print, in eve
   assert.equal((meta.match(/catchupDisplayName\(/g) ?? []).length, 2, "one of loadMeta's two ways out names the Catch-up without the helper");
 });
 
+test("T7b-15: a reminder leaves the bell when what it says stops being true", () => {
+  /* A reminder names the deadline. The close's own bells take the round's
+     reminders with them (catchup-bells.test.mjs runs those); these are the
+     three that exist only as calls into Prisma. */
+  const src = decomment(read("src/app/(main)/catchups/actions.ts"));
+
+  // An author who answers, inside the write, only once the answer has
+  // something in it: an emptied one is withdrawn and clears nothing.
+  const submit = balancedBody(src, "export async function submitEntry(");
+  assert.ok(submit, "submitEntry is gone; this pin is reading nothing");
+  const write = submit.slice(submit.indexOf("prisma.$transaction("), submit.indexOf('if (entry === "closed")'));
+  assert.match(
+    write,
+    /if \(row\.body \|\| row\.images \|\| row\.audioUrl\) \{\s*await clearReminders\(tx, edition\.catchupId, session\.user\.id\);/,
+    "an answer no longer takes its author's reminder with it, inside the write"
+  );
+  assert.ok(write.indexOf("clearReminders(") > write.indexOf("catchupEntry.upsert("), "the reminder goes before the answer is written");
+
+  // A Keeper's extension, and the clock's own when nobody has answered: both
+  // move the deadline every waiting reminder names.
+  const extend = balancedBody(src, "export async function extendDeadline");
+  assert.match(extend, /await clearReminders\(prisma, edition\.catchupId\)/, "a hand extension leaves the old deadline in the bell");
+  const lib = decomment(read("src/lib/catchups.ts"));
+  const apply = balancedBody(lib, "async function applyEditionAction(");
+  const clockExtend = apply.slice(apply.indexOf('action.kind === "extend"'), apply.indexOf('action.kind === "fizzle"'));
+  assert.match(clockExtend, /notify\.clearReminders\(tx, meta\.catchupId\)/, "the clock's extension leaves the old deadline in the bell");
+});
+
+test("T7b-15 follow-up (g): the extend row and its toast name the hour, like every deadline", () => {
+  const surface = decomment(read("src/components/catchups/settings/settings-surface.tsx"));
+  const row = balancedBody(surface, "function editionGroup(");
+  assert.match(row, /close \$\{deadlineWords\(closes, formatDayMonth\)\}/, "the extend row names the deadline without its hour");
+  const extend = balancedBody(surface, "async function extend(");
+  assert.match(extend, /now close \$\{deadlineWords\(result\.closesAt\)\}/, "the extension's toast names the deadline without its hour");
+  assert.doesNotMatch(surface, /formatDayAndDate\(/, "a bare date names a deadline on this surface again");
+});
+
 test("C-149: every swallowed failure on the clock is reported, not just logged", () => {
   /* advanceEdition never re-throws -- an edition that cannot advance must not
      take down the page it was called from -- so the reportSwallowed calls in

@@ -90,6 +90,7 @@ import {
 import { scheduleLinkPreviews } from "@/lib/link-preview";
 import { findLinks } from "@/lib/link-preview-core";
 import {
+  clearReminders,
   notifyAdded,
   notifyAnswersOpen,
   notifyComment,
@@ -1504,19 +1505,9 @@ export async function extendDeadline(editionId: string, days: number, seenCloseA
     });
     if (cas.count === 0) return moved;
 
-    // Any reminder already in the bell now names a deadline that is no longer
-    // true ("Last day to answer" when there is a week left). Clear them; the
-    // daily reminder writes an accurate one on its next pass.
-    if (edition.status === "answering") {
-      await prisma.notification.deleteMany({
-        /* Matches what `notifyReminder` writes: the home, since answering
-           moved onto it in build phase 7. No reminder points at
-           `/catchups/<id>/answer` any more: the last of them aged out of the
-           bell before the dated migration that was to move them was first run
-           (bug audit 3, T7b-03). */
-        where: { type: "catchup_reminder", link: `/catchups/${edition.catchupId}` },
-      });
-    }
+    // Any reminder already in the bell names the deadline this just moved.
+    // Clear them; the daily reminder writes a true one on its next pass.
+    if (edition.status === "answering") await clearReminders(prisma, edition.catchupId);
 
     revalidatePath(`/catchups/${edition.catchupId}`);
     return {
@@ -1765,24 +1756,31 @@ export async function submitEntry(input: {
           data: written,
         });
         if (moved.count === 0) return "stale" as const;
-        const row = await tx.catchupEntry.findUniqueOrThrow({ where: key, select: columns });
-        return { ...row, replacedAudio };
       }
-      const row = await tx.catchupEntry.upsert({
-        where: key,
-        create: {
-          editionId: prompt.editionId,
-          promptId,
-          authorId: session.user.id,
-          body: bodyValue ?? null,
-          images: imagesValue ?? null,
-          audioUrl: audioPatch?.audioUrl ?? null,
-          audioSeconds: audioPatch?.audioSeconds ?? null,
-          audioIsAuto: audioPatch?.audioIsAuto ?? false,
-        },
-        update: written,
-        select: columns,
-      });
+      const row = base
+        ? await tx.catchupEntry.findUniqueOrThrow({ where: key, select: columns })
+        : await tx.catchupEntry.upsert({
+            where: key,
+            create: {
+              editionId: prompt.editionId,
+              promptId,
+              authorId: session.user.id,
+              body: bodyValue ?? null,
+              images: imagesValue ?? null,
+              audioUrl: audioPatch?.audioUrl ?? null,
+              audioSeconds: audioPatch?.audioSeconds ?? null,
+              audioIsAuto: audioPatch?.audioIsAuto ?? false,
+            },
+            update: written,
+            select: columns,
+          });
+      /* Somebody who has answered is not waiting to be reminded: their
+         reminder leaves the bell with the answer that makes it untrue, in the
+         same transaction (bug audit 3, T7b-15, his Q9). An answer emptied
+         here is withdrawn below, and clears nothing. */
+      if (row.body || row.images || row.audioUrl) {
+        await clearReminders(tx, edition.catchupId, session.user.id);
+      }
       return { ...row, replacedAudio };
     });
 
