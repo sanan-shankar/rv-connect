@@ -1,3 +1,13 @@
+## 2026-10-30 (support) — the Support page says what donations are for, in the owner's words
+
+The owner wrote the announcement window's ask himself and asked for its middle on the Support page
+too: the site is not for profit, donations go solely toward recovering what it cost to build and
+what it takes to keep running, any amount helps (₹500, ₹1,000, or your admission number), and
+please consider donating. It replaces the page's opening paragraph, which had said the site will
+always be free to use and that anything left over goes to the school. His "₹1000" is written
+"₹1,000" to match the amount chips further down the page.
+
+
 ## 2026-10-30 (birds) — the birds page in a calmer order, and its grid as cosy as the Support plate
 
 The owner found the top of the birds page too red and warm, with look-alikes bunched (three greens

@@ -63,10 +63,12 @@ export function SupportShell({
             Support
           </h1>
         </div>
+        {/* The owner's own words, 2026-10-30, the same as the announcement
+            window's ask. */}
         <p className="mt-[var(--space-m)] text-base leading-relaxed text-foreground">
-          This site is not for profit and will always be free to use. Donations are much
-          appreciated and go towards running and improving it for everyone. Anything left over
-          goes to the school.
+          The site is not for profit and all donations go solely toward recovering what it cost to
+          build and what it takes to keep running. Any amount helps: ₹500, ₹1,000, or even your
+          admission number! Please consider donating. We would deeply appreciate your support.
         </p>
       </header>
 

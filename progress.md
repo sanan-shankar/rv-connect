@@ -15,6 +15,7 @@ if the month is new), and add one line here, at the top of that month's list.
 
 ## October 2026 — [full entries](docs/history/progress-2026-10.md)
 
+- 2026-10-30 (support) — the Support page says what donations are for, in the owner's words
 - 2026-10-30 (birds) — the birds page in a calmer order, and its grid as cosy as the Support plate
 - 2026-10-30 (support) — the Support plate is three across and four down on a phone
 - 2026-10-30 (catchups) — bug audit 3, a correction to unit H3: a close keeps a blocked or leaving member's writing in place
