@@ -388,9 +388,10 @@ export async function resetPassword(input: {
         emailVerified: new Date(),
         /* Ends every session already signed in on this account (audit M4).
            Without it, a reset burned the outstanding reset LINKS below and
-           left the attacker's actual session cookie working for its full 30
-           days -- so the one action a phished member takes to save
-           themselves did not touch the thing that had been stolen. */
+           left the attacker's actual session cookie working for the rest of
+           its ninety days (SESSION_MAX_AGE) -- so the one action a phished
+           member takes to save themselves did not touch the thing that had
+           been stolen. session-revocation.test.mjs fails if this line goes. */
         credentialVersion: { increment: 1 },
       },
       select: { name: true },
