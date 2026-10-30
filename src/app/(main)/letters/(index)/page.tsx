@@ -12,7 +12,6 @@ import { batchLine, formatDisplayDate, letterTitle, metaLine, plainExcerpt, read
 import {
   AUTHOR_IN_GOOD_STANDING,
   PUBLISHED_ONLY,
-  VISIBLE_COMMENT,
   audienceWhere,
 } from "@/lib/posts";
 import { IDENTITY_SELECT } from "@/lib/people-select";
@@ -82,7 +81,9 @@ export default async function LettersPage({
           batchYear: true,
         },
       },
-      _count: { select: { comments: { where: VISIBLE_COMMENT }, likes: true } },
+      /* No comment or heart counts: the index draws neither, and a relation
+         count aggregated the whole Comment and Like tables on every visit to
+         be dropped on the floor (bug audit 3, T1-17). */
     },
     orderBy: { createdAt: "desc" },
     // One extra, purely to answer "is there another page" without a count.

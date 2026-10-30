@@ -111,40 +111,41 @@ test("C-015: the directory search goes through escapeLike", () => {
 /* ---- C-003: the card's count and the thread ask one question ----- */
 
 test("C-003: no _count.comments filter is hand-rolled", () => {
-  const files = [
+  /* Where the comment counts live, since bug audit 3 (T1-17, T2b-13). This
+     pinned four `comments: { where: VISIBLE_COMMENT }` relation counts:
+     postInclude in feed/actions.ts, the letters index, a letter, and the
+     Edition reader (build phase 9). As relation counts each aggregated the
+     whole Comment table on every page, so all four left their queries. The
+     letters index never drew its count and lost it outright; the other three
+     count through src/lib/page-counts.ts, postCounts for the feed and a
+     letter and entryCounts for a Catch-up's answers. The filter is pinned
+     where the counting now happens. */
+  const pinned = [
     "src/app/(main)/feed/actions.ts",
     "src/app/(main)/letters/(index)/page.tsx",
     "src/app/(main)/letters/[id]/(read)/page.tsx",
-    /* The reader's replies control, build phase 9. A Catch-up answer now
-       carries a comment count for exactly the same reason a post card does,
-       and it can go wrong in exactly the same way. */
     "src/lib/catchups-edition-view.ts",
   ];
-  let seen = 0;
-  for (const f of files) {
-    const src = decomment(read(f));
-    for (const m of src.matchAll(/comments:\s*\{\s*where:\s*([^}]*?)\s*\}/g)) {
-      seen++;
-      assert.equal(
-        m[1].trim(),
-        "VISIBLE_COMMENT",
-        `${f}: a comment count filtered by "${m[1].trim()}" instead of the shared fragment`
-      );
-    }
+  for (const f of pinned) {
+    assert.ok(!/comments:\s*\{\s*where:/.test(decomment(read(f))), `${f}: a comment count is hand-rolled again`);
+  }
+  for (const [f, counter] of [
+    ["src/app/(main)/feed/actions.ts", "postCounts"],
+    ["src/app/(main)/letters/[id]/(read)/page.tsx", "postCounts"],
+    ["src/lib/catchups-edition-view.ts", "entryCounts"],
+  ]) {
+    assert.match(decomment(read(f)), new RegExp(`\\b${counter}\\(`), `${f} no longer counts comments through ${counter}`);
+  }
+  const counts = [...decomment(read("src/lib/page-counts.ts")).matchAll(/prisma\.comment\.groupBy\(\{([\s\S]*?)\n\s*\}\)/g)];
+  for (const [, body] of counts) {
+    assert.match(body, /\.\.\.VISIBLE_COMMENT\b/, `page-counts.ts: a comment count without the shared fragment:\n${body}`);
   }
   /* Counted, not detected: a sweep that merely finds no BAD site also passes
-     against a file where the sites have been renamed away.
-
-     Three, not four, since 2026-08-26. feed/actions.ts had this line twice --
-     once in loadPosts' include and once in loadSavedPosts' -- and the two
-     include-builders became one (`postInclude`), so one site went away rather
-     than one filter. The remaining three are that builder, the letters index
-     and a letter. Lowering this number is the dangerous edit in this file: do
-     it only with the disappeared site named, as here. */
-  /* FOUR since 2026-09-10: a Catch-up answer's replies count joined the three
-     (build phase 9). Raising this number needs the new site named, as here;
-     LOWERING it is the dangerous edit, and needs the disappeared site named. */
-  assert.equal(seen, 4, `expected 4 comment-count filters, found ${seen}`);
+     against a file where the sites have been renamed away. TWO since
+     2026-10-30: one for posts (the feed, Saved, a profile, a letter) and one
+     for a Catch-up's answers. Raising this number needs the new count named;
+     LOWERING it is the dangerous edit, and needs the disappeared one named. */
+  assert.equal(counts.length, 2, `expected 2 comment counts in page-counts.ts, found ${counts.length}`);
 });
 
 test("C-003: VISIBLE_COMMENT is the fragment the thread query uses too", () => {

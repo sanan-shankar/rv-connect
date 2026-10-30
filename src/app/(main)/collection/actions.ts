@@ -36,6 +36,7 @@ import {
   takenShort,
 } from "@/lib/collection";
 import { includeFor, shape, type PhotoData } from "@/lib/collection-shape";
+import { photoLoveCounts } from "@/lib/page-counts";
 import {
   MAX_UPLOAD_BYTES,
   COLLECTION_WEBP_QUALITY,
@@ -802,8 +803,9 @@ export async function loadPhotos(
     // "newer" lands LAST here.
     const trimmed = hasMore ? rows.slice(0, UP_PAGE_SIZE) : rows;
     const newTop = trimmed[trimmed.length - 1];
+    const loves = await photoLoveCounts(trimmed.map((p) => p.id));
     return {
-      photos: [...trimmed].reverse().map((p) => shape(p, session.user.id)),
+      photos: [...trimmed].reverse().map((p) => shape(p, session.user.id, loves)),
       topCursor: hasMore && newTop ? encodeCursor("taken", newTop, 0) : null,
     };
   };
@@ -873,8 +875,10 @@ export async function loadPhotos(
   const nextCursor =
     hasMore && last ? encodeCursor(order, last, skip + trimmed.length) : null;
 
+  /* Counted for the rows kept, not the year's over-fetch above. */
+  const loves = await photoLoveCounts(trimmed.map((p) => p.id));
   const page: RiverPage = {
-    photos: trimmed.map((p) => shape(p, session.user.id)),
+    photos: trimmed.map((p) => shape(p, session.user.id, loves)),
     nextCursor,
   };
 
@@ -1001,7 +1005,8 @@ export async function loadBand(
     take: 600,
     include: includeFor(session.user.id),
   });
-  return { photos: rows.map((p) => shape(p, session.user.id)) };
+  const loves = await photoLoveCounts(rows.map((p) => p.id));
+  return { photos: rows.map((p) => shape(p, session.user.id, loves)) };
 }
 
 export async function togglePhotoLove(photoId: string) {

@@ -15,6 +15,7 @@ import { bucketsOf, takenLabel, takenShort } from "@/lib/collection";
 import type { PhotoScope } from "@/lib/photo-visibility-rule";
 import type { AvatarUser } from "@/components/common/bird-avatar";
 import { IDENTITY_SELECT } from "@/lib/people-select";
+import type { CountOf } from "@/lib/page-counts";
 
 export type PhotoData = {
   id: string;
@@ -66,9 +67,14 @@ export function shape(
     approved: boolean; scope: string; uploaderId: string; createdAt: Date;
     photoYear: number | null; photoMonth: number | null; datePrecision: string | null;
     uploader: AvatarUser & { id: string; name: string };
-    _count: { loves: number }; loves: { id: string }[];
+    loves: { id: string }[];
   },
-  userId: string
+  userId: string,
+  /* The hearts on each photograph of the page, from photoLoveCounts. Not a
+     `_count` on the row: a relation count aggregated every heart in the
+     Collection on every river page, band and permalink (bug audit 3,
+     L5-03). */
+  loveCounts: CountOf
 ): PhotoData {
   return {
     id: p.id,
@@ -95,7 +101,7 @@ export function shape(
        "valley" for an unrecognised value would put a private photograph over
        the public river. */
     scope: p.scope === "valley" ? "valley" : "class",
-    loveCount: p._count.loves,
+    loveCount: loveCounts(p.id),
     loved: p.loves.length > 0,
     isOwn: p.uploaderId === userId,
     uploader: p.uploader,
@@ -105,6 +111,5 @@ export function shape(
 
 export const includeFor = (userId: string) => ({
   uploader: { select: IDENTITY_SELECT },
-  _count: { select: { loves: true } },
   loves: { where: { userId }, select: { id: true } },
 });

@@ -13,6 +13,7 @@ import {
 } from "./actions";
 import { decidePhotoVisibility } from "@/lib/photo-visibility-rule";
 import { includeFor, shape, type PhotoData } from "@/lib/collection-shape";
+import { photoLoveCounts } from "@/lib/page-counts";
 
 /* ------------------------------------------------------------------ *
  *  What the Collection page needs before it can draw anything.
@@ -284,7 +285,7 @@ export const loadPhoto = cache(async function loadPhoto(id: string): Promise<Pho
 
      The viewer's verification and class are read off the row for the reason
      given in viewerFacts: a JWT claim can be an hour stale. */
-  const me = await viewerFacts(session.user.id);
+  const [me, loves] = await Promise.all([viewerFacts(session.user.id), photoLoveCounts([row.id])]);
   const seen = decidePhotoVisibility(row, {
     id: session.user.id,
     role: session.user.role,
@@ -293,7 +294,7 @@ export const loadPhoto = cache(async function loadPhoto(id: string): Promise<Pho
   });
   if (!seen.ok) return null;
 
-  return shape(row, session.user.id);
+  return shape(row, session.user.id, loves);
 });
 
 /** The member's own queue, for the halves of the Collection they can read.
@@ -324,5 +325,7 @@ export async function myPendingPhotos(
     include: includeFor(session.user.id),
     orderBy: { createdAt: "desc" },
   });
-  return rows.map((p) => shape(p, session.user.id));
+  // Usually none at all, and then photoLoveCounts asks nothing.
+  const loves = await photoLoveCounts(rows.map((p) => p.id));
+  return rows.map((p) => shape(p, session.user.id, loves));
 }

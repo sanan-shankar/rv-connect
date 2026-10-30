@@ -44,7 +44,7 @@ import type {
 } from "@/lib/catchups-types";
 import { batchLine, parseJsonArray } from "@/lib/utils";
 import { IDENTITY_SELECT } from "@/lib/people-select";
-import { VISIBLE_COMMENT } from "@/lib/posts";
+import { entryCounts } from "@/lib/page-counts";
 import {
   cardOf,
   findLinks,
@@ -141,12 +141,11 @@ export async function loadPublishedEditionView(
                   batchYear: true,
                 },
               },
-              /* `comments` filtered by VISIBLE_COMMENT, never a bare count:
-                 a deleted or admin-hidden comment, or one by a blocked
-                 member, still has a row -- soft delete is what keeps replies
-                 anchored -- and counting it made the card promise a thread
-                 that then rendered empty (audit C-003, on the feed). */
-              _count: { select: { loves: true, comments: { where: VISIBLE_COMMENT } } },
+              /* No `_count` for hearts or comments: as a relation count each
+                 aggregated its whole table, every heart and every comment in
+                 the community, on every open of any Edition (bug audit 3,
+                 T2b-13). entryCounts below counts these answers alone, with
+                 the comment filter kept (audit C-003). */
               loves: { where: { userId: viewerId }, select: { id: true } },
             },
           },
@@ -172,7 +171,9 @@ export async function loadPublishedEditionView(
       )
     ),
   ];
-  const [photos, previewRows] = await Promise.all([
+  /* And in the same round trip, each answer's hearts and the comments a
+     reader is shown under it, for this Edition's answers alone. */
+  const [photos, previewRows, counts] = await Promise.all([
     photoFactsFor(edition.prompts.flatMap((p) => p.entries.flatMap((e) => parseJsonArray(e.images)))),
     pasted.length
       ? prisma.linkPreview.findMany({
@@ -180,6 +181,7 @@ export async function loadPublishedEditionView(
           select: { url: true, kind: true, title: true, subtitle: true, thumbUrl: true, failedAt: true },
         })
       : Promise.resolve([] as PreviewRow[]),
+    entryCounts(edition.prompts.flatMap((p) => p.entries.map((e) => e.id))),
   ]);
   const previews = new Map<string, PreviewRow>(previewRows.map((r) => [r.url, r]));
   const now = new Date();
@@ -248,9 +250,9 @@ export async function loadPublishedEditionView(
         audio: e.audioUrl
           ? { url: e.audioUrl, seconds: e.audioSeconds ?? 0, transcribed: e.audioIsAuto }
           : null,
-        loveCount: e._count.loves,
+        loveCount: counts.loves(e.id),
         lovedByViewer: e.loves.length > 0,
-        commentCount: e._count.comments,
+        commentCount: counts.comments(e.id),
         createdAt: e.createdAt,
       };
     });

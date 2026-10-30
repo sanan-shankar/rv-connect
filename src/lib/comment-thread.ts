@@ -25,6 +25,7 @@ import "server-only";
 
 import { prisma } from "@/lib/prisma";
 import { VISIBLE_COMMENT } from "@/lib/posts";
+import { threadLikeCounts } from "@/lib/page-counts";
 import { AUTHOR_CARD_SELECT } from "@/lib/people-select";
 import { decodeKeyset, encodeKeyset, keysetWhere, pageSize } from "@/lib/keyset";
 import { DOUBLE_SUBMIT_MS } from "@/lib/double-submit";
@@ -147,20 +148,27 @@ export async function readCommentPage(
   const nextCursor = hasMore ? encodeKeyset(pageRoots[pageRoots.length - 1]) : null;
   const rootIds = pageRoots.map((r) => r.id);
 
-  const rows = await prisma.comment.findMany({
-    where: {
-      OR: [
-        { id: { in: rootIds }, ...VISIBLE_COMMENT },
-        { parentId: { in: rootIds }, ...VISIBLE_COMMENT },
-      ],
-    },
-    include: {
-      author: { select: { ...AUTHOR_CARD_SELECT } },
-      _count: { select: { commentLikes: true } },
-      commentLikes: { where: { userId: viewer.userId }, select: { id: true } },
-    },
-    orderBy: { createdAt: "asc" },
-  });
+  /* The hearts are counted beside this read rather than inside it. As a
+     relation count (`_count.commentLikes`) they aggregated every comment
+     heart in the database for each page of every thread (bug audit 3,
+     L5-03); keyed on the page's roots, the count needs nothing this read
+     returns, so the two run together. */
+  const [rows, likes] = await Promise.all([
+    prisma.comment.findMany({
+      where: {
+        OR: [
+          { id: { in: rootIds }, ...VISIBLE_COMMENT },
+          { parentId: { in: rootIds }, ...VISIBLE_COMMENT },
+        ],
+      },
+      include: {
+        author: { select: { ...AUTHOR_CARD_SELECT } },
+        commentLikes: { where: { userId: viewer.userId }, select: { id: true } },
+      },
+      orderBy: { createdAt: "asc" },
+    }),
+    threadLikeCounts(rootIds),
+  ]);
 
   const visibleIds = new Set(rows.map((r) => r.id));
   const stubs = pageRoots
@@ -187,7 +195,7 @@ export async function readCommentPage(
         serializeComment(
           {
             ...c,
-            likeCount: c._count.commentLikes,
+            likeCount: likes(c.id),
             liked: c.commentLikes.length > 0,
             deleted: false,
           },

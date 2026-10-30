@@ -13,7 +13,8 @@ import { LetterImages } from "@/components/letters/letter-images";
 import { LetterMenu } from "@/components/letters/letter-menu";
 import { photoFactsFor } from "@/lib/image-record";
 import { canViewPost } from "@/lib/post-visibility";
-import { VISIBLE_COMMENT, withLinkCards } from "@/lib/posts";
+import { withLinkCards } from "@/lib/posts";
+import { postCounts } from "@/lib/page-counts";
 import { batchLine, formatDisplayDate, letterTitle, metaLine, parseJsonArray, readMinutes, VALLEY_TIME_ZONE } from "@/lib/utils";
 import { renderRichText } from "@/lib/rich-text";
 import { linkRanges, stripReplacedLinks } from "@/lib/link-preview-core";
@@ -41,7 +42,7 @@ const loadLetter = cache(async function loadLetter(id: string, viewerId: string)
           batchYear: true,
         },
       },
-      _count: { select: { comments: { where: VISIBLE_COMMENT }, likes: true } },
+      // The counts are not here: see postCounts below.
       likes: { where: { userId: viewerId }, select: { id: true } },
       bookmarks: { where: { userId: viewerId }, select: { id: true } },
     },
@@ -127,9 +128,6 @@ export default async function LetterPage({
   after(() => recordView(session.user.id, "letter", letter.id));
 
   const images = parseJsonArray(letter.images);
-  /* Shape, focal point and the smear that holds each photograph's place, so
-     the page reserves the right space before a byte of them arrives. */
-  const photos = await photoFactsFor(images);
   const minutes = readMinutes(letter.content);
 
   /* The same on-read trigger a Catch-up Edition's loader uses
@@ -142,8 +140,19 @@ export default async function LetterPage({
      Cut server-side here, unlike a feed post's: this page has no edit form
      reading `letter.content` back out of it -- editing goes through its own
      `/letters/[id]/edit` query -- so there is no risk in handing the reader
-     the already-cut body the way the Catch-up reader does. */
-  const [withLinks] = await withLinkCards([{ id: letter.id, content: letter.content }]);
+     the already-cut body the way the Catch-up reader does.
+
+     Beside it, the hearts and the comments a reader is shown, counted for
+     this letter alone: as a relation count on loadLetter's row they
+     aggregated the whole Comment and Like tables for one letter (bug audit 3,
+     T1-17). And the photographs' shape, focal point and the smear that holds
+     each one's place, so the page reserves the right space before a byte of
+     them arrives. The three need nothing from each other. */
+  const [[withLinks], counts, photos] = await Promise.all([
+    withLinkCards([{ id: letter.id, content: letter.content }]),
+    postCounts([letter]),
+    photoFactsFor(images),
+  ]);
   const stripped = stripReplacedLinks(letter.content, new Set(withLinks.links.map((l) => l.url)));
   const displayBody = stripped.cards.length ? stripped.body : letter.content;
   const linksByUrl = new Map(withLinks.links.map((l) => [l.url, l] as const));
@@ -297,9 +306,9 @@ export default async function LetterPage({
         <LetterEngagement
           postId={letter.id}
           initialLiked={letter.likes.length > 0}
-          initialLikeCount={letter._count.likes}
+          initialLikeCount={counts.likes(letter.id)}
           initialBookmarked={letter.bookmarks.length > 0}
-          initialCommentCount={letter._count.comments}
+          initialCommentCount={counts.comments(letter.id)}
           viewerIsAdmin={session.user.role === "admin"}
         />
       )}

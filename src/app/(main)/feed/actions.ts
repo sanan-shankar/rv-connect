@@ -13,12 +13,8 @@ import { copyPostImagesToCollection } from "@/lib/collection-intake";
 import { getViewerCities, cityScopeWhere, ownCity } from "@/lib/city-scope";
 import { notifyAdminNote } from "@/lib/admin-note";
 import { noteReportsOnDeletedPost } from "@/lib/admin-threads-server";
-import {
-  AUTHOR_IN_GOOD_STANDING,
-  PUBLISHED_ONLY,
-  VISIBLE_COMMENT,
-  audienceWhere,
-} from "@/lib/posts";
+import { AUTHOR_IN_GOOD_STANDING, PUBLISHED_ONLY, audienceWhere } from "@/lib/posts";
+import { postCounts, type PostCounts } from "@/lib/page-counts";
 import { requireVerifiedMember } from "@/lib/member-gate";
 import { rateLimit } from "@/lib/rate-limit";
 import { canViewPost, canViewPostOfComment, POST_NOT_VISIBLE } from "@/lib/post-visibility";
@@ -1152,13 +1148,12 @@ const PAGE_SIZE = 20;
 function postInclude(userId: string) {
   return {
     author: { select: AUTHOR_CARD_SELECT },
-    _count: { select: { comments: { where: VISIBLE_COMMENT }, likes: true } },
+    /* No `_count` here, for comments, likes or poll votes: a relation count
+       aggregates its whole table on every page (bug audit 3, T1-17). The
+       counts come from postCounts, for this page's posts alone. */
     likes: { where: { userId }, select: { id: true } },
     bookmarks: { where: { userId }, select: { id: true } },
-    pollOptions: {
-      orderBy: { position: "asc" as const },
-      include: { _count: { select: { votes: true } } },
-    },
+    pollOptions: { orderBy: { position: "asc" as const } },
     pollVotes: { where: { userId }, select: { pollOptionId: true } },
   };
 }
@@ -1171,7 +1166,8 @@ type PostRow = Prisma.PostGetPayload<{ include: ReturnType<typeof postInclude> }
  *  a post with no cards rather than a type error. */
 function serializePost(
   p: PostRow & { links?: LinkCardView[] },
-  viewer: { userId: string; isAdmin: boolean }
+  viewer: { userId: string; isAdmin: boolean },
+  counts: PostCounts
 ) {
   return {
     id: p.id,
@@ -1187,8 +1183,8 @@ function serializePost(
     cityScope: p.cityScope,
     createdAt: p.createdAt.toISOString(),
     author: p.author,
-    commentCount: p._count.comments,
-    likeCount: p._count.likes,
+    commentCount: counts.comments(p.id),
+    likeCount: counts.likes(p.id),
     liked: p.likes.length > 0,
     /* Saved used to hardcode this true. It did not need to: its query already
        joins the viewer's own bookmark rows, so every post it returns has one
@@ -1202,9 +1198,9 @@ function serializePost(
             options: p.pollOptions.map((o) => ({
               id: o.id,
               text: o.text,
-              voteCount: o._count.votes,
+              voteCount: counts.votes(o.id),
             })),
-            totalVotes: p.pollOptions.reduce((sum, o) => sum + o._count.votes, 0),
+            totalVotes: p.pollOptions.reduce((sum, o) => sum + counts.votes(o.id), 0),
             userVotedOptionId: p.pollVotes[0]?.pollOptionId ?? null,
           }
         : null,
@@ -1310,15 +1306,16 @@ export async function loadPosts(opts?: {
      (withLinkCards, @/lib/posts) rather than one per post -- the same
      one-query-for-the-page shape `withPhotoFacts` already uses below for
      photographs. Skipped entirely, for free, when nothing on the page has a
-     pasted link. */
-  const withLinks = await withLinkCards(rows);
+     pasted link. Beside it, the page's comment, heart and vote counts, which
+     need nothing but the rows either. */
+  const [withLinks, counts] = await Promise.all([withLinkCards(rows), postCounts(rows)]);
 
   return {
     /* Each post's photographs carry what we know about them -- shape, focal
        point, the smear that holds their place -- so the card can lay them out
        without measuring anything. One query for the page. */
     posts: await withPhotoFacts(
-      withLinks.map((p) => serializePost(p, { userId: session.user.id, isAdmin }))
+      withLinks.map((p) => serializePost(p, { userId: session.user.id, isAdmin }, counts))
     ),
     hasMore: nextCursor !== null,
     nextCursor,
@@ -1373,14 +1370,15 @@ export async function loadSavedPosts() {
   const page = capped ? rows.slice(0, SAVED_POSTS_LIMIT) : rows;
 
   // Same one-query batching as the main feed (loadPosts above), over the
-  // shelf's own page of posts.
-  const withLinks = await withLinkCards(page.map(({ post: p }) => p));
+  // shelf's own page of posts, and its counts the same way.
+  const posts = page.map(({ post: p }) => p);
+  const [withLinks, counts] = await Promise.all([withLinkCards(posts), postCounts(posts)]);
 
   return {
     /* True when there are older saved posts this page did not load, so the
        shelf can say so rather than end silently (audit Low 76). */
     capped,
-    posts: await withPhotoFacts(withLinks.map((p) => serializePost(p, { userId, isAdmin }))),
+    posts: await withPhotoFacts(withLinks.map((p) => serializePost(p, { userId, isAdmin }, counts))),
   };
 }
 

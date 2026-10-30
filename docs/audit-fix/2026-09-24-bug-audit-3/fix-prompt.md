@@ -71,18 +71,18 @@ the rest of the phase runs.
 | Phase | Status | Rows left | Blocked on |
 |---|---|---|---|
 | A — Trust: who counts as verified, and who may press what in a Catch-up | DONE | 0 | — |
-| B — Privacy: what leaves the site, and what outlives a member | PARTIAL | 16 (0 H, 3 M, 13 L) | — |
+| B — Privacy: what leaves the site, and what outlives a member | PARTIAL | 14 (0 H, 3 M, 11 L) | — |
 | O — Budgets: what one account or one script may spend of what everyone shares | OPEN | 11 (2 H, 8 M, 1 L) | — |
 | E — The Collection | OPEN | 27 (3 H, 6 M, 18 L) | — |
 | F — Letters, the feed and the composer | OPEN | 26 (2 H, 6 M, 18 L) | — |
 | D — Alarms: the owner hears about every failure | OPEN | 23 (0 H, 10 M, 13 L) | — |
 | C — When something fails, the member sees the truth and can recover | OPEN | 20 (0 H, 10 M, 10 L) | — |
 | G — Sign-up, sign-in and the confirmation mail | OPEN | 23 (0 H, 10 M, 13 L) | — |
-| H — Catch-ups: answering, reading, and the words on the clock | PARTIAL | 28 (0 H, 9 M, 19 L) | — |
+| H — Catch-ups: answering, reading, and the words on the clock | PARTIAL | 27 (0 H, 9 M, 18 L) | — |
 | J — Support and payments | OPEN | 11 (0 H, 6 M, 5 L) | — |
 | I — Admin, moderation and the analytics room | PARTIAL | 42 (0 H, 3 M, 39 L) | — |
 | K — Text that breaks things: names, numbers, search, links | OPEN | 21 (0 H, 2 M, 19 L) | — |
-| L — Platform, database, demo and scripts | PARTIAL | 29 (2 H, 1 M, 26 L) | — |
+| L — Platform, database, demo and scripts | PARTIAL | 22 (2 H, 1 M, 19 L) | — |
 | M — The hoopoe | OPEN | 11 (0 H, 2 M, 9 L) | — |
 | N — Feel and truth: presses, taps, comments and docs that lie | OPEN | 14 (0 H, 0 M, 14 L) | — |
 
@@ -609,3 +609,6 @@ evidence stays in `work/`; this ledger is the record of what the campaign did.
 - L1-04 — DONE (fix(privacy): a purge that meets another write tries again, and holds the groups it leaves); `retryWriteConflicts` (purge-rule.ts), three attempts, each from a fresh snapshot; a run of three collisions comes back `deferred`, which the sweep counts as `accountsDeferred` (a new key in the `retention.sweep` line) rather than an error, and which reaches Sentry; proved live with the real purge on throwaway accounts (rows inserted and removed by id, global counts unchanged): before, a committed write on the member's group and the member's own sign-in each ended as P2034 and "Could not delete the account."; after, the first retried to a clean purge and the second to spared
 - T7a-09 — DONE (fix(privacy): a purge that meets another write tries again, and holds the groups it leaves); both of the purge's failure branches go through `reportSwallowed("purge", ...)` and the merge's through `reportSwallowed("merge", ...)`; the admin hears the purge's own sentence ("Somebody was changing this account at the same moment, so nothing was deleted. Try again." or "Could not delete this account. Nothing was removed, and the error has been reported."), the merge's in the same shape; no "server log" is left in the people actions; the sweep's 502 for a real failure is unchanged
 - T7a-10 — DONE (fix(privacy): a purge that meets another write tries again, and holds the groups it leaves); the comment says what RepeatableRead does to the cancel race; a sign-in mid-purge is spared on the retry, and when every attempt collides the sweep re-reads the request (`stillDue`) before calling it a failure
+- T1-17 — DONE (fix(db): a count on a page counts only the page's rows); `postCounts` in `src/lib/page-counts.ts` serves the feed, Saved, a profile's tabs and a letter, run beside the awaits each already made; the letters index drew no counts and drops them; the captured SQL goes from `LEFT JOIN (SELECT "postId", COUNT(*) ... GROUP BY "postId")` over every comment and like to `WHERE "postId" IN (...) GROUP BY "postId"`; rendered counts checked equal to the database (the feed's first cards unchanged, a letter's 4 and 0)
+- L5-03 — DONE (fix(db): a count on a page counts only the page's rows); the class: `threadLikeCounts` for comment threads (beside the rows read, keyed on the page's roots; a thread's 1 rendered), `photoLoveCounts` for the Collection river, band, pending row and permalink (the river pays one statement a page; a photograph's 2 rendered), poll votes inside `postCounts`; a Collection page of 40 went from 1.07 ms / 82 buffers to 0.09 ms / 1; `page-counts-rule.test.mjs` fails any relation `_count` in `src/` outside five reasoned exceptions (one group's head count on the invite page, a member's own message threads, the batch floor, two admin pages that are T7a-14's). Not covered: the river's "most loved" order (`river-cursor.ts`, an ORDER BY relation count), which needs every photograph's count to sort
+- T2b-13 — DONE (fix(db): a count on a page counts only the page's rows); `entryCounts` joins the Edition loader's existing Promise.all, so no round trip is added; the loader is `src/lib/catchups-edition-view.ts`, outside track 1's folders and clean; an Edition's counts went from 1.14 ms / 485 buffers (all 606 hearts and every comment joined to every member) to 0.36 ms / 44 (its 52 hearts); the reader rendered 523 hearts and 0 comments, the database's totals; comment-target-rule's C-003 pin follows the filter into `entryCounts`

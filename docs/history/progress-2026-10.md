@@ -1,3 +1,51 @@
+## 2026-10-30 (db) — bug audit 3, unit L3: the database
+
+Thirteen rows in four commits, `npm run check` green before each: nine done, four parked.
+
+Indexes (T1-20, T1-21, T1-22, L5-09, L5-10). Measured before building: pg_stat_statements, open
+since July, names each query (poll options by post on every feed page, 24,977 calls; the rail's
+newest seven members, 16,116; bells cleared by link, five shapes; comments and Catch-up answers by
+author for the export, the purge, the merge and the person page), and each index was built inside a
+rolled-back transaction first, where the planner took four of the five at today's sizes.
+`2026-10-30-missing-indexes.sql` runs one transaction per index with a five-second lock_timeout, so
+no writer can deadlock against it or queue behind it; applied to production and the demo, read back
+valid on both. Production, warm: the rail 0.53 to 0.06 ms (44 buffers to 9), a clear by link 0.19 to
+0.04 ms (29 to 2), answers by author on the new index; Comment still scans its 36 rows, as it should.
+Not built: `Visit (startedAt)` (T7b-10), which the planner would take but which saves 0.6 ms of a
+3 ms admin query while every presence beat, all non-HOT, would write it; `CatchupEntry (audioUrl)`
+(T2b-10), whose one reader is a count in track 1's `submitEntry` that the verdict would delete.
+
+Counts (T1-17, L5-03, T2b-13). A relation `_count` compiles to a GROUP BY over the whole child table
+joined back on the key, captured from the generated client. `src/lib/page-counts.ts` asks with the
+page's ids in the WHERE, one row per item rather than one per heart (egress is the first Supabase
+limit). Every hot site moved, each beside an await it already made except the Collection river,
+which pays one statement a page: the feed, Saved and a profile's tabs, a letter, the Edition reader,
+comment threads, the Collection river, band and permalink. The letters index never drew its counts
+and drops them. Production, read-only: an Edition's counts 1.14 to 0.36 ms (606 hearts read to 52,
+485 buffers to 44), a Collection page of 40 1.07 to 0.09 ms (82 to 1); the feed's tables still fit
+one page, so they read the same rows either way today. Rendered counts checked against the database:
+a letter's 4 and 0, an Edition's 523 hearts and 0 comments, the feed's first cards unchanged, a
+thread's 1, a photograph's 2. pg_stat_statements shows the dev server emitting every count with its
+`IN (...)`. A sweep fails any new relation count outside five reasoned exceptions, and C-003's pin
+follows the comment filter into page-counts.ts.
+
+Pool (L5-04's half, L5-05). `prisma.ts` builds the pg Pool itself (db-tls's settings, `max: 5`,
+idle clients closed at 5 s instead of pg's 10) and hands it to the adapter with
+`disposeExternalPool`, so the rebuild after a schema change still ends the old pool: the dev server
+logged "schema changed; rebuilding the dev client" and served an authed /feed on the new client.
+`attachDatabasePool`, the half that matters under Fluid's suspend, needs `@vercel/functions`, which
+the project does not carry (0.19 MB); parked. Interactive transactions now wait the pool's 5 s for a
+connection, not Prisma's 2: proved against the transaction pooler, 2.01 s before, 5.00 s after.
+
+Size (L5-08). The snapshot has alarmed at 350 MB since e29823cb; it now records the five largest
+tables each night (dry run: 132 MB, the place list 101 of it). The alarm's "read-only at 500 MB"
+sentence is L8-09's to correct.
+
+For whoever is next: the dev server's server process restarted at 02:21 UTC during this unit, with
+no config change behind it, and then served every changed path without restarting again; the demo
+also lacks `Notification_userId_createdAt_idx`, a declared index whose migration predates the demo;
+`account-purge.ts`'s own `maxWait: 5_000` is redundant now (track 2's file).
+
 ## 2026-10-30 (privacy) — bug audit 3, unit B3a: what a departing member leaves behind
 
 Five rows and one review follow-up, five commits, in the account purge, the admin merge, the

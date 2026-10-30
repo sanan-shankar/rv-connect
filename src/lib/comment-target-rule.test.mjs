@@ -103,9 +103,21 @@ test("the reader's comment count excludes deleted and hidden rows", () => {
   /* A soft-deleted comment still has a row -- that is what keeps its replies
      anchored -- and so does one hidden by a moderator or written by a blocked
      member. A bare `_count.comments` therefore promises a thread that then
-     renders empty, which is audit C-003 on the feed, one feature later. */
-  const src = decomment(read(EDITION_VIEW));
-  assert.match(src, /comments: \{ where: VISIBLE_COMMENT \}/);
+     renders empty, which is audit C-003 on the feed, one feature later.
+
+     The count left the reader's own query in bug audit 3 (T2b-13): as a
+     relation count it aggregated every comment in the community on each
+     open. It is entryCounts' now, so the pin follows it there. */
+  assert.match(decomment(read(EDITION_VIEW)), /\bentryCounts\(/, "the reader no longer counts through entryCounts");
+  const counts = decomment(read("src/lib/page-counts.ts"));
+  const at = counts.indexOf("export async function entryCounts");
+  assert.ok(at > 0, "entryCounts is gone");
+  const fn = counts.slice(at, counts.indexOf("\n}", at));
+  assert.match(
+    fn,
+    /comment\.groupBy\(\{[\s\S]*?entryId: \{ in: entryIds \}, \.\.\.VISIBLE_COMMENT/,
+    "entryCounts counts comments the reader is never shown"
+  );
 });
 
 test("leaving a Catch-up clears comment notifications too", () => {
