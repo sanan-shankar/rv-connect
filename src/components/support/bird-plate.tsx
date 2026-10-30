@@ -2,8 +2,8 @@
 
 /* The reward preview on /support, for members who have not contributed yet:
  * twelve of the set, arranged and faced by plate-data.ts so the row shows
- * the collection's variety rather than its first N indices. Four columns and
- * three rows under `sm`, six columns and two rows from `sm` up -- one
+ * the collection's variety rather than its first N indices. Three columns and
+ * four rows under `sm`, six columns and two rows from `sm` up -- one
  * ordering, two reflows, both lookalike-safe (see plate-data.ts for how that
  * is proven, not just eyeballed).
  *
@@ -137,7 +137,7 @@ export function BirdPlate() {
 
 /* The plate's grid, shared with its placeholder so the two cannot drift. */
 const PLATE_GRID =
-  "mt-[var(--space-m)] grid grid-cols-4 gap-x-[var(--space-xs)] gap-y-[var(--space-s)] sm:grid-cols-6 sm:gap-x-[var(--space-s)] sm:gap-y-[var(--space-m)]";
+  "mt-[var(--space-m)] grid grid-cols-3 gap-[var(--space-s)] sm:grid-cols-6 sm:gap-y-[var(--space-m)]";
 
 /**
  * The plate before the page arrives: twelve discs where the twelve birds

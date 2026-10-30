@@ -1,3 +1,14 @@
+## 2026-10-30 (support) — the Support plate is three across and four down on a phone
+
+The owner asked for the plate's phone grid to flip from four across and three down to three across
+and four down, so each bird is bigger (92px, up from about 70). Asked whether he meant the birds
+page, he chose the plate. Three columns touch different pairs than four, so the order was
+re-solved for three and six columns at once (no look-alikes beside, stacked or corner to corner):
+the nearest valid order moves four of the twelve, and on desktop the first three birds of the top
+row and the last four of the second row stay put. `plate-data.ts` records both flips so a later
+session does not flip it back blind. Visible: the plate on a phone, and four plate positions on
+desktop.
+
 ## 2026-10-30 (catchups) — bug audit 3, a correction to unit H3: a close keeps a blocked or leaving member's writing in place
 
 One commit, before the push. H3's `dropGoneMembersWriting` deleted, at every Edition's close (the

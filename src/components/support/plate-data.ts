@@ -2,10 +2,10 @@
  *
  * Down from fourteen (owner, 2026-08-22): the Common Kingfisher and the
  * Tricolored Munia are gone, which is what makes twelve divide evenly into
- * BOTH grids the plate now renders -- four columns and three rows on mobile
- * (owner, same day, correcting an initial three-by-four: "you did the
- * support as 3x4. do 4x3"), six columns and two rows from `sm` up
- * (bird-plate.tsx).
+ * BOTH grids the plate renders -- three columns and four rows on a phone, six
+ * columns and two rows from `sm` up (bird-plate.tsx). The phone grid has
+ * flipped twice: four across on 2026-08-22, then back to three across on
+ * 2026-10-30 so each bird is bigger (92px, up from about 70).
  *
  * The order is neither the owner's listing order nor the species order. It is
  * arranged so no two look-alike birds ever touch, side by side, stacked, or
@@ -13,14 +13,15 @@
  * just reflows at a different width. The old two-row plate could get away
  * with a column-only rule (two cells touch exactly when their columns are
  * less than two apart, rows do not come into it), a shortcut that only holds
- * because a two-row grid has no room for a cell two rows away. Three rows
- * does not have that shortcut: touching now depends on both axes, so this
+ * because a two-row grid has no room for a cell two rows away. The phone's
+ * four rows do not have that shortcut: touching now depends on both axes, so this
  * order was found by exhaustive search (script kept, see PR/commit) rather
  * than argued by hand, and it is CHECKED, not merely believed -- the search
- * re-validates its own answer against both grids before accepting it. (The
- * 3x4 ordering this replaced was a DIFFERENT valid answer to a different
- * problem: a 3-column grid has different touching pairs than a 4-column one,
- * so the sequence could not simply be relabelled, it had to be re-solved.)
+ * re-validates its own answer against both grids before accepting it. Each
+ * phone grid has different touching pairs, so each flip had to be re-solved,
+ * not relabelled. The 2026-10-30 answer is the valid order nearest the one it
+ * replaced: on desktop, the first three birds of the top row and the last
+ * four of the second row did not move.
  *
  * Their real disc colours, read off the rendered glyphs rather than guessed at:
  *
@@ -55,11 +56,11 @@ const PLATE_NAMES = [
   "Red Avadavat",
   "Jerdon's Leafbird",
   "Verditer Flycatcher",
-  "Indian Golden Oriole",
-  "White-throated Kingfisher",
-  "Laughing Dove",
-  "Little Cormorant",
   "Spotted Owlet",
+  "Indian Golden Oriole",
+  "Laughing Dove",
+  "White-throated Kingfisher",
+  "Little Cormorant",
   "Brahminy Kite",
   "Indian Pitta",
   "Purple Sunbird",
