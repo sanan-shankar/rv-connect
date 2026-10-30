@@ -141,3 +141,68 @@ test("a photograph deleted from the live bucket stays in the backup, and that is
   assert.equal(status, 0, out);
   assert.match(out, /live 1 objects, backup 2 objects/);
 });
+
+/* ------------------------------------- L3-07: one name per night, kept */
+
+/** The STAMP the dump step names tonight's file with, as a strftime format. */
+function stampFormat() {
+  const m = /^STAMP="\$\(date -u \+([^)"]+)\)"$/m.exec(stepScript("Dump the database"));
+  assert.ok(m, "the dump step no longer sets STAMP from `date -u`");
+  return m[1];
+}
+
+/** `fmt` applied to a UTC instant, for the few strftime fields STAMP uses. */
+function strftimeUtc(fmt, iso) {
+  const d = new Date(iso);
+  const two = (n) => String(n).padStart(2, "0");
+  const fields = { Y: d.getUTCFullYear(), m: two(d.getUTCMonth() + 1), d: two(d.getUTCDate()), H: two(d.getUTCHours()), M: two(d.getUTCMinutes()) };
+  return fmt.replace(/%([YmdHM])/g, (_, f) => fields[f]);
+}
+
+test("each run's dump carries the minute it ran, so two nights can never share a name", () => {
+  /* GitHub starts this job up to eight hours late, so a late night and the
+     next on-time one could both run on one UTC date: named by the date, the
+     second uploaded over the first, five times between August and October. */
+  const fmt = stampFormat();
+  assert.notEqual(
+    strftimeUtc(fmt, "2026-10-02T00:00:59Z"),
+    strftimeUtc(fmt, "2026-10-02T23:53:56Z"),
+    "the 2 October collision (run 36943719585, then 37079709122) would happen again"
+  );
+  assert.match(strftimeUtc(fmt, "2026-10-02T23:53:56Z"), /^2026-10-02T2353Z$/, "the stamp must start with the UTC date the prune reads");
+  const upload = stepScript("Upload to R2");
+  assert.match(upload, /"s3:\/\/\$BUCKET\/postgres\/rv-connect-\$STAMP\.dump"/, "the upload no longer uses tonight's stamp");
+});
+
+test("the prune keeps one dump for each 1st, the dailies for thirty days, and nothing else", () => {
+  const fmt = stampFormat();
+  // Named the way tonight's step names them, so the prune is tested against the stamp itself.
+  const stamped = (iso) => `rv-connect-${strftimeUtc(fmt, iso)}.dump`;
+  const names = [
+    "rv-connect-2026-09-15.dump", // date-only daily, past the cutoff
+    "rv-connect-2026-09-01.dump", // date-only monthly
+    stamped("2026-10-01T01:10:00Z"), // a late night run on the 1st...
+    stamped("2026-10-01T22:05:00Z"), // ...and that 1st's own run, the one kept
+    stamped("2026-10-20T21:40:00Z"), // a daily past the cutoff
+    stamped("2026-11-01T00:30:00Z"),
+    stamped("2026-11-01T21:31:00Z"),
+    stamped("2026-11-25T21:31:00Z"), // recent
+    "place-0123456789abcdef0123456789abcdef.dump", // the place list, never pruned
+  ];
+  const stubs = [
+    `date() { echo 2026-11-10; }`, // the cutoff: thirty days before 10 December
+    `LISTING='${names.map((n) => `2026-11-25 21:40:00   15000000 ${n}`).join("\n")}'`,
+    `aws() { case "$2" in ls) printf '%s\\n' "$LISTING";; rm) echo "RM $3";; esac; }`,
+  ].join("\n");
+
+  const { status, out } = runStep("Prune backups older than 30 days", stubs);
+  assert.equal(status, 0, out);
+  const pruned = out.split("\n").filter((l) => l.startsWith("pruned ")).map((l) => l.slice(7)).sort();
+  assert.deepEqual(
+    pruned,
+    ["rv-connect-2026-09-15.dump", stamped("2026-10-01T01:10:00Z"), stamped("2026-10-20T21:40:00Z"), stamped("2026-11-01T00:30:00Z")].sort(),
+    "the prune removed the wrong dumps"
+  );
+  const removed = out.split("\n").filter((l) => l.startsWith("RM ")).map((l) => l.replace("RM s3://rv-backup-test/postgres/", "")).sort();
+  assert.deepEqual(removed, pruned, "a dump was deleted without being reported, or reported without being deleted");
+});

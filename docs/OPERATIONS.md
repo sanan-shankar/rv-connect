@@ -105,14 +105,20 @@ seconds a push. Git keeps the hook's location in `.git/config`, so a fresh clone
 every push until it is patched; `git push --no-verify` gets an urgent fix past it.
 
 ### `backup.yml` — the one that must never be broken
-**Fires:** nightly at 02:00 IST, and on demand via **Actions → backup → Run workflow**.
+**Fires:** nightly, asked for at 02:00 IST (20:30 UTC), and on demand via **Actions → backup →
+Run workflow**. GitHub starts it late, a median of about two hours and up to eight, so a run can
+land either side of midnight UTC; each dump is named by the UTC minute its run began,
+`postgres/rv-connect-YYYY-MM-DDTHHMMZ.dump`. Named by the date alone, a night that started after
+midnight and the next on-time night shared a name and the second overwrote the first: five nights
+were lost that way between August and October (bug audit 3, L3-07).
 
 Supabase's free plan has **no automatic backups and no point-in-time recovery**. One
 database serves production and local dev. `prisma db push` will try to DROP tables it
 thinks are orphaned. Before this job, one bad command destroyed everything with no
 recovery.
 
-Dumps to a **private** R2 bucket, keeps 30 days plus the 1st of every month forever, and:
+Dumps to a **private** R2 bucket, keeps 30 days plus one dump from the 1st of every month (that
+day's last run, the one the date-only name used to keep) forever, and:
 
 - **refuses to run** if the target bucket looks like the public media bucket
   (`rv-alumni-media` is served from a `pub-*.r2.dev` URL; a dump landing there would
@@ -136,7 +142,8 @@ fingerprint as `place` metadata. That cut about 1 GB a month of egress.
 commands; in order: `--schema=public --section=pre-data`, then the place list
 `--data-only`, then `--section=data`, then `--section=post-data` (UserPlace's foreign key
 to the place list is added last). Find the matching place list with
-`aws s3api head-object --key postgres/rv-connect-YYYY-MM-DD.dump --query Metadata.place`.
+`aws s3api head-object --key postgres/rv-connect-<stamp>.dump --query Metadata.place`, where the
+stamp is `YYYY-MM-DDTHHMMZ` (dumps from before 2026-10-30 carry the date alone).
 Dumps from before 2026-09-30 still hold the place list and restore in one command.
 
 The same workflow's **`media` job** copies every object in `rv-alumni-media` except those
