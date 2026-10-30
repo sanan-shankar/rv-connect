@@ -524,7 +524,9 @@ export const BATCH_LEAVE_REFUSAL =
  * the accident rule (architecture 6). Every other Catch-up-level control is
  * one-way or close to it: end it, remove a member, open answering. A picture is
  * none of those. It is reversible by the next person who dislikes it, it
- * destroys nothing, and a batch Catch-up has no Keeper to ask -- nobody keeps
+ * destroys nothing anybody wrote (an uploaded picture it replaces leaves the
+ * bucket, V-L-d-01, and its uploader still has the file to put back), and a
+ * batch Catch-up has no Keeper to ask -- nobody keeps
  * one (`createdById` is null), so a rule of "only the Keeper" would mean nobody
  * at all, for ever, on the Catch-ups most members are actually in.
  *

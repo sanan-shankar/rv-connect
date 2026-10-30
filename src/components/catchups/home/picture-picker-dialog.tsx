@@ -45,7 +45,7 @@ import {
   PICTURE_BAND_RATIO,
   type CatchupPicture,
 } from "@/lib/catchup-pictures";
-import { setCatchupPicture } from "@/app/(main)/catchups/actions";
+import { discardPictureUpload, setCatchupPicture } from "@/app/(main)/catchups/actions";
 import { cn } from "@/lib/utils";
 
 /** One press of an arrow key, as a share of the frame. Small enough to place a
@@ -94,6 +94,18 @@ export function PicturePickerDialog({
      picking a pool photograph after uploading one and then changing your mind
      does not throw the upload away and make you do it again. */
   const [mine, setMine] = useState<string | null>(null);
+  /* The same upload while nothing has saved it, read where state cannot be:
+     the close, a second upload, a save of a different picture, and leaving
+     the page each throw it away (bug audit 3, V-L-d-01). The picker uploads
+     the moment a file is picked, so it can show the real photograph to aim,
+     and nothing took an unused one back: it stayed public, named by no row.
+     The server keeps anything a row still shows, so a wrong guess here cannot
+     take a picture in use. */
+  const unsaved = useRef<string | null>(null);
+  const discard = useCallback((url: string | null) => {
+    if (url) void callAction(() => discardPictureUpload(url));
+  }, []);
+  useEffect(() => () => discard(unsaved.current), [discard]);
 
   /* Reopening shows what is actually stored. Without this, a dialog closed
      without saving keeps whatever was being tried on, and the next opening
@@ -149,6 +161,9 @@ export function PicturePickerDialog({
     setUploading(true);
     try {
       const url = await uploadOneImage(chosen, "That picture");
+      // A second upload replaces the first, which nothing saved.
+      discard(unsaved.current);
+      unsaved.current = url;
       setMine(url);
       setSrc(url);
       // A photograph nobody has aimed starts where the pool's own do, low in
@@ -167,15 +182,32 @@ export function PicturePickerDialog({
   async function save() {
     setSaving(true);
     const focus = `center ${Math.round(aim * 100)}%`;
-    const result = await callAction(() => setCatchupPicture(catchupId, { src, focus }));
+    const chosen = src;
+    const result = await callAction(() => setCatchupPicture(catchupId, { src: chosen, focus }));
     setSaving(false);
     if (result && "error" in result) {
       toast.error(result.error);
       return;
     }
+    // The upload is the picture now, or was passed over for another one.
+    const upload = unsaved.current;
+    unsaved.current = null;
+    setMine(null);
+    if (upload !== chosen) discard(upload);
     toast.success("Picture changed.");
     onChanged();
     onOpenChange(false);
+  }
+
+  /* Closed without saving: an upload nothing saved goes. Not while a save is
+     on its way, which may yet make it the picture; save() settles it. */
+  function closeOrOpen(next: boolean) {
+    if (!next && !saving) {
+      discard(unsaved.current);
+      unsaved.current = null;
+      setMine(null);
+    }
+    onOpenChange(next);
   }
 
   const options: CatchupPicture[] = mine
@@ -183,7 +215,7 @@ export function PicturePickerDialog({
     : CATCHUP_PICTURES;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={closeOrOpen}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="font-heading tracking-tight">The picture</DialogTitle>

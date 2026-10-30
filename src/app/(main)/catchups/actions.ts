@@ -58,6 +58,7 @@ import { ownedUploadUrls } from "@/lib/upload-ownership";
 import { MAX_IMAGES } from "@/lib/upload-ownership-rule";
 import { ownedVoiceRecording } from "@/lib/voice-answer";
 import { purgeImageUrls } from "@/lib/image-purge";
+import { parseJsonArray } from "@/lib/utils";
 import { revalidatePath } from "next/cache";
 import {
   advanceEdition,
@@ -886,12 +887,68 @@ export async function setCatchupPicture(
       return { error: "Only a Keeper can change this Catch-up's picture." };
     }
 
-    await prisma.catchup.update({
-      where: { id: catchupId },
-      data: { pictureSrc: src, pictureFocus: focus },
+    /* THE PICTURE IT REPLACES GOES, when it was an upload (bug audit 3,
+       V-L-d-01). The write never read what it overwrote, so every replaced
+       upload stayed public at its address for good, named by nothing, and the
+       account purge, which collects only the picture a Catch-up still has,
+       never found it. Held first (the `updatedAt` touch endCatchup also
+       takes), so two replacements in the same instant each queue the one they
+       actually overwrote; queued in the write (C-064), drained after it. Kept
+       when another Catch-up shows the same upload (the uploader may keep two). */
+    const replaced = await prisma.$transaction(async (tx) => {
+      await tx.catchup.updateMany({ where: { id: catchupId }, data: { updatedAt: new Date() } });
+      const before = await tx.catchup.findUnique({ where: { id: catchupId }, select: { pictureSrc: true } });
+      await tx.catchup.update({
+        where: { id: catchupId },
+        data: { pictureSrc: src, pictureFocus: focus },
+      });
+      const old = before?.pictureSrc;
+      if (!old || old === src || isPoolPicture(old)) return null;
+      if ((await tx.catchup.count({ where: { pictureSrc: old } })) > 0) return null;
+      await tx.pendingImagePurge.createMany({ data: [{ url: old, reason: "replaced" }] });
+      return old;
     });
+    if (replaced) await drainPendingImagePurges([replaced]);
     revalidatePath(`/catchups/${catchupId}`);
     revalidatePath("/catchups");
+    return { success: true as const };
+  });
+}
+
+/**
+ * Throw away a picture the caller uploaded in the picker and did not keep:
+ * the dialog closed, another picture was chosen, or a second upload took its
+ * place (bug audit 3, V-L-d-01). The picker uploads the moment a file is
+ * picked, so the member sees the real thing to aim, and nothing took the
+ * upload back when it went unused: it stayed public for good, named by no row.
+ *
+ * Only the caller's own upload (`ownedUploadUrls`), and only while nothing
+ * names it: a Catch-up's picture, a post, an answer, an avatar or a message
+ * to the admins. So a picker that is wrong about whether it was saved, or a
+ * hand-made call, can never take a picture something still shows.
+ */
+export async function discardPictureUpload(url: string) {
+  return runAction(async () => {
+    const session = await auth();
+    if (!session?.user?.id) return { error: "Not authenticated" };
+    // Only someone who could upload has anything to throw away.
+    const gate = await requireVerifiedMember();
+    if (!gate.ok) return { error: gate.error };
+    // The demo takes no uploads, so it holds none to discard.
+    if (IS_DEMO) return { success: true as const };
+    if (typeof url !== "string" || !url) return { error: "Invalid request." };
+    const owned = ownedUploadUrls([url], session.user.id);
+    if (!owned.ok) return { error: "That picture is not one of yours." };
+
+    const named = await Promise.all([
+      prisma.catchup.count({ where: { pictureSrc: url } }),
+      prisma.post.count({ where: { images: { contains: url } } }),
+      prisma.catchupEntry.count({ where: { images: { contains: url } } }),
+      prisma.user.count({ where: { photoUrl: url } }),
+      prisma.adminMessage.count({ where: { imageUrl: url } }),
+    ]);
+    if (named.some((n) => n > 0)) return { success: true as const };
+    await purgeImageUrls([url], "abandoned");
     return { success: true as const };
   });
 }
@@ -1771,13 +1828,14 @@ export async function submitEntry(input: {
       });
       if (stillIn === 0) return "gone" as const;
 
-      /* The recording this write replaces, read in the same transaction as
-         the write, so the purge after it names exactly what the row stopped
-         pointing at. */
-      const before = hasAudio
-        ? await tx.catchupEntry.findUnique({ where: key, select: { audioUrl: true } })
-        : null;
-      const replacedAudio = before?.audioUrl ?? null;
+      /* The recording and the photographs this write replaces, read in the
+         same transaction as the write, so what is purged after it is exactly
+         what the row stopped pointing at. */
+      const before =
+        hasAudio || hasImages
+          ? await tx.catchupEntry.findUnique({ where: key, select: { audioUrl: true, images: true } })
+          : null;
+      const replacedAudio = hasAudio ? (before?.audioUrl ?? null) : null;
 
       if (base) {
         const moved = await tx.catchupEntry.updateMany({
@@ -1810,7 +1868,33 @@ export async function submitEntry(input: {
       if (row.body || row.images || row.audioUrl) {
         await clearReminders(tx, edition.catchupId, session.user.id);
       }
-      return { ...row, replacedAudio };
+      /* A photograph taken off the answer (removed, swapped, or the answer
+         cleared, which withdraws it below) is queued in this write, the C-064
+         rule `editPost` follows: whatever stops naming bytes queues them, so
+         a request cut off after its commit cannot strand them (bug audit 3,
+         L12-02). This was the one writer that rewrote an image list without
+         it, so a removed photograph stayed public at its address for good,
+         and even the account purge, which collects only what a row still
+         names, never found it. One another answer still names stays (C-018);
+         nothing the app makes shares one, but a hand-made call can. */
+      const dropped = hasImages
+        ? parseJsonArray(before?.images).filter((url) => !ownedImages.includes(url))
+        : [];
+      let droppedImages: string[] = [];
+      if (dropped.length > 0) {
+        const named = await tx.catchupEntry.findMany({
+          where: { id: { not: row.id }, OR: dropped.map((url) => ({ images: { contains: url } })) },
+          select: { images: true },
+        });
+        const kept = new Set(named.flatMap((n) => parseJsonArray(n.images)));
+        droppedImages = dropped.filter((url) => !kept.has(url));
+        if (droppedImages.length > 0) {
+          await tx.pendingImagePurge.createMany({
+            data: droppedImages.map((url) => ({ url, reason: "replaced" })),
+          });
+        }
+      }
+      return { ...row, replacedAudio, droppedImages };
     });
 
     if (entry === "closed") {
@@ -1851,6 +1935,8 @@ export async function submitEntry(input: {
       const stillUsed = await prisma.catchupEntry.count({ where: { audioUrl: entry.replacedAudio } });
       if (stillUsed === 0) await purgeImageUrls([entry.replacedAudio], "replaced");
     }
+    // The photographs it queued, after the commit like every delete.
+    await drainPendingImagePurges(entry.droppedImages);
 
     if (!entry.body && !entry.images && !entry.audioUrl) {
       /* Only while it is still empty (bug audit 3, T2b-06). The write that

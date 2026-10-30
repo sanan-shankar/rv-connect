@@ -396,7 +396,13 @@ Every Catch-up has a photograph, always. `Catchup.pictureSrc` is NOT NULL, with 
 - **Changing it** (`setCatchupPicture`): a pool path, or an image under the caller's own
   `uploads/<id>/` prefix. Nothing else passes, because every member's browser loads that url. The
   focus is pattern-matched before it reaches a style attribute. The demo allows the pool and refuses
-  uploads.
+  uploads. **A replaced upload leaves the bucket**: the write reads what it overwrites, holding the
+  row, and queues an uploaded picture no other Catch-up shows (bug audit 3, V-L-d-01; it stayed public
+  for good, and the account purge only ever collected the current picture). The picker uploads the
+  moment a file is picked, so it can show the real photograph to aim; an upload it does not keep (the
+  dialog closed, another picture chosen, a second upload, the page left) goes through
+  `discardPictureUpload`, which deletes only the caller's own upload and only while no Catch-up, post,
+  answer, avatar or admin message shows it.
 - **Crops.** Every surface draws it `object-fit: cover`. The home's head is a fixed 240px height on a
   laptop and 172px on a phone, so its ratio slides from 4.63:1 to 6.33:1; the list card is 5:2 on a
   laptop and 16:9 below 500px. `handover.md` has the measured table.
@@ -502,7 +508,9 @@ to jump between questions and Back beside Next. There is no "Skip for now".
   that the row is still empty (`EMPTY_ENTRY_WHERE`: no words, photograph or recording), so a save
   from a second device that refilled it in between stays, and the device that emptied it keeps its
   own version and is told the answer changed elsewhere (bug audit 3, T2b-06).
-- Photographs must be the caller's own uploads (`ownedUploadUrls`).
+- Photographs must be the caller's own uploads (`ownedUploadUrls`). One taken off an answer, swapped,
+  or cleared with it is queued for deletion in the same write, as a replaced recording always was (bug
+  audit 3, L12-02: it stayed in the bucket for good, out of the purge's reach).
 
 ### 7.6 The invite link, `/catchups/join/[token]`
 

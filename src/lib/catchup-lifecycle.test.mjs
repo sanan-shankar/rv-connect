@@ -980,3 +980,75 @@ test("T2b-05: a published Edition keeps every answer as it was read, and hides a
   assert.doesNotMatch(entries, /isBlocked|deletionRequestedAt|GOOD_STANDING/, "a published Edition drops a blocked author's answers, which his Q6 (b) keeps as read");
   assert.match(decomment(read("src/lib/page-counts.ts")), /VISIBLE_COMMENT/, "the comment count no longer follows the site's rule for a blocked author");
 });
+
+/* ------------------------------------------------------------------ *
+ *  Bytes a Catch-up row stops naming are queued in the write that stops
+ *  naming them, the C-064 rule editPost follows (bug audit 3, L12-02 and
+ *  V-L-d-01). Nothing can list the bucket afterwards, so a photograph left
+ *  behind here stayed public for good, and the account purge, which
+ *  collects only what a row still names, never found it.
+ * ------------------------------------------------------------------ */
+
+test("L12-02: a photograph taken off an answer is queued in the write that takes it off", () => {
+  const src = decomment(read("src/app/(main)/catchups/actions.ts"));
+  const fn = balancedBody(src, "export async function submitEntry(");
+  assert.ok(fn, "submitEntry is gone; this pin is reading nothing");
+  const write = fn.slice(fn.indexOf("prisma.$transaction("), fn.indexOf('if (entry === "closed")'));
+  assert.match(write, /hasAudio \|\| hasImages\s*\?\s*await tx\.catchupEntry\.findUnique\(\{ where: key, select: \{ audioUrl: true, images: true \} \}\)/, "the write no longer reads the photographs it is about to replace");
+  assert.match(write, /parseJsonArray\(before\?\.images\)\.filter\(\(url\) => !ownedImages\.includes\(url\)\)/, "the dropped photographs are no longer what the row stopped naming");
+  const upsert = write.indexOf("catchupEntry.upsert(");
+  const queued = write.indexOf("tx.pendingImagePurge.createMany(");
+  assert.ok(upsert > -1 && queued > upsert, "a dropped photograph is not queued inside the write that drops it");
+  assert.match(write, /reason: "replaced"/);
+  // A url another answer still names stays (C-018).
+  assert.match(write, /where: \{ id: \{ not: row\.id \}, OR: dropped\.map\(\(url\) => \(\{ images: \{ contains: url \} \}\)\) \}/);
+  // Drained after the commit, before an emptied answer is withdrawn.
+  const drain = fn.indexOf("await drainPendingImagePurges(entry.droppedImages)");
+  assert.ok(drain > fn.indexOf('if (entry === "closed")') && drain < fn.indexOf("const withdrawn"), "the queued photographs are not drained after the commit");
+});
+
+test("V-L-d-01: replacing an uploaded picture queues the old one, and only an upload nothing else shows", () => {
+  const src = decomment(read("src/app/(main)/catchups/actions.ts"));
+  const fn = balancedBody(src, "export async function setCatchupPicture(");
+  assert.ok(fn, "setCatchupPicture is gone; this pin is reading nothing");
+  const order = [
+    "prisma.$transaction(",
+    "tx.catchup.updateMany({ where: { id: catchupId }, data: { updatedAt: new Date() } })",
+    "tx.catchup.findUnique({ where: { id: catchupId }, select: { pictureSrc: true } })",
+    "tx.catchup.update(",
+    "isPoolPicture(old)",
+    "tx.catchup.count({ where: { pictureSrc: old } })",
+    'tx.pendingImagePurge.createMany({ data: [{ url: old, reason: "replaced" }] })',
+    "await drainPendingImagePurges([replaced])",
+  ];
+  for (let i = 0; i < order.length; i += 1) {
+    assert.ok(fn.indexOf(order[i]) > -1, `setCatchupPicture lost ${order[i]}`);
+    if (i > 0) assert.ok(fn.indexOf(order[i - 1]) < fn.indexOf(order[i]), `${order[i - 1]} no longer comes before ${order[i]}`);
+  }
+  assert.doesNotMatch(fn, /prisma\.catchup\.update\(/, "the picture is written outside the transaction that reads what it replaces");
+});
+
+test("V-L-d-01: an upload the picker did not keep is thrown away, never one a row still shows", () => {
+  const src = decomment(read("src/app/(main)/catchups/actions.ts"));
+  const fn = balancedBody(src, "export async function discardPictureUpload(");
+  assert.ok(fn, "discardPictureUpload is gone; this pin is reading nothing");
+  assert.match(fn, /requireVerifiedMember\(\)/);
+  assert.match(fn, /ownedUploadUrls\(\[url\], session\.user\.id\)/, "it can throw away somebody else's upload");
+  for (const named of [
+    "prisma.catchup.count({ where: { pictureSrc: url } })",
+    "prisma.post.count({ where: { images: { contains: url } } })",
+    "prisma.catchupEntry.count({ where: { images: { contains: url } } })",
+    "prisma.user.count({ where: { photoUrl: url } })",
+    "prisma.adminMessage.count({ where: { imageUrl: url } })",
+  ]) {
+    assert.ok(fn.includes(named), `it no longer asks ${named} before deleting`);
+  }
+  assert.ok(fn.indexOf("named.some((n) => n > 0)") < fn.indexOf('purgeImageUrls([url], "abandoned")'), "it deletes before asking whether anything shows it");
+
+  const picker = decomment(read("src/components/catchups/home/picture-picker-dialog.tsx"));
+  assert.match(picker, /discard\(unsaved\.current\);\s*unsaved\.current = url;/, "a second upload no longer throws the first away");
+  assert.match(picker, /if \(upload !== chosen\) discard\(upload\);/, "saving another picture no longer throws the unused upload away");
+  assert.match(picker, /if \(!next && !saving\) \{\s*discard\(unsaved\.current\);/, "closing the picker no longer throws the unused upload away");
+  assert.match(picker, /useEffect\(\(\) => \(\) => discard\(unsaved\.current\), \[discard\]\)/, "leaving the page no longer throws the unused upload away");
+  assert.match(picker, /<Dialog open=\{open\} onOpenChange=\{closeOrOpen\}>/);
+});
