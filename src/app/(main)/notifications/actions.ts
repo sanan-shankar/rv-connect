@@ -3,7 +3,7 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { unreadNotificationCount } from "@/lib/notification-count";
-import { decodeKeyset, encodeKeyset, keysetWhere } from "@/lib/keyset";
+import { decodeKeyset, encodeKeyset, keysetWhere, pageSize } from "@/lib/keyset";
 
 /**
  * One page of the viewer's notifications, newest first. Keyset on the row id
@@ -20,7 +20,7 @@ export async function getNotifications(opts?: {
     return { unreadCount: 0, notifications: [], nextCursor: null, hasMore: false };
   const userId = session.user.id;
 
-  const take = Math.min(Math.max(opts?.take ?? 20, 1), 50);
+  const take = pageSize(opts?.take, 20);
 
   /* Value keyset, not Prisma's `cursor: { id }`. That names a row, and rows
      under this list do get deleted -- the nightly sweep clears them by age and

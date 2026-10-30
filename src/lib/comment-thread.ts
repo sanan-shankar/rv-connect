@@ -26,7 +26,7 @@ import "server-only";
 import { prisma } from "@/lib/prisma";
 import { VISIBLE_COMMENT } from "@/lib/posts";
 import { AUTHOR_CARD_SELECT } from "@/lib/people-select";
-import { decodeKeyset, encodeKeyset, keysetWhere } from "@/lib/keyset";
+import { decodeKeyset, encodeKeyset, keysetWhere, pageSize } from "@/lib/keyset";
 import { DOUBLE_SUBMIT_MS } from "@/lib/double-submit";
 import { isUniqueViolation } from "@/lib/prisma-errors";
 import type { Prisma } from "@/generated/prisma/client";
@@ -121,7 +121,7 @@ export async function readCommentPage(
   viewer: CommentViewer,
   opts?: { cursor?: string | null; take?: number }
 ): Promise<CommentPage> {
-  const take = Math.min(Math.max(opts?.take ?? 10, 1), 50);
+  const take = pageSize(opts?.take, 10);
 
   // A top-level row earns a slot on the page if it is itself visible, or if
   // it must stand in as the anchor for visible replies.

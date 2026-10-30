@@ -61,6 +61,20 @@ export function decodeKeyset(cursor: string | null | undefined): KeysetRow | nul
 }
 
 /**
+ * How many rows one page asks for, from whatever the client sent.
+ *
+ * `take` crosses from the client typed as a number and checked by nothing, so a
+ * hand-made call can send "x", NaN or 1.5. `Math.min`/`Math.max` pass NaN
+ * straight through and Prisma throws on a `take` that is not a whole number,
+ * out of the action (bug audit 3, T2b-11). Anything that is not one reads as the
+ * caller's default; a whole number is held between 1 and `max`.
+ */
+export function pageSize(take: unknown, fallback: number, max = 50): number {
+  if (typeof take !== "number" || !Number.isInteger(take)) return fallback;
+  return Math.min(Math.max(take, 1), max);
+}
+
+/**
  * The `where` fragment for "strictly past this point".
  *
  * AND this with the query's own filter rather than spreading it in: several of

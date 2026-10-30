@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { execSync } from "node:child_process";
 import { resolve } from "node:path";
 
-import { decodeKeyset, encodeKeyset, keysetWhere } from "./keyset.ts";
+import { decodeKeyset, encodeKeyset, keysetWhere, pageSize } from "./keyset.ts";
 import { ROOT, decomment } from "./test-kit.mjs";
 
 /* Audits C-005 / C-124 / C-162 / C-171. Prisma's `cursor: { id }` names a ROW,
@@ -83,6 +83,28 @@ test("the tiebreak is what makes a shared millisecond total", () => {
  * the directory and the admin people list -- are ordered for a person to read
  * (name, batch) or carry the audit-M39 offset recovery, and neither leads its
  * orderBy with createdAt. */
+
+test("a page size from the client is a whole number from 1 to the ceiling, or the default (T2b-11)", () => {
+  assert.equal(pageSize(undefined, 10), 10);
+  assert.equal(pageSize(20, 10), 20);
+  for (const junk of [NaN, "x", "5", 1.5, Infinity, null, {}]) {
+    assert.equal(pageSize(junk, 10), 10, `${String(junk)} should read as the default`);
+  }
+  assert.equal(pageSize(-1, 10), 1);
+  assert.equal(pageSize(0, 10), 1);
+  assert.equal(pageSize(1e9, 10), 50);
+  assert.equal(pageSize(80, 10, 100), 80);
+});
+
+test("both pagers that take a size from the client read it through pageSize", () => {
+  /* A crafted `take` reached Prisma as NaN through these two (T2b-11): the
+     comment thread every post and answer shares, and the bell. */
+  for (const [file, fallback] of [["src/lib/comment-thread.ts", 10], ["src/app/(main)/notifications/actions.ts", 20]]) {
+    const src = decomment(readFileSync(resolve(ROOT, file), "utf8"));
+    assert.match(src, new RegExp(`const take = pageSize\\(opts\\?\\.take, ${fallback}\\);`), `${file} no longer sizes its page through pageSize`);
+    assert.doesNotMatch(src, /Math\.max\(opts\?\.take/, `${file} clamps the client's take by hand again, which passes NaN through`);
+  }
+});
 
 test("no time-ordered query pages by naming a row", () => {
   const files = execSync(

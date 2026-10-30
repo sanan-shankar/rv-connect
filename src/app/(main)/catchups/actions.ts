@@ -1892,26 +1892,35 @@ async function loadCommentableEntry(entryId: string, viewerId: string) {
   return { entry, edition: scope.edition };
 }
 
-/** One page of an answer's thread. */
+/** One page of an answer's thread.
+ *
+ *  Inside `runAction` like every other action here (bug audit 3, T2b-11): it
+ *  was the one comment action outside it, so a throw (a crafted `take` did it,
+ *  until `pageSize`) left the action raw. The thread already shows an
+ *  `{ error }`; what it must never get is an empty page standing in for a
+ *  failure. */
 export async function loadEntryComments(
   entryId: string,
   opts?: { cursor?: string | null; take?: number }
 ) {
-  const session = await auth();
-  if (!session?.user?.id) return EMPTY_COMMENT_PAGE;
+  return runAction(async () => {
+    const session = await auth();
+    if (!session?.user?.id) return EMPTY_COMMENT_PAGE;
 
-  /* An empty page, never an error, and never a different empty page: this is
-     the same answer an entry that does not exist gives, so it cannot be used
-     to discover which ids are real -- the rule `loadComments` states for the
-     feed, and the reason the caller renders "No comments yet" either way. */
-  const scope = await loadCommentableEntry(entryId, session.user.id);
-  if ("error" in scope) return EMPTY_COMMENT_PAGE;
+    /* An empty page, never an error, and never a different empty page: this
+       is the same answer an entry that does not exist gives, so it cannot be
+       used to discover which ids are real -- the rule `loadComments` states
+       for the feed, and the reason the caller renders "No comments yet"
+       either way. */
+    const scope = await loadCommentableEntry(entryId, session.user.id);
+    if ("error" in scope) return EMPTY_COMMENT_PAGE;
 
-  return readCommentPage(
-    { entryId },
-    { userId: session.user.id, isAdmin: session.user.role === "admin" },
-    opts
-  );
+    return readCommentPage(
+      { entryId },
+      { userId: session.user.id, isAdmin: session.user.role === "admin" },
+      opts
+    );
+  });
 }
 
 /** Write one comment under an answer, or under another comment on it. */
