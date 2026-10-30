@@ -202,6 +202,43 @@ test("V-T2-02: a missing Edition and a closed door get the same sentence", () =>
   );
 });
 
+test("L1-02: a question removed as answering opens cannot leave an Edition with nothing to answer", () => {
+  /* The open counted its questions before its swap, and the remove deleted
+     after a plain status read, so the two could cross: an answering Edition
+     with no questions and everyone told answers were open. Both now meet on
+     the Edition's row. The remove touches it on `collecting` and deletes in
+     the same transaction; each open swaps first, counts after, and rolls
+     back on none. */
+  const src = decomment(read("src/app/(main)/catchups/actions.ts"));
+  const curate = balancedBody(src, "export async function curatePrompt(");
+  assert.ok(curate, "curatePrompt is gone; this pin is reading nothing");
+  const removeAt = curate.indexOf("curateRemoveSchema.safeParse(");
+  assert.ok(removeAt > -1, "curatePrompt's remove branch moved; retarget this pin");
+  const remove = curate.slice(removeAt);
+  const tx = remove.indexOf("prisma.$transaction(");
+  const touch = remove.search(/tx\.catchupEdition\.updateMany\(\{\s*where: \{ id: prompt\.editionId, status: "collecting" \}/);
+  const del = remove.indexOf("tx.catchupPrompt.deleteMany(");
+  assert.ok(tx > -1 && touch > tx && del > touch, "the remove no longer holds a collecting Edition while it deletes, in one transaction");
+  assert.doesNotMatch(remove, /prisma\.catchupPrompt\.delete(Many)?\(/, "a delete outside the transaction is back");
+
+  const open = balancedBody(src, "export async function openAnswering(");
+  assert.ok(open, "openAnswering is gone; this pin is reading nothing");
+  const cas = open.indexOf("tx.catchupEdition.updateMany(");
+  const count = open.indexOf("tx.catchupPrompt.count(");
+  const undo = open.indexOf("throw new EmptyAfterSwap()");
+  assert.ok(cas > -1 && count > cas && undo > count, "openAnswering counts its questions before its swap again, or keeps an empty open");
+  assert.match(open, /unlessEmpty\(prisma\.\$transaction\(/, "a rolled-back open is not turned into its refusal");
+
+  const lib = decomment(read("src/lib/catchups.ts"));
+  const apply = balancedBody(lib, "async function applyEditionAction(");
+  assert.ok(apply, "applyEditionAction is gone; this pin is reading nothing");
+  const clockCas = apply.indexOf("tx.catchupEdition.updateMany(");
+  const clockCount = apply.search(/if \(action\.to === "answering"\) \{\s*const questions = await tx\.catchupPrompt\.count\(/);
+  assert.ok(clockCas > -1 && clockCount > clockCas, "the clock's open no longer counts its questions after its swap");
+  assert.match(apply, /throw new EmptyAfterSwap\(\)/, "the clock's empty open is no longer rolled back");
+  assert.match(apply, /unlessEmpty\(prisma\.\$transaction\(/, "a rolled-back clock open reads as a lost swap, which the loop cannot tell apart");
+});
+
 test("C3-01: a hand close with nobody's answers in it writes nothing, and says so", () => {
   /* The press used to run the clock's zero-answer rule: the deadline went to
      three days from now (up to four days EARLIER in a week's first days), the

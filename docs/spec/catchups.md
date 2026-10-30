@@ -189,6 +189,10 @@ nothing twice.
   `collecting`, idle (§3.5). The next Start reuses the row with a fresh window. A question no longer
   revives it; only Start does.
 - **Collecting closes with questions**: answering opens, and the people taking part are told (§11).
+  The clock and the Keeper's "Open answering" both count the questions after their status swap, in
+  its transaction, and roll back on none; removing a question holds the same Edition row while it
+  deletes. So a removal and an open landing together cannot leave an answering Edition with nothing
+  in it, which counting first allowed (bug audit 3, L1-02).
 - **Answering closes with no answers at all**: extended 3 days, once (`REMINDER_EXTENDED`), and the
   non-answerers taking part are told again. After that it publishes whatever is there. This is the
   clock's rule, at the deadline, and only the clock's: "Close and send it out" pressed with no

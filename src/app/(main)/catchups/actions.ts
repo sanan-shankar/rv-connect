@@ -69,6 +69,8 @@ import {
   DEFAULT_REMINDER_MODE,
   isEditionRunning,
   RUNNING_EDITION_WHERE,
+  EmptyAfterSwap,
+  unlessEmpty,
   isMissingCatchupTable,
   mayChangeCatchupPicture,
   newInviteToken,
@@ -1052,7 +1054,25 @@ export async function curatePrompt(input: CuratePromptInput) {
       return { error: "Questions can only be curated while the window is open." };
     }
 
-    await prisma.catchupPrompt.delete({ where: { id: promptId } });
+    /* THE WINDOW IS HELD WHILE THE QUESTION GOES (bug audit 3, L1-02). The
+       status above is a read, and an open landing between it and a plain
+       delete left an answering Edition with nothing to answer: everyone told
+       answers were open, nobody able to write, and an empty Edition out at the
+       deadline. Touching the Edition on `collecting` takes its row, which both
+       opens also take (each counts its questions after its own swap), so
+       either this delete commits first and the open sees it, or the open wins
+       and this deletes nothing. `deleteMany`: a second remover of the same
+       question finds it gone, which is what both of them asked for. */
+    const removed = await prisma.$transaction(async (tx) => {
+      const open = await tx.catchupEdition.updateMany({
+        where: { id: prompt.editionId, status: "collecting" },
+        data: { updatedAt: new Date() },
+      });
+      if (open.count === 0) return false;
+      await tx.catchupPrompt.deleteMany({ where: { id: promptId, editionId: prompt.editionId } });
+      return true;
+    });
+    if (!removed) return { error: "This Edition already moved on." };
 
     revalidatePath(`/catchups/${edition.catchupId}`);
     return { success: true };
@@ -1089,7 +1109,7 @@ export async function openAnswering(editionId: string) {
     const now = new Date();
     const patch = answeringPatch(edition, now);
 
-    const applied = await prisma.$transaction(async (tx) => {
+    const applied = await unlessEmpty(prisma.$transaction(async (tx) => {
       /* An Edition with nothing to answer must not open (audit C-021).
        *
        * The clock already refuses this: planNextAction returns "extend the
@@ -1098,19 +1118,25 @@ export async function openAnswering(editionId: string) {
        * Keeper's own early trigger had no such rule -- and the button being
        * hidden is not the guard, because a stale second tab, a second Keeper,
        * or a hand-made call can all still arrive here just as the last
-       * question is removed. Counted INSIDE the transaction, against the same
-       * rows advanceEdition counts, so the removal cannot land between the
-       * check and the open. There is no way back out of `answering`. */
-      const accepted = await tx.catchupPrompt.count({
-        where: { editionId, accepted: true },
-      });
-      if (accepted === 0) return "empty" as const;
-
+       * question is removed.
+       *
+       * SWAP FIRST, THEN COUNT (bug audit 3, L1-02). This counted first, and a
+       * count is a read: a removal landing a moment after it still left an
+       * answering Edition with nothing in it. With the swap first the
+       * Edition's row is held, so a removal that took it first has committed
+       * and is counted, and one that comes second finds the Edition moved on
+       * (`curatePrompt` holds the same row). There is no way back out of
+       * `answering` once committed, so an empty count rolls the swap back. */
       const cas = await tx.catchupEdition.updateMany({
         where: { id: editionId, status: "collecting" },
         data: patch,
       });
       if (cas.count === 0) return "moved" as const;
+      const accepted = await tx.catchupPrompt.count({
+        where: { editionId, accepted: true },
+      });
+      if (accepted === 0) throw new EmptyAfterSwap();
+
       await notifyAnswersOpen(tx, {
         catchupId: edition.catchupId,
         editionId,
@@ -1119,7 +1145,7 @@ export async function openAnswering(editionId: string) {
         excludeUserId: session.user.id,
       });
       return "opened" as const;
-    });
+    }));
     if (applied === "empty") {
       return { error: "There are no questions in this Edition yet, so there is nothing to answer." };
     }

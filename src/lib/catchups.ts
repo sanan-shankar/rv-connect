@@ -130,6 +130,30 @@ async function loadMeta(edition: AdvanceEditionInput): Promise<AdvanceMeta | nul
 }
 
 /**
+ * A swap that has to be undone once it holds the row (bug audit 3, L1-02).
+ *
+ * An Edition opens only with a question in it, and closes early only with an
+ * answer in it. Those counts used to be taken BEFORE the compare-and-swap, and a
+ * count is a read: at READ COMMITTED it neither waits for nor sees a question
+ * removed a moment later, so answering could open on an Edition that no longer
+ * had anything to answer. Counted AFTER the swap, in the same transaction, the
+ * swap's hold on the Edition's row puts the two in order: a removal that took the
+ * row first has committed by the time the count runs, and one that comes second
+ * finds the Edition moved on. Throwing this rolls the swap back.
+ */
+export class EmptyAfterSwap extends Error {}
+
+/** A transaction's own answer, or "empty" when it threw `EmptyAfterSwap`. */
+export async function unlessEmpty<T>(run: Promise<T>): Promise<T | "empty"> {
+  try {
+    return await run;
+  } catch (err) {
+    if (err instanceof EmptyAfterSwap) return "empty";
+    throw err;
+  }
+}
+
+/**
  * Apply exactly one planned action inside its own transaction. The WHERE clause
  * is the compare-and-swap guard: a transition matches on the current status, a
  * reminder / extension on the current remindersSent. If a concurrent visit
@@ -145,7 +169,7 @@ async function applyEditionAction(
 ): Promise<boolean> {
   if (action.kind === "none") return false;
 
-  return prisma.$transaction(async (tx) => {
+  const applied = await unlessEmpty(prisma.$transaction(async (tx) => {
     if (action.kind === "transition") {
       /* `requires` rides on the compare-and-swap (build phase 14): an
          answering Edition publishes only if it is NOT a capsule and seals
@@ -155,6 +179,15 @@ async function applyEditionAction(
         data: action.patch,
       });
       if (cas.count === 0) return false;
+
+      /* The plan counted the questions before this swap (`EmptyAfterSwap`).
+         Counted again now that the row is held: one removed as the deadline
+         passed rolls the open back, and the loop in advanceEdition re-reads,
+         counts none and takes the no-questions path instead. */
+      if (action.to === "answering") {
+        const questions = await tx.catchupPrompt.count({ where: { editionId, accepted: true } });
+        if (questions === 0) throw new EmptyAfterSwap();
+      }
 
       if (action.notify === "catchup_answers_open") {
         await notify.notifyAnswersOpen(tx, { ...meta, editionId });
@@ -215,7 +248,9 @@ async function applyEditionAction(
       closesAt: before.answersCloseAt,
     });
     return true;
-  });
+  }));
+  // Undone for want of a question: nothing applied, and the caller re-plans.
+  return applied === "empty" ? false : applied;
 }
 
 /**
