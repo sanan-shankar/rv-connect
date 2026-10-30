@@ -35,6 +35,24 @@ export const DELETION_GRACE_DAYS = 60;
 type Db = Prisma.TransactionClient | typeof prisma;
 
 /**
+ * Every group whose Keeper's hat this member wears: the ones where their own
+ * row says "keeper" or "admin", and the ones they created, whose creator
+ * column is about to go null (a purge) or move (a merge) with nothing else
+ * noticing. Sorted, so a caller that locks each group takes them in one order.
+ * Asked by the purge's succession below and by an admin's merge
+ * (`adminMergeUsers`), so the two cannot disagree about which groups need a
+ * Keeper after this member is gone.
+ */
+export async function groupsKeptBy(db: Db, userId: string): Promise<string[]> {
+  const ownRoles = await db.groupMember.findMany({
+    where: { userId, role: { in: ["admin", "keeper"] } },
+    select: { groupId: true },
+  });
+  const created = await db.group.findMany({ where: { creatorId: userId }, select: { id: true } });
+  return [...new Set([...ownRoles.map((r) => r.groupId), ...created.map((g) => g.id)])].sort();
+}
+
+/**
  * Leave every group this member ran with somebody at the wheel.
  *
  * `Group.creatorId` is SetNull now (2026-08-21), so the group itself survives
@@ -50,14 +68,7 @@ type Db = Prisma.TransactionClient | typeof prisma;
  * match, so a successor made here could never be relieved of it.
  */
 async function promoteOrphanedGroups(db: Db, userId: string): Promise<number> {
-  const ownRoles = await db.groupMember.findMany({
-    where: { userId, role: { in: ["admin", "keeper"] } },
-    select: { groupId: true },
-  });
-  // Groups they created but are somehow no longer an admin of count too: the
-  // creator column is about to go null and nothing else would notice.
-  const created = await db.group.findMany({ where: { creatorId: userId }, select: { id: true } });
-  const groupIds = [...new Set([...ownRoles.map((r) => r.groupId), ...created.map((g) => g.id)])];
+  const groupIds = await groupsKeptBy(db, userId);
   if (groupIds.length === 0) return 0;
 
   const members = await db.groupMember.findMany({

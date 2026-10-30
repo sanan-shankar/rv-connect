@@ -322,7 +322,10 @@ a Catch-up may hold (§2.1), so never a blocked, leaving, teacher or unverified 
 who can no longer act does not count as one (bug audit 3, T2a-09, L10-01). Succession holds the
 group's row before it reads (`lockGroup`), so the last two Keepers leaving or removed in the same
 instant are decided one after the other rather than each seeing the other still wearing the hat
-(L1-03). The account purge decides it the same way, without that lock yet. The creator cannot leave; they are told to end it or
+(L1-03). The account purge decides it the same way, without that lock yet. An admin's merge asks
+the same question of the survivor: the duplicate's hat passes to them only if they could be handed
+it, and otherwise the duplicate's rows move as plain membership and succession runs, holding each
+group, in every group the duplicate kept (bug audit 3, B3a). The creator cannot leave; they are told to end it or
 make someone else a Keeper. A batch member cannot leave, because the nightly heal would put them
 straight back.
 

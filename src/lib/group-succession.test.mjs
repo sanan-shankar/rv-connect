@@ -257,6 +257,40 @@ test("T7a-07: an admin's merge carries the hat over as keeper", () => {
   assert.doesNotMatch(fn, /data:\s*\{\s*role:\s*"admin"\s*\}/, "the merge mints an admin row a Keeper's revoke cannot take back");
 });
 
+test("B3a follow-up: a merge hands the hat on only to a survivor who can act", () => {
+  /* T7a-07 fixed the WORD the merge wrote. The rule every other hand-off also
+     follows is WHO may be handed it (CATCHUP_PEOPLE, T2a-09 and L10-01), and
+     the merge gave the duplicate's hat to the survivor whatever their
+     standing. It now asks first. When the survivor cannot keep a hat, the
+     duplicate's rows move as plain membership and every group it kept goes
+     through ordinary succession, holding the group first like every other
+     change to who wears a hat (L1-03). */
+  const src = decomment(readRepo("src/app/(main)/admin/people/actions.ts"));
+  const fn = balancedBody(src, "export async function adminMergeUsers(");
+  assert.ok(fn, "adminMergeUsers is gone; this pin is reading nothing");
+
+  const kept = fn.indexOf("await groupsKeptBy(tx, sourceId)");
+  const locked = fn.indexOf("await lockGroup(tx, groupId)");
+  const firstMove = fn.indexOf("await tx.post.updateMany(");
+  assert.ok(kept > -1 && locked > kept && firstMove > locked, "the merge moves rows before holding the groups whose hat it changes");
+
+  const asked = fn.search(/tx\.user\.count\(\{\s*where:\s*\{\s*id:\s*targetId,\s*AND:\s*\[CATCHUP_PEOPLE\]\s*\}\s*\}\)/);
+  const carried = fn.search(/if \(survivorCanKeep\) \{\s*await tx\.groupMember\.updateMany/);
+  assert.ok(asked > -1, "the merge no longer asks whether the survivor may keep a hat");
+  assert.ok(carried > asked, "the hat is carried over to the survivor without asking");
+  assert.match(
+    fn,
+    /data:\s*survivorCanKeep\s*\?\s*\{\s*userId:\s*targetId\s*\}\s*:\s*\{\s*userId:\s*targetId,\s*role:\s*"member"\s*\}/,
+    "the duplicate's moved rows carry its hat to a survivor who cannot keep one"
+  );
+  const succession = fn.search(/if \(!survivorCanKeep\) \{[\s\S]{0,200}?promoteGroupSuccessor\(tx, groupId, sourceId\)/);
+  assert.ok(succession > -1, "a survivor who cannot keep the hat leaves the duplicate's Catch-ups with nobody able to tend them");
+  assert.ok(succession < fn.indexOf("await tx.user.delete("), "succession runs after the duplicate is already gone");
+
+  // The purge and the merge ask one question about which groups need a Keeper.
+  assert.match(decomment(readRepo("src/lib/account-purge.ts")), /const groupIds = await groupsKeptBy\(db, userId\)/);
+});
+
 test("T7a-07: in the Catch-up actions, \"admin\" is written once, for the creator at creation", () => {
   const src = decomment(readRepo("src/app/(main)/catchups/actions.ts"));
   const writes = src.match(/role:\s*"admin"/g) ?? [];

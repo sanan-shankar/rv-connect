@@ -13,7 +13,9 @@ import {
 import { readPeopleFilters, type PeoplePage } from "@/lib/admin-people";
 import { loadPeoplePage } from "@/lib/admin-people-query";
 import { writeAudit } from "@/lib/audit";
-import { purgeUserAccount } from "@/lib/account-purge";
+import { groupsKeptBy, purgeUserAccount } from "@/lib/account-purge";
+import { CATCHUP_PEOPLE } from "@/lib/catchup-caps";
+import { lockGroup, promoteGroupSuccessor } from "@/lib/group-succession";
 import { purgeImageUrls } from "@/lib/image-purge";
 import { OCCUPATION_MAX, batchTypeFromLeaving, valleyYear } from "@/lib/utils";
 import { parsePlaces, resolvePlaces } from "@/lib/place-input";
@@ -341,6 +343,10 @@ export async function adminSetRole(
  * accounts, both in one Catch-up, both answering one question, and somebody
  * replying to the duplicate -- the same trade the post cascade already makes.
  *
+ * The Keeper's hat goes to the survivor only if they could be handed it by
+ * anyone (CATCHUP_PEOPLE); otherwise it passes as it would if the duplicate
+ * had left (bug audit 3, B3a's review follow-up).
+ *
  * One transaction: a half-merged pair is worse than either state.
  */
 export async function adminMergeUsers(
@@ -362,110 +368,151 @@ export async function adminMergeUsers(
     return { error: "Take away the admin role before merging this account away." };
   }
 
+  let handedOn = 0;
   try {
-    await prisma.$transaction([
-      // Kept.
-      prisma.post.updateMany({ where: { authorId: sourceId }, data: { authorId: targetId } }),
-      prisma.comment.updateMany({ where: { authorId: sourceId }, data: { authorId: targetId } }),
-      prisma.photo.updateMany({ where: { uploaderId: sourceId }, data: { uploaderId: targetId } }),
-      prisma.contribution.updateMany({ where: { userId: sourceId }, data: { userId: targetId } }),
-      prisma.catchupPrompt.updateMany({ where: { authorId: sourceId }, data: { authorId: targetId } }),
-      // CatchupEntry carries @@unique([promptId, authorId]), so an answer the
-      // survivor already wrote to the same question blocks the move. Drop the
-      // duplicate's copy first and move the rest, rather than failing the whole
-      // merge on one shared question (audit M02).
-      prisma.catchupEntry.deleteMany({
-        where: { authorId: sourceId, prompt: { entries: { some: { authorId: targetId } } } },
-      }),
-      prisma.catchupEntry.updateMany({ where: { authorId: sourceId }, data: { authorId: targetId } }),
-      prisma.adminThread.updateMany({ where: { memberId: sourceId }, data: { memberId: targetId } }),
-      prisma.adminMessage.updateMany({ where: { authorId: sourceId }, data: { authorId: targetId } }),
+    await prisma.$transaction(
+      async (tx) => {
+        /* The groups whose Keeper's hat the duplicate wears, read before
+           anything moves, and each held for the rest of the transaction:
+           `lockGroup` is what every change to who wears a hat takes first
+           (bug audit 3, L1-03), and sorted, so two merges take them in one
+           order. */
+        const keptGroups = await groupsKeptBy(tx, sourceId);
+        for (const groupId of keptGroups) await lockGroup(tx, groupId);
+        /* Whether the survivor may take the hat at all. Every other path that
+           hands it on gives it only to someone who can act (CATCHUP_PEOPLE:
+           a verified alumnus with a confirmed email, not blocked, not leaving,
+           not the Anonymous byline), and this one gave it to the survivor
+           whatever they were (bug audit 3, B3a's review follow-up). When the
+           survivor cannot keep it, it goes where leaving would send it. */
+        const survivorCanKeep =
+          (await tx.user.count({ where: { id: targetId, AND: [CATCHUP_PEOPLE] } })) > 0;
 
-      // Owned, not authored. Same shape: shed the collisions, move the rest.
-      prisma.group.updateMany({ where: { creatorId: sourceId }, data: { creatorId: targetId } }),
-      prisma.catchup.updateMany({ where: { createdById: sourceId }, data: { createdById: targetId } }),
-      // If the duplicate was the group's Keeper and the survivor is already an
-      // ordinary member of it, dropping the colliding row would quietly demote
-      // the human. Carry the hat over first, then drop. As "keeper", the role
-      // every path hands the hat on with: this wrote "admin", which a Keeper's
-      // revoke never matched (bug audit 3, T7a-07). If the duplicate STARTED
-      // the Catch-up, `createdById` moves above and keeps the survivor its
-      // Keeper whatever this row says.
-      prisma.groupMember.updateMany({
-        where: {
-          userId: targetId,
-          group: { members: { some: { userId: sourceId, role: { in: ["admin", "keeper"] } } } },
-        },
-        data: { role: "keeper" },
-      }),
-      prisma.groupMember.deleteMany({
-        where: { userId: sourceId, group: { members: { some: { userId: targetId } } } },
-      }),
-      prisma.groupMember.updateMany({ where: { userId: sourceId }, data: { userId: targetId } }),
+        // Kept.
+        await tx.post.updateMany({ where: { authorId: sourceId }, data: { authorId: targetId } });
+        await tx.comment.updateMany({ where: { authorId: sourceId }, data: { authorId: targetId } });
+        await tx.photo.updateMany({ where: { uploaderId: sourceId }, data: { uploaderId: targetId } });
+        await tx.contribution.updateMany({ where: { userId: sourceId }, data: { userId: targetId } });
+        await tx.catchupPrompt.updateMany({ where: { authorId: sourceId }, data: { authorId: targetId } });
+        // CatchupEntry carries @@unique([promptId, authorId]), so an answer the
+        // survivor already wrote to the same question blocks the move. Drop the
+        // duplicate's copy first and move the rest, rather than failing the whole
+        // merge on one shared question (audit M02).
+        await tx.catchupEntry.deleteMany({
+          where: { authorId: sourceId, prompt: { entries: { some: { authorId: targetId } } } },
+        });
+        await tx.catchupEntry.updateMany({ where: { authorId: sourceId }, data: { authorId: targetId } });
+        await tx.adminThread.updateMany({ where: { memberId: sourceId }, data: { memberId: targetId } });
+        await tx.adminMessage.updateMany({ where: { authorId: sourceId }, data: { authorId: targetId } });
 
-      // Dropped: unique-keyed engagement that would collide on the way over.
-      prisma.like.deleteMany({ where: { userId: sourceId } }),
-      prisma.commentLike.deleteMany({ where: { userId: sourceId } }),
-      prisma.bookmark.deleteMany({ where: { userId: sourceId } }),
-      prisma.pollVote.deleteMany({ where: { userId: sourceId } }),
-      prisma.photoLove.deleteMany({ where: { userId: sourceId } }),
-      prisma.catchupEntryLove.deleteMany({ where: { userId: sourceId } }),
-      prisma.catchupPref.deleteMany({ where: { userId: sourceId } }),
-      prisma.userPlace.deleteMany({ where: { userId: sourceId } }),
+        // Owned, not authored. Same shape: shed the collisions, move the rest.
+        // Who STARTED a group or a Catch-up moves whatever the survivor's
+        // standing: it is the same human, and the creator is always a Keeper
+        // (docs/spec/catchups.md 2.2). One who cannot act presses nothing,
+        // since every Keeper control waits for a verified member, and counts
+        // for nothing in succession below, so the Catch-up is still tended.
+        await tx.group.updateMany({ where: { creatorId: sourceId }, data: { creatorId: targetId } });
+        await tx.catchup.updateMany({ where: { createdById: sourceId }, data: { createdById: targetId } });
+        // If the duplicate was the group's Keeper and the survivor is already an
+        // ordinary member of it, dropping the colliding row would quietly demote
+        // the human. Carry the hat over first, then drop. As "keeper", the role
+        // every path hands the hat on with: this wrote "admin", which a Keeper's
+        // revoke never matched (bug audit 3, T7a-07). Only to a survivor who can
+        // keep it (above).
+        if (survivorCanKeep) {
+          await tx.groupMember.updateMany({
+            where: {
+              userId: targetId,
+              group: { members: { some: { userId: sourceId, role: { in: ["admin", "keeper"] } } } },
+            },
+            data: { role: "keeper" },
+          });
+        }
+        await tx.groupMember.deleteMany({
+          where: { userId: sourceId, group: { members: { some: { userId: targetId } } } },
+        });
+        // The duplicate's other memberships become the survivor's, hat and all,
+        // or as plain membership when the survivor cannot keep a hat.
+        await tx.groupMember.updateMany({
+          where: { userId: sourceId },
+          data: survivorCanKeep ? { userId: targetId } : { userId: targetId, role: "member" },
+        });
+        // Ordinary succession for every group the duplicate kept: the
+        // longest-standing member who can act, unless one already wears a hat.
+        if (!survivorCanKeep) {
+          for (const groupId of keptGroups) {
+            if (await promoteGroupSuccessor(tx, groupId, sourceId)) handedOn += 1;
+          }
+        }
 
-      // Reports: moderation history, so MOVED, never dropped (bug audit 3,
-      // T7a-01; the owner's Q1). The ones the duplicate filed become the
-      // survivor's, and the ones filed AGAINST it name the survivor, or the
-      // human behind it loses their "reported N times" (the delete below
-      // used to cascade those away). Shed first, then move, as above. Shed
-      // only what cannot exist after the move: a flag between the two
-      // accounts, which would be one member flagging themselves (reportUser
-      // refuses that), and the same complaint on file twice, which
-      // @@unique([reporterId, reportedUserId]) and the partial
-      // Report_open_post_per_reporter_key refuse. Of two flags on one person
-      // a pending one is kept over a settled one, so an open complaint never
-      // leaves the desk; otherwise the survivor's own.
-      prisma.report.deleteMany({
-        where: {
-          OR: [
-            { reporterId: sourceId, reportedUserId: targetId },
-            { reporterId: targetId, reportedUserId: sourceId },
-          ],
-        },
-      }),
-      prisma.report.deleteMany({
-        where: {
-          reporterId: targetId,
-          status: { not: "pending" },
-          reportedUser: { reportsAgainst: { some: { reporterId: sourceId, status: "pending" } } },
-        },
-      }),
-      prisma.report.deleteMany({
-        where: { reporterId: sourceId, reportedUser: { reportsAgainst: { some: { reporterId: targetId } } } },
-      }),
-      prisma.report.deleteMany({
-        where: {
-          reporterId: sourceId,
-          targetType: "post",
-          status: "pending",
-          post: { reports: { some: { reporterId: targetId, targetType: "post", status: "pending" } } },
-        },
-      }),
-      prisma.report.updateMany({ where: { reporterId: sourceId }, data: { reporterId: targetId } }),
-      prisma.report.deleteMany({
-        where: {
-          reportedUserId: targetId,
-          status: { not: "pending" },
-          reporter: { reports: { some: { reportedUserId: sourceId, status: "pending" } } },
-        },
-      }),
-      prisma.report.deleteMany({
-        where: { reportedUserId: sourceId, reporter: { reports: { some: { reportedUserId: targetId } } } },
-      }),
-      prisma.report.updateMany({ where: { reportedUserId: sourceId }, data: { reportedUserId: targetId } }),
+        // Dropped: unique-keyed engagement that would collide on the way over.
+        await tx.like.deleteMany({ where: { userId: sourceId } });
+        await tx.commentLike.deleteMany({ where: { userId: sourceId } });
+        await tx.bookmark.deleteMany({ where: { userId: sourceId } });
+        await tx.pollVote.deleteMany({ where: { userId: sourceId } });
+        await tx.photoLove.deleteMany({ where: { userId: sourceId } });
+        await tx.catchupEntryLove.deleteMany({ where: { userId: sourceId } });
+        await tx.catchupPref.deleteMany({ where: { userId: sourceId } });
+        await tx.userPlace.deleteMany({ where: { userId: sourceId } });
 
-      prisma.user.delete({ where: { id: sourceId } }),
-    ]);
+        // Reports: moderation history, so MOVED, never dropped (bug audit 3,
+        // T7a-01; the owner's Q1). The ones the duplicate filed become the
+        // survivor's, and the ones filed AGAINST it name the survivor, or the
+        // human behind it loses their "reported N times" (the delete below
+        // used to cascade those away). Shed first, then move, as above. Shed
+        // only what cannot exist after the move: a flag between the two
+        // accounts, which would be one member flagging themselves (reportUser
+        // refuses that), and the same complaint on file twice, which
+        // @@unique([reporterId, reportedUserId]) and the partial
+        // Report_open_post_per_reporter_key refuse. Of two flags on one person
+        // a pending one is kept over a settled one, so an open complaint never
+        // leaves the desk; otherwise the survivor's own.
+        await tx.report.deleteMany({
+          where: {
+            OR: [
+              { reporterId: sourceId, reportedUserId: targetId },
+              { reporterId: targetId, reportedUserId: sourceId },
+            ],
+          },
+        });
+        await tx.report.deleteMany({
+          where: {
+            reporterId: targetId,
+            status: { not: "pending" },
+            reportedUser: { reportsAgainst: { some: { reporterId: sourceId, status: "pending" } } },
+          },
+        });
+        await tx.report.deleteMany({
+          where: { reporterId: sourceId, reportedUser: { reportsAgainst: { some: { reporterId: targetId } } } },
+        });
+        await tx.report.deleteMany({
+          where: {
+            reporterId: sourceId,
+            targetType: "post",
+            status: "pending",
+            post: { reports: { some: { reporterId: targetId, targetType: "post", status: "pending" } } },
+          },
+        });
+        await tx.report.updateMany({ where: { reporterId: sourceId }, data: { reporterId: targetId } });
+        await tx.report.deleteMany({
+          where: {
+            reportedUserId: targetId,
+            status: { not: "pending" },
+            reporter: { reports: { some: { reportedUserId: sourceId, status: "pending" } } },
+          },
+        });
+        await tx.report.deleteMany({
+          where: { reportedUserId: sourceId, reporter: { reports: { some: { reportedUserId: targetId } } } },
+        });
+        await tx.report.updateMany({ where: { reportedUserId: sourceId }, data: { reportedUserId: targetId } });
+
+        await tx.user.delete({ where: { id: sourceId } });
+      },
+      // Interactive, because the hat now hangs on a read. The 5 s default is
+      // a page render's budget, not thirty statements' (the purge's reasoning,
+      // account-purge.ts); maxWait matches the pool's connection timeout.
+      { timeout: 30_000, maxWait: 5_000 }
+    );
   } catch (err) {
     console.error("adminMergeUsers failed:", err);
     return { error: "Could not merge those accounts. Nothing was changed. Check the server log." };
@@ -492,7 +539,9 @@ export async function adminMergeUsers(
     targetType: "user",
     targetId: targetId,
     ip: actor.ip,
-    detail: `merged ${sourceId} into ${targetId}`,
+    detail:
+      `merged ${sourceId} into ${targetId}` +
+      (handedOn > 0 ? `; ${handedOn} Catch-up(s) handed to another member, the survivor cannot keep one` : ""),
   });
 
   revalidateAdmin(targetId);
