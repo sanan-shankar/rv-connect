@@ -36,11 +36,13 @@ naming it (the V-L-d-01 class); the two this produced were deleted.
 
 ## 2026-10-30 (privacy) — bug audit 3, unit B3b: account deletion that finishes, on the day it says
 
-Eight rows, Phase A's routed follow-up and two notes from the write-path review of B3a, in seven
+Eight rows, Phase A's routed follow-up and two notes from the write-path review of B3a, in nine
 commits across the account purge, the admin delete and merge, the nightly sweep and its workflow,
-and the flag count. Every file this unit touched passed `npm run check` before each commit; the
-red between them was other tracks' work in flight (a comment-count refactor, the voice rule, and
-L3's progress line, whose index text does not begin with its heading).
+and the flag count. Every file this unit touched passed `npm run check` before each commit, and
+the last run was green throughout. Most of the red between them was other tracks' work in flight
+(a comment-count refactor, L3's progress line); one was this unit's own: a268a112 left
+`voice-answer-rule.test.mjs` pinning the loop it had replaced, and 1b2fc2e5 points the pin at the
+shared reader.
 
 A purge that meets another write tries again (L1-04, T7a-10, T7a-09). The purge runs at
 RepeatableRead, which refuses a write to any row changed after its snapshot instead of waiting,
@@ -64,7 +66,8 @@ time budget is spent. The purge only queues the files: an admin's delete writes 
 then drains; the sweep writes each erasure's line as its purge returns, starts no purge after 150
 seconds and drains once with the rest of its 270; the workflow now waits seven minutes and curl
 310 seconds, past the function's 300. A merge queues the files of the Catch-up answers it drops,
-which had stayed in R2 for ever.
+which had stayed in R2 for ever, and (from this unit's own write-path review, which found nothing
+higher than Low) the duplicate's avatar in the same transaction, rather than after the commit.
 
 The member goes on the day the email names (T7a-19). The email named the request's day plus
 sixty, while the sweep purged at its first run after the exact instant, so anything asked after
