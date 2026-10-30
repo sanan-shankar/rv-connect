@@ -47,6 +47,7 @@ import { continueFrom, joinHeard } from "@/lib/voice-transcript";
 import { uploadRecording, type StoredRecording } from "@/lib/voice-upload-client";
 import { cn } from "@/lib/utils";
 import { FIELD_FOCUS_WITHIN } from "@/components/ui/field-focus";
+import { startTakes, takeStep, type TakeEffect, type TakeEvent, type TakeState } from "./voice-takes";
 
 /* ── the states ────────────────────────────────────────────────────── */
 
@@ -121,6 +122,13 @@ const QUIET_RMS = 0.01;
 
 /* ── the live machine ──────────────────────────────────────────────── */
 
+/** One event through the take rules (voice-takes.ts), and what to do about it. */
+function advance(takes: { current: TakeState }, e: TakeEvent): TakeEffect[] {
+  const next = takeStep(takes.current, e);
+  takes.current = next.state;
+  return next.effects;
+}
+
 type Recognition = {
   continuous: boolean;
   interimResults: boolean;
@@ -188,6 +196,25 @@ export function useVoiceRecorder({
     hooks.current = { onTranscript, onStored };
   });
 
+  /* `state` as of now, for `retry`: it used to call `send` inside a state
+     updater, which React runs twice under Strict Mode, so Try again uploaded
+     twice on localhost (bug audit 3, L7-09). */
+  const stateRef = useRef(state);
+  useEffect(() => {
+    stateRef.current = state;
+  });
+
+  /* Which take the box is on, and so which late arrivals still count: a
+     permission granted, a recorder stopping, an upload landing. Every one of
+     them names its take, and a removed or superseded take's is ignored (bug
+     audit 3, L7-09; voice-takes.ts has the rules). */
+  const takes = useRef<TakeState>(startTakes(Boolean(initial)));
+  /* False once the question is left. A take already running still saves what
+     was said; a microphone granted after this is handed straight back. */
+  const mounted = useRef(true);
+  /** Every upload in flight, so the advance pill waits for all of them. */
+  const uploads = useRef(new Set<Promise<void>>());
+
   const live = useRef<{
     stream?: MediaStream;
     recorder?: MediaRecorder;
@@ -209,8 +236,6 @@ export function useVoiceRecorder({
     url?: string;
     /** The bytes, kept after the stop so Try again can re-send them. */
     blob?: Blob;
-    /** The upload in flight, for `settle`. */
-    uploading?: Promise<void>;
   }>({ started: 0, chunks: [], finals: [], interim: "", ended: "stopped", recording: false, loudest: 0 });
 
   const teardown = useCallback(() => {
@@ -222,18 +247,24 @@ export function useVoiceRecorder({
     void l.context?.close().catch(() => {});
   }, []);
 
-  /** Send what is in `live.blob`, and tell the composer when it lands. */
-  const send = useCallback((seconds: number, transcribed: boolean) => {
-    const l = live.current;
-    const blob = l.blob;
+  /** Send what is in `live.blob` as `take`, and tell the composer when it
+   *  lands, unless the take was removed or recorded over by then. */
+  const send = useCallback((take: number, seconds: number, transcribed: boolean) => {
+    const blob = live.current.blob;
     if (!blob) return;
     setState((p) => (p.kind === "done" ? { ...p, saving: "saving" } : p));
-    const run = uploadRecording(blob, seconds, transcribed)
+    /* `wanted` stops an unwanted take before its bytes reach the bucket, or
+       before they move to where an answer can point: staged bytes are what
+       an abandoned upload leaves (voice-upload-client.ts). */
+    const run = uploadRecording(blob, seconds, transcribed, () => takes.current.take === take)
       .then((stored) => {
+        if (!advance(takes, { type: "uploaded", take }).includes("store")) return;
         hooks.current.onStored(stored);
         setState((p) => (p.kind === "done" ? { ...p, saving: undefined } : p));
       })
       .catch((err: unknown) => {
+        // A take that was removed or recorded over stops quietly: nobody is waiting for it.
+        if (takes.current.take !== take) return;
         /* Never swallowed. The words are still on screen and the bytes are
            still in this tab, so this is recoverable -- but a save that fails
            silently is the fault audit M11 was about, and it would be worse
@@ -241,11 +272,9 @@ export function useVoiceRecorder({
            is gone. */
         console.error("[voice] the recording did not upload", err);
         setState((p) => (p.kind === "done" ? { ...p, saving: "failed" } : p));
-      })
-      .finally(() => {
-        if (live.current.uploading === run) live.current.uploading = undefined;
       });
-    l.uploading = run;
+    const tracked = run.finally(() => uploads.current.delete(tracked));
+    uploads.current.add(tracked);
   }, []);
 
   const stop = useCallback(
@@ -261,8 +290,14 @@ export function useVoiceRecorder({
 
   const start = useCallback(async () => {
     const l = live.current;
-    if (l.recording) return;
+    /* A second tap while the browser is still asking is nothing. It used to
+       pass the old `recording` check, which was set only after the await, so
+       two taps made two recorders writing into one file and left the first
+       microphone open after Done for the life of the tab (L7-09). */
+    if (!advance(takes, { type: "start" }).includes("ask")) return;
+    const take = takes.current.take;
     if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
+      advance(takes, { type: "refused", take });
       setState({ kind: "unsupported" });
       return;
     }
@@ -283,8 +318,17 @@ export function useVoiceRecorder({
         },
       });
     } catch (error) {
+      advance(takes, { type: "refused", take });
       const name = (error as DOMException)?.name;
       setState({ kind: name === "NotFoundError" || name === "OverconstrainedError" ? "nomic" : "denied" });
+      return;
+    }
+
+    /* Granted, but the take may be over: the question was left while the
+       browser asked, which used to start a recording nobody could see and
+       save it onto that answer. Hand the microphone straight back. */
+    if (!advance(takes, { type: "granted", take, mounted: mounted.current }).includes("record")) {
+      stream.getTracks().forEach((t) => t.stop());
       return;
     }
 
@@ -326,10 +370,16 @@ export function useVoiceRecorder({
     };
     recorder.onstop = () => {
       const elapsed = (performance.now() - l.started) / 1000;
+      const effects = advance(takes, { type: "stopped", take, long: elapsed >= 1 });
+      /* Too short to keep after "Record again": the box stopped showing the
+         earlier recording the moment this take began, so the answer lets it
+         go too, instead of keeping one the box no longer shows (L7-09). */
+      if (effects.includes("clear")) hooks.current.onStored(null);
       if (elapsed < 1) {
-        setState({ kind: "short" });
+        if (takes.current.take === take) setState({ kind: "short" });
         return;
       }
+      if (!effects.includes("upload")) return;
       const blob = new Blob(l.chunks, { type: recorder.mimeType });
       const url = URL.createObjectURL(blob);
       l.blob = blob;
@@ -348,7 +398,7 @@ export function useVoiceRecorder({
         quiet: l.loudest < QUIET_RMS,
       });
       hooks.current.onTranscript(transcript);
-      send(seconds, transcript.length > 0);
+      send(take, seconds, transcript.length > 0);
     };
     recorder.start(250);
     l.started = performance.now();
@@ -436,12 +486,19 @@ export function useVoiceRecorder({
   }, [clockFraction, send, stop]);
 
   useEffect(() => {
+    mounted.current = true;
     const onHidden = () => {
       if (document.visibilityState === "hidden") stop("interrupted");
     };
     document.addEventListener("visibilitychange", onHidden);
     return () => {
+      mounted.current = false;
       document.removeEventListener("visibilitychange", onHidden);
+      /* A recording still running when the question is left keeps what was
+         said, as a hidden tab does. `stop` ends the recorder itself, so its
+         last chunk and its `onstop` arrive on every browser rather than
+         depending on ending the tracks to do it. */
+      stop("interrupted");
       teardown();
     };
   }, [stop, teardown]);
@@ -452,24 +509,25 @@ export function useVoiceRecorder({
     l.url = undefined;
     l.blob = undefined;
     setState((p) => (p.kind === "done" ? { kind: "removed" } : p));
-    /* Told unconditionally, even if this recording never finished uploading:
-       the row may already point at an EARLIER recording from this session, and
-       clearing it is what takes that one off the answer and purges its bytes.
-       The words stay where they are -- `bodyWithTranscript` is the card's
-       business, and "Your words are still here" is the drawn promise. */
-    hooks.current.onStored(null);
+    /* `clear` comes back every time, even if this recording never finished
+       uploading: the row may already point at an EARLIER recording from this
+       session, and clearing it is what takes that one off the answer and
+       purges its bytes. And the take moves on, so an upload still in flight
+       is never handed over: a recording removed while it was saving used to
+       land a moment later and go back on the answer (L7-09). The words stay
+       where they are -- `bodyWithTranscript` is the card's business, and
+       "Your words are still here" is the drawn promise. */
+    if (advance(takes, { type: "remove" }).includes("clear")) hooks.current.onStored(null);
   }, []);
 
   const retry = useCallback(() => {
-    setState((p) => {
-      if (p.kind !== "done") return p;
-      send(p.seconds, p.transcribed);
-      return { ...p, saving: "saving" };
-    });
+    const s = stateRef.current;
+    if (s.kind === "done") send(takes.current.take, s.seconds, s.transcribed);
   }, [send]);
 
+  /** Resolves once every upload in flight has finished, not only the newest. */
   const settle = useCallback(async () => {
-    await live.current.uploading;
+    while (uploads.current.size > 0) await Promise.allSettled([...uploads.current]);
   }, []);
 
   return { state, clockFraction, on: { start: () => void start(), stop: () => stop("stopped"), remove, retry }, settle };
@@ -822,7 +880,15 @@ export function MicInTheBox({
               </m.div>
             ) : (
               <m.div key="mic" {...CONTROL_IN} className="shrink-0">
-                <RoundButton label="Answer out loud" onClick={on.start} size={40}>
+                {/* Disabled while the browser asks: the prompt does not block
+                    the page on a laptop, and a second press is the natural
+                    reaction to a button that seemed to do nothing. */}
+                <RoundButton
+                  label="Answer out loud"
+                  onClick={on.start}
+                  size={40}
+                  disabled={state.kind === "asking"}
+                >
                   <Microphone size={20} weight={state.kind === "asking" ? "fill" : "regular"} />
                 </RoundButton>
               </m.div>

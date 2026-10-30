@@ -40,6 +40,9 @@ export type StoredRecording = {
  *  stuck request. */
 const PUT_TIMEOUT_MS = 60_000;
 
+/** Never shown: the caller has already moved on from the take it was for. */
+const UNWANTED = "That take was removed or recorded over.";
+
 async function parse(res: Response): Promise<Record<string, unknown>> {
   return (await res.json().catch(() => ({}))) as Record<string, unknown>;
 }
@@ -50,11 +53,18 @@ async function parse(res: Response): Promise<Record<string, unknown>> {
  * Throws with a sentence the caller can show. Every refusal below already
  * carries one written for a member (the routes' own copy), and the fallbacks
  * are only for a response that arrived with no body at all.
+ *
+ * `wanted` is asked before the bytes go and before they are moved out of
+ * `staging/`. A take the member removed or recorded over stops there (bug
+ * audit 3, L7-09): before the PUT nothing is stored at all, and before
+ * finalize the bytes stay in `staging/`, which holds only uploads in flight or
+ * abandoned. One that finished finalizing first is the caller's to ignore.
  */
 export async function uploadRecording(
   blob: Blob,
   seconds: number,
-  transcribed: boolean
+  transcribed: boolean,
+  wanted: () => boolean = () => true
 ): Promise<StoredRecording> {
   const presignRes = await fetch("/api/upload/audio", {
     method: "POST",
@@ -74,6 +84,7 @@ export async function uploadRecording(
     contentType?: string;
   };
   if (!key || !signedUrl) throw new Error("The recording didn't save. Try again.");
+  if (!wanted()) throw new Error(UNWANTED);
 
   const put = await fetch(signedUrl, {
     method: "PUT",
@@ -95,6 +106,7 @@ export async function uploadRecording(
     if (put) console.warn(`[voice] direct PUT refused (${put.status})`);
     throw new Error("The recording didn't save. Check your connection and try again.");
   }
+  if (!wanted()) throw new Error(UNWANTED);
 
   const finalRes = await fetch("/api/upload/audio/finalize", {
     method: "POST",
