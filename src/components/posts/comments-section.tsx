@@ -27,6 +27,7 @@ import { useHeartToggle } from "./use-engagement";
 import { useEmailGate } from "@/components/auth/verify-email-dialog";
 import { m, AnimatePresence } from "motion/react";
 import { SPRINGS, SpringPress } from "@/components/common/motion";
+import { NO_CAPTURE } from "@/lib/posthog-privacy";
 
 interface CommentAuthor {
   id: string;
@@ -1026,10 +1027,11 @@ function CommentItem({
           taller than the avatar, but a pixel probe on the rendered row showed the avatar
           sitting only ~3px above the cluster's dead centre, not visibly off; re-check with a
           screenshot if the meta line's gap changes again. */}
+      {/* NO_CAPTURE: the label is the author's name (bug audit 3, T7b-22). */}
       <Link
         href={`/profile/${author.id}`}
         aria-label={author.name}
-        className="shrink-0 rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+        className={`${NO_CAPTURE} shrink-0 rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring`}
       >
         {/* On a comment you just wrote, the bird arrives rather than appears:
             one press of the app's own `snappy` spring, the same one every pill

@@ -4,6 +4,7 @@ import { BirdAvatar } from "@/components/common/bird-avatar";
 import { VerifiedMark } from "@/components/common/verified-mark";
 import { batchLine, metaLine } from "@/lib/utils";
 import { shortPlaceLabel } from "@/lib/normalize";
+import { NO_CAPTURE } from "@/lib/posthog-privacy";
 import type { DirectoryPerson } from "@/app/(main)/directory/select";
 
 /* ------------------------------------------------------------------ *
@@ -90,10 +91,13 @@ function Card({ user, hideCity = false }: ProfileCardProps) {
        own edge -- put the property on this Link and the shadow becomes
        a descendant's and is clipped away, which is a card that has
        quietly lost its lift. An element's own shadow is never clipped
-       by its own containment, so one level down it is safe. */
+       by its own containment, so one level down it is safe.
+       NO_CAPTURE: the whole card is a person, so a tap on it tells PostHog
+       nothing (bug audit 3, T7b-22); the profile's own pageview still counts
+       the visit. */
     <Link
       href={`/profile/${user.id}`}
-      className="group block rounded-[var(--radius)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+      className={`${NO_CAPTURE} group block rounded-[var(--radius)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring`}
     >
       {/* Below sm this is the ROW: no border, no card surface, no shadow, so a
           phone shows a plain series of people. From sm up the same lockup gains

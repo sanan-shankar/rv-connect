@@ -2,6 +2,7 @@ import type { ComponentProps, ReactNode } from "react";
 import Link from "@/components/common/link";
 import { BirdAvatar, SIZE_TOKENS, type AvatarUser } from "@/components/common/bird-avatar";
 import { cn } from "@/lib/utils";
+import { NO_CAPTURE } from "@/lib/posthog-privacy";
 
 type AvatarSize = ComponentProps<typeof BirdAvatar>["size"];
 
@@ -69,7 +70,10 @@ export function IdentityRow({
   );
 
   return (
-    <div className={cn("flex min-w-0 gap-3", className, "items-center")}>
+    /* NO_CAPTURE: avatar, name and byline are one person, so a tap anywhere on
+       the row tells PostHog nothing; the avatar link's label is the name
+       (bug audit 3, T7b-22). Callers keep their own controls outside it. */
+    <div className={cn(NO_CAPTURE, "flex min-w-0 gap-3", className, "items-center")}>
       {avatarHref ? (
         <Link
           href={avatarHref}

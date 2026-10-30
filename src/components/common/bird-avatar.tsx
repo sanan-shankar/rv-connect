@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { getInitials } from "@/lib/utils";
 import { photoSrc } from "@/lib/image-cdn";
+import { NO_CAPTURE } from "@/lib/posthog-privacy";
 import { speciesForMember } from "@/lib/avatar";
 import { BirdGlyphV2, BG_MODE, isMirrored, resolveBirdOverride } from "@/components/common/bird-avatar-v2";
 
@@ -84,13 +85,17 @@ export function BirdAvatar({
 }) {
   const px = typeof size === "number" ? size : SIZE_TOKENS[size];
   const ringStyle = ring ? { boxShadow: "0 0 0 4px var(--card)" } : undefined;
+  /* NO_CAPTURE on both shapes below: the label is the member's name, and
+     posthog-js reads every attribute of everything up the tapped chain, so an
+     avatar inside any link or button used to hand that name over (bug audit
+     3, T7b-22). */
   const base =
     "relative inline-grid place-items-center shrink-0 overflow-hidden rounded-full";
 
   if (user.photoUrl) {
     return (
       <span
-        className={`${base} ${className}`}
+        className={`${NO_CAPTURE} ${base} ${className}`}
         style={{ width: px, height: px, ...ringStyle }}
         aria-label={user.name ?? "Member"}
         role="img"
@@ -138,7 +143,7 @@ export function BirdAvatar({
     : "relative inline-grid place-items-center shrink-0";
   return (
     <span
-      className={`${v2Base} ${className}`}
+      className={`${NO_CAPTURE} ${v2Base} ${className}`}
       style={{ width: px, height: px, ...(clipped ? ringStyle : undefined) }}
       aria-label={user.name ?? "Member"}
       role="img"

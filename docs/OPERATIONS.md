@@ -349,7 +349,9 @@ mail, and this is a community's inbox, not a marketing funnel.
 
 **Fires by itself.** Read it at **https://eu.posthog.com**.
 
-Funnels, paths, search terms, conversion. Free tier is **1M events a month**.
+Funnels, paths, conversion. Not search terms any more: every `?q=` reaches PostHog as
+`q=<masked>`, and the words themselves are in the admin panel's own "What people search for".
+Free tier is **1M events a month**.
 
 **How close we are, measured rather than guessed (2026-08-25):** 63 members produced 9,219
 page views in the last thirty days. Autocapture is on, plus a pageview per client-side
@@ -380,13 +382,33 @@ addresses and photographs of other people are on that screen.
 `identify()` sends the opaque cuid plus `accountType` and `batchYear`. Never the name,
 email, city or phone. Enough to answer "which batch uses the map", nothing more.
 
+**PostHog never reads a person** (bug audit 3, T7b-22; the owner's ruling, 2026-10-29: hide
+anything showing a person, keep the rest). Autocapture records the words and every attribute
+of whatever is clicked, which sent classmates' names off directory cards and their addresses
+off mailto:/tel: links. So everything that shows a person carries `NO_CAPTURE`
+(`src/lib/posthog-privacy.ts`): names, member cards, avatars, contact rows, mentions,
+notification lines, Collection tiles, the whole admin area. A click there sends nothing;
+"Write a letter" and the like still send their labels. Three presses open no page, so they
+are counted by name instead: `contact_tapped` with which kind of contact, `photo_opened`, and
+`composer_opened` (the New post button is the member's own bird). Pageviews carry no `title`, because a profile's title is the member's name. A
+new surface that shows a person takes the class and a line in
+`src/components/analytics/posthog-rule.test.mjs`.
+
+**Signing out ends the identity** (T7b-21): every sign-out goes through `signOutOfSite`
+(`src/components/auth/sign-out.ts`), which gives the browser a fresh anonymous id, so the
+next person on it is not filed under the member who left. The nightly snapshot's
+`posthog.events` stopped counting clicks on person surfaces from that change (their
+pageviews still count), `posthog.people` counts a signed-out browser as a visitor of its own,
+and `posthog.pageviews` is untouched; none of the three is drawn in `/admin/analytics`.
+
 **Turn on freely later, all free:** feature flags, surveys, experiments. **Do not turn on:**
 session replay, and PostHog's error tracking — Sentry does that better and running both
 means every error files twice.
 
 **Own traffic:** admins are tagged `isOwner: true`. The owner's own account and the Jerry
 Maguire test account are opted out of capture entirely (`src/lib/stats-exclusion.ts`), and the
-same two accounts are left out of every activity number in `/admin/analytics`. The database
+same two accounts are left out of every activity number in `/admin/analytics`. The opt-out
+stays on their browser after they sign out; a member who signs in there afterwards lifts it. The database
 side records visits, searches and views only on the production deployment; `PRESENCE_IN_DEV=1`
 turns that back on locally when the recording itself needs proving.
 

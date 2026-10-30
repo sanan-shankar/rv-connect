@@ -12,6 +12,7 @@ import type { Feature, Geometry } from "geojson";
 import { IdentityRow } from "@/components/common/identity-row";
 import { batchLine, cn, metaLine } from "@/lib/utils";
 import { useBackCloses } from "@/lib/back-closes";
+import { NO_CAPTURE } from "@/lib/posthog-privacy";
 import {
   buildGroups,
   maxUsefulZoom,
@@ -888,7 +889,8 @@ export function AlumniMap({
                   // state-layer: these rows sit on the sheet's own surface,
                   // where the accent swap was at or below the just-noticeable
                   // threshold. The layer reads the same on every surface.
-                  className="group block rounded-[var(--radius-md)] px-2 py-2 state-layer active:scale-[0.99] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                  // NO_CAPTURE: each row is a person (bug audit 3, T7b-22).
+                  className={`${NO_CAPTURE} group block rounded-[var(--radius-md)] px-2 py-2 state-layer active:scale-[0.99] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring`}
                 >
                   <IdentityRow
                     user={{ id: p.id, name: p.name, photoUrl: p.photoUrl, birdOverride: p.birdOverride }}

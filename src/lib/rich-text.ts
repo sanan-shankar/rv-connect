@@ -13,6 +13,8 @@
  *  went with the character-based "Read more" on 2026-09-12.)
  * ------------------------------------------------------------------ */
 
+import { NO_CAPTURE } from "./posthog-privacy.ts"
+
 /**
  * The composer's wire-format mention: `@[Name](userId)`. The id capture is a
  * strict charset, NOT `[^)]+` -- see the note at its one call site in
@@ -180,8 +182,9 @@ export function renderRichText(
     /* The name alone, no "@": what the composer shows once someone is tagged
        (lib/mention-editing.ts, the owner's "like iMessage"), so a post reads
        as it was written. `data-mention-id` lets a draft or an edit come back
-       into the composer as a tag rather than a link (serializeNode). */
-    '<a href="/profile/$2" data-mention-id="$2" class="font-semibold text-leaf hover:underline">$1</a>'
+       into the composer as a tag rather than a link (serializeNode).
+       NO_CAPTURE: the words are a member's name (bug audit 3, T7b-22). */
+    `<a href="/profile/$2" data-mention-id="$2" class="${NO_CAPTURE} font-semibold text-leaf hover:underline">$1</a>`
   )
 
   // 4. Links back in, as whole anchors. The url is escaped on its own, which is

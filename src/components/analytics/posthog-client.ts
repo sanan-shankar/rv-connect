@@ -1,4 +1,5 @@
 import type { PostHog } from "posthog-js";
+import { MASKED_QUERY_PARAMS, maskSearchWords } from "@/lib/posthog-privacy";
 
 /* ------------------------------------------------------------------ *
  *  Loading posthog-js, late and exactly once.
@@ -50,6 +51,15 @@ const ready = new Promise<PostHog | null>((resolve) => {
 
 let started = false;
 
+/* Localhost throws events all day while building and would pollute every
+ * funnel with the developer's own clicking, so a dev server is opted out.
+ * NEXT_PUBLIC_POSTHOG_DEV exists so the wiring itself can be proved to work
+ * from a dev server -- otherwise the only way to test a change here is to ship
+ * it. Exported because posthog-identify.tsx must not lift this opt-out when it
+ * lifts the owner's. */
+export const DEV_SILENCED =
+  process.env.NODE_ENV === "development" && process.env.NEXT_PUBLIC_POSTHOG_DEV !== "1";
+
 function start(): void {
   if (started) return;
   started = true;
@@ -81,13 +91,27 @@ function start(): void {
            * Replay records the actual screen. This is a private alumni network:
            * real names, home addresses, phone numbers and photographs of other
            * people are on that screen. Watching a member browse is a different
-           * act from counting which pages get opened, and the owner said off. */
+           * act from counting which pages get opened, and the owner said off.
+           * Were it ever turned on, everything carrying NO_CAPTURE
+           * (src/lib/posthog-privacy.ts) would be blanked in it: that class is
+           * replay's own block class in posthog-js. */
           disable_session_recording: true,
 
           /* Autocapture: every click and pageview recorded without naming it
            * first. This is what lets a question be asked in three months that
            * nobody thought to instrument today, which is what the owner meant
-           * by "everything possible". */
+           * by "everything possible".
+           *
+           * A click carries the words on what was pressed and every attribute
+           * on it and its ancestors, a link's href included, so it used to
+           * carry a classmate's name off a directory card and their address
+           * off a mailto: in their contact card (bug audit 3, T7b-22). The
+           * owner's ruling, 2026-10-29: hide anything that shows a person and
+           * keep the rest. So a name, a member card, an avatar and a contact
+           * row carry NO_CAPTURE, and a click on one is not sent at all;
+           * "Write a letter" and "Save contact card" still are. Masking every
+           * word (`mask_all_text`) was the other option, and he did not take
+           * it. */
           autocapture: true,
 
           /* App Router does a client-side navigation on every link, which fires
@@ -126,28 +150,36 @@ function start(): void {
            * OTHER element, and autocapture identifies what somebody clicked by the
            * attributes on it. Turning it on would keep nothing extra from an input
            * and would blind the "ask a question in three months" purpose above.
+           * Nor would it keep a contact out: posthog-js writes the pressed link's
+           * href onto the event after the attribute loop, whatever this says.
+           * NO_CAPTURE is what keeps a person out.
            *
            * mask_personal_data_properties is about event PROPERTIES rather than
-           * elements -- the URL, the referrer -- and it is on because an address or
-           * a card number that appeared in a query string is not analytics data. */
+           * elements: it masks the ad networks' click ids (gclid, fbclid and the
+           * rest) wherever posthog-js records a URL. custom_personal_data_properties
+           * adds the site's own word to that list, `q`, the words typed into a
+           * search, which are as often as not a classmate's name; PostHog sees
+           * `q=<masked>`. The library leaves the referrer as the browser gave it,
+           * so before_send masks the same word there (posthog-privacy.ts). */
           mask_all_element_attributes: false,
           mask_personal_data_properties: true,
+          custom_personal_data_properties: MASKED_QUERY_PARAMS,
+          before_send: maskSearchWords,
+
+          /* No page titles. posthog-js stamps document.title on every pageview,
+           * and a page's title is its own words: a profile's is the member's
+           * name, a photograph's is its caption with the tagged names in it. The
+           * path already says which page it was, so the title adds nothing a
+           * person-free event could keep. */
+          property_denylist: ["title"],
 
           /* A member who has asked their browser not to be tracked is not
            * tracked. Costs a little data and is obviously right. */
           respect_dnt: true,
 
-          /* Localhost throws events all day while building and would pollute
-           * every funnel with the developer's own clicking. NEXT_PUBLIC_POSTHOG_DEV
-           * exists so the wiring itself can be proved to work from a dev server --
-           * otherwise the only way to test a change here is to ship it. */
+          /* See DEV_SILENCED above. */
           loaded: (ph) => {
-            if (
-              process.env.NODE_ENV === "development" &&
-              process.env.NEXT_PUBLIC_POSTHOG_DEV !== "1"
-            ) {
-              ph.opt_out_capturing();
-            }
+            if (DEV_SILENCED) ph.opt_out_capturing();
           },
         });
       }
@@ -191,5 +223,33 @@ export function schedulePostHog(): void {
 export function whenPostHog(fn: (ph: PostHog) => void): void {
   void ready.then((ph) => {
     if (ph) fn(ph);
+  });
+}
+
+/* Ends the analytics identity on this browser, so whoever uses it next is
+ * someone new to PostHog (bug audit 3, T7b-21). Every sign-out runs it, through
+ * src/components/auth/sign-out.ts.
+ *
+ * Without it the landing page after a sign-out, and anything the next person
+ * browsed signed out, was filed under the member who had left; and identify()
+ * for the next member switched ids without merging, so their first pages
+ * stayed filed under the first. A full page load does not end an identity:
+ * posthog-js keeps it in localStorage and a cookie precisely so that it
+ * survives one. The ready promise has settled long before anyone reaches a
+ * sign-out button, so the reset lands in a microtask, ahead of the sign-out's
+ * first network reply; a sign-out inside the first moment of a page, before
+ * posthog-js has arrived, has nothing to reset and leaves the old id for the
+ * next sign-in to replace.
+ *
+ * reset() clears consent too, so an opt-out is put back: the owner's and the
+ * test account's, which stays on their own devices after they leave, as it
+ * always has; a dev server's (DEV_SILENCED); a Do Not Track browser's, which
+ * posthog-js honours regardless. A member who signs in next lifts the first
+ * kind (posthog-identify.tsx). */
+export function endPostHogIdentity(): void {
+  whenPostHog((ph) => {
+    const optedOut = ph.has_opted_out_capturing();
+    ph.reset();
+    if (optedOut) ph.opt_out_capturing();
   });
 }

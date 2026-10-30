@@ -24,11 +24,15 @@
  *  DOM only; the composer holds the React state.
  * ------------------------------------------------------------------ */
 
+import { NO_CAPTURE } from "./posthog-privacy.ts";
+
 /** The token's look: a published mention's weight and ink (rich-text.ts), and
  *  one line always, as a tag is in Messages. Without nowrap the wave's
  *  letter-by-letter spans let a long name break mid-word ("Lakshmipr / iya")
- *  and then jump back when the wave ended. */
-const TOKEN_CLASS = "whitespace-nowrap font-semibold text-leaf";
+ *  and then jump back when the wave ended. NO_CAPTURE, like the published
+ *  mention: a tap on a token would hand PostHog the name (bug audit 3,
+ *  T7b-22). */
+const TOKEN_CLASS = `${NO_CAPTURE} whitespace-nowrap font-semibold text-leaf`;
 
 /** Make every mention in hydrated HTML (a resumed draft, an edited post)
  *  a token, rather than a link the caret can wander into. */

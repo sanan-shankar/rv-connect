@@ -38,6 +38,7 @@ import {
 } from "@/app/(main)/notifications/actions";
 import { useRouter } from "next/navigation";
 import { SPRINGS, EASE_POP } from "@/components/common/motion";
+import { NO_CAPTURE } from "@/lib/posthog-privacy";
 import {
   decrementUnread,
   getUnread,
@@ -455,10 +456,13 @@ function NotificationPanel({
         {notifications.map((notif) => {
           const { icon: Icon, heart, label } = notificationIconMeta(notif.type);
           return (
+            /* NO_CAPTURE: the line is "<a member> replied to you" and its
+               like, so a tap on it hands PostHog nothing (bug audit 3,
+               T7b-22); the page it opens is still counted. */
             <DropdownMenuItem
               key={notif.id}
               onClick={() => onClickNotification(notif)}
-              className={`items-start gap-2.5 px-3 py-2 ${!notif.read ? "bg-leaf/5" : ""}`}
+              className={`${NO_CAPTURE} items-start gap-2.5 px-3 py-2 ${!notif.read ? "bg-leaf/5" : ""}`}
             >
               <span
                 aria-hidden

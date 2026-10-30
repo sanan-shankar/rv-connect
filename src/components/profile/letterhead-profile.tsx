@@ -90,7 +90,7 @@ import {
   type ProfileField,
 } from "@/components/profile/profile-actions";
 import { saveOnboardingHouses } from "@/components/onboarding/actions";
-import { signOut } from "next-auth/react";
+import { signOutOfSite } from "@/components/auth/sign-out";
 import {
   Dialog,
   DialogContent,
@@ -100,6 +100,7 @@ import {
 } from "@/components/ui/dialog";
 import { FULL_NAME_MAX, cn } from "@/lib/utils";
 import { formatPhoneDisplay } from "@/lib/phone";
+import { NO_CAPTURE } from "@/lib/posthog-privacy";
 import type { HouseYearEntry } from "@/lib/houses";
 import type { HouseSpan } from "@/lib/house-spans";
 
@@ -919,11 +920,14 @@ export function LetterheadProfile({
                         </span>
                       </span>
                     ) : admissionNumber ? (
+                      /* NO_CAPTURE: the label and the words are this member's
+                         admission number (bug audit 3, T7b-22). The editable
+                         mark above says only "Stamp the sheet". */
                       <button
                         type="button"
                         onClick={fireStamp}
                         aria-label={`Admission number ${admissionNumber}. Press to stamp the sheet.`}
-                        className="flex h-[var(--lh-colophon)] w-fit items-center gap-[9px] rounded-sm text-cinnamon transition-opacity duration-150 hover:opacity-75 active:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                        className={`${NO_CAPTURE} flex h-[var(--lh-colophon)] w-fit items-center gap-[9px] rounded-sm text-cinnamon transition-opacity duration-150 hover:opacity-75 active:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring`}
                       >
                         <PeaksMark size={COLOPHON.markSize} />
                         <span
@@ -1525,7 +1529,7 @@ export function LetterheadProfile({
                       setDeleteError(result.error);
                       return;
                     }
-                    signOut({ callbackUrl: "/" });
+                    void signOutOfSite();
                   } finally {
                     // finally, not a trailing statement: a rejected call used to
                     // leave the dialog stuck on "Scheduling..." forever, with no
@@ -1694,8 +1698,13 @@ function PerchedBird({
            to go about it"). The sink also put the bird on its own composited
            layer for the duration, which is where the faint extra shadow under
            it on click was coming from; without a transform there is no layer
-           and no second shadow. The chirp below is the entire feedback. */
-        className="group/slot relative block rounded-full outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+           and no second shadow. The chirp below is the entire feedback.
+           NO_CAPTURE while the label names the member (bug audit 3, T7b-22);
+           "Add a profile photo" names nobody and keeps its click. */
+        className={cn(
+          "group/slot relative block rounded-full outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+          !live && NO_CAPTURE
+        )}
       >
         {/* The bird steps aside and an empty photo slot takes its place
             (owner, 2026-08-07: "just disappear the bird and have a circle

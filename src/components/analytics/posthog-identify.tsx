@@ -1,24 +1,27 @@
 "use client";
 
 import { useEffect } from "react";
-import { whenPostHog } from "./posthog-client";
+import { DEV_SILENCED, whenPostHog } from "./posthog-client";
 
 /* Attaches events to a member so a funnel can follow one person across a
  * session and across devices. Rendered from the (main) layout, which already
  * has the session, so no extra query.
  *
- * WHAT IS SENT: the user id and two coarse attributes. NOT the name, NOT the
+ * WHAT THIS SENDS: the user id and two coarse attributes. NOT the name, NOT the
  * email, NOT the city, NOT the phone number. PostHog does not need to know who
  * anyone is to answer "which batch uses the map view"; it only needs to be
- * able to tell one person from another, and an opaque cuid does that.
+ * able to tell one person from another, and an opaque cuid does that. This
+ * used to be the whole promise while autocapture sent other members' names
+ * and contact details off every click (bug audit 3, T7b-22); what keeps those
+ * out now is NO_CAPTURE and the masking in posthog-client.ts.
  *
  * `isOwner` tags every admin, so PostHog's Filter out internal users can hide
  * them from a chart. The owner's own account and the test account go further
  * and are opted out of capture entirely (owner, 2026-09-15: his own machine
  * had skewed the OS and platform numbers). See src/lib/stats-exclusion.ts.
  * The opt-out is stored in this browser and outlives signing out, which is
- * right for the owner's own devices and wrong only if a member later signs
- * in on one of them. */
+ * right for the owner's own devices; a member who signs in on one of them
+ * afterwards lifts it below, or nothing of theirs would ever be counted. */
 export function PostHogIdentify({
   userId,
   accountType,
@@ -47,10 +50,24 @@ export function PostHogIdentify({
      *
      * And no reset() on the way out: the layout unmounts on navigation and
      * resetting there would break every cross-page funnel. Sign-out is the
-     * only place an identity should end, and that is a full page load. */
+     * only place an identity should end, and it ends there explicitly
+     * (endPostHogIdentity, bug audit 3, T7b-21): a full page load does not
+     * end one, whatever this comment used to say.
+     *
+     * The opt-in is the other half of that lifecycle. Without
+     * `captureEventName: false` it would send an `$opt_in` event, one more in
+     * the nightly snapshot's count each time; it never runs on a dev server,
+     * whose opt-out is for a different reason; and Do Not Track still wins,
+     * because posthog-js reads it before any stored choice. */
     whenPostHog((ph) => {
-      if (excluded) ph.opt_out_capturing();
-      else ph.identify(userId, { accountType, batchYear, isOwner });
+      if (excluded) {
+        ph.opt_out_capturing();
+        return;
+      }
+      if (!DEV_SILENCED && ph.has_opted_out_capturing()) {
+        ph.opt_in_capturing({ captureEventName: false });
+      }
+      ph.identify(userId, { accountType, batchYear, isOwner });
     });
   }, [userId, accountType, batchYear, isOwner, excluded]);
 

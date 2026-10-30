@@ -1,3 +1,39 @@
+## 2026-10-30 (privacy) — bug audit 3, unit B2: PostHog stops reading people, and a sign-out ends its identity
+
+Two rows, one commit: T7b-22 and T7b-21 share the PostHog client, the identify component and the
+test that pins both.
+
+T7b-22, his Q10 (a). Autocapture sent the words and every attribute of whatever was clicked, so a
+classmate's name left off a directory card and their address off a mailto: link in their contact
+card, under the tapper's identity. Everything that shows a person now carries `NO_CAPTURE`
+(`src/lib/posthog-privacy.ts`: PostHog's own `ph-no-capture`, as a constant so a typo cannot leak):
+the directory card, `IdentityRow`, `PersonName`, `BirdAvatar`, contact rows, mentions (rendered and
+in the composer), notification lines, Collection tiles, the viewer's byline, comment avatars, map
+rows, the profile's bird and admission number, and the admin area (a `display: contents` wrapper,
+measured to move nothing). Pageviews lose `title` (a profile's is the member's name) and every
+`?q=` reaches PostHog as `q=<masked>`, referrers included. Contact taps, photo opens and composer
+opens open no page, so they are counted by name, without the person. Masking every word was his
+option (b), not taken: "Write a letter" still sends its label. Proved in a browser on the installed
+posthog-js 1.418.1 with the site's options and a recorder that sent nothing: the bare mailto link
+sent its address as text and as `attr__href`, the same link inside the class sent no event, the
+title was gone, and URL and referrer both read `q=<masked>`.
+
+The admin panel, his condition: it reads fifteen `db.*` trends and its own tables, nothing from
+PostHog. The nightly snapshot takes three PostHog numbers, none drawn: pageviews is untouched, events
+no longer counts clicks on person surfaces (their pageviews still count), and people counts a
+signed-out browser as its own visitor.
+
+T7b-21. Signing out never reset PostHog, and the owner's opt-out outlived his sign-out with nothing
+to lift it. Both sign-out buttons now go through `signOutOfSite`, which resets and puts an opt-out
+back (reset() clears consent, proved); a member who signs in afterwards lifts it, without an
+`$opt_in` event. The real Sign out, pressed as the test account: a fresh id, the opt-out kept.
+
+`posthog-rule.test.mjs` pins all of it, including how the installed library treats the class, and
+its patterns fail on the old code. Not done: Catch-ups components still name people in their own
+links (track 1's files), and the privacy page sentence (a later unit). Found, not fixed: a
+password-reset link's live `?token=` and a Catch-up invite's path token both reach PostHog's
+`$current_url`.
+
 ## 2026-10-29 (scripts) — bug audit 3, unit L1: the laptop scripts open the database verified and in UTC, and stop writing to real members
 
 Nine rows, nine commits, all in `scripts/`. None was proved by running the script it fixes: the

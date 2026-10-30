@@ -23,6 +23,8 @@ import { cn } from "@/lib/utils";
 import type { BandBox } from "@/lib/river-geometry";
 import { preloadImageViewer } from "@/components/common/lazy-image-viewer";
 import { mentionsAsNames } from "@/lib/rich-text";
+import { NO_CAPTURE } from "@/lib/posthog-privacy";
+import { whenPostHog } from "@/components/analytics/posthog-client";
 
 /** Scroll the document to `want`, LENGTHENING IT FIRST if it is too short
  *  to get there. A scroll position only exists if there is document below
@@ -100,7 +102,13 @@ function TileInner({
   return (
     <button
       type="button"
-      onClick={onOpen}
+      onClick={() => {
+        // The open, without whose photograph: NO_CAPTURE below takes the
+        // whole autocaptured click, and opening the viewer changes no address
+        // a pageview could count instead.
+        whenPostHog((ph) => ph.capture("photo_opened"));
+        onOpen();
+      }}
       onPointerEnter={preloadImageViewer}
       onFocus={preloadImageViewer}
       aria-label={said || `Photograph by ${photo.uploader.name}`}
@@ -114,8 +122,12 @@ function TileInner({
          off. The owner, 2026-09-09: "I don't think they do corner rounding. I
          don't think we should either for anyone in the collection." Square
          here and nowhere else: a photograph in a POST is a card and keeps its
-         radius. */
-      className="group relative block w-full overflow-hidden bg-paper text-left transition-opacity duration-150 active:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+         radius.
+         NO_CAPTURE: the label and the picture's alt are its caption with the
+         tagged names in it, or the uploader's name, and the overlay prints
+         that name too (bug audit 3, T7b-22). The open itself is still
+         counted, by the named event in onClick above. */
+      className={`${NO_CAPTURE} group relative block w-full overflow-hidden bg-paper text-left transition-opacity duration-150 active:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring`}
       /* The photograph's OWN shape, which is what makes the row justified:
          PhotoStream has already solved the width, and the height follows from
          the ratio, so every tile in a row comes out the same height with

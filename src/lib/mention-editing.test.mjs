@@ -36,8 +36,9 @@ test("the composer inserts a token, waves it, and underlines typed names", () =>
   assert.doesNotMatch(form, /createTextNode\(`@\[/, "the raw markup is being typed into the box again");
   assert.match(form, /onClick=\{handleEditorClick\}/, "a typed name can no longer be tapped to tag it");
   const editing = decomment(read("src/lib/mention-editing.ts"));
-  // One line always, or the wave's letters let a name break mid-word.
-  assert.match(editing, /const TOKEN_CLASS = "whitespace-nowrap font-semibold text-leaf";/);
+  // One line always, or the wave's letters let a name break mid-word. And kept
+  // out of PostHog, like a published mention (T7b-22).
+  assert.match(editing, /const TOKEN_CLASS = `\$\{NO_CAPTURE\} whitespace-nowrap font-semibold text-leaf`;/);
 });
 
 test("the underline rule stays out of globals.css, which the build cannot parse it in", () => {

@@ -95,6 +95,7 @@ import { cn } from "@/lib/utils";
 import { useBackCloses } from "@/lib/back-closes";
 import { photoSaveName } from "@/lib/photo-save-name";
 import { renderRichText } from "@/lib/rich-text";
+import { NO_CAPTURE } from "@/lib/posthog-privacy";
 
 export interface ViewerImage {
   /** What the viewer opens. For a Collection photograph this is its screen
@@ -1102,11 +1103,12 @@ export function ImageViewer({
                   {current.author &&
                     // The byline walks to the author's profile when we know who
                     // they are (id is optional on AvatarUser); navigating
-                    // naturally closes the viewer with the page.
+                    // naturally closes the viewer with the page. NO_CAPTURE:
+                    // the byline is the author's name (bug audit 3, T7b-22).
                     (current.author.id ? (
                       <Link
                         href={`/profile/${current.author.id}`}
-                        className="flex min-w-0 items-center gap-2.5 rounded-full transition-opacity duration-150 hover:opacity-80 active:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/70"
+                        className={`${NO_CAPTURE} flex min-w-0 items-center gap-2.5 rounded-full transition-opacity duration-150 hover:opacity-80 active:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/70`}
                       >
                         {byline}
                       </Link>

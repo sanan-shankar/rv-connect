@@ -2,7 +2,7 @@
 
 import Link from "@/components/common/link";
 import { usePathname } from "next/navigation";
-import { signOut } from "next-auth/react";
+import { signOutOfSite } from "@/components/auth/sign-out";
 import {
   Newspaper,
   Notebook,
@@ -482,7 +482,7 @@ function AccountSection({
             {!demo && (
             <m.button
               type="button"
-              onClick={() => signOut({ callbackUrl: "/" })}
+              onClick={() => signOutOfSite()}
               variants={ACCOUNT_INK}
               className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[14px] font-medium text-sidebar-foreground-idle transition-colors hover:bg-sidebar-hover hover:text-sidebar-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sidebar-ring"
             >

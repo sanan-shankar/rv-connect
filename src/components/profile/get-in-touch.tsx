@@ -27,6 +27,8 @@ import {
 } from "@/components/ui/dialog";
 import { VerifyEmailDialog } from "@/components/auth/verify-email-dialog";
 import { MemberVerifyDialog } from "@/components/auth/member-verify-dialog";
+import { NO_CAPTURE } from "@/lib/posthog-privacy";
+import { whenPostHog } from "@/components/analytics/posthog-client";
 
 export interface ContactMethod {
   kind: "email" | "phone" | "instagram" | "linkedin" | "website";
@@ -89,11 +91,18 @@ function ReachRow({ method }: { method: ContactMethod }) {
 
   return (
     <div className="flex items-center">
+      {/* NO_CAPTURE: the href IS the member's address or number, and a tap on
+          it used to hand both the href and the words to PostHog under the
+          tapper's name (bug audit 3, T7b-22). The tap is still counted, as
+          which kind of contact and never whose, by the named event: it opens
+          a mail app or a dialler, so no pageview would count it instead. The
+          copy button beside it says only "Copy email" and keeps its click. */}
       <a
         href={method.href}
         target={method.external ? "_blank" : undefined}
         rel={method.external ? "noopener noreferrer" : undefined}
-        className="state-layer -mx-2 flex min-w-0 flex-1 items-center gap-3.5 rounded-[10px] px-2 py-2.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+        onClick={() => whenPostHog((ph) => ph.capture("contact_tapped", { method: method.kind }))}
+        className={`${NO_CAPTURE} state-layer -mx-2 flex min-w-0 flex-1 items-center gap-3.5 rounded-[10px] px-2 py-2.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring`}
       >
         {/* Canopy on light; --canopy is byte-identical in both themes by brand
             policy, so on the dark card it all but vanishes and the icon takes

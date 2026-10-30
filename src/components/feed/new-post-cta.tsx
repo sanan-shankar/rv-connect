@@ -4,6 +4,7 @@ import { Plus } from "lucide-react";
 import { m } from "motion/react";
 import { BirdAvatar, type AvatarUser } from "@/components/common/bird-avatar";
 import { SPRINGS } from "@/components/common/motion";
+import { whenPostHog } from "@/components/analytics/posthog-client";
 import { OWN_BIRD_LAYOUT_ID, useNewPostDock } from "./new-post-dock";
 
 /**
@@ -28,6 +29,10 @@ export function NewPostCTA({ user }: { user: AvatarUser }) {
 
   function press() {
     if (!out) {
+      // Counted by name: the press lands on the member's own bird, which is
+      // NO_CAPTURE (its label is their name), so autocapture no longer sends
+      // it, and opening the composer changes no address (bug audit 3, T7b-22).
+      whenPostHog((ph) => ph.capture("composer_opened"));
       openComposer();
       return;
     }
