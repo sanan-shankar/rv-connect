@@ -70,8 +70,10 @@ export function valleyDayStart(now: Date = new Date()): Date {
   return valleyMidnight(valleyDayKey(now))
 }
 
-export function formatTimeAgo(date: Date): string {
-  const now = new Date()
+/** `now` is the moment to measure from. Every caller leaves it to the clock;
+ *  valley-day.test.mjs pins it, because a test that reads the clock passes or
+ *  fails by the hour it runs (bug audit 3, L3-06). */
+export function formatTimeAgo(date: Date, now: Date = new Date()): string {
   const seconds = Math.floor((now.getTime() - date.getTime()) / 1000)
 
   if (seconds < 60) return "just now"

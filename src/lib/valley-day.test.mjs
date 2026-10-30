@@ -57,24 +57,38 @@ test("formatTimeAgo: the older-than-four-weeks fallback is an IST date too", () 
 test("formatTimeAgo: the year is printed only when it is not this one", () => {
   /* On a thread of eighteen comments the repeated current year said nothing,
      while the archive runs back decades and genuinely needs it. So: silent on
-     a date in this year, printed on any other. Built from the clock rather
-     than hard-coded, because a hard-coded year makes this test start failing
-     on 1 January. */
-  const thisYear = new Date().getFullYear();
-  /* Mid-year and mid-day, so neither the IST offset nor a month boundary can
-     push either date into a neighbouring year. */
-  const inThisYear = new Date(`${thisYear}-06-15T06:00:00Z`);
-  const longAgo = new Date(`${thisYear - 6}-06-15T06:00:00Z`);
+     a date in this year, printed on any other.
 
-  assert.equal(formatTimeAgo(longAgo), `15 Jun ${thisYear - 6}`);
+     "This year" is the valley's, and both sides of its new year are pinned
+     here rather than read off the machine. The old version built this year
+     from the runner's own calendar and held it against the valley's, so from
+     18:30 to 24:00 UTC every 31 December -- 00:00 to 05:30 IST on 1 January --
+     CI and every western laptop went red on it (bug audit 3, L3-06). */
+  const written = new Date("2026-06-15T06:00:00Z");
+  // 23:59 IST on 31 December: still 2026 in the valley.
+  assert.equal(formatTimeAgo(written, new Date("2026-12-31T18:29:00Z")), "15 Jun");
+  // 00:00 IST on 1 January: 2027 in the valley, still 31 December in UTC and London.
+  assert.equal(formatTimeAgo(written, new Date("2026-12-31T18:30:00Z")), "15 Jun 2026");
+  assert.equal(formatTimeAgo(new Date("2020-06-15T06:00:00Z"), new Date("2026-12-31T18:29:00Z")), "15 Jun 2020");
+});
 
-  /* The in-year date only reaches the fallback when it is over four weeks old,
-     which for 15 June is true for roughly half the year. Assert the rule where
-     it applies and skip it where "3w ago" is the correct answer. */
-  const fourWeeks = 28 * 24 * 60 * 60 * 1000;
-  if (Date.now() - inThisYear.getTime() > fourWeeks) {
-    assert.equal(formatTimeAgo(inThisYear), "15 Jun");
-  }
+test("no test reads the machine's own calendar off the real clock", () => {
+  /* `new Date().getFullYear()` is the RUNNER's year: UTC on CI, London on the
+     owner's laptop, the valley's only in the valley. A test built on it
+     passes or fails by the hour it runs, which is how the one above went red
+     every New Year's Eve (L3-06). Pin an instant, or ask valleyYear(). */
+  const tests = ["src", "scripts"].flatMap((dir) =>
+    walk(resolve(ROOT, dir), { match: /\.test\.mjs$/ })
+  );
+  assert.ok(tests.length >= 60, `only ${tests.length} test files found; this sweep has drifted`);
+  const offenders = tests
+    .filter((full) =>
+      /new Date\(\s*(?:Date\.now\(\s*\)\s*)?\)\s*\.get(?:FullYear|Month|Date|Day|Hours|Minutes)\s*\(/.test(
+        decomment(readFileSync(full, "utf8"))
+      )
+    )
+    .map((full) => relative(ROOT, full));
+  assert.deepEqual(offenders, [], `tests that read the runner's calendar:\n${offenders.join("\n")}`);
 });
 
 test("valleyDayKey / valleyMidnight: the day boundary sits at 18:30 UTC", () => {
