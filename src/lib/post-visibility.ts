@@ -39,9 +39,10 @@ const GUARD_SELECT = {
   targetBatches: true,
   isHidden: true,
   status: true,
-  // The author's standing, for the blocked-author rule (audit Low 78). A join
-  // on the primary key, so it costs nothing next to the row fetch itself.
-  author: { select: { isBlocked: true } },
+  // The author's standing, for the blocked- and leaving-author rules (audit
+  // Low 78; bug audit 3, L10-02). A join on the primary key, so it costs
+  // nothing next to the row fetch itself.
+  author: { select: { isBlocked: true, deletionRequestedAt: true } },
 } as const;
 
 /**
@@ -58,11 +59,18 @@ const guardedPost = cache((postId: string) =>
   prisma.post.findUnique({ where: { id: postId }, select: GUARD_SELECT })
 );
 
-/** Flatten the author join into the flag the pure rule reads. */
-function shaped(row: {
-  author: { isBlocked: boolean } | null;
-} & Omit<GuardedPost, "authorIsBlocked">): GuardedPost {
-  return { ...row, authorIsBlocked: row.author?.isBlocked ?? false };
+/** Flatten the author join into the flags the pure rule reads. */
+function shaped({
+  author,
+  ...row
+}: {
+  author: { isBlocked: boolean; deletionRequestedAt: Date | null } | null;
+} & Omit<GuardedPost, "authorIsBlocked" | "authorIsLeaving">): GuardedPost {
+  return {
+    ...row,
+    authorIsBlocked: author?.isBlocked ?? false,
+    authorIsLeaving: author?.deletionRequestedAt != null,
+  };
 }
 
 /** Fetch only the facts the rule actually consults, and only when it will. */

@@ -26,7 +26,8 @@ type DenialReason =
   | "draft"
   | "other-city"
   | "other-batch"
-  | "author-blocked";
+  | "author-blocked"
+  | "author-leaving";
 
 export type GuardedPost = {
   id: string;
@@ -39,6 +40,10 @@ export type GuardedPost = {
    *  Optional so a caller that has not fetched it is treated as "in good
    *  standing" rather than silently hiding everything. */
   authorIsBlocked?: boolean;
+  /** Whether the author has asked for their account to be deleted and is
+   *  inside the sixty days before it is (the owner's Q22, bug audit 3
+   *  L10-02). Optional for the same reason as the flag above. */
+  authorIsLeaving?: boolean;
 };
 
 export type PostVisibility =
@@ -208,6 +213,12 @@ export function decidePostVisibility(
      Below the author exemption too, though a blocked account cannot sign in to
      use it. */
   if (post.authorIsBlocked) return { ok: false, reason: "author-blocked" };
+
+  /* The same for a member waiting out the sixty days before their account is
+     erased: the feed no longer lists their writing (AUTHOR_IN_GOOD_STANDING),
+     so a link to it must not open it either. Signing back in cancels the
+     request, and the post answers again. */
+  if (post.authorIsLeaving) return { ok: false, reason: "author-leaving" };
 
   if (post.isHidden) return { ok: false, reason: "hidden" };
 

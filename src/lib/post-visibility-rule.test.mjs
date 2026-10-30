@@ -305,6 +305,49 @@ test("a caller that never fetched the author's standing is not told everything i
 });
 
 /* ------------------------------------------------------------------ *
+ *  Leaving authors (the owner's Q22, bug audit 3 L10-02): a member inside
+ *  the sixty days after "Delete my account" is out of good standing like
+ *  a blocked one. Their profile already answered 404 to everyone; their
+ *  writing stayed up under that dead name, and search still found it.
+ * ------------------------------------------------------------------ */
+
+const byLeaving = { ...byBlocked, id: "p6", authorIsBlocked: false, authorIsLeaving: true };
+
+test("a leaving member's post is not available to other members", () => {
+  const seen = decidePostVisibility(byLeaving, { id: "bo" }, anyone);
+  assert.equal(seen.ok, false);
+  assert.equal(seen.reason, "author-leaving");
+});
+
+test("an admin can still open a leaving member's post", () => {
+  assert.equal(decidePostVisibility(byLeaving, { id: "admin", role: "admin" }, anyone).ok, true);
+});
+
+test("the post answers again the moment the request is cancelled", () => {
+  // Signing back in clears deletionRequestedAt; nothing was deleted.
+  assert.equal(decidePostVisibility({ ...byLeaving, authorIsLeaving: false }, { id: "bo" }, anyone).ok, true);
+  const { authorIsLeaving: _omitted, ...noStanding } = byLeaving;
+  void _omitted;
+  assert.equal(decidePostVisibility(noStanding, { id: "bo" }, anyone).ok, true, "a caller that never fetched the flag hides everything");
+});
+
+test("one standing fragment names both standings, and the single-post guard reads both", () => {
+  /* Every list (the feed and its search, Saved, the letters index, the rail,
+     a profile's tabs and counts, every comment thread and count) spreads
+     AUTHOR_IN_GOOD_STANDING, so the fragment is the whole of the list half;
+     the guard below is the half a URL goes through. */
+  const posts = decomment(readFileSync(resolve(ROOT, "src/lib/posts.ts"), "utf8"));
+  assert.match(
+    posts,
+    /export const AUTHOR_IN_GOOD_STANDING = \{ author: \{ isBlocked: false, deletionRequestedAt: null \} \}/,
+    "AUTHOR_IN_GOOD_STANDING no longer leaves out both a blocked and a leaving author"
+  );
+  const guard = decomment(readFileSync(resolve(ROOT, "src/lib/post-visibility.ts"), "utf8"));
+  assert.match(guard, /author: \{ select: \{ isBlocked: true, deletionRequestedAt: true \} \}/, "the guard no longer reads the author's deletion request");
+  assert.match(guard, /authorIsLeaving: author\?\.deletionRequestedAt != null/, "the guard reads the request and never hands it to the rule");
+});
+
+/* ------------------------------------------------------------------ *
  *  The rule is only the authority if nothing refuses ahead of it
  * ------------------------------------------------------------------ */
 

@@ -50,7 +50,8 @@ export function batchScopeWhere(key: string | null) {
 }
 
 /**
- * A post whose author is still in good standing.
+ * A post whose author is still in good standing: neither blocked nor waiting
+ * out the sixty days before their account is erased.
  *
  * OWNER DECISION, 2026-08-21: a blocked member's existing posts, letters and
  * comments leave the feed. Blocking already ends their sessions and takes them
@@ -58,6 +59,13 @@ export function batchScopeWhere(key: string | null) {
  * stayed on display under their name -- and their name linked to a profile that
  * answers 404 for everybody else. The directory and the feed disagreed, and the
  * feed was the one saying the wrong thing (audit Low 78).
+ *
+ * The same for a member who has asked to be deleted (the owner, 2026-10-29,
+ * bug audit 3 Q22 and L10-02). Their profile has answered 404 since the
+ * request (audit M35), but this fragment was written for the block and knew
+ * one standing of the two, so for the sixty days their writing stayed up
+ * under a name that led nowhere, and a search for that name still found it.
+ * Signing back in cancels the request, and everything comes back with it.
  *
  * Applied WITHOUT an admin exemption, unlike the cityScope and batch fragments.
  * An admin has /admin/content, which lists everything with "Everything by
@@ -67,9 +75,13 @@ export function batchScopeWhere(key: string | null) {
  * (see decidePostVisibility), so a moderator following a link still lands on
  * the post itself.
  *
- * Nothing is deleted. Unblocking puts every one of these back.
+ * Nothing is deleted. Unblocking, or cancelling the deletion, puts every one
+ * of these back. A Catch-up's answers and questions follow their own rule
+ * (the owner's Q6: an Edition already sent stays as it was read) and read
+ * their authors in catchups-edition-view.ts; the comments under an answer are
+ * a thread like any other, through VISIBLE_COMMENT below.
  */
-export const AUTHOR_IN_GOOD_STANDING = { author: { isBlocked: false } } as const;
+export const AUTHOR_IN_GOOD_STANDING = { author: { isBlocked: false, deletionRequestedAt: null } } as const;
 
 /**
  * A comment row a reader is actually shown: neither admin-hidden nor
@@ -82,9 +94,10 @@ export const AUTHOR_IN_GOOD_STANDING = { author: { isBlocked: false } } as const
  * card and rendered an empty thread (audit C-003). Spread this into both
  * halves and the two cannot drift again.
  *
- * A blocked member's comment leaves the thread; if replies hang off it, the
- * roots query keeps it as an anonymous "[deleted]" stub so those replies keep
- * their anchor (audit Low 78, owner decision -- see AUTHOR_IN_GOOD_STANDING).
+ * A blocked or leaving member's comment leaves the thread; if replies hang off
+ * it, the roots query keeps it as an anonymous "[deleted]" stub so those
+ * replies keep their anchor (audit Low 78, owner decision -- see
+ * AUTHOR_IN_GOOD_STANDING).
  */
 export const VISIBLE_COMMENT = {
   isHidden: false,

@@ -81,7 +81,10 @@ gate or a written public-by-design reason.
   unnamed (C8-08).
 - Self-deletion is a REQUEST: password re-auth in the dialog, `deletionRequestedAt` stamped, every
   session ended, a confirmation email with the date, 60-day grace. Signing in during the window
-  cancels it (in `authorize()`). Pending accounts leave every people surface like blocked ones.
+  cancels it (in `authorize()`). Pending accounts leave every people surface like blocked ones,
+  and for the sixty days their posts, letters and comments leave every list and a link to them
+  answers "not available", as a blocked member's do (`AUTHOR_IN_GOOD_STANDING` and
+  `decidePostVisibility`; the owner's Q22, bug audit 3 L10-02); cancelling brings it all back.
 - The retention sweep (`src/lib/retention.ts`) runs nightly — GitHub Actions `retention.yml` →
   `GET /api/retention/sweep` with `CRON_SECRET` — applying the owner's schedule and finalising
   expired deletions. Every pass writes a `retention.sweep` audit line, so "is it running" is
