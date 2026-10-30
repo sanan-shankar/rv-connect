@@ -187,3 +187,32 @@ test("an answer's More only shows when the fold actually hides something", () =>
   assert.match(body, /new ResizeObserver\(measure\)/, "a width change re-asks the question");
   assert.match(body, /\{long && \(folds \|\| open\) && \(/, "More is gated on the measurement");
 });
+
+test("the question panel keeps the lab's caps and never hangs below the window", () => {
+  /* C7a-04: a fixed 560 hung the panel's foot near 660px, below a small
+     phone's visible window, where its last questions could not be picked.
+     The lab's 560 and 480 stay; each is also the small viewport height less
+     what sits above the panel (the bar or the strip's float, and the strip
+     at its tallest) and a 16px breath. */
+  const m = NAVIGATOR.match(
+    /max-h-\[min\(560px,calc\(100svh-(\d+)px\)\)\][^"]*md:max-h-\[min\(480px,calc\(100svh-(\d+)px\)\)\]/,
+  );
+  assert.ok(m, "the panel's caps are fixed pixels again, or no longer the lab's 560 and 480");
+  const [phone, laptop] = [Number(m[1]), Number(m[2])];
+  // The strip at its tallest: a docked question at its clamp, the row's padding, the hairline under it.
+  const type = NAVIGATOR.match(/"font-heading text-\[(\d+(?:\.\d+)?)px\] leading-\[(\d+(?:\.\d+)?)\] text-foreground"/);
+  const pad = NAVIGATOR.match(/const row = "[^"]*\bpy-(\d+(?:\.\d+)?)\b/);
+  assert.ok(type && pad, "the docked question's type or the strip's row moved; re-read the strip's height");
+  const strip = Math.ceil(
+    constant(NAVIGATOR, "STRIP_CLAMP_LINES") * Number(type[1]) * Number(type[2]) + Number(pad[1]) * 4 * 2 + 1,
+  );
+  const BREATH = 16;
+  assert.ok(
+    phone >= constant(NAVIGATOR, "BAR") + strip + BREATH,
+    `on a phone 100svh-${phone}px leaves the foot under the window: the bar, a ${strip}px strip and ${BREATH}px need more`,
+  );
+  assert.ok(
+    laptop >= constant(READER, "STRIP_TOP_LAPTOP") + strip + BREATH,
+    `from md 100svh-${laptop}px leaves the foot under the window: the float, a ${strip}px strip and ${BREATH}px need more`,
+  );
+});

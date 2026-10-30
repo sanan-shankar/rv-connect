@@ -446,14 +446,27 @@ export function UnfoldedPanel({
        strip and this panel together, so the pair reads as one object. */
     <div className="bg-card">
       {/* A cap, so forty questions scroll inside the panel instead of off the
-          screen. Shorter on a phone, where the panel hangs from the top of the
-          window rather than from a card 16px down. */}
+          screen. 560 on a phone and 480 from md are the approved lab room's
+          numbers (`src/app/lab/catchups/sketches/_reader.tsx`), and the phone's
+          is the taller one: this comment used to say the opposite, which the
+          code never did.
+
+          AND NEVER TALLER THAN THE WINDOW LEAVES (bug audit 3, C7a-04). A fixed
+          560 hangs below the 56px bar and the strip, so its foot sat near 660px:
+          under the edge of a 667-tall phone with Safari's toolbars showing, or
+          any phone held sideways, where the last questions could not be picked
+          and scrolling inside the panel cannot lift a box's own foot. So each
+          cap is also the small viewport height (`svh`, toolbars showing) less
+          what sits above the panel and a 16px breath: on a phone the bar (BAR,
+          56) and the strip at its tallest, a question docked over two lines
+          (64); from md the strip's 16px float (STRIP_TOP_LAPTOP) and the same
+          64. reader-geometry.test.mjs holds the numbers to the strip's type. */}
       {/* NO GRABBER PILL under the list. The room drew one as a hint that the
           panel could be swiped away, and he deleted it on sight, 2026-09-10:
           "remove the bottom thin pill on that dialog it's not doing anything
           is it?" It was not: the strip above is a 44px target under the thumb
           and its caret turns, so the way out was already the way in. */}
-      <div className="max-h-[560px] overflow-y-auto py-1.5 md:max-h-[480px]">
+      <div className="max-h-[min(560px,calc(100svh-136px))] overflow-y-auto py-1.5 md:max-h-[min(480px,calc(100svh-96px))]">
         <QuestionList
           questions={questions}
           current={current}
