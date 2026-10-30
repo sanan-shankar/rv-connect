@@ -566,13 +566,20 @@ export async function GET() {
      file is meant to be openable by the person who asked for it, not only by
      a program. */
   const encoder = new TextEncoder();
+  /* Set when the member stops the download. A page being read at that moment
+     still arrives, and handing it to a cancelled stream throws, which the catch
+     below reported to Sentry as a failure on every download stopped part-way
+     (write-path review of bug audit 3 unit B4). */
+  let cancelled = false;
   const stream = new ReadableStream<Uint8Array>({
     async pull(controller) {
       try {
         const next = await chunks.next();
+        if (cancelled) return;
         if (next.done) controller.close();
         else controller.enqueue(encoder.encode(next.value));
       } catch (err) {
+        if (cancelled) return;
         // exportDocument ends the file itself when a page fails; this is only
         // for a throw it could not catch, which can only end the download.
         reportSwallowed("export", err, { userId });
@@ -581,6 +588,7 @@ export async function GET() {
     },
     async cancel() {
       // The member stopped the download: stop reading the database too.
+      cancelled = true;
       await chunks.return(undefined);
     },
   });

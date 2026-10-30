@@ -132,6 +132,14 @@ test("the route writes the left-out list into the file and streams by pull", () 
   assert.match(ROUTE, /async pull\(controller\)/, "the stream no longer waits for the response to take each piece");
   assert.doesNotMatch(ROUTE, /async start\(controller\)/, "the stream pushes every row again, whatever the network takes");
   assert.match(ROUTE, /cancel\(\)\s*\{[\s\S]*?chunks\.return\(/, "a cancelled download keeps reading the database");
+  /* A page in flight when the member cancels still arrives; enqueueing it on
+     the cancelled stream throws ERR_INVALID_STATE, and the catch reported that
+     to Sentry as a failure (write-path review of unit B4, reproduced in Node).
+     Both exits look at the flag first, and cancel() sets it. */
+  const pull = ROUTE.slice(ROUTE.indexOf("async pull(controller)"), ROUTE.indexOf("async cancel()"));
+  assert.match(pull, /await chunks\.next\(\);\s*if \(cancelled\) return;/, "a piece that lands after a cancel is handed to the closed stream");
+  assert.match(pull, /catch \(err\) \{\s*if \(cancelled\) return;/, "a cancelled download is reported as a failure");
+  assert.match(ROUTE, /cancel\(\)\s*\{[\s\S]*?cancelled = true;[\s\S]*?chunks\.return\(/, "cancel() no longer tells pull the download was stopped");
 });
 
 /* ------------------------------------------------------------------ *

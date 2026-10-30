@@ -1,7 +1,7 @@
 ## 2026-10-30 (privacy) — bug audit 3, unit B4: the data download carries everything the site keeps, a leaving member's writing goes with them, the support bar keeps its figures, and the audit log says when an erased account's files are gone
 
-Four rows and B3b's follow-up in five commits, each pinned and each pin shown failing against its
-mutation; `npm run check` green before every commit; `npm run visual` 25/25 after the support change
+Four rows and B3b's follow-up in five commits, and a sixth from the write-path review, each pinned
+and each pin shown failing against its mutation; `npm run check` green before every commit; `npm run visual` 25/25 after the support change
 (the audit page is not in the suite; it was shot at 1440 and 390 in both states).
 
 The download (T6-03, T8a-07; the owner's Q24). "Request your data" had ten hand-written sections. It
@@ -45,6 +45,10 @@ Visible: for members, a longer download; a leaving member's writing hidden for t
 on production today: the one pending account has written nothing); the support bar at a whole percent,
 a fraction of a percent, too little to see. For the owner, a chip beside each erasure in the audit log.
 
+The write-path review over all five found one Low: a page being read when a member stopped their
+download still arrived, handing it to the cancelled stream threw, and the route reported every stop
+part-way to Sentry as a failure. Reproduced in Node and fixed with a flag the cancel sets.
+
 For the privacy page unit (T8b-06), two sentences. "Download your data gives you, in one file,
 everything the site keeps about you: your profile, everything you wrote, posted and uploaded, the
 hearts, saves, votes and settings you chose, your contributions, and the site's record of your visits,
@@ -59,7 +63,9 @@ a zsh variable did not split, the commit failed, and I let the lock go with the 
 code is 010419eb. The dev server held stale code twice: a Prisma client built from the generated code
 before `accountId` (a second `prisma generate` after a schema touch rebuilt it), and an instance of
 `src/lib/purge-rule.ts` without a new export although its compiled chunk had it, which is why the
-audit helper lives in `erased-files-rule.ts`; a restart clears the latter for good.
+audit helper lives in `erased-files-rule.ts`; a restart clears the latter for good. The peer session's
+announcement window adds `User.announcementSeenAt`: when that column reaches the schema, the export's
+walking test fails until it has a line in `EXPORT_PROFILE` (or `LEFT_OUT`, with a reason).
 
 ## 2026-10-30 (catchups) — bug audit 3, unit H2: every deadline names its hour, India time, a renamed Catch-up keeps its new name in every bell, and the admin room waits for the tick
 
