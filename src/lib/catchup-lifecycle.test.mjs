@@ -200,6 +200,40 @@ test("V-T2-02: a missing Edition and a closed door get the same sentence", () =>
     refusals[1],
     "\"not found\" and \"not a member\" read differently again, which tells a stranger holding an id whether it exists"
   );
+
+  /* Every other door that resolves a client's id first (finished after the
+     write-path reviews of A2 and A3). A Catch-up's own id: the missing row
+     and the closed door share the door's sentence. A question, answer or
+     comment id: the lookup itself only finds rows in the viewer's Catch-ups,
+     so both answer "not found". */
+  const catchupDoors = [
+    ["async function loadKeeperScope(", /if \(!ctx\) return \{ error: ([^}]+) \};\s*if \(!ctx\.membership\) return \{ error: ([^}]+) \};/],
+    ["async function loadOwnCatchupCopy(", /if \(!ctx\) return \{ error: ([^}]+) \};\s*if \(!ctx\.membership\) return \{ error: ([^}]+) \};/],
+    ["export async function leaveCatchup(", /if \(!ctx\) return \{ error: ([^}]+) \};\s*if \(!ctx\.membership\) return \{ error: ([^}]+) \};/],
+    ["export async function startEdition(", /if \(!ctx\) return \{ error: ([^}]+) \};\s*if \(!ctx\.membership\) return \{ error: ([^}]+) \};/],
+    ["export async function setCatchupPicture(", /if \(!catchup\) return \{ error: ([^}]+) \};\s*const membership = await loadMembership\(catchup\.groupId, session\.user\.id\);\s*if \(!membership\) return \{ error: ([^}]+) \};/],
+    ["export async function setReminderPref(", /if \(!catchup\) return \{ error: ([^}]+) \};\s*const membership = await loadMembership\(catchup\.groupId, session\.user\.id\);\s*if \(!membership\) return \{ error: ([^}]+) \};/],
+  ];
+  for (const [head, shape] of catchupDoors) {
+    const fn = balancedBody(src, head);
+    assert.ok(fn, `${head} is gone; this pin is reading nothing`);
+    const m = fn.match(shape);
+    assert.ok(m, `${head} no longer refuses a missing Catch-up and a closed door side by side; retarget this pin`);
+    assert.equal(m[1].trim(), m[2].trim(), `${head} answers a missing Catch-up differently from a closed door again`);
+  }
+  assert.doesNotMatch(src, /"Catch-up not found\."/, "a Catch-up's id is answered \"not found\" somewhere, beside a door that says \"not a member\"");
+  for (const [head, model] of [
+    ["export async function curatePrompt(", "catchupPrompt"],
+    ["export async function submitEntry(", "catchupPrompt"],
+    ["export async function toggleEntryLove(", "catchupEntry"],
+    ["async function loadCommentableEntry(", "catchupEntry"],
+    ["export async function toggleEntryCommentLike(", "comment"],
+  ]) {
+    const fn = balancedBody(src, head);
+    assert.ok(fn, `${head} is gone; this pin is reading nothing`);
+    assert.match(fn, new RegExp(`prisma\\.${model}\\.findFirst\\(\\{\\s*where: \\{ id: \\w+, (edition|entry): (\\{ edition: )?inViewersCatchup\\(`), `${head} looks its id up outside the viewer's Catch-ups again`);
+    assert.doesNotMatch(fn, new RegExp(`prisma\\.${model}\\.findUnique\\(\\{\\s*where: \\{ id: \\w+ \\}`), `${head} has an unscoped lookup by id again`);
+  }
 });
 
 test("L1-02: a question removed as answering opens cannot leave an Edition with nothing to answer", () => {

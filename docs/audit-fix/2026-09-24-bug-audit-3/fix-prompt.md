@@ -70,7 +70,7 @@ the rest of the phase runs.
 
 | Phase | Status | Rows left | Blocked on |
 |---|---|---|---|
-| A — Trust: who counts as verified, and who may press what in a Catch-up | PARTIAL | 6 (0 H, 0 M, 6 L) | — |
+| A — Trust: who counts as verified, and who may press what in a Catch-up | DONE | 0 | — |
 | B — Privacy: what leaves the site, and what outlives a member | PARTIAL | 20 (0 H, 6 M, 14 L) | — |
 | O — Budgets: what one account or one script may spend of what everyone shares | OPEN | 11 (2 H, 8 M, 1 L) | — |
 | E — The Collection | OPEN | 27 (3 H, 6 M, 18 L) | — |
@@ -508,6 +508,7 @@ evidence stays in `work/`; this ledger is the record of what the campaign did.
 - T7a-06 — DONE (fix(security): the office list verifies by email alone, and a removal sticks); T6-01, its closed duplicate, rides with it
 - L12-03 — DONE (fix(catchups): an action checks membership before it moves an Edition's clock)
 - V-T2-02 — DONE (fix(catchups): an action checks membership before it moves an Edition's clock); a missing Edition and a closed door now get one sentence
+  - A2-review — DONE (fix(catchups): a missing id and one in somebody else's Catch-up answer alike, at every door); the review named curatePrompt's question and loadKeeperScope's Catch-up; the same oracle sat in five more Catch-up lookups and four answer, question and comment lookups, all closed: a Catch-up id answers with the closed door's sentence, and a question, answer or comment is looked up only among the viewer's Catch-ups ("not found" either way, the sentence still true for a member's stale tab, where "not a member" would not be); proved live against a throwaway holding only the Anonymous account
 - L10-01 — DONE (fix(catchups): the controls, the pickers and the hat wait for a verified member); Q13 (a): a signup still joins their batch's Catch-up and may read it, and presses nothing until verified; succession's half ships with T2a-09 below
   - A2-review — DONE (fix(catchups): the picture and the name wait for a verified member); Q13: a batch member who had confirmed nothing could re-skin the class's Catch-up; rename gated alongside for one rule. The sweep in batch-catchup-keeper-rule.test.mjs is inverted: every exported action is gated unless it only reads or touches the caller's own copy (leave, archive, reminders, the comment page), each named with its reason and pinned to stay open
 - V-T2-01 — DONE (fix(catchups): the controls, the pickers and the hat wait for a verified member); folded into L10-01 as door 3. The home still draws the cycle rows, and a press below Stage 2 is refused with the gate's sentence, as Start and answering already were

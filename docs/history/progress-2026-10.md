@@ -1,3 +1,48 @@
+## 2026-10-30 (catchups) — bug audit 3, unit A4: the Catch-up races close, the picture waits for a verified member, and phase A is done
+
+Six rows and eight review follow-ups (A2's and A3's write-path reviews), twelve commits, all in the
+Catch-up actions and the libraries under them. Phase A has no rows left.
+
+Two writes that could cross now meet on a row. L1-02: removing a question read the Edition's status
+and deleted with no precondition, and both opens counted questions before their swap, so the two
+could leave an answering Edition with nothing in it. The removal holds the collecting Edition while
+it deletes; the Keeper's open and the clock's swap first, count after and roll back on none
+(`EmptyAfterSwap`). The A3 review's zero-answer close was the same shape: it counts only answers with
+words, a photograph or a recording (`ANSWERED_ENTRY_WHERE`), after its swap, and the clock's too-few
+rule counts the same thing. Start and End hold the Catch-up's row, the opener only while it has not
+ended, so an End landing between Start's check and its Edition cannot strand one.
+
+Who is in a Catch-up, and who keeps it, is decided one at a time per group. `lockGroup`, an
+`updatedAt` touch on the group's row, comes first in leaving and removal (through succession), the
+hat's revoke, adding and joining, so L1-03's two last Keepers leaving at once, two Keepers revoking
+each other, an add and a join past the hundred, and a removed member's join on the old link each
+queue. The revoke refuses your own hat and the last one. Adding no longer runs serializable, and
+meters per person added on its own `catchupAdds` bucket (200 an hour), checked before and spent
+after, so a Keeper filling a Catch-up is no longer refused at the sixth add. A join takes the cap.
+
+T2a-08: creation looks for its twin inside the transaction, behind a `FOR NO KEY UPDATE` on the
+creator's row, so a double press in flight makes one Catch-up. T2b-06: the withdrawal's delete asks
+that the row is still empty. T2b-09: a reorder takes twice the soft cap. T2b-11: `pageSize` reads a
+client's take for comment threads and the bell, and the answer thread's loader runs in `runAction`.
+The picture and the rename wait for a verified member, and the gate test is inverted: every action is
+gated unless it only reads or touches the caller's own copy. V-T2-02 is finished: every door that
+takes a Catch-up, question, answer or comment id answers a missing one and one elsewhere alike.
+
+Visible, only on a refused press: "That would leave this Catch-up with no Keeper, so nothing
+changed.", "You cannot change your own Keeper hat.", "This Edition already moved on." on a removal
+that lost to an open, "This Catch-up has ended." on a Start that lost to an End, the add's
+full-roster sentence on a join, the verification sentence on rename and picture for an unverified
+member, and the not-member sentences where "Catch-up not found." stood. Verified live on throwaway
+Catch-ups holding only the test account, with a second holding only the Anonymous account standing in
+for somebody else's, each deleted after in one guarded statement: two concurrent creations answered
+one id; an empty open rolled back; a removal, a 41-id reorder, a withdrawal, the content-only close
+(an emptied row planted), a crafted take on both pagers, your own hat, a revoke, a removal, a leave
+and a rejoin by link all ran; a Start racing an End left one winner; every id door answered a foreign
+id and a made-up one alike; no bell was written. Upstash's multi-token spend was checked on a
+throwaway key. Each new pin was shown failing against its mutation; check green on every commit. Not
+done: the account purge's own succession (`promoteOrphanedGroups`) has L1-03's shape and is left for
+whoever holds account-purge.ts; a full roster and a lost race were not run live.
+
 ## 2026-10-30 (privacy) — bug audit 3, unit B2: PostHog stops reading people, and a sign-out ends its identity
 
 Two rows, one commit: T7b-22 and T7b-21 share the PostHog client, the identify component and the

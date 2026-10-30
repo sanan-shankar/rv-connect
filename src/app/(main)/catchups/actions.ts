@@ -390,6 +390,22 @@ function refuseIfIdle(edition: EditionContext): { error: string } | null {
 const NOT_IN_EDITION = "You are not a member of this Catch-up." as const;
 
 /**
+ * A lookup's scope: only rows in a Catch-up the viewer is in.
+ *
+ * For an action that resolves a client's question, answer or comment id before
+ * it can ask about membership (V-T2-02, finished after the write-path reviews
+ * of A2 and A3). Unscoped, a row that did not exist said "not found" and one in
+ * somebody else's Catch-up said "not a member", which told a stranger holding
+ * an id whether it was real. Scoped, both are "not found", the sentence that is
+ * also true for a member whose stale tab holds a question somebody removed.
+ * (A Catch-up's own id answers both with the closed door's sentence instead:
+ * nothing deletes a Catch-up from under its members.)
+ */
+function inViewersCatchup(viewerId: string) {
+  return { catchup: { group: { members: { some: { userId: viewerId } } } } };
+}
+
+/**
  * The Edition a member is acting in, or the reason they may not.
  *
  * MEMBERSHIP FIRST, THEN THE CLOCK (bug audit 3, L12-03). This used to load
@@ -826,7 +842,7 @@ export async function setCatchupPicture(
       // now so that phase does not have to widen it.
       select: { id: true, createdById: true, groupId: true, group: { select: { batchYear: true } } },
     });
-    if (!catchup) return { error: "Catch-up not found." };
+    if (!catchup) return { error: "You are not a member of this Catch-up." };
     const membership = await loadMembership(catchup.groupId, session.user.id);
     if (!membership) return { error: "You are not a member of this Catch-up." };
     if (
@@ -1098,8 +1114,8 @@ export async function curatePrompt(input: CuratePromptInput) {
     if (!parsed.success) return { error: "Invalid request." };
     const { promptId } = parsed.data;
 
-    const prompt = await prisma.catchupPrompt.findUnique({
-      where: { id: promptId },
+    const prompt = await prisma.catchupPrompt.findFirst({
+      where: { id: promptId, edition: inViewersCatchup(session.user.id) },
       select: { id: true, editionId: true },
     });
     if (!prompt) return { error: "Question not found." };
@@ -1376,7 +1392,7 @@ export async function startEdition(catchupId: string) {
     if (!gate.ok) return { error: gate.error };
 
     const ctx = await loadCatchupContext(catchupId, session.user.id);
-    if (!ctx) return { error: "Catch-up not found." };
+    if (!ctx) return { error: "You are not a member of this group." };
     if (!ctx.membership) return { error: "You are not a member of this group." };
     const ended = refuseIfEnded(ctx.catchup.status);
     if (ended) return ended;
@@ -1605,8 +1621,8 @@ export async function submitEntry(input: {
     if (!parsed.success) return { error: parsed.error.issues[0].message };
     const { promptId } = parsed.data;
 
-    const prompt = await prisma.catchupPrompt.findUnique({
-      where: { id: promptId },
+    const prompt = await prisma.catchupPrompt.findFirst({
+      where: { id: promptId, edition: inViewersCatchup(session.user.id) },
       select: { id: true, editionId: true, accepted: true },
     });
     if (!prompt || !prompt.accepted) return { error: "This question is not part of the Edition." };
@@ -1833,8 +1849,8 @@ export async function toggleEntryLove(entryId: string) {
     if (!gate.ok) return { error: gate.error };
     if (typeof entryId !== "string" || !entryId) return { error: "Invalid request." };
 
-    const entry = await prisma.catchupEntry.findUnique({
-      where: { id: entryId },
+    const entry = await prisma.catchupEntry.findFirst({
+      where: { id: entryId, edition: inViewersCatchup(session.user.id) },
       select: { id: true, authorId: true, editionId: true },
     });
     if (!entry) return { error: "Answer not found." };
@@ -1928,8 +1944,8 @@ export async function toggleEntryLove(entryId: string) {
  */
 async function loadCommentableEntry(entryId: string, viewerId: string) {
   if (typeof entryId !== "string" || !entryId) return { error: "Invalid request." as const };
-  const entry = await prisma.catchupEntry.findUnique({
-    where: { id: entryId },
+  const entry = await prisma.catchupEntry.findFirst({
+    where: { id: entryId, edition: inViewersCatchup(viewerId) },
     select: { id: true, authorId: true, editionId: true },
   });
   if (!entry) return { error: "Answer not found." as const };
@@ -2078,8 +2094,8 @@ export async function toggleEntryCommentLike(commentId: string) {
        gate. A comment with no `entryId` is a FEED comment and is refused here
        by the same lookup, which is the mirror of `canViewPostOfComment`
        declining a Catch-up one. */
-    const row = await prisma.comment.findUnique({
-      where: { id: commentId },
+    const row = await prisma.comment.findFirst({
+      where: { id: commentId, entry: { edition: inViewersCatchup(session.user.id) } },
       select: { entryId: true, deletedAt: true, isHidden: true },
     });
     if (!row?.entryId || row.deletedAt || row.isHidden) return { error: "Comment not found." };
@@ -2136,7 +2152,7 @@ const DEMO_SHARED_COPY_REFUSAL =
  */
 async function loadOwnCatchupCopy(catchupId: string, viewerId: string) {
   const ctx = await loadCatchupContext(catchupId, viewerId);
-  if (!ctx) return { error: "Catch-up not found." as const };
+  if (!ctx) return { error: "You are not in this Catch-up." as const };
   if (!ctx.membership) return { error: "You are not in this Catch-up." as const };
   return {
     groupId: ctx.catchup.groupId,
@@ -2215,7 +2231,7 @@ async function loadKeeperScope(
   }
 ) {
   const ctx = await loadCatchupContext(catchupId, viewerId);
-  if (!ctx) return { error: "Catch-up not found." as const };
+  if (!ctx) return { error: refusal.notMember };
   if (!ctx.membership) return { error: refusal.notMember };
   if (isBatchCatchup(ctx.catchup.group.batchYear)) {
     return refusal.allowBatch ? { catchup: ctx.catchup } : { error: BATCH_CATCHUP_REFUSAL };
@@ -2496,7 +2512,7 @@ export async function leaveCatchup(catchupId: string) {
     const viewerId = session.user.id;
 
     const ctx = await loadCatchupContext(catchupId, viewerId);
-    if (!ctx) return { error: "Catch-up not found." };
+    if (!ctx) return { error: "You are not in this Catch-up." };
     if (!ctx.membership) return { error: "You are not in this Catch-up." };
     /* You cannot leave your own batch. His, brief 51: "the batch catch up
        can't edit people in and out it's just people in that batch and they're
@@ -2686,7 +2702,7 @@ export async function setReminderPref(catchupId: string, reminderMode: ReminderM
       where: { id: catchupId },
       select: { id: true, groupId: true },
     });
-    if (!catchup) return { error: "Catch-up not found." };
+    if (!catchup) return { error: "You are not a member of this group." };
     const membership = await loadMembership(catchup.groupId, session.user.id);
     if (!membership) return { error: "You are not a member of this group." };
 

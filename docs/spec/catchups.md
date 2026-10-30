@@ -222,7 +222,10 @@ nothing twice.
    an action is about to act on, after the same membership check, so nothing acts on a status the
    clock has already passed. Until 2026-10-29 it advanced first and checked after, so any account
    holding an Edition or answer id could move a group's clock (bug audit 3, L12-03); a missing
-   Edition and a closed door now get the same sentence.
+   Edition and a closed door now get the same sentence. So does every other door that takes an id
+   before it can ask about membership: a Catch-up's answers with the not-member sentence, and a
+   question, answer or comment is looked up only among the viewer's own Catch-ups, so a missing one
+   and one elsewhere are both "not found" (V-T2-02, finished 2026-10-30).
 4. **The nightly cron**: `GET /api/catchups/tick`, bearer `CRON_SECRET` required, calls
    `advanceDueCatchups()` unscoped. Only this path runs the batch self-heals (§13).
 
