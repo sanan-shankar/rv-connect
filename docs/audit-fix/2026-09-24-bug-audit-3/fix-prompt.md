@@ -78,7 +78,7 @@ the rest of the phase runs.
 | D — Alarms: the owner hears about every failure | OPEN | 23 (0 H, 10 M, 13 L) | — |
 | C — When something fails, the member sees the truth and can recover | OPEN | 20 (0 H, 10 M, 10 L) | — |
 | G — Sign-up, sign-in and the confirmation mail | OPEN | 23 (0 H, 10 M, 13 L) | — |
-| H — Catch-ups: answering, reading, and the words on the clock | PARTIAL | 27 (0 H, 9 M, 18 L) | — |
+| H — Catch-ups: answering, reading, and the words on the clock | PARTIAL | 19 (0 H, 4 M, 15 L) | — |
 | J — Support and payments | OPEN | 11 (0 H, 6 M, 5 L) | — |
 | I — Admin, moderation and the analytics room | PARTIAL | 40 (0 H, 3 M, 37 L) | — |
 | K — Text that breaks things: names, numbers, search, links | OPEN | 21 (0 H, 2 M, 19 L) | — |

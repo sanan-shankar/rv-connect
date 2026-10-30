@@ -1,3 +1,39 @@
+## 2026-10-30 (catchups) — bug audit 3, unit H1: a failed answer save retries, Share finishes past a blank question, a recording taken back stays off, and Catch-ups' people leave PostHog
+
+Eight rows and the add-on in eight commits, each pinned and each pin shown failing against its
+mutation; check green before the first three, and red on the later ones only in other tracks' files,
+named in each ledger line; visual 25/25.
+
+Answering. A failed save goes again on the blur its red line asks for (`shouldFlush`, T3-04),
+carrying any photograph or recording that failed with it; `submitEntry` marks the four refusals a
+retry cannot change, and for those the line is the server's own sentence. Beside it: the songs
+field handed its blur event to `flushBody` as the words, which threw, so a song saved only on Next.
+Share sweeps back to a blank question once per visit and then finishes (`nextIndex`, T3-18), and the
+end card's pill goes back to the questions instead of the page it is on (T3-05). An answer's
+photograph shows its remove control on a phone (T3-19), and `hover-reveal-rule.test.mjs` fails any
+control in src/components revealed only by a hover. A photo-wall answer takes three photographs
+through the ordinary strip, one constant shared with the server (T3-21).
+
+Answering out loud. Every late arrival in the recorder names its take (`voice-takes.ts`, L7-09): a
+recording removed or recorded over while it saves never lands on the answer, a second tap during the
+permission prompt is nothing, a microphone granted after the question was left goes straight back,
+Try again uploads once, and an unwanted take stops before its bytes leave staging. The player every
+surface shares stops at two minutes whatever the file holds (T2b-04); the byte cap's docblock says
+what it does not bound. The Edition's question panel keeps the lab's 560 and 480 and never hangs
+below the window (C7a-04). Catch-ups' people carry PostHog's NO_CAPTURE like the rest of the site,
+with nameless counts kept for wall photo opens and recordings played.
+
+Visible: the answer's red line now retries, a refusal shows the server's sentence, a photo question
+says "Press Next to try again."; "Back to the questions" on the end card; the remove disc on an
+answer's photographs on a phone; a photo-wall question's three-photo strip instead of one large
+plate; the microphone dimmed while the browser asks; a shorter question panel on small or sideways
+phones. Shots at 1440 and 390, the panel at 375x548 and 932x430 too.
+
+Verified live on a throwaway Catch-up holding only the test account, Chrome's fake microphone on,
+deleted after in one guarded statement with its eight bucket files; no bell was written. Not done: a
+take superseded while its finalize request is already in flight still lands in audio/ with no row
+naming it (the V-L-d-01 class); the two this produced were deleted.
+
 ## 2026-10-30 (privacy) — bug audit 3, unit B3b: account deletion that finishes, on the day it says
 
 Eight rows, Phase A's routed follow-up and two notes from the write-path review of B3a, in seven

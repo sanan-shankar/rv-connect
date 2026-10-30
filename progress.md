@@ -15,6 +15,7 @@ if the month is new), and add one line here, at the top of that month's list.
 
 ## October 2026 — [full entries](docs/history/progress-2026-10.md)
 
+- 2026-10-30 (catchups) — bug audit 3, unit H1: a failed answer save retries, Share finishes past a blank question, a recording taken back stays off, and Catch-ups' people leave PostHog
 - 2026-10-30 (privacy) — bug audit 3, unit B3b: account deletion that finishes, on the day it says: a purge that meets a write retries, an erasure is on the record before its files go, the worklist drains in one sitting, reporters are answered, and the member goes on the day the email names
 - 2026-10-30 (db) — bug audit 3, unit L3: five indexes real queries were missing, counts that count only the page, a pool the app holds, and the database's size by table
 - 2026-10-30 (privacy) — bug audit 3, unit B3a: what a departing member leaves behind: reports outlive their reporter, bells and unanswered questions go with them, and a merge hands the hat only to someone who can act
