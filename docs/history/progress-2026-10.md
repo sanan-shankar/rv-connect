@@ -1,3 +1,47 @@
+## 2026-10-30 (catchups) — bug audit 3, unit H3: who is inside a Catch-up and what leaves with them: unsent writing goes with a leaver, blocked and leaving members leave its people, counts and bells, Remove asks first, and dropped photographs leave the bucket
+
+Ten items in eight commits: six Lows from phase H (T2a-13, T2b-05, C8-04, T2b-12, T3-14, T3-23), two
+from phase B (L12-02, V-L-d-01) and routed follow-ups (a) and (c). Each was proved live on throwaway
+Catch-ups holding only the test account, with the Anonymous account or a throwaway account deleted
+after as the second person; every throwaway is gone and no bell reached a member. Every new pin was
+shown failing against its mutation. `npm run check` green on each commit but one (red only on
+another track's in-flight privacy page, re-run once); visual 25/25.
+
+What leaves with a member (C8-04, his Q21). Leaving, a Keeper's removal and a batch-year correction
+took the membership and nothing else, so what the member had written for an Edition still running
+went out to the group after they had gone. `dropUnsentWriting` now runs in the transaction that
+takes the membership: it holds the Catch-up's collecting and answering Editions, deletes the
+member's answers there and their questions nobody else answered, and queues the answers'
+photographs and recordings. Published Editions and a sealed capsule keep everything. An answer save
+holds its Edition (FOR SHARE) and asks again whether its author is still in, so a save in flight
+cannot write one back. Leave's confirmation says so while an Edition runs.
+
+Blocked and leaving members (T2a-13, T2b-05, his Q6 b). `IN_GOOD_STANDING` takes them out of every
+bell, the People list, Start's head count, the invitation's count and the batch floor; their
+membership stays, so undoing the block or the request brings them back. An Edition already sent
+keeps their answers and hearts as people read it, written into the schema's blocking note as the
+second exception after the Collection; their comments stay hidden as in every thread. What they
+wrote for an Edition still running leaves it at its close (`dropGoneMembersWriting`), and
+"answered" counts only members in good standing. Routed (c): the home's "has anyone answered" and
+the reminder's audience count only answers with something in them, as the close and the clock do.
+
+The rest. Routed (a): adding, removing and both halves of the hat ask again, holding the group,
+whether the caller still keeps it. L12-02 and V-L-d-01: a photograph taken off an answer and a
+replaced uploaded picture are queued in the write that drops them, and the picker throws away an
+upload it did not keep, deleted only while nothing shows it. T3-14: the create form never offers
+you to yourself. T3-23: Remove opens the one confirmation, saying what it takes; not an undo,
+because adding someone back restores neither the link nor their writing. T2b-12 (Q28): the blank
+answer from August is deleted on production (its one heart by cascade) and checked on the demo,
+which held no answers.
+
+Visible: Leave's line while an Edition runs; Remove's confirmation; "Already on the list." on the
+create form; People lists, Start's count and the invitation's count without blocked or leaving
+members; an unused upload no longer reappears in the picker. Not done: a gone member's name in a sent
+Edition still links to a profile that answers "not available" (the mention half's question, phase
+K); blocking still runs no succession; the admin room's counts are the admin's files. The running
+dev server holds a stale server-render copy of `catchups-core.ts`: a new export from it, imported by
+a client component, failed its server render until a restart, so T3-14's filter lives in the picker.
+
 ## 2026-10-30 (ops) — bug audit 3, unit L4b: the backups keep what they should and name every night, the snapshot reads Supabase's egress once given a token, a laptop cannot pass for production, and the session and bell pins see what they missed
 
 Seven rows in seven commits (L11-02 from phase B; L5-07's one half and five Lows from phase L),
