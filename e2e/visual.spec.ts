@@ -303,8 +303,28 @@ async function settle(page: Page) {
   });
 }
 
+/* A page that threw fails its check, whatever its pixels say (bug audit 3,
+ * L9-09). On 2026-09-24 /letters went red on 3,601 pixels in the bottom-left
+ * corner, and two sessions read them as the hoopoe's mask missing. They were
+ * Next's "1 Issue" badge over the account chip, photographing a hydration
+ * error in the drafts strip (O-01, a date with no time zone): the server
+ * rendered one day and the browser another. This suite read pixels only, so
+ * a real error arrived looking exactly like a mask miss -- and an error below
+ * the fold, or under a masked band, would not have arrived at all. So every
+ * route also listens for what the browser says went wrong, and fails with
+ * its text. A red run's first question is "did the page throw?". */
+function collectPageErrors(page: Page) {
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(`pageerror: ${error.message.split("\n")[0]}`));
+  page.on("console", (message) => {
+    if (message.type() === "error") errors.push(`console.error: ${message.text().split("\n")[0]}`);
+  });
+  return errors;
+}
+
 for (const route of ROUTES) {
   test(`${route.name} looks unchanged`, async ({ page }) => {
+    const errors = collectPageErrors(page);
     /* Signed-out surfaces: drop the admin cookie rather than building a
      * second context. Playwright gives every test its own context already,
      * so clearing here cannot leak into another test -- and this keeps the
@@ -328,12 +348,14 @@ for (const route of ROUTES) {
     if (route.live) await spine(page, route.name);
     if (route.live === "band") await markLiveBand(page);
 
-    await expect(page).toHaveScreenshot(`${route.name}.png`, {
+    /* Soft, so a page that also threw reports both: the diff, and why. */
+    await expect.soft(page).toHaveScreenshot(`${route.name}.png`, {
       /* A "band" route is shot at viewport height: full-page would change
          size the moment somebody posts, and a size mismatch fails before
          any mask is even consulted. */
       fullPage: route.live !== "band",
       mask: [...volatileRegions(page), ...liveRegions(page, route)],
     });
+    expect(errors, `${route.path} threw while it was photographed`).toEqual([]);
   });
 }

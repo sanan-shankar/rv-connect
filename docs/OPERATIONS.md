@@ -27,6 +27,16 @@ been 10, then 11, then 12 inside three weeks, and a count printed here rots ever
 **The one rule:** never run `visual:update` to silence a failure without opening the diff
 first. That is the single action that turns this from a safety net into a rubber stamp.
 
+**A red run's first question: did the page throw?** Every route also listens for the
+browser's own errors (`pageerror` and `console.error`) and fails with their text, apart from
+the pixels: "/letters threw while it was photographed", then the lines. On 2026-09-24 `/letters`
+went red on 3,601 pixels in its bottom-left corner and two sessions read it as the hoopoe's
+mask missing; it was Next's "1 Issue" badge over the account chip, photographing a hydration
+error in the drafts strip (O-01, bug audit 3 L9-09). An error is a bug on that page, never a
+baseline to update. If another session's half-written file has broken the dev server's build,
+every route that imports it reports the compile error the same way: let it compile, then
+re-run.
+
 **Why it is not a ratio.** The first version used `maxDiffPixelRatio: 0.01`, which sounds
 strict and is not: 1% of a full-page shot is ~28,000 pixels. Verified by regression —
 changing `/about` from `text-sm` to `text-base` **passed**. It is now an absolute

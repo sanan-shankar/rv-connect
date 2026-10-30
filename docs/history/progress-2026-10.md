@@ -1,3 +1,36 @@
+## 2026-10-30 (qa) — bug audit 3, unit L2: the gates that passed on nothing see again
+
+Eleven rows and one request from another track, twelve commits, all in the gate every worker runs
+before each commit, and `npm run check` green after each one.
+
+The comment stripper every shape test stands on was a regex that read `accept="image/*"` or
+`"https://*.host"` as the start of a comment and deleted the code after it: ninety lines of
+next.config.ts, every security header among them (L9-02). It now parses, and across 1,072 sources
+it removes all 19,095 comments and changes no code. The C-134 wildcard pin reads the evaluated
+config instead of its text (L9-01, test-kit's new `nextConfig()`), and so sees the img-src
+`*.spotifycdn.com` it never could, allowlisted on next.config.ts's own reason.
+
+The date sweeps read each call's balanced arguments, so a date in a JSX child, a template or a
+ternary is seen, and they now cover local getters and the SQL cuts EXTRACT, date_part and `::date`,
+in scripts/ too (L3-05). `formatTimeAgo` takes an optional `now`, so the year test pins the valley's
+new year instead of failing every New Year's Eve (L3-06). The back-button rule sees `router.back()`,
+forward and replaceState (L9-06). Eight sweeps read the disk rather than git, which cannot see an
+unstaged file (L9-07).
+
+In check.mjs, an ESLint error now blocks while warnings still only count (L9-03); the dependency
+gate runs from any path, and a silent exit 0 no longer reads as clean (C1-08); the CI-parity test
+fails on an extra action, a skipped gate step or a gate that stopped blocking (L9-04). The security
+board's notes say what each probe saw (L9-11); five medium probes that read open only because their
+code had moved now follow it, and H8 reads the schema so T7a-01 can drop the purge's report delete.
+The visual suite fails a route that threw, with the browser's own words (L9-09).
+
+Three exemptions, each dated and named for its row: the drafts strip's date (O-01) on the date
+sweep, `catchups-core.test.mjs`'s git sweep (track 1's file), and the peer session's uncommitted
+`announcement-start.tsx` on the history list. Nothing a member sees changed. `npm run visual` ran
+24 of 24; /feed failed once on another worker's half-written file, and the new check named the
+compile error, then passed on a re-run. O-01 could not be replayed through the suite: the account
+it signs in as has no draft today.
+
 ## 2026-10-30 (catchups) — bug audit 3, unit A4: the Catch-up races close, the picture waits for a verified member, and phase A is done
 
 Six rows and eight review follow-ups (A2's and A3's write-path reviews), twelve commits, all in the
