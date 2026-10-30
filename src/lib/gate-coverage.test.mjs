@@ -151,6 +151,54 @@ test("the public list names only functions that still exist", () => {
   }
 });
 
+/** The index just past the bracket that closes the one at `open`. */
+function pastClose(src, open, [o, c]) {
+  for (let i = open, depth = 0; i < src.length; i++) {
+    if (src[i] === o) depth++;
+    else if (src[i] === c && --depth === 0) return i + 1;
+  }
+  return src.length;
+}
+
+test("L12-06: no action's gate depends on which environment it runs in", () => {
+  /* The sweep above counts a gate marker wherever it sits, so `setArchived`
+     passed it with its whole check inside `if (NODE_ENV !== "development")`:
+     ungated on `next dev`, which answers anyone on the network the laptop is
+     on and writes to the one database production reads (bug audit 3,
+     L12-06). A gate under an environment condition, in either branch of the
+     `if` or on the same line as the condition, is not a gate. Logging or a
+     cookie flag that branches on the environment is fine; only the gate is
+     held to this. */
+  const offenders = [];
+  for (const file of files) {
+    const src = decomment(read(file));
+    for (const name of exportedActions(src)) {
+      const body = fnBody(src, name) ?? "";
+      for (const m of body.matchAll(/\bif\s*\(/g)) {
+        const condEnd = pastClose(body, m.index + m[0].length - 1, ["(", ")"]);
+        const cond = body.slice(m.index, condEnd);
+        if (!/process\.env/.test(cond)) continue;
+        let blocks = body.slice(condEnd).match(/^\s*\{/) ? [condEnd] : [];
+        if (blocks.length) {
+          const thenEnd = pastClose(body, body.indexOf("{", condEnd), ["{", "}"]);
+          const rest = body.slice(thenEnd).match(/^\s*else\s*\{/);
+          if (rest) blocks = [condEnd, thenEnd + rest[0].length - 1];
+        }
+        for (const at of blocks) {
+          const open = body.indexOf("{", at);
+          if (GATE.test(body.slice(open, pastClose(body, open, ["{", "}"])))) {
+            offenders.push(`${file} → ${name}(): a gate inside ${cond.replace(/\s+/g, " ")}`);
+          }
+        }
+      }
+      for (const line of body.split("\n")) {
+        if (GATE.test(line) && /process\.env/.test(line)) offenders.push(`${file} → ${name}(): ${line.trim()}`);
+      }
+    }
+  }
+  assert.deepEqual(offenders, [], `an action's gate only runs in some environments:\n${offenders.join("\n")}`);
+});
+
 /* ------------------------------------------------------------------ *
  *  Every action that acts on a post id asks whether the caller may SEE it.
  *

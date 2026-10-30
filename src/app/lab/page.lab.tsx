@@ -41,10 +41,9 @@ export default async function LabPage() {
       : { ...entry, status: override ? ("archived" as const) : ("active" as const) };
   });
 
-  /* Mirrors the setArchived gate: admins can archive anywhere; local dev
-     stays frictionless with no sign-in. Everyone else gets a read-only view. */
-  const editable =
-    process.env.NODE_ENV === "development" || session?.user?.role === "admin";
+  /* Mirrors the setArchived gate: admins can archive, in every environment,
+     dev included (L12-06). Everyone else gets a read-only view. */
+  const editable = session?.user?.role === "admin";
 
   return (
     <div className="min-h-screen bg-background">

@@ -22,13 +22,15 @@ export async function setArchived(
   archived: boolean
 ): Promise<{ ok: boolean; error?: string }> {
   /* Gated on the role through the one shared guard, exactly like the
-     moderation actions, not on an env check. Local dev keeps the old
-     frictionless behaviour with no sign-in, because the only person at a dev
-     server is the owner and the old NODE_ENV gate was never a complaint. */
-  if (process.env.NODE_ENV !== "development") {
-    const denied = await requireAdminAction();
-    if (denied) return { ok: false, ...denied };
-  }
+     moderation actions, and in every environment. Local dev used to skip it
+     ("the only person at a dev server is the owner"), but `next dev` answers
+     every machine on the network it is on, next.config.ts admits private-LAN
+     origins on purpose (to test on a phone), and this writes to the one
+     database production also reads: on a cafe's wifi, anyone holding the
+     action id could archive production's rooms with no sign-in at all (bug
+     audit 3, L12-06). The owner signs in locally anyway (/api/dev-login). */
+  const denied = await requireAdminAction();
+  if (denied) return { ok: false, ...denied };
 
   /* Only a registered top-level room may hold state: children archive with
      their parent, and an unconstrained href would let this table collect
