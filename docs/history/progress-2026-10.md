@@ -1,3 +1,53 @@
+## 2026-10-30 (platform) — bug audit 3, unit L4a: the presence beat every three minutes, a tighter proxy, a pool Vercel can suspend, uploads that fit the proxy, and images that take turns
+
+Seven rows in seven commits: six done, one parked. `npm run check` was green before each, or red only
+on another track's file in flight, named in that row's ledger line.
+
+The beat (L5-01, the owner's Q27 b). `BEAT_MS` is three minutes, pinned with his reason and against
+the three windows that count on a beat arriving: "On the site now" looks back 15 minutes, the visit
+cookie 30, the idle line 5, and each must outlast more than one beat. The beat that would land short of
+the idle line now waits for it, still one ping per beat, so a visit that ends in stillness ends at the
+idle line rather than up to a beat early; a hidden tab still closes it to the moment. Driven on a fake
+clock in a signed-in browser as the test account: beats at 3 and 6 minutes while active, the closer
+exactly on the idle line, a hide beat at the hide and nothing after (3 beats in 19 minutes where the
+old cadence sent 11). The first run caught the idle line falling exactly on the next beat and losing the
+closer; `<=` fixed it. What the owner sees: "On the site now" notices a departure exactly as fast as
+before, because its window is 15 minutes and someone who left stays listed that long whatever the
+beat; a visit that ends by going idle now ends at the five-minute idle line, where it used to end at the
+last minute's beat before it (4 to 5 minutes), so "Typical visit" and members' minutes read a little
+longer for those visits; a tab that dies without a word can end up to three minutes early.
+
+The proxy (L5-01, T8b-10). The matcher already skipped every static and image path except the
+directory map's atlas, which now joins them; the rest of the proxy's traffic (pages, RSC, actions,
+presence, /ingest) needs it, so the beat is the larger saving. proxy-rule.test.mjs now imports the real
+proxy (Node strips the types; two hooks supply the `@/` alias and next/server's `.js`) and runs it: a
+doubled slash no longer passes as the public "/", every route file stays matched, the demo's closed
+prefixes and /ingest stay matched, and a new public folder has to be placed on one side. In dev Next's
+own repeated-slash 308 answers first, so the proxy is the backstop the finding asked for.
+
+The pool (L5-04's attach half). `attachDatabasePool` from @vercel/functions' `db-connections` subpath.
+The package's OIDC chain carried zod 4.1.11 (GHSA-mrhx-c7xc-m3w5, high), so an npm override points it
+at the app's own 4.6.7: one zod, `npm audit` clean, no exemption. Each release holds the instance about
+5.1 s so idle clients close before Fluid suspends it; inert off Vercel. The hold is Provisioned Memory
+(Hobby includes 360 GB-hrs; the last meter read about 10 a month), never Active CPU.
+
+Uploads and images (L8-03, L8-08). `UPLOAD_BODY_LIMIT` is 3.8 million bytes, because every request
+passes the proxy and Routing Middleware takes 4 MB of body, not the function's 4.5. One 40-megapixel
+Collection encode measured about 650 MB at its peak and four at once 2.1 GB, past a 2 GB instance, so
+`sharpImage`'s buffered results take one of two slots per instance and the streamed photo download takes
+one too; ten downloads as the test account (three at once, one cancelled part-way) all came back.
+
+The lab (L12-06). `setArchived` asks for an admin on the dev server too, and the gate sweep now refuses
+a gate that only runs in some environments.
+
+Parked: L8-01, deferred by the owner on 2026-10-08. On Hobby the converter's CPU counts against the four
+hours; option A (a public `s-maxage`) would not cache as written, since the proxy sets `rv-visit` on that
+GET and Vercel's CDN never caches a response that sets a cookie.
+
+For whoever is next: moving /ingest off the proxy is the other proxy lever and needs a host the session
+cookie never reaches (DNS, the owner's); several comments still say "~4.5MB" (Phase N); check B should
+now read Provisioned Memory beside Active CPU.
+
 ## 2026-10-30 (catchups) — bug audit 3, unit H1: a failed answer save retries, Share finishes past a blank question, a recording taken back stays off, and Catch-ups' people leave PostHog
 
 Eight rows and the add-on in eight commits, each pinned and each pin shown failing against its
