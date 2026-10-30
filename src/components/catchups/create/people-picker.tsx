@@ -100,8 +100,18 @@ export function PeoplePicker({
 
   const full = value.length >= MAX_CATCHUP_PEOPLE;
 
+  /* Who may still be offered: never you, and never anyone already picked.
+     You are in every Catch-up you start, as the fixed chip below; typing your
+     own name, or "Everyone from" your own batch, put a second, removable chip
+     of you on the list and counted it against the hundred (bug audit 3,
+     T3-14). The server always dropped the duplicate, so only the form was
+     wrong. */
+  function offerable<T extends { id: string }>(people: readonly T[]): T[] {
+    return people.filter((p) => p.id !== me.id && !value.some((v) => v.id === p.id));
+  }
+
   function add(person: PickedPerson) {
-    if (value.some((p) => p.id === person.id)) return;
+    if (offerable([person]).length === 0) return;
     if (full) {
       toast.info(`A Catch-up can start with up to ${MAX_CATCHUP_PEOPLE} people.`);
       return;
@@ -124,8 +134,7 @@ export function PeoplePicker({
       const res = await fetch(`/api/users-by-batch?detail=1&forCatchup=1&batches=${myBatchYear}`);
       const data = await res.json();
       const people: PickedPerson[] = data?.users ?? [];
-      const existing = new Set(value.map((p) => p.id));
-      const fresh = people.filter((p) => p && p.id && !existing.has(p.id));
+      const fresh = offerable(people.filter((p) => p && p.id));
       if (fresh.length === 0) {
         toast.info("Everyone from your batch is already here");
         return;
@@ -153,7 +162,7 @@ export function PeoplePicker({
     }
   }
 
-  const unpicked = results.filter((r) => !value.some((p) => p.id === r.id));
+  const unpicked = offerable(results);
 
   return (
     <div className="space-y-[var(--space-s)]">
@@ -177,9 +186,13 @@ export function PeoplePicker({
         )}
       </div>
 
+      {/* Found, but already on the list, you included: saying nobody was found
+          would be untrue (the People door says the same for its case). */}
       {query.trim() && !searching && unpicked.length === 0 && (
         <p className="text-[13px] text-pretty text-muted-foreground">
-          No one found by that name. Only verified members can be added.
+          {results.length > 0
+            ? "Already on the list."
+            : "No one found by that name. Only verified members can be added."}
         </p>
       )}
 

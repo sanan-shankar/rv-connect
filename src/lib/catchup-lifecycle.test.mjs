@@ -1052,3 +1052,20 @@ test("V-L-d-01: an upload the picker did not keep is thrown away, never one a ro
   assert.match(picker, /useEffect\(\(\) => \(\) => discard\(unsaved\.current\), \[discard\]\)/, "leaving the page no longer throws the unused upload away");
   assert.match(picker, /<Dialog open=\{open\} onOpenChange=\{closeOrOpen\}>/);
 });
+
+test("T3-14: the create form never offers the viewer, nor anyone already picked", () => {
+  /* Typing your own name, or "Everyone from" your batch, put a second,
+     removable chip of you beside your fixed one, counted against the
+     hundred. The server always dropped the duplicate. */
+  const picker = decomment(read("src/components/catchups/create/people-picker.tsx"));
+  assert.match(
+    picker,
+    /function offerable<T extends \{ id: string \}>\(people: readonly T\[\]\): T\[\] \{\s*return people\.filter\(\(p\) => p\.id !== me\.id && !value\.some\(\(v\) => v\.id === p\.id\)\);/,
+    "the picker offers the viewer, or somebody already picked, again"
+  );
+  assert.match(picker, /const unpicked = offerable\(results\);/, "the search list skips the rule");
+  assert.match(picker, /const fresh = offerable\(people\.filter\(\(p\) => p && p\.id\)\);/, "Everyone from your batch skips the rule");
+  assert.match(picker, /if \(offerable\(\[person\]\)\.length === 0\) return;/, "a hand-made add can still put you on the list");
+  // Found, but already on the list: not "No one found".
+  assert.match(picker, /results\.length > 0\s*\?\s*"Already on the list\."/, "a name already on the list reads as nobody found");
+});
