@@ -29,6 +29,28 @@ import type { Prisma } from "@/generated/prisma/client";
 export const MAX_CATCHUP_PEOPLE = 100;
 
 /**
+ * Who still counts as IN a Catch-up: not blocked, and not inside their
+ * deletion window. The same standing the feed's `AUTHOR_IN_GOOD_STANDING`
+ * reads (posts.ts), on the member rather than through an author.
+ *
+ * Membership is never re-checked after it is made, so a member blocked or
+ * asking to leave the site stayed inside every Catch-up they were in: listed
+ * among its people with a link to a profile that answers "not available",
+ * counted toward the batch floor, rung by every bell (bug audit 3, T2a-13).
+ * The owner's Q6 (b), 2026-10-29: they leave a Catch-up's lists, counts and
+ * bells, and Editions already sent stay exactly as people read them. Their
+ * membership row stays, so unblocking, or signing back in inside the sixty
+ * days, puts them straight back.
+ *
+ * A `where` on User, applied through a relation (`user: IN_GOOD_STANDING`,
+ * `author: IN_GOOD_STANDING`).
+ */
+export const IN_GOOD_STANDING = {
+  isBlocked: false,
+  deletionRequestedAt: null,
+} satisfies Prisma.UserWhereInput;
+
+/**
  * The people a Catch-up may be given, or may hand its Keeper's hat to: an
  * alumnus with a confirmed email and a verified profile (the trust model's
  * Stage 2), not blocked, not inside their deletion window, and not the site's
@@ -52,7 +74,6 @@ export const CATCHUP_PEOPLE = {
   accountType: { notIn: ["teacher", "ex_teacher"] },
   emailVerified: { not: null },
   verifyState: "verified",
-  isBlocked: false,
-  deletionRequestedAt: null,
+  ...IN_GOOD_STANDING,
   id: { not: "anonymous" },
 } satisfies Prisma.UserWhereInput;

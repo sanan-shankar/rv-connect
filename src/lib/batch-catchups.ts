@@ -58,9 +58,17 @@ import { reportSwallowed } from "@/lib/report-error";
 import { isUniqueViolation } from "@/lib/prisma-errors";
 import { pickCatchupPicture } from "@/lib/catchup-picture-pick";
 import { BATCH_CATCHUP_FLOOR, isMissingCatchupTable } from "@/lib/catchups-core";
+import { IN_GOOD_STANDING } from "@/lib/catchup-caps";
 import { clearCatchupNotifications } from "@/lib/catchup-notifications";
 import { dropUnsentWriting } from "@/lib/group-succession";
 import { drainPendingImagePurges } from "@/lib/account-purge";
+
+/** The head count the floor is measured against: members still in good
+ *  standing, the people a batch's Catch-up would actually reach. Both places
+ *  that count against the floor read this one select. */
+const BATCH_FLOOR_COUNT = {
+  _count: { select: { members: { where: { user: IN_GOOD_STANDING } } } },
+} as const;
 
 /**
  * Find-or-create the "Batch of {year}" group, add the user to it, and make
@@ -144,6 +152,9 @@ export async function joinBatchGroup(userId: string, batchYear: number) {
  * callers want the same answer and the count is the same query every time.
  * Under it, nothing is created at all -- and per spec 3.5b that member also
  * has no Catch-ups item on their sidebar, so there is no empty door either.
+ * It counts members in good standing (`BATCH_FLOOR_COUNT`): a blocked
+ * account, or one inside its deletion window, was the tenth that minted a
+ * batch's Catch-up (bug audit 3, T2a-13; his Q6).
  *
  * WHAT IT CREATES, and every field is a decision:
  *   - `createdById` null. No one person keeps a batch Catch-up; every member
@@ -171,7 +182,7 @@ export async function ensureBatchCatchup(groupId: string): Promise<string | null
       id: true,
       batchYear: true,
       catchup: { select: { id: true } },
-      _count: { select: { members: true } },
+      ...BATCH_FLOOR_COUNT,
     },
   });
   if (!group || group.batchYear == null) return null;
@@ -375,7 +386,7 @@ export async function healBatchGroupMemberships(): Promise<number> {
 export async function healBatchCatchups(): Promise<number> {
   const groups = await prisma.group.findMany({
     where: { batchYear: { not: null }, catchup: { is: null } },
-    select: { id: true, _count: { select: { members: true } } },
+    select: { id: true, ...BATCH_FLOOR_COUNT },
   });
 
   let made = 0;

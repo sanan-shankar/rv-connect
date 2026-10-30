@@ -30,6 +30,7 @@
  * ------------------------------------------------------------------ */
 
 import { ANSWERED_ENTRY_WHERE, answerReminderMessage, DEFAULT_REMINDER_MODE } from "@/lib/catchups-core";
+import { IN_GOOD_STANDING } from "@/lib/catchup-caps";
 import { formatDisplayDateLong } from "@/lib/utils";
 import type {
   CatchupDb,
@@ -63,9 +64,17 @@ import type {
  * filing; muting has its own control (`CatchupPref.reminderMode`), and quietly
  * making one mean the other would leave a member who filed a Catch-up away
  * missing the Edition they were still expecting.
+ *
+ * A member who is blocked, or inside their deletion window, IS excluded
+ * (`IN_GOOD_STANDING`; bug audit 3, T2a-13, his Q6). Their membership row stays
+ * so either can be undone, and every bell went on being written to them:
+ * started, published, answers open, the daily reminder.
  */
 async function groupMemberIds(db: CatchupDb, groupId: string): Promise<string[]> {
-  const rows = await db.groupMember.findMany({ where: { groupId }, select: { userId: true } });
+  const rows = await db.groupMember.findMany({
+    where: { groupId, user: IN_GOOD_STANDING },
+    select: { userId: true },
+  });
   return rows.map((r) => r.userId);
 }
 
@@ -219,11 +228,11 @@ export const notifyAnswersOpen: NotifyAnswersOpenFn = async (db, ctx) => {
  *
  * Today's reminder REPLACES yesterday's rather than stacking on it (owner:
  * "make sure it deletes the previous notification, so that they don't build
- * up"). The delete is scoped by type + link, so it takes out exactly this
- * Catch-up's reminders and nothing else, and it runs over every group member
- * rather than just today's recipients: someone who has since answered, or who
- * has switched their pref to off, should have their stale nudge cleared too
- * rather than left sitting in the bell forever.
+ * up"). The delete is scoped by type + link (`clearReminders`), so it takes
+ * out exactly this Catch-up's reminders and nothing else, and it reaches every
+ * member rather than just today's recipients: someone who has since answered,
+ * switched their pref to off, or been blocked should have their stale nudge
+ * cleared too rather than left sitting in the bell forever.
  *
  * Both statements share the caller's transaction, so a reader can never catch
  * the gap where the old one is gone and the new one is not there yet.
@@ -253,11 +262,10 @@ export const notifyReminder: NotifyReminderFn = async (db, ctx) => {
     return false;
   });
 
-  if (members.length > 0) {
-    await db.notification.deleteMany({
-      where: { userId: { in: members }, type: "catchup_reminder", link },
-    });
-  }
+  /* Everyone's yesterday, not just the members still in good standing: a
+     member blocked since holds one too. Only members are ever sent one, and
+     leaving clears theirs, so this Catch-up's reminders are its members'. */
+  await clearReminders(db, ctx.catchupId);
   if (recipients.length === 0) return;
 
   /* The sentence names the hour, India time, in the page's own words, and
@@ -335,13 +343,14 @@ export const notifyLove: NotifyLoveFn = async (db, ctx) => {
    * read. But the AUTHOR is gone, and the Edition page 404s for a non-member,
    * so hearting an ex-member's answer put a bell entry in their pocket
    * pointing at a door that no longer opens for them. Checked directly rather
-   * than through `groupMemberIds` because this is one person, not an audience.
+   * than through `groupMemberIds` because this is one person, not an audience,
+   * with the same standing: a blocked or leaving author is not rung (T2a-13).
    *
    * A second count beside it excluded whoever had binned their own copy, and
    * went with the bin in build phase 5: leaving takes the membership row
    * itself, so the one count below is now the whole test. */
   const stillIn = await db.groupMember.count({
-    where: { groupId: ctx.groupId, userId: ctx.authorId },
+    where: { groupId: ctx.groupId, userId: ctx.authorId, user: IN_GOOD_STANDING },
   });
   if (stillIn === 0) return;
 
@@ -393,7 +402,7 @@ export const notifyComment: NotifyCommentFn = async (db, ctx) => {
      404s for a non-member, so writing to an ex-member puts a bell in their
      pocket aimed at a door that no longer opens for them. */
   const stillIn = await db.groupMember.count({
-    where: { groupId: ctx.groupId, userId: ctx.recipientId },
+    where: { groupId: ctx.groupId, userId: ctx.recipientId, user: IN_GOOD_STANDING },
   });
   if (stillIn === 0) return;
 

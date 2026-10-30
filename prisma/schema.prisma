@@ -145,6 +145,14 @@ model User {
   // approved by an admin into a shared archive of the school's history, which
   // is a different thing from something the member published under their own
   // name. Take one down individually if it needs to go.
+  //
+  // Nor to a Catch-up Edition already sent, which stays exactly as people read
+  // it, their answers and hearts included (owner, Q6 (b), 2026-10-29; bug audit
+  // 3, T2b-05). They do leave a Catch-up's lists, counts and bells
+  // (IN_GOOD_STANDING in lib/catchup-caps.ts), an Edition still running when
+  // they were blocked goes out without what they wrote for it, and their
+  // comments under answers follow this rule like any other comment.
+  // catchups-edition-view.ts has the reasoning.
   isBlocked     Boolean   @default(false)
   // Bumped whenever this account's credentials or standing change: a password
   // reset or change, a block, an unblock. The value is copied into the JWT at

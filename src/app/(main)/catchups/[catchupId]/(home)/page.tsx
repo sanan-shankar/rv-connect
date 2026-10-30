@@ -39,6 +39,7 @@ import type {
   ReminderMode,
 } from "@/lib/catchups-types";
 import { IDENTITY_SELECT } from "@/lib/people-select";
+import { IN_GOOD_STANDING } from "@/lib/catchup-caps";
 import { COVER_SHOTS } from "@/lib/catchup-pictures";
 import { readEditionIds } from "@/lib/catchup-reads";
 import { promptKind, type PromptCategory } from "@/lib/catchups-types";
@@ -70,7 +71,13 @@ const loadCatchup = cache(async function loadCatchup(catchupId: string) {
           // the picture control is not Keeper-only: on a batch, anyone in the
           // batch may replace it. His answer to owner question 18.
           batchYear: true,
+          /* Only members still in good standing: a blocked one, or one inside
+             their deletion window, sat in the People list with a link to a
+             profile that answers "not available", and in Start's head count
+             (bug audit 3, T2a-13; his Q6). Their row stays; undoing either
+             brings them back. The viewer is always in it: neither can sign in. */
           members: {
+            where: { user: IN_GOOD_STANDING },
             select: {
               // The role IS the second-Keeper flag: `setCatchupKeeper` writes
               // "keeper" here, which `isEffectiveKeeper` honours, so the hat is

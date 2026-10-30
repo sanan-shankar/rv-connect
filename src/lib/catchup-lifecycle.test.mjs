@@ -746,7 +746,8 @@ test("C-030: a heart does not nudge somebody the Edition has closed to", () => {
   // opens. A second count beside it excluded whoever had binned their own
   // copy; build phase 5 deleted the bin, and leaving now takes the membership
   // row itself, so this one count is the whole test.
-  assert.match(body, /groupMember\.count\(\{\s*where: \{ groupId: ctx\.groupId, userId: ctx\.authorId \},?\s*\}\)/);
+  // Still a member, and still in good standing (T2a-13, his Q6).
+  assert.match(body, /groupMember\.count\(\{\s*where: \{ groupId: ctx\.groupId, userId: ctx\.authorId, user: IN_GOOD_STANDING \},?\s*\}\)/);
   assert.match(body, /if \(stillIn === 0\) return;/);
   assert.ok(!/deletedAt/.test(body), "the love nudge is reading a column nothing writes");
   assert.ok(
@@ -913,4 +914,69 @@ test("C-149: every swallowed failure on the clock is reported, not just logged",
         `nobody (C-149):\n${block.slice(0, 200)}`
     );
   }
+});
+
+/* ------------------------------------------------------------------ *
+ *  Blocked and leaving members inside a Catch-up (bug audit 3, T2a-13 and
+ *  T2b-05; the owner's Q6 (b), 2026-10-29): out of its lists, counts and
+ *  bells; Editions already sent stay exactly as people read them; what
+ *  nobody has read yet goes with them (Q21). The bells are driven in
+ *  catchup-bells.test.mjs and the close's helper in group-succession.
+ * ------------------------------------------------------------------ */
+
+test("Q6: every close sheds a blocked or leaving member's writing after its count and before its bell", () => {
+  const actions = decomment(read("src/app/(main)/catchups/actions.ts"));
+  const close = balancedBody(actions, "export async function closeAndPublish");
+  const ways = close.split("unlessEmpty(prisma.$transaction(").slice(1);
+  assert.equal(ways.length, 2, "closeAndPublish no longer has its two ways out; retarget this pin");
+  for (const way of ways) {
+    const counted = way.indexOf("throw new EmptyAfterSwap()");
+    const shed = way.indexOf("await dropGoneMembersWriting(tx, editionId)");
+    const bell = way.search(/await notify(Sealed|Published)\(tx,/);
+    assert.ok(counted > -1 && shed > counted && bell > shed, "a hand close sends out a blocked or leaving member's writing again");
+  }
+  const lib = decomment(read("src/lib/catchups.ts"));
+  const apply = balancedBody(lib, "async function applyEditionAction(");
+  const transition = apply.slice(apply.indexOf('action.kind === "transition"'), apply.indexOf('action.kind === "extend"'));
+  const shed = transition.indexOf('if (action.from === "answering") await dropGoneMembersWriting(tx, editionId);');
+  assert.ok(shed > transition.indexOf("if (cas.count === 0) return false;"), "the clock's close sheds before it holds the row, or not at all");
+  assert.ok(shed > -1 && shed < transition.indexOf("notify."), "the clock's close rings its bell before it sheds");
+});
+
+test("Q6: an answer is a row with something in it, from somebody still in good standing", async () => {
+  const { ANSWERED_ENTRY_WHERE, EMPTY_ENTRY_WHERE } = await import("./catchups-core.ts");
+  const { IN_GOOD_STANDING } = await import("./catchup-caps.ts");
+  assert.deepEqual(ANSWERED_ENTRY_WHERE, { NOT: EMPTY_ENTRY_WHERE, author: IN_GOOD_STANDING });
+  // One standing for the whole site: the feed's fragment names the same two columns.
+  assert.match(
+    decomment(read("src/lib/posts.ts")),
+    /AUTHOR_IN_GOOD_STANDING = \{ author: \{ isBlocked: false, deletionRequestedAt: null \} \}/,
+    "the feed's standing changed; IN_GOOD_STANDING (catchup-caps.ts) should change with it"
+  );
+});
+
+test("Q6: a Catch-up's People list, its head counts and the batch floor count members in good standing", () => {
+  const home = decomment(read("src/app/(main)/catchups/[catchupId]/(home)/page.tsx"));
+  assert.match(home, /members: \{\s*where: \{ user: IN_GOOD_STANDING \},\s*select: \{/, "the People list draws blocked or leaving members again");
+  assert.match(home, /people: catchup\.group\.members\.length/, "Start's head count no longer reads the list the page draws");
+  const join = decomment(read("src/app/catchups/join/[token]/page.tsx"));
+  assert.match(join, /_count: \{ select: \{ members: \{ where: \{ user: IN_GOOD_STANDING \} \} \} \}/, "the invitation counts blocked or leaving members again");
+  const batch = decomment(read("src/lib/batch-catchups.ts"));
+  assert.match(batch, /const BATCH_FLOOR_COUNT = \{\s*_count: \{ select: \{ members: \{ where: \{ user: IN_GOOD_STANDING \} \} \} \},/);
+  assert.match(balancedBody(batch, "export async function ensureBatchCatchup("), /\.\.\.BATCH_FLOOR_COUNT/, "signup's floor counts blocked or leaving members again");
+  assert.match(balancedBody(batch, "export async function healBatchCatchups("), /\.\.\.BATCH_FLOOR_COUNT/, "the tick's floor counts blocked or leaving members again");
+});
+
+test("T2b-05: a published Edition keeps every answer as it was read, and hides a blocked author's comments as everywhere", () => {
+  /* The decision, pinned both ways: no standing filter on the answers (or
+     their hearts), because an Edition already sent stays as people read it;
+     comments through VISIBLE_COMMENT, the site's rule, because a comment is
+     written after an Edition is out. comment-target-rule.test.mjs holds the
+     comment count's filter in entryCounts. */
+  const view = decomment(read("src/lib/catchups-edition-view.ts"));
+  const fn = balancedBody(view, "export async function loadPublishedEditionView");
+  const entries = fn.slice(fn.indexOf("entries: {"), fn.indexOf("loves: { where: { userId: viewerId }"));
+  assert.ok(entries.length > 0, "the reader's answers moved; retarget this pin");
+  assert.doesNotMatch(entries, /isBlocked|deletionRequestedAt|GOOD_STANDING/, "a published Edition drops a blocked author's answers, which his Q6 (b) keeps as read");
+  assert.match(decomment(read("src/lib/page-counts.ts")), /VISIBLE_COMMENT/, "the comment count no longer follows the site's rule for a blocked author");
 });

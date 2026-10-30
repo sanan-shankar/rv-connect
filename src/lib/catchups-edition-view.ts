@@ -115,6 +115,18 @@ export async function loadPublishedEditionView(
           accepted: true,
           position: true,
           author: { select: IDENTITY_SELECT },
+          /* EVERY ANSWER, WHOEVER WROTE IT, deliberately: no standing filter
+             (bug audit 3, T2b-05; his Q6 (b), 2026-10-29). A published
+             Edition stays exactly as people read it, so a member blocked or
+             asking to leave after it came out keeps their answers, photographs,
+             recording and hearts in it; the feed's rule (AUTHOR_IN_GOOD_STANDING)
+             hides their posts, and this is the one place it does not reach.
+             Nothing they wrote for an Edition still running when that happened
+             is here to filter: the close took it (`dropGoneMembersWriting`).
+             Their COMMENTS under answers are hidden (VISIBLE_COMMENT, in
+             entryCounts and the thread), as on every post: a comment is
+             written after an Edition is out, not part of what was sent, and
+             it comes back if the block or the request is undone. */
           entries: {
             orderBy: { createdAt: "asc" },
             select: {

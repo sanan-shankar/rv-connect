@@ -162,3 +162,62 @@ test("routed (c): the no-answers extension re-tells whoever emptied their answer
   await notify.notifyAnswersOpen(db, { ...base, onlyNonAnswerers: true });
   assert.deepEqual(db.written.map((r) => r.userId), ["u-emptied"]);
 });
+
+/* A member who is blocked, or inside their deletion window, is rung by no
+   Catch-up bell (bug audit 3, T2a-13; his Q6 (b)). Their membership row
+   stays, so undoing either puts them back; every builder wrote to them. The
+   fake answers the `user` filter the way Postgres would. */
+const { IN_GOOD_STANDING } = await import("./catchup-caps.ts");
+
+function standingDb() {
+  const db = fakeDb();
+  const members = [
+    { userId: "u-member", inGoodStanding: true },
+    { userId: "u-blocked", inGoodStanding: false },
+  ];
+  const visible = (where) => members.filter((m) => !where.user || m.inGoodStanding);
+  db.memberWheres = [];
+  db.groupMember.findMany = async ({ where }) => {
+    db.memberWheres.push(where);
+    return visible(where).map(({ userId }) => ({ userId }));
+  };
+  db.groupMember.count = async ({ where }) => {
+    db.memberWheres.push(where);
+    return visible(where).filter((m) => m.userId === where.userId).length;
+  };
+  db.catchupPref.findMany = async () => [
+    { userId: "u-member", reminderMode: "all" },
+    { userId: "u-blocked", reminderMode: "all" },
+  ];
+  db.catchupPrompt.findMany = async () => [{ authorId: "u-member" }, { authorId: "u-blocked" }];
+  return db;
+}
+
+test("T2a-13: a member who is blocked or leaving gets no Catch-up bell", async () => {
+  for (const [name, ctx] of [
+    ["notifyQuestionsOpen", { ...base }],
+    ["notifyAnswersOpen", { ...base }],
+    ["notifyReminder", { ...base, daysLeft: 1, closesAt: new Date(Date.now() + 86_400_000) }],
+    ["notifyPublished", { ...base }],
+    ["notifySealed", { ...base, opensAt: new Date("2027-09-14T01:30:00Z") }],
+  ]) {
+    const db = standingDb();
+    await notify[name](db, ctx);
+    assert.deepEqual(db.written.map((r) => r.userId), ["u-member"], `${name} rang a blocked or leaving member`);
+    assert.ok(db.memberWheres.every((w) => w.user === IN_GOOD_STANDING), `${name} read the roster without the standing rule`);
+  }
+  for (const [name, ctx] of [
+    ["notifyLove", { ...base, entryId: "n1", authorId: "u-blocked", likerId: "u-member", likerName: "Someone" }],
+    ["notifyComment", { ...base, entryId: "n1", recipientId: "u-blocked", writerId: "u-member", writerName: "Someone", kind: "comment" }],
+  ]) {
+    const db = standingDb();
+    await notify[name](db, ctx);
+    assert.deepEqual(db.written, [], `${name} rang a blocked or leaving author`);
+  }
+});
+
+test("T2a-13: the daily reminder still takes back a blocked member's old one", async () => {
+  const db = standingDb();
+  await notify.notifyReminder(db, { ...base, daysLeft: 2, closesAt: new Date(Date.now() + 2 * 86_400_000) });
+  assert.deepEqual(db.deleted, [REMINDERS_HERE], "yesterday's reminder is cleared only for members still in good standing");
+});

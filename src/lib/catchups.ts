@@ -21,6 +21,7 @@ import { prisma } from "@/lib/prisma";
 import * as notify from "@/lib/catchups-notify";
 import { reportSwallowed } from "@/lib/report-error";
 import { healBatchCatchupsAndMemberships } from "@/lib/batch-catchups";
+import { dropGoneMembersWriting } from "@/lib/group-succession";
 import { isUniqueViolation } from "@/lib/prisma-errors";
 import type {
   CatchupStatus,
@@ -206,6 +207,12 @@ async function applyEditionAction(
         const questions = await tx.catchupPrompt.count({ where: { editionId, accepted: true } });
         if (questions === 0) throw new EmptyAfterSwap();
       }
+
+      /* An Edition closing, published or sealed, sends out nothing written by
+         a member who is blocked or leaving the site (his Q6 with Q21). Not
+         at a capsule's opening: it keeps what it sealed. The count the plan
+         took (ANSWERED_ENTRY_WHERE) already left their answers out. */
+      if (action.from === "answering") await dropGoneMembersWriting(tx, editionId);
 
       if (action.notify === "catchup_answers_open") {
         await notify.notifyAnswersOpen(tx, { ...meta, editionId });

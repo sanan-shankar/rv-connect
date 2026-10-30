@@ -25,6 +25,7 @@
 import { randomUUID } from "node:crypto";
 import { formatDayAndDate, valleyDaysBetween } from "./utils.ts";
 import { isMissingTable } from "./prisma-errors.ts";
+import { IN_GOOD_STANDING } from "./catchup-caps.ts";
 import type {
   CatchupStatus,
   CatchupNotifyKind,
@@ -1146,8 +1147,14 @@ export const EMPTY_ENTRY_WHERE = { body: null, images: null, audioUrl: null };
  * answered yet" ask the same question through this; both counted every row, so
  * an emptied answer stopped a member's reminders and told a Keeper somebody
  * had answered when the close would then say nobody had (routed follow-up (c)).
+ *
+ * And by somebody still in good standing. A blocked member's answers, or those
+ * of one inside their deletion window, leave an Edition at its close
+ * (`dropGoneMembersWriting`, his Q6 with Q21: what nobody has read yet goes
+ * with the person), so they cannot be what makes it "answered" either: an
+ * Edition whose only answers were theirs would publish empty.
  */
-export const ANSWERED_ENTRY_WHERE = { NOT: EMPTY_ENTRY_WHERE };
+export const ANSWERED_ENTRY_WHERE = { NOT: EMPTY_ENTRY_WHERE, author: IN_GOOD_STANDING };
 
 // ─── Friendly status copy (shared so every surface reads the same) ────────────
 

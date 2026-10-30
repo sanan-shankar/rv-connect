@@ -68,7 +68,7 @@ offered accounts that had confirmed nothing).
 
 **A batch Catch-up** belongs to a batch group (`Group.batchYear` set). `isBatchCatchup(batchYear)`
 is the whole test. One exists for every batch group at or over **`BATCH_CATCHUP_FLOOR` = 10**
-members; under ten there is none. On the live database, 2026-09-27, that is nine batches: 1989, 2016,
+members in good standing (not blocked, not inside their deletion window; §5); under ten there is none. On the live database, 2026-09-27, that is nine batches: 1989, 2016,
 2018, 2019, 2021, 2022, 2023, 2024 and 2026. Its `createdById` and `inviteToken` are NULL: there is no
 individual Keeper of record and nobody to invite, because the membership is the batch. Everyone who signs
 up with that batch year is added (`joinBatchGroup` in `src/lib/batch-catchups.ts`), before confirming
@@ -355,6 +355,25 @@ transaction, so every copy already out stops working, the removed member's inclu
 Keeper still wants needs the new one (his Q16, 2026-10-29; L12-09: the link never changed and rode in
 every member's page data, so a removed member could walk straight back in).
 
+**Blocked and leaving members** (blocked by an admin, or inside the sixty days after "Delete my
+account") stay members: the row is kept, so unblocking or signing back in puts them straight back. But
+they leave a Catch-up's People list, its head counts (Start's confirmation, the invitation, the batch
+floor) and every bell it rings, through one predicate, `IN_GOOD_STANDING` in `catchup-caps.ts`, the
+standing the feed's `AUTHOR_IN_GOOD_STANDING` reads. An Edition already sent stays exactly as people
+read it: their answers, photographs, recordings and hearts in it stay, which is the one place the
+feed's rule does not reach (`catchups-edition-view.ts` says why). Their comments under answers follow
+the site's rule, hidden while blocked or leaving and back if that is undone, because a comment is
+written after an Edition is out. What they wrote for an Edition still running when it happened leaves
+it at its close, the Keeper's or the clock's, publishing or sealing (`dropGoneMembersWriting`): their
+answers, with photographs and recordings queued for deletion, and their questions nobody still in good
+standing answered. Nothing records when a block happened, so the close is the one place that knows what
+is being sent; an unblock after it does not bring that Edition's answers back, since the group read it
+without them. "Answered" counts only members in good standing (`ANSWERED_ENTRY_WHERE`), so their
+answers cannot keep an Edition from the too-few rule or the "Nobody has answered yet" refusal. His Q6
+(b) with Q21, 2026-10-29; until then a blocked member stayed in every list, count and bell (bug audit
+3, T2a-13, T2b-05). Blocking still runs no succession: a blocked Keeper keeps the hat until someone
+leaves or is removed.
+
 **Archiving** (`setCatchupArchived`) is personal filing: `CatchupPref.archivedAt` on your own row.
 You stay a member and still get every notification (muting is the Reminders setting). An archived
 Catch-up leaves your list and sits in a closed "Archived" row at its foot, with Put back inside.
@@ -611,7 +630,8 @@ photograph. The grouping is pinned by `photo-wall.test.mjs` rather than by a scr
 
 ## 11. Notifications
 
-Written by `src/lib/catchups-notify.ts` into `Notification`; `type` is a free string.
+Written by `src/lib/catchups-notify.ts` into `Notification`; `type` is a free string. Every audience
+below is members in good standing (§5): a blocked or leaving member is rung by none of them.
 
 **Every bell names the Catch-up the way its pages do**: `catchupDisplayName(title, group.name)`, so
 a Keeper's rename reaches every bell written after it. The builders took the group's own name until

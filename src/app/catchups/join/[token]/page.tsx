@@ -9,6 +9,7 @@ import { Wordmark } from "@/components/layout/peaks-mark";
 import { catchupDisplayName, isMissingCatchupTable } from "@/lib/catchups";
 import { AcceptInvite } from "@/components/catchups/join/accept-invite";
 import { IDENTITY_SELECT } from "@/lib/people-select";
+import { IN_GOOD_STANDING } from "@/lib/catchup-caps";
 
 export const metadata: Metadata = {
   title: "You're invited",
@@ -68,7 +69,9 @@ export default async function JoinCatchupPage({
           status: true,
           groupId: true,
           title: true,
-          group: { select: { name: true, _count: { select: { members: true } } } },
+          /* Members in good standing, as the Catch-up's own People list
+             counts them (bug audit 3, T2a-13; his Q6). */
+          group: { select: { name: true, _count: { select: { members: { where: { user: IN_GOOD_STANDING } } } } } },
           createdBy: { select: IDENTITY_SELECT },
         },
       });
