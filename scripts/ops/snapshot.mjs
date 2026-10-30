@@ -125,7 +125,12 @@ async function collectDb() {
       (SELECT count(DISTINCT "userId") FROM "Contribution"
         WHERE livemode AND status = 'paid' AND "userId" IS NOT NULL)       AS give_people,
 
-      pg_database_size(current_database())                                 AS db_bytes
+      pg_database_size(current_database())                                 AS db_bytes,
+      (SELECT coalesce(json_agg(t ORDER BY t.bytes DESC), '[]'::json)
+         FROM (SELECT c.relname AS name, pg_total_relation_size(c.oid) AS bytes
+                 FROM pg_class c JOIN pg_namespace ns ON ns.oid = c.relnamespace
+                WHERE ns.nspname = 'public' AND c.relkind = 'r'
+                ORDER BY 2 DESC LIMIT 5) t)                                AS biggest_tables
   `, [d7, d30]);
 
   const n = (k) => Number(r[k]);
@@ -188,7 +193,19 @@ async function collectDb() {
       `Look at docs/OPERATIONS.md, "Database size", before it gets there.`;
   }
 
-  return `${n("members_total")} members, ${n("give_count")} contributions, database ${mb} MB`;
+  /* WHERE the size is, beside how much. When the line above trips, the first
+   * question is which table grew, and a nightly row per table is the only
+   * history that can answer it: the five largest each night, heap, indexes
+   * and TOAST together (bug audit 3, L5-08). Five, not every table: the
+   * place list alone is about 100 MB of today's ~130 and never changes, so
+   * anything climbing shows up in the next four, and MetricSnapshot keeps
+   * every row it is given. */
+  const biggest = r.biggest_tables ?? [];
+  for (const t of biggest) add("db", `table.${t.name}.bytes`, t.bytes);
+  const top = biggest[0];
+  const share = top ? `, ${top.name} ${Math.round(Number(top.bytes) / 1e6)} MB of it` : "";
+
+  return `${n("members_total")} members, ${n("give_count")} contributions, database ${mb} MB${share}`;
 }
 
 /* ---------------------------------------------------------------- *

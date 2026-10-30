@@ -206,7 +206,9 @@ the app failing. Supabase's own meter reads about 20 MB higher than Postgres's c
 119 MB on 2026-09-29), hence 350 rather than 450. At 125 MB with ~280 members, the line is
 months away. When it fires:
 
-1. See what grew: `node scripts/dev/run-sql.mjs --inline "SELECT relname,
+1. See what grew. The same job records the five largest tables every night
+   (`db.table.<Name>.bytes` in `MetricSnapshot`, since 2026-10-30), so the history of which one
+   climbed is already there; for today's full list: `node scripts/dev/run-sql.mjs --inline "SELECT relname,
    pg_size_pretty(pg_total_relation_size(oid)) FROM pg_class WHERE relkind='r' AND
    relnamespace='public'::regnamespace ORDER BY pg_total_relation_size(oid) DESC LIMIT 10"`.
 2. A log table (`LoginAttempt`, `Visit`, `ContentView`, `Notification`) that grew fast is a
