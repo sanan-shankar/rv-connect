@@ -57,6 +57,7 @@ import {
   extendPhasePatch,
   planExtension,
   REMINDER_QUESTIONS_EXTENDED,
+  STUCK_AFTER_MS,
 } from "./catchups-core.ts";
 import { PROMPT_CATEGORIES } from "./catchups-types.ts";
 import { formatDayAndDate, formatDayMonth, formatDisplayDateLong } from "./utils.ts";
@@ -314,12 +315,14 @@ test("snapToDeadlineHour: rounds forward only, and is idempotent", () => {
   assert.equal(snapToDeadlineHour(once).getTime(), once.getTime());
 });
 
-test("07:00 IST is picked up by that morning's cron, within thirty minutes", () => {
+test("07:00 IST is picked up by that morning's cron, inside the cron's own hour", () => {
   /* The hour is not a preference. `vercel.json` runs /api/catchups/tick on
      "0 2 * * *" -- 02:00 UTC, 07:30 IST -- and a deadline at 07:00 IST is
      therefore always swept by that morning's run rather than waiting on the
      lazy read-time advance and whoever happens to open a page. If the cron
-     ever moves, this fails, and the deadline hour has to move with it. */
+     ever moves, this fails, and the deadline hour has to move with it.
+     Scheduled thirty minutes after; on Hobby a daily cron runs anywhere in
+     its hour, so it lands up to 89 minutes after (bug audit 3, L3-03). */
   const vercel = JSON.parse(read("vercel.json"));
   const tick = vercel.crons.find((c) => c.path === "/api/catchups/tick");
   assert.ok(tick, "the Catch-ups tick is no longer a cron");
@@ -332,6 +335,9 @@ test("07:00 IST is picked up by that morning's cron, within thirty minutes", () 
   const wait = cronUtcMs - deadlineUtcMs;
   assert.ok(wait > 0, "the cron runs BEFORE the deadline, so an Edition waits a whole day");
   assert.ok(wait <= 30 * 60 * 1000, `an Edition waits ${wait / 60000} minutes for the tick`);
+  // The admin's past-its-date list waits out the latest the tick can land.
+  const hobbySpread = 59 * 60 * 1000;
+  assert.ok(STUCK_AFTER_MS > wait + hobbySpread, "a healthy Edition is called stuck before the tick can have run");
 });
 
 // ─── extending a deadline by hand (Keeper, owner 2026-08-05) ─────────────────
@@ -1054,11 +1060,11 @@ test("C-182: a photo removed mid-upload is not resurrected when the upload lands
 });
 
 test("the admin's past-its-date list leaves out an ended Catch-up and a fizzled Edition", () => {
-  /* Owner, 2026-09-15, about a paused Catch-up on his worklist: "it's paused.
-     let it be paused wtf should I do". A frozen clock and an Edition nobody
-     asked anything in are both working as designed, and neither has a fix.
-     Only ENDED freezes since 2026-10-17; a legacy paused row runs, so if it
-     is past its date it is genuinely stuck. */
+  /* The owner, 2026-09-15, asked what he was meant to do about a paused
+     Catch-up on his worklist. A frozen clock and an Edition nobody asked
+     anything in are both working as designed, and neither has a fix. Only
+     ENDED freezes since 2026-10-17; a legacy paused row runs, so if it is
+     past its date it is genuinely stuck. */
   const now = new Date("2026-09-15T12:00:00Z");
   const [collecting, answering, sealed] = overdueEditionWhere(now).OR;
   assert.deepEqual(collecting.catchup, { status: { not: "ended" } });
@@ -1068,6 +1074,20 @@ test("the admin's past-its-date list leaves out an ended Catch-up and a fizzled 
   assert.equal(sealed.catchup, undefined);
   for (const clause of [collecting, answering, sealed]) {
     const deadline = clause.questionsCloseAt ?? clause.answersCloseAt ?? clause.publishAt;
-    assert.equal(deadline.lt, now);
+    assert.equal(deadline.lt.getTime(), now.getTime() - STUCK_AFTER_MS);
   }
+});
+
+test("L3-03: an Edition is past its date only once the morning's tick has had its hour", () => {
+  /* Every deadline is 07:00 IST and the tick lands 30 to 89 minutes later on
+     Hobby, so a raw comparison listed every Edition closing that morning as
+     stuck until the tick came. The clause, applied to a row as Postgres would. */
+  const close = new Date("2026-10-25T01:30:00Z"); // 07:00 IST
+  const listed = (now) => {
+    const answering = overdueEditionWhere(now).OR[1];
+    return close.getTime() < answering.answersCloseAt.lt.getTime();
+  };
+  assert.equal(listed(new Date(close.getTime() + 60 * 60_000)), false, "an hour after the deadline, before the tick");
+  assert.equal(listed(new Date(close.getTime() + 89 * 60_000)), false, "at the latest Hobby can run the tick");
+  assert.equal(listed(new Date(close.getTime() + 6 * HOUR_MS)), true, "six hours on, the tick has failed");
 });

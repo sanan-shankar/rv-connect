@@ -308,9 +308,13 @@ export function addDays(date: Date, n: number): Date {
  *  WHY 07:00, and the number is from the app rather than from taste:
  *  `vercel.json` runs /api/catchups/tick at **02:00 UTC, which is 07:30
  *  IST**. A deadline at 07:00 IST is therefore picked up by that morning's
- *  cron **within thirty minutes**, every time, rather than waiting on the
- *  lazy read-time advance and whoever happens to open a page. So an Edition
- *  lands with the morning, and the hold bought nothing.
+ *  cron rather than waiting on the lazy read-time advance and whoever
+ *  happens to open a page. So an Edition lands with the morning, and the
+ *  hold bought nothing. NOT "within thirty minutes", which this said: on
+ *  Vercel's Hobby plan a daily cron runs anywhere inside its hour, so the
+ *  tick lands 30 to 89 minutes after the deadline (02:53 UTC on four
+ *  September mornings), and the admin room allows for it (`STUCK_AFTER_MS`;
+ *  bug audit 3, L3-03).
  *
  *  01:30 UTC is 07:00 IST on every day of the year. Hard-coding the offset
  *  is safe here for the reason `valleyMidnight` in utils.ts already gives:
@@ -695,13 +699,27 @@ function dueReminder(ed: EditionTiming, now: Date): { daysLeft: number } | null 
 }
 
 /**
+ * How long past its deadline an Edition may sit before the admin room calls it
+ * stuck (bug audit 3, L3-03).
+ *
+ * The clock that moves an Edition nobody visits is the morning tick,
+ * `vercel.json`'s 02:00 UTC, and on the Hobby plan Vercel runs a daily cron
+ * anywhere inside its hour: a 07:00 IST deadline is picked up 30 to 89
+ * minutes later (the tick's writes landed at 02:53 UTC on four September
+ * mornings). A member opening a page moves it sooner. Three hours covers the
+ * late end with margin, and a tick that never ran is still on the list by
+ * half past ten that morning, India time, rather than the next day.
+ */
+export const STUCK_AFTER_MS = 3 * HOUR_MS;
+
+/**
  * The admin's "past its date" list: an Edition that should have moved on and
  * did not. A Prisma `where`, kept here rather than in lib/admin.ts so the rule
  * can be tested without a database.
  *
- * TWO STATES LOOK OVERDUE AND ARE NOT, and both put a false alarm on the
- * owner's worklist that no action of his could clear (2026-09-15: "it's
- * paused. let it be paused wtf should I do").
+ * THREE STATES LOOK OVERDUE AND ARE NOT, and each put a false alarm on the
+ * owner's worklist that no action of his could clear (2026-09-15: he asked
+ * what he was meant to do about a paused Catch-up listed there).
  *
  *   ENDED. `advanceEdition` freezes the clock of a Catch-up that has ended,
  *   so a deadline inside it stays in the past for good. That is the ending
@@ -713,25 +731,33 @@ function dueReminder(ed: EditionTiming, now: Date): { daysLeft: number } | null 
  *   date is that state or the one extension about to be granted; either way
  *   there is nothing for an admin to do.
  *
+ *   NOT YET TICKED. Every deadline is 07:00 IST and the morning tick comes
+ *   30 to 89 minutes later (see `STUCK_AFTER_MS`), so a deadline compared
+ *   with the raw clock put every Edition closing that morning on the list
+ *   for an hour or so, all at once, clearing by itself (bug audit 3, L3-03).
+ *   It counts as past its date once the tick has had its hour and more.
+ *
  * A sealed time capsule stays on the list whatever the Catch-up is doing,
  * because it opens on its date regardless (build phase 14).
  */
 export function overdueEditionWhere(now: Date) {
+  const due = new Date(now.getTime() - STUCK_AFTER_MS);
   return {
     OR: [
       {
         status: "collecting",
-        questionsCloseAt: { lt: now },
+        questionsCloseAt: { lt: due },
         catchup: { status: { not: "ended" } },
         prompts: { some: {} },
       },
-      { status: "answering", answersCloseAt: { lt: now }, catchup: { status: { not: "ended" } } },
+      { status: "answering", answersCloseAt: { lt: due }, catchup: { status: { not: "ended" } } },
       // A time capsule past its opening day that has not opened is the one
       // failure nobody else would notice for a year (build phase 14).
-      { status: "sealed", publishAt: { lt: now } },
+      { status: "sealed", publishAt: { lt: due } },
     ],
   };
 }
+
 
 /** Too-few-answers: extend once when the answer window closes with zero entries. */
 export function shouldExtendForTooFew(ed: EditionTiming, entryCount: number): boolean {

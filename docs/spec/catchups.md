@@ -171,9 +171,11 @@ All in `src/lib/catchups-core.ts`.
 
 - **Question window: 3 days** (`QUESTION_WINDOW_DAYS`). **Answer window: 7 days.**
 - **Every deadline lands on 07:00 IST** (`snapToDeadlineHour`, 01:30 UTC). It rounds forward, never
-  back, so a window is never shorter than promised. The cron runs at 02:00 UTC (07:30 IST,
-  `vercel.json`), so a deadline is picked up within half an hour. A test reads `vercel.json` to keep
-  the two in step.
+  back, so a window is never shorter than promised. The cron is scheduled for 02:00 UTC (07:30 IST,
+  `vercel.json`), and on the Hobby plan a daily cron runs anywhere inside its hour, so a deadline
+  nobody visits is picked up 30 to 89 minutes later (02:53 UTC on four September mornings); this
+  line said "within half an hour" until 2026-10-30. A test reads `vercel.json` to keep the two in
+  step.
 - **`TICK_GRACE_MS` = 5 minutes**: a deadline counts as passed five minutes early, so scheduler
   jitter cannot push a phase back a whole day.
 - **How a deadline is said, everywhere**: its hour, its day and whose clock, "7 am Sunday 25 October,
@@ -668,7 +670,10 @@ analytics counter, has no foreign key on `targetId`, and is written for unpublis
   refused (the pool works), and links never resolve.
 - **The admin room**, `/admin/catchups` and `/admin/catchups/[catchupId]`, is oversight, not a second
   control panel. It runs the unscoped advance before reading, lists every Catch-up and any stuck
-  Edition, and keeps Edition numbers, by the owner's decision.
+  Edition, and keeps Edition numbers, by the owner's decision. An Edition is stuck, there and on the
+  rail and the Overview, three hours past its deadline (`STUCK_AFTER_MS`): the raw deadline put
+  every Edition closing that morning on his worklist until the tick came (bug audit 3, L3-03). Its
+  Due line carries the hour, "07:00 IST".
 - **The account export** includes a member's questions, answers and comments in Catch-ups, their
   own answers in a sealed time capsule included, marked with its status and opening day (a decision
   the owner may overturn; spec §3.12).
