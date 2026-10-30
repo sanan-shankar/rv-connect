@@ -9,7 +9,8 @@ import { adminThreadLink, ownProfileLink, postNotificationLink } from "./notific
 import { noteReportsOnErasedMember } from "./admin-threads-server";
 import { reportSwallowed } from "./report-error";
 import { isSerializationFailure } from "./prisma-errors";
-import { PURGE_ATTEMPTS, drainQueue, retryWriteConflicts } from "./purge-rule";
+import { PURGE_ATTEMPTS, drainQueue, entryStoredUrls, retryWriteConflicts } from "./purge-rule";
+import { parseJsonArray } from "./utils";
 import type { Prisma } from "@/generated/prisma/client";
 
 /**
@@ -55,6 +56,42 @@ export async function groupsKeptBy(db: Db, userId: string): Promise<string[]> {
   });
   const created = await db.group.findMany({ where: { creatorId: userId }, select: { id: true } });
   return [...new Set([...ownRoles.map((r) => r.groupId), ...created.map((g) => g.id)])].sort();
+}
+
+/**
+ * Drop the answers a merge's duplicate gave to questions the survivor also
+ * answered, with their files queued in the same transaction, and return the
+ * queued urls for the caller to drain once it has committed.
+ *
+ * `@@unique([promptId, authorId])` refuses moving such an answer, so the
+ * merge drops it (audit M02). Its photographs and recording are bytes in R2
+ * that no row names once it is gone; they used to stay public for ever with
+ * nothing left to find them by, the H9 failure by the merge's door (bug audit
+ * 3, V-T7a-02). Read by an UPDATE ... RETURNING rather than a plain read, so
+ * the rows are held from the moment their files are read until they are
+ * deleted, and an answer edited in between cannot swap in a photograph
+ * nobody queued: the touch is the lock, as `lockGroup`'s is. Here rather than
+ * in the merge, beside the purge's own reading of an answer's files, so a
+ * server action never handles a stored url column.
+ */
+export async function dropCollidingAnswers(
+  tx: Prisma.TransactionClient,
+  sourceId: string,
+  targetId: string
+): Promise<string[]> {
+  const dropped = await tx.catchupEntry.updateManyAndReturn({
+    where: { authorId: sourceId, prompt: { entries: { some: { authorId: targetId } } } },
+    data: { updatedAt: new Date() },
+    select: { id: true, images: true, audioUrl: true },
+  });
+  const urls = entryStoredUrls(dropped);
+  if (urls.length > 0) {
+    await tx.pendingImagePurge.createMany({ data: urls.map((url) => ({ url, reason: "merge" })) });
+  }
+  if (dropped.length > 0) {
+    await tx.catchupEntry.deleteMany({ where: { id: { in: dropped.map((e) => e.id) } } });
+  }
+  return urls;
 }
 
 /**
@@ -183,20 +220,11 @@ async function collectImageUrls(db: Db, userId: string): Promise<string[]> {
     if (m.imageUrl) urls.push(m.imageUrl);
   }
   for (const c of catchupPictures) urls.push(c.pictureSrc);
-  for (const e of entries) if (e.audioUrl) urls.push(e.audioUrl);
   // Post and Catch-up images are JSON-encoded string arrays; a malformed
-  // column is skipped rather than failing the whole purge.
-  for (const row of [...posts, ...entries]) {
-    if (!row.images) continue;
-    try {
-      const arr = JSON.parse(row.images);
-      if (Array.isArray(arr)) {
-        for (const u of arr) if (typeof u === "string") urls.push(u);
-      }
-    } catch {
-      // unparseable images column; nothing to collect from it
-    }
-  }
+  // column is skipped rather than failing the whole purge. An answer's
+  // photographs and recording are read by the one helper a merge uses too.
+  urls.push(...entryStoredUrls(entries));
+  for (const post of posts) urls.push(...parseJsonArray(post.images));
   return [...new Set(urls)];
 }
 

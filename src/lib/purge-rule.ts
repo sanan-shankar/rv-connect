@@ -1,4 +1,5 @@
 import { isSerializationFailure } from "./prisma-errors.ts";
+import { parseJsonArray } from "./utils.ts";
 
 /* ------------------------------------------------------------------ *
  *  The account purge's rules that need no database, so the unit tests
@@ -6,6 +7,23 @@ import { isSerializationFailure } from "./prisma-errors.ts";
  *  post-visibility-rule.ts make). The purge itself, which does need one,
  *  is account-purge.ts.
  * ------------------------------------------------------------------ */
+
+/**
+ * The stored bytes a set of Catch-up answers name: every photograph in each
+ * `images` column (a JSON array; a malformed one names nothing rather than
+ * failing the caller) and each recording. What the purge collects from the
+ * member's own answers, and what a merge must queue for the answers it drops
+ * (bug audit 3, V-T7a-02), so the two cannot disagree about what an answer
+ * holds.
+ */
+export function entryStoredUrls(entries: { images: string | null; audioUrl: string | null }[]): string[] {
+  const urls: string[] = [];
+  for (const entry of entries) {
+    urls.push(...parseJsonArray(entry.images));
+    if (entry.audioUrl) urls.push(entry.audioUrl);
+  }
+  return [...new Set(urls)];
+}
 
 /** How many times the purge's transaction is tried before it gives up until
  *  tomorrow. */

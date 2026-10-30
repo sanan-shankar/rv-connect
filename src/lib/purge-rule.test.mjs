@@ -1,7 +1,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { read, decomment, balancedBody } from "./test-kit.mjs";
-import { DRAIN_PARALLEL, DRAIN_REMOVE_TIMEOUT_MS, PURGE_ATTEMPTS, drainQueue, retryWriteConflicts } from "./purge-rule.ts";
+import {
+  DRAIN_PARALLEL,
+  DRAIN_REMOVE_TIMEOUT_MS,
+  PURGE_ATTEMPTS,
+  drainQueue,
+  entryStoredUrls,
+  retryWriteConflicts,
+} from "./purge-rule.ts";
 
 /* ------------------------------------------------------------------ *
  *  The purge has to be honest about what it removed.
@@ -643,4 +650,48 @@ test("L11-07: the sweep stops starting purges when its time is spent, and drains
   assert.ok(budget + DRAIN_REMOVE_TIMEOUT_MS < ceiling, `the sweep plans ${budget + DRAIN_REMOVE_TIMEOUT_MS} ms against a ${ceiling} ms ceiling`);
   assert.ok(curl > ceiling, "curl gives up before the route's own answer can arrive");
   assert.ok(job > curl, "GitHub cancels the job before curl can print why the night failed");
+});
+
+/* ------------------------------------------------------------------ *
+ *  A merge's dropped answers take their files with them (bug audit 3,
+ *  V-T7a-02).
+ *
+ *  Where both accounts answered one question, the merge drops the
+ *  duplicate's answer; its photographs and recording then sat in R2 for
+ *  ever, named by no row, the H9 failure by the merge's door.
+ * ------------------------------------------------------------------ */
+
+test("V-T7a-02: an answer's stored files are its photographs and its recording, read one way", () => {
+  assert.deepEqual(
+    entryStoredUrls([
+      { images: '["https://img.example/a.webp","https://img.example/b.webp"]', audioUrl: "https://img.example/audio/c.webm" },
+      { images: "not json", audioUrl: null },
+      { images: '["https://img.example/a.webp", 5]', audioUrl: null },
+      { images: null, audioUrl: null },
+    ]),
+    ["https://img.example/a.webp", "https://img.example/b.webp", "https://img.example/audio/c.webm"]
+  );
+  // The purge's collect reads the member's own answers through the same helper.
+  assert.match(decomment(read("src/lib/account-purge.ts")), /urls\.push\(\.\.\.entryStoredUrls\(entries\)\)/);
+});
+
+test("V-T7a-02: a merge queues the dropped answers' files with the drop, and drains them after", () => {
+  const helper = balancedBody(decomment(read("src/lib/account-purge.ts")), "export async function dropCollidingAnswers(");
+  assert.ok(helper, "dropCollidingAnswers is gone; this pin is reading nothing");
+  const held = helper.search(/tx\.catchupEntry\.updateManyAndReturn\(\{\s*where:\s*\{\s*authorId:\s*sourceId,\s*prompt:\s*\{\s*entries:\s*\{\s*some:\s*\{\s*authorId:\s*targetId/);
+  const queuedAt = helper.indexOf('data: urls.map((url) => ({ url, reason: "merge" }))');
+  const droppedAt = helper.search(/tx\.catchupEntry\.deleteMany\(\{\s*where:\s*\{\s*id:\s*\{\s*in:\s*dropped\.map/);
+  assert.ok(held > -1, "the colliding answers are dropped without reading what they hold");
+  assert.ok(queuedAt > held, "the dropped answers' files are not queued");
+  assert.ok(droppedAt > queuedAt, "the answers go before their files are queued, when nothing names them any more");
+
+  const fn = balancedBody(decomment(read("src/app/(main)/admin/people/actions.ts")), "export async function adminMergeUsers(");
+  assert.ok(fn, "adminMergeUsers is gone; this pin is reading nothing");
+  const dropped = fn.indexOf("await dropCollidingAnswers(tx, sourceId, targetId)");
+  const moved = fn.indexOf("await tx.catchupEntry.updateMany({ where: { authorId: sourceId }");
+  const committed = fn.indexOf("return droppedUrls;");
+  const drained = fn.indexOf("await drainPendingImagePurges(queued)");
+  assert.ok(dropped > -1 && moved > dropped, "the merge moves answers before dropping the ones that collide, or drops them some other way");
+  assert.ok(committed > moved && drained > committed, "the files are not drained after the merge commits");
+  assert.doesNotMatch(fn, /catchupEntry\.deleteMany/, "the merge drops answers itself again, without queueing what they hold");
 });

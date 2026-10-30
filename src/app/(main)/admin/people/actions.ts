@@ -13,7 +13,12 @@ import {
 import { readPeopleFilters, type PeoplePage } from "@/lib/admin-people";
 import { loadPeoplePage } from "@/lib/admin-people-query";
 import { writeAudit } from "@/lib/audit";
-import { drainPendingImagePurges, groupsKeptBy, purgeUserAccount } from "@/lib/account-purge";
+import {
+  drainPendingImagePurges,
+  dropCollidingAnswers,
+  groupsKeptBy,
+  purgeUserAccount,
+} from "@/lib/account-purge";
 import { CATCHUP_PEOPLE } from "@/lib/catchup-caps";
 import { lockGroup, promoteGroupSuccessor } from "@/lib/group-succession";
 import { purgeImageUrls } from "@/lib/image-purge";
@@ -371,8 +376,9 @@ export async function adminMergeUsers(
   }
 
   let handedOn = 0;
+  let queued: string[];
   try {
-    await prisma.$transaction(
+    queued = await prisma.$transaction(
       async (tx) => {
         /* The groups whose Keeper's hat the duplicate wears, read before
            anything moves, and each held for the rest of the transaction:
@@ -399,10 +405,9 @@ export async function adminMergeUsers(
         // CatchupEntry carries @@unique([promptId, authorId]), so an answer the
         // survivor already wrote to the same question blocks the move. Drop the
         // duplicate's copy first and move the rest, rather than failing the whole
-        // merge on one shared question (audit M02).
-        await tx.catchupEntry.deleteMany({
-          where: { authorId: sourceId, prompt: { entries: { some: { authorId: targetId } } } },
-        });
+        // merge on one shared question (audit M02). The dropped answers' files
+        // are queued with them and drained after the commit (V-T7a-02).
+        const droppedUrls = await dropCollidingAnswers(tx, sourceId, targetId);
         await tx.catchupEntry.updateMany({ where: { authorId: sourceId }, data: { authorId: targetId } });
         await tx.adminThread.updateMany({ where: { memberId: sourceId }, data: { memberId: targetId } });
         await tx.adminMessage.updateMany({ where: { authorId: sourceId }, data: { authorId: targetId } });
@@ -517,6 +522,7 @@ export async function adminMergeUsers(
         await tx.report.updateMany({ where: { reportedUserId: sourceId }, data: { reportedUserId: targetId } });
 
         await tx.user.delete({ where: { id: sourceId } });
+        return droppedUrls;
       },
       // Interactive, because the hat now hangs on a read. The 5 s default is
       // a page render's budget, not thirty statements' (the purge's reasoning,
@@ -535,6 +541,21 @@ export async function adminMergeUsers(
     return { error: "Could not merge those accounts. Nothing was changed, and the error has been reported." };
   }
 
+  // On the record before any byte is deleted, as an erasure is (bug audit 3,
+  // T7a-05's reasoning; the merge's R2 work is small, but a hung request
+  // would still have lost the line).
+  await writeAudit({
+    actorId: actor.actorId,
+    action: "admin.merge",
+    targetType: "user",
+    targetId: targetId,
+    ip: actor.ip,
+    detail:
+      `merged ${sourceId} into ${targetId}` +
+      (handedOn > 0 ? `; ${handedOn} Catch-up(s) handed to another member, the survivor cannot keep one` : "") +
+      (queued.length > 0 ? `; ${queued.length} stored image(s) from answers both accounts gave queued for deletion` : ""),
+  });
+
   // The one R2 object a merge otherwise strands (write-path review, Phase 8):
   // the duplicate's avatar. It lives under `avatars/<sourceId>/`, no moved row
   // points at it, and the target keeps its own photo, so without this it sat
@@ -549,17 +570,15 @@ export async function adminMergeUsers(
     // a merge strands, and a console line is not a worklist (audit C-069).
     await purgeImageUrls([source.photoUrl], "merge");
   }
-
-  await writeAudit({
-    actorId: actor.actorId,
-    action: "admin.merge",
-    targetType: "user",
-    targetId: targetId,
-    ip: actor.ip,
-    detail:
-      `merged ${sourceId} into ${targetId}` +
-      (handedOn > 0 ? `; ${handedOn} Catch-up(s) handed to another member, the survivor cannot keep one` : ""),
-  });
+  // And the dropped answers' bytes, queued in the transaction above. What the
+  // drain cannot reach waits for tonight's sweep, which is the queue's job.
+  if (queued.length > 0) {
+    try {
+      await drainPendingImagePurges(queued);
+    } catch (err) {
+      reportSwallowed("merge", err, { sourceId, targetId, step: "drain" });
+    }
+  }
 
   revalidateAdmin(targetId);
   revalidatePath("/feed");
