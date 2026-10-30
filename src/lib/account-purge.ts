@@ -6,6 +6,7 @@ import { chooseGroupSuccessor, lockGroup } from "./group-succession";
 import { CATCHUP_PEOPLE } from "./catchup-caps";
 import { photoStoredUrls } from "./collection-photo";
 import { adminThreadLink, ownProfileLink, postNotificationLink } from "./notification-links";
+import { noteReportsOnErasedMember } from "./admin-threads-server";
 import { reportSwallowed } from "./report-error";
 import { isSerializationFailure } from "./prisma-errors";
 import { PURGE_ATTEMPTS, retryWriteConflicts } from "./purge-rule";
@@ -478,6 +479,7 @@ export async function purgeUserAccount(
             }
             await clearBellsPointingAtThisMember(tx, userId);
             await deleteUnansweredPrompts(tx, userId);
+            await noteReportsOnErasedMember(tx, userId);
             /* Nothing here touches the reports this member FILED. They are
                moderation history about somebody else, and they outlive the
                account: Report.reporter is SetNull, so the delete below detaches
@@ -486,7 +488,10 @@ export async function purgeUserAccount(
                The edge was RESTRICT, and the purge used to delete every one of
                them here, pending ones included, so the delete could succeed (audit
                H8).
-               Reports filed AGAINST the member still go with them, by Cascade. */
+               Reports on the member's posts, and flags against them, still go
+               with them by Cascade, and whoever is still waiting on one is
+               answered on the line above, the closing line a post's own delete
+               writes (T7a-02; B3a's write-path review). */
             await tombstoneComments(tx, userId);
             await clearCoversPointingAtThisMember(tx, userId);
             await restoreCatchupPicturesUploadedBy(tx, userId);

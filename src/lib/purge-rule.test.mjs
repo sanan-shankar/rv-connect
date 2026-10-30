@@ -470,3 +470,31 @@ test("A-review: the purge holds every group the member is in before choosing any
   assert.ok(locked > sorted, "the groups are read but never held");
   assert.ok(chosen > locked, "a successor is chosen before the group is held");
 });
+
+/* ------------------------------------------------------------------ *
+ *  A reporter is answered when an erasure takes what they reported (bug
+ *  audit 3, B3a's write-path review, after T7a-02).
+ *
+ *  A report on the member's post and a flag against the member both cascade
+ *  with the account. The reporter's thread outlives its report and was told
+ *  "An admin will read it."; a post deleted on its own writes the closing
+ *  line, and the purge, which removes posts by cascade, wrote none.
+ * ------------------------------------------------------------------ */
+
+test("B3a-review: the purge answers whoever waits on a report it is about to take", () => {
+  const helper = balancedBody(decomment(read("src/lib/admin-threads-server.ts")), "export async function noteReportsOnErasedMember(");
+  assert.ok(helper, "noteReportsOnErasedMember is gone; this pin is reading nothing");
+  assert.match(helper, /status:\s*"pending"/, "a settled report's reporter is told twice");
+  assert.match(helper, /post:\s*\{\s*authorId:\s*userId\s*\}/, "reports on the member's posts are left unanswered");
+  assert.match(helper, /reportedUserId:\s*userId/, "flags against the member are left unanswered");
+  assert.match(helper, /memberId:\s*\{\s*not:\s*userId\s*\}/, "the member's own threads, which go with them, are written to");
+  assert.match(helper, /writeReportNote\(tx, thread,/, "the answer is not the note and bell every other closing line uses");
+
+  const purge = balancedBody(decomment(read("src/lib/account-purge.ts")), "export async function purgeUserAccount(");
+  assert.ok(purge, "purgeUserAccount is gone; this pin is reading nothing");
+  const tx = purge.indexOf("prisma.$transaction(");
+  const noted = purge.indexOf("await noteReportsOnErasedMember(tx, userId)");
+  const deleted = purge.indexOf("tx.user.deleteMany(");
+  assert.ok(tx > -1 && noted > tx, "the reporters are answered outside the purge's transaction");
+  assert.ok(deleted > noted, "the reporters are looked for after the account, and their reports with it, are gone");
+});

@@ -189,6 +189,44 @@ export async function noteReportsOnDeletedPost(
   for (const thread of threads) await writeReportNote(tx, thread, POST_GONE[removedBy]);
 }
 
+/** What a waiting reporter is told when the account behind what they reported
+ *  is erased: an admin's delete or the member's own request, said the same way
+ *  because the reporter needs neither. */
+const ACCOUNT_GONE = {
+  post: "The post you reported is no longer on the site, because the account that wrote it has been deleted. Thank you for flagging it.",
+  user: "The member you flagged is no longer on the site, because their account has been deleted. Thank you for letting us know.",
+} as const;
+
+/**
+ * Answer everyone still waiting on a report that an account's erasure is about
+ * to take with it (bug audit 3, B3a's write-path review): a report on one of
+ * the member's posts, or a flag against the member. Both cascade with the
+ * account (`Report.post`, `Report.reportedUser`), and the reporter's thread
+ * outlives its report, as above, with no last line: the purge removes posts by
+ * cascade, so `noteReportsOnDeletedPost` never ran for them. Called by the
+ * purge inside its transaction, before the account goes. The member's own
+ * threads are left out; they go with the account.
+ */
+export async function noteReportsOnErasedMember(
+  tx: Prisma.TransactionClient,
+  userId: string
+): Promise<void> {
+  const threads = await tx.adminThread.findMany({
+    where: {
+      memberId: { not: userId },
+      report: {
+        status: "pending",
+        OR: [{ post: { authorId: userId } }, { reportedUserId: userId }],
+      },
+    },
+    select: { id: true, memberId: true, report: { select: { targetType: true } } },
+  });
+  for (const thread of threads) {
+    const said = thread.report?.targetType === "user" ? ACCOUNT_GONE.user : ACCOUNT_GONE.post;
+    await writeReportNote(tx, thread, said);
+  }
+}
+
 /**
  * Opens a thread that an admin (or the app) started, e.g. the note attached to
  * a removed post. Returns the thread so the caller can link a notification
