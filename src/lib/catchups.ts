@@ -28,6 +28,7 @@ import type {
   EditionTiming,
 } from "@/lib/catchups-types";
 import {
+  ANSWERED_ENTRY_WHERE,
   isEditionRunning,
   isMissingCatchupTable,
   nextEditionStatus,
@@ -311,7 +312,11 @@ export async function advanceEdition(
         // every capsule would look empty and take the too-few extension.
         (closing === "published" || closing === "sealed")
       ) {
-        entryCount = await prisma.catchupEntry.count({ where: { editionId: edition.id } });
+        // Only answers with something in them, the same count the Keeper's
+        // early close takes (`ANSWERED_ENTRY_WHERE`).
+        entryCount = await prisma.catchupEntry.count({
+          where: { editionId: edition.id, ...ANSWERED_ENTRY_WHERE },
+        });
       }
       if (
         promptCount === null &&

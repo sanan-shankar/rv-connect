@@ -253,17 +253,26 @@ test("C3-01: a hand close with nobody's answers in it writes nothing, and says s
     /shouldExtendForTooFew\(|extendPatch\(|notifyAnswersOpen\(/,
     "a hand close runs the clock's zero-answer extension again"
   );
-  // Both ways out, the seal and the publish, count the answers inside their
-  // own transaction before they write, so an empty Edition cannot slip out.
-  const ways = close.split("prisma.$transaction(").slice(1);
-  assert.equal(ways.length, 2, "closeAndPublish no longer has its two ways out; retarget this pin");
+  // Both ways out, the seal and the publish, swap first and then count the
+  // answers inside the same transaction, rolling back on none: counted
+  // before the swap, an answer emptied as the press landed still counted
+  // (A3 review of C3-01, the L1-02 shape).
+  const ways = close.split("unlessEmpty(prisma.$transaction(").slice(1);
+  assert.equal(ways.length, 2, "closeAndPublish no longer has its two ways out, each undone when empty; retarget this pin");
   for (const way of ways) {
-    const counted = way.indexOf("tx.catchupEntry.count(");
     const written = way.indexOf("tx.catchupEdition.updateMany(");
-    assert.ok(counted > -1 && written > -1, "a way out no longer counts the answers, or no longer writes");
-    assert.ok(counted < written, "a way out writes before it has counted the answers");
+    const counted = way.indexOf("tx.catchupEntry.count({ where: { editionId, ...ANSWERED_ENTRY_WHERE } })");
+    const undone = way.indexOf("throw new EmptyAfterSwap()");
+    assert.ok(written > -1 && counted > -1, "a way out no longer counts answers with something in them, or no longer writes");
+    assert.ok(written < counted && counted < undone, "a way out counts before its swap, or does not roll an empty close back");
   }
   assert.match(close, /nobodyAnswered: true as const/, "the refusal no longer carries the marker the surface answers");
+
+  // The clock's too-few rule counts the same thing.
+  const lib = decomment(read("src/lib/catchups.ts"));
+  const advance = balancedBody(lib, "export async function advanceEdition(");
+  assert.ok(advance, "advanceEdition is gone; this pin is reading nothing");
+  assert.match(advance, /catchupEntry\.count\(\{\s*where: \{ editionId: edition\.id, \.\.\.ANSWERED_ENTRY_WHERE \}/, "the clock counts empty rows as answers again");
 });
 
 test("T3-06: an extension swaps on the deadline the caller saw, never on its own read", () => {

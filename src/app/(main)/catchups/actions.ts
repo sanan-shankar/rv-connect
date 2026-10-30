@@ -70,6 +70,7 @@ import {
   isEditionRunning,
   RUNNING_EDITION_WHERE,
   EMPTY_ENTRY_WHERE,
+  ANSWERED_ENTRY_WHERE,
   EmptyAfterSwap,
   unlessEmpty,
   isMissingCatchupTable,
@@ -1172,8 +1173,11 @@ export async function openAnswering(editionId: string) {
  * surface turns into the offer of three more days (`extendDeadline`). The
  * clock's own rule at the deadline is unchanged.
  *
- * The answers are counted inside each write's transaction, as `openAnswering`
- * counts its questions, so one withdrawn as the press lands is seen.
+ * The answers are counted AFTER each write's swap, in its transaction, as
+ * `openAnswering` counts its questions (bug audit 3, L1-02), and only rows
+ * with something in them (`ANSWERED_ENTRY_WHERE`). Counting every row before
+ * the swap let an answer emptied as the press landed, still waiting for its
+ * withdrawal, count as somebody having answered (A3 review of C3-01).
  *
  * It was `closeAndPrepare` and it stopped a step short, at a 24-hour hold
  * nobody could read through; `publishNow` existed only to skip that hold and
@@ -1213,13 +1217,15 @@ export async function closeAndPublish(editionId: string) {
     if (edition.timeCapsule) {
       const sealed = sealPatch(now);
       const opensAt = sealed.publishAt as Date;
-      const didSeal = await prisma.$transaction(async (tx) => {
-        if ((await tx.catchupEntry.count({ where: { editionId } })) === 0) return "empty" as const;
+      const didSeal = await unlessEmpty(prisma.$transaction(async (tx) => {
         const cas = await tx.catchupEdition.updateMany({
           where: { id: editionId, status: "answering", timeCapsule: true },
           data: sealed,
         });
         if (cas.count === 0) return "moved" as const;
+        if ((await tx.catchupEntry.count({ where: { editionId, ...ANSWERED_ENTRY_WHERE } })) === 0) {
+          throw new EmptyAfterSwap();
+        }
         await notifySealed(tx, {
           catchupId: edition.catchupId,
           editionId,
@@ -1229,7 +1235,7 @@ export async function closeAndPublish(editionId: string) {
           excludeUserId: session.user.id,
         });
         return "sealed" as const;
-      });
+      }));
       if (didSeal === "empty") return nobodyAnswered;
       if (didSeal === "moved") return { error: "This Edition already moved on." };
 
@@ -1249,13 +1255,15 @@ export async function closeAndPublish(editionId: string) {
        read were ever wrong, Postgres refuses to publish a capsule rather than
        trusting it (his 34b). */
     const patch = publishPatch(now);
-    const applied = await prisma.$transaction(async (tx) => {
-      if ((await tx.catchupEntry.count({ where: { editionId } })) === 0) return "empty" as const;
+    const applied = await unlessEmpty(prisma.$transaction(async (tx) => {
       const cas = await tx.catchupEdition.updateMany({
         where: { id: editionId, status: "answering", timeCapsule: false },
         data: patch,
       });
       if (cas.count === 0) return "moved" as const;
+      if ((await tx.catchupEntry.count({ where: { editionId, ...ANSWERED_ENTRY_WHERE } })) === 0) {
+        throw new EmptyAfterSwap();
+      }
       await notifyPublished(tx, {
         catchupId: edition.catchupId,
         editionId,
@@ -1264,7 +1272,7 @@ export async function closeAndPublish(editionId: string) {
         excludeUserId: session.user.id,
       });
       return "published" as const;
-    });
+    }));
     if (applied === "empty") return nobodyAnswered;
     if (applied === "moved") return { error: "This Edition already moved on." };
 

@@ -1106,6 +1106,14 @@ export const RUNNING_EDITION_WHERE = {
  */
 export const EMPTY_ENTRY_WHERE = { body: null, images: null, audioUrl: null };
 
+/**
+ * An answer, then, is a row with anything in it, and this is what "nobody has
+ * answered" counts: the Keeper's early close and the clock's too-few rule alike.
+ * A row emptied a moment ago and not yet withdrawn is not an answer to either
+ * (bug audit 3, A3 review of C3-01).
+ */
+export const ANSWERED_ENTRY_WHERE = { NOT: EMPTY_ENTRY_WHERE };
+
 // ─── Friendly status copy (shared so every surface reads the same) ────────────
 
 /**

@@ -194,7 +194,8 @@ nothing twice.
   deletes. So a removal and an open landing together cannot leave an answering Edition with nothing
   in it, which counting first allowed (bug audit 3, L1-02).
 - **Answering closes with no answers at all**: extended 3 days, once (`REMINDER_EXTENDED`), and the
-  non-answerers taking part are told again. After that it publishes whatever is there. This is the
+  non-answerers taking part are told again. An answer is a row with words, a photograph or a
+  recording in it (`ANSWERED_ENTRY_WHERE`), the same count the Keeper's early close takes. After that it publishes whatever is there. This is the
   clock's rule, at the deadline, and only the clock's: "Close and send it out" pressed with no
   answers in the Edition is refused and offered three more days instead (§8; bug audit 3, C3-01).
 - **Answering closes with answers**: published, everyone told, and the Catch-up is idle. A time
@@ -497,7 +498,9 @@ extension again, and the line said "A week more" from local state (bug audit 3, 
 
 **Close and send it out** with nobody's answers in the Edition has nothing to send: the press opens
 "Nobody has answered yet" with "Give everyone 3 more days" (the same three days, from the deadline),
-and the server refuses a press from a page that did not know, which turns into the same dialog. It
+and the server refuses a press from a page that did not know, which turns into the same dialog. The
+answers are counted after the close's swap, in its transaction, and only rows with something in them,
+so an answer emptied as the press lands is not "somebody answered" (A3 review of C3-01). It
 used to move the deadline to three days from now, often earlier, ring everyone again, and say
 nothing, so a second press published an empty Edition (his Q15, 2026-10-29; C3-01). Reminders: Daily, On the last day, Never, and Never is what a member who never chose has. Start's confirmation is drawn by this file too
 (`confirmCopy("start")`), but opened from the home; Rhythm, Hold and Start left the panel on
