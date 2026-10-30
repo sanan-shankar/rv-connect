@@ -5,7 +5,7 @@
  *
  *  Which control appears is `prompt.kind`:
  *    text   -> the writing surface (photos may ride along, up to three)
- *    photo  -> exactly one picture, no writing surface
+ *    photo  -> the same photo strip, up to three, no writing surface
  *    songs  -> the song name field
  *
  *  Everything autosaves on blur; every field is optional and nothing here
@@ -171,9 +171,7 @@ export function AnswerCard({
           </>
         )}
 
-        {prompt.kind === "photo" && (
-          <PhotoAttachments images={entry.images} onChange={onImagesChange} max={1} />
-        )}
+        {prompt.kind === "photo" && <PhotoAttachments images={entry.images} onChange={onImagesChange} />}
 
         {prompt.kind === "songs" && (
           <SongNameField value={body} onChange={setBody} onCommit={() => flushBody()} />

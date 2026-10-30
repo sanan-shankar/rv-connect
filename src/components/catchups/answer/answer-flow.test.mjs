@@ -14,6 +14,8 @@ import { nextIndex, saveLanded, shouldFlush } from "./answer-flow.ts";
  *  T3-18: Share on the last question swept back to the first blank one on
  *  every press, so a member who left a question blank on purpose could never
  *  reach the end. T3-05: the end's one pill linked to the page it was on.
+ *  T3-21: a photo-wall answer took one photograph while the server and the
+ *  Edition's run both took three.
  * ------------------------------------------------------------------ */
 
 const CARD = decomment(read("src/components/catchups/answer/answer-card.tsx"));
@@ -21,6 +23,7 @@ const EXPERIENCE = decomment(read("src/components/catchups/answer/answer-experie
 const SONG = decomment(read("src/components/catchups/answer/song-attachment.tsx"));
 const ACTIONS = decomment(read("src/app/(main)/catchups/actions.ts"));
 const COMPLETION = decomment(read("src/components/catchups/answer/completion-card.tsx"));
+const PHOTOS = decomment(read("src/components/catchups/answer/photo-attachments.tsx"));
 
 /** Press Next/Share from `index` until the completion card, or give up. */
 function walk(total, answered, from = 0) {
@@ -122,4 +125,20 @@ test("the end of answering offers the questions, not the page it is already on",
   assert.match(COMPLETION, /<Button variant="primary" onClick=\{onBack\}[^>]*>\s*Back to the questions\s*<\/Button>/);
   assert.match(EXPERIENCE, /onBack=\{\(\) => goTo\(0, -1\)\}/, "the pill no longer takes the member to the first question");
   assert.match(EXPERIENCE, /const next = nextIndex\(index, total, /, "the advance decides inline again, without the sweep's memory");
+});
+
+test("every answer takes the same three photographs, a photo wall's included", () => {
+  /* One constant, read by the strip and by the server's schema, and no way
+     for a caller to pass a lower one: the strip once held a wall answer to
+     one with `max={1}` while submitEntry took three (T3-21). */
+  assert.match(PHOTOS, /import \{ MAX_IMAGES \} from "@\/lib\/upload-ownership-rule";/);
+  assert.match(PHOTOS, /const remaining = MAX_IMAGES - images\.length;/);
+  assert.match(PHOTOS, /images\.length < MAX_IMAGES &&/);
+  assert.doesNotMatch(PHOTOS, /\bmax\??:\s*number|\bmax\s*=\s*\d/, "PhotoAttachments takes a cap from its caller again");
+  assert.doesNotMatch(CARD, /<PhotoAttachments[^>]*\bmax=/, "the answer card passes a cap below the server's");
+  assert.match(
+    ACTIONS,
+    /images: z\.array\(z\.url\(\)\)\.max\(MAX_IMAGES, /,
+    "submitEntry's photograph cap is a literal again, free to drift from the strip's"
+  );
 });

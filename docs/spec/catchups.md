@@ -575,9 +575,11 @@ A `photo-wall` question's answers are drawn as a **run** (`edition/photo-run.tsx
 `src/lib/photo-wall.ts`): one band the width of the reading column, every photograph at its own
 width and never cropped to match, bleeding off the right edge. One person's photographs sit 3px apart
 under one name; groups sit 10px apart. No captions on the band (words live in the viewer) and no
-count line. The cap is the ordinary three per answer. Tapping one opens the shared viewer on that
-photograph. **No live Edition has ever used a photo-wall question**, so the grouping is pinned by
-`photo-wall.test.mjs` rather than by a screenshot.
+count line. The cap is the ordinary three per answer, and a wall question is answered with the
+ordinary photo strip (MAX_IMAGES, the same constant `submitEntry` checks); until 2026-10-30 the
+answer card held it to one photograph (bug audit 3, T3-21), so the one live Edition that has asked
+one, in October 2026, has a single photograph per person. Tapping one opens the shared viewer on that
+photograph. The grouping is pinned by `photo-wall.test.mjs` rather than by a screenshot.
 
 ---
 

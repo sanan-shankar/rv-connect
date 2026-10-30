@@ -55,6 +55,7 @@ import { requireVerifiedMember } from "@/lib/member-gate";
 import { consume, hasBudget, rateLimit } from "@/lib/rate-limit";
 import { RATE_LIMITED } from "@/lib/rate-limit-message";
 import { ownedUploadUrls } from "@/lib/upload-ownership";
+import { MAX_IMAGES } from "@/lib/upload-ownership-rule";
 import { ownedVoiceRecording } from "@/lib/voice-answer";
 import { purgeImageUrls } from "@/lib/image-purge";
 import { revalidatePath } from "next/cache";
@@ -186,7 +187,9 @@ const curateReorderSchema = z.object({
 const submitEntrySchema = z.object({
   promptId: z.string().min(1),
   body: z.string().trim().max(6000, "Keep it under 6000 characters.").optional(),
-  images: z.array(z.url()).max(3, "Up to 3 photos.").optional(),
+  /* The one cap, shared with the answering strip (bug audit 3, T3-21): the
+     strip once held a photo-wall answer to one while this took three. */
+  images: z.array(z.url()).max(MAX_IMAGES, `Up to ${MAX_IMAGES} photos.`).optional(),
   /* A recording (build phase 12, spec 3.10). `null` takes it off the answer
      and leaves the words; absent leaves the column alone, like every field
      here. `transcribed` says the body came from the browser's speech

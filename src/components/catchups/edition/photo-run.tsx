@@ -38,7 +38,9 @@
  *  THE CAP IS THREE, which is his too: "cap photo wall also at 3 each",
  *  the same as any answer. So the answering half needed nothing built --
  *  the photo strip already in the composer is the whole of it -- and a
- *  batch of forty tops out at 120 photographs.
+ *  batch of forty tops out at 120 photographs. (Nothing built, but one
+ *  thing kept: the answer card held a wall answer to one photograph until
+ *  bug audit 3, T3-21, so decision 3 had never had a set to group.)
  * ------------------------------------------------------------------ */
 
 import { useEffect, useRef, useState } from "react";

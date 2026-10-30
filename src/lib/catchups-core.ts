@@ -264,8 +264,9 @@ export const CATCHUP_PROMPT_SETS: CatchupPromptSet[] = [
     ],
   },
   {
-    // Not a text question: everyone adds one picture and the Edition prints them
-    // as a wall. `promptKind()` switches the answering control on this id.
+    // Not a text question: everyone adds photographs, up to three like any
+    // answer, and the Edition prints them as a wall. `promptKind()` switches
+    // the answering control on this id.
     id: "photo-wall",
     label: "A photo from everyone",
     prompts: [

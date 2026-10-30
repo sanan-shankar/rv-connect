@@ -3,7 +3,7 @@
  *
  *  A prompt carries its `kind` (from `promptKind(category)`), because the
  *  kind is what the answering control switches on: text writes prose, photo
- *  adds one picture, songs names a song. Everything downstream (the draft,
+ *  adds pictures and no prose, songs names a song. Everything downstream (the draft,
  *  the "has this been shared" test) is the same for all three.
  * ------------------------------------------------------------------ */
 
@@ -21,7 +21,7 @@ type AnswerAsker = {
  * `body` carries the written answer for a text prompt and the song name for a
  * songs prompt (see the TODO in song-attachment.tsx for why a named song lives
  * here rather than in the entry's Spotify columns). `images` carries photos:
- * up to three on a text prompt, exactly one on a photo prompt.
+ * up to three on any prompt (MAX_IMAGES).
  */
 export type AnswerEntryDraft = {
   body: string;
