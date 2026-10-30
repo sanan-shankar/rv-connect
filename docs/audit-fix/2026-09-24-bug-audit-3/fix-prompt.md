@@ -508,9 +508,12 @@ closes one strikes it here in its own commit.
   `src/lib/catchups-core.test.mjs`'s git-based sweep to read the disk and take it off `ASKS_GIT` (L2);
   (f) T3-08: `settings.answered` now reads the `answeredAuthorIds` query T3-08 calls dead (A3);
   (g) T7b-15's wording must also cover A3's extend toast and the extend row's line (A3).
+  (h) T2b-10: delete the `audioUrl` count in `submitEntry` as the verdict says (L3 parked it as
+  track 1's file).
 - ~~**Track 2, the purge-robustness unit:** `promoteOrphanedGroups` in `src/lib/account-purge.ts` takes
   `lockGroup` before choosing a successor (A4 note, Phase A review 2).~~ Done in B3b (ledger, under L1-03).
 - **Phase O:** `joinCatchupByToken` has no rate limit (A4 note).
+- **The demo unit (track 3):** the demo database also lacks `Notification_userId_createdAt_idx` (L3).
 - **Phase F, O-01's fix:** delete `drafts-strip.tsx`'s entry from the date sweep's exemption list (L2).
 - **The privacy page unit (T8b-06):** the sentences B1 (Sentry), B2 (PostHog) and B3a (reports outlive
   the reporter; answered Catch-up questions stay unnamed) reported, in their month entries.
