@@ -274,6 +274,22 @@ test("uncounted givers: null userId still counts, the listed ids do not", () => 
   assert.deepEqual(COUNTED_GIVERS.OR[0], { userId: null });
 });
 
+test("the recovery bar's two figures stay on the server", () => {
+  /* /support never prints the build cost or the recovered total, and both
+     reached every member anyway: the cost as a constant in the client chunk,
+     the total in paise as the client card's prop, so devtools read both and a
+     moving total told one gift's size (bug audit 3, T8a-18). The card gets a
+     whole percent; an unrounded one, written into the fill's width, would give
+     the total back to anyone who knew the cost. */
+  const card = decomment(read("src/components/support/costs-card.tsx"));
+  assert.match(card, /^"use client";/, "the costs card is no longer a client component; retarget this pin");
+  assert.doesNotMatch(card, /BUILD_COST|Paise/, "the costs card holds a money figure again");
+  assert.match(card, /export function CostsCard\(\{ fundPercent \}: \{ fundPercent: number \}\)/);
+  const page = decomment(read("src/app/(main)/support/page.tsx"));
+  assert.match(page, /<CostsCard fundPercent=\{fundPercent\} \/>/, "the support page hands the card something other than the percent");
+  assert.match(page, /const fundPercent = Math\.min\(100, Math\.max\(0, Math\.round\(\(recoveredPaise \/ BUILD_COST_PAISE\) \* 100\)\)\);/);
+});
+
 test("uncounted givers: every public or admin total filters them", () => {
   for (const [file, n] of [
     ["src/app/(main)/support/page.tsx", 1],

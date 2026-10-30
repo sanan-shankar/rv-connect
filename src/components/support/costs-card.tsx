@@ -17,7 +17,13 @@
  * summed server-side from paid contributions on every view, and a successful
  * payment refreshes the page, so the bar advances the moment real money
  * lands. The fill's minimum width equals its height, so at zero it reads as
- * a circle resting at the start: progress that has begun, never a dial knob. */
+ * a circle resting at the start: progress that has begun, never a dial knob.
+ *
+ * The card is handed a whole percent and nothing else. The build cost and the
+ * recovered total stay on the server (support/page.tsx): this is a client
+ * component, so a constant here shipped in its chunk and a prop in every
+ * page's payload, and "no figures at either end" was true only of the screen
+ * (bug audit 3, T8a-18). */
 
 import { useEffect, useRef, useState } from "react";
 import { m } from "motion/react";
@@ -30,10 +36,6 @@ const SEGMENTS = [
   { label: "Domain", value: 250, color: "var(--color-sky)" },
 ];
 const MONTHLY_TOTAL = SEGMENTS.reduce((sum, s) => sum + s.value, 0);
-
-/* One-time, to design and build the site. The denominator of the recovery
-   bar and nothing else; never printed. */
-const BUILD_COST_PAISE = 500000 * 100;
 
 /* Both bars use a 20px track with a 4px inset, leaving a 12px fill; the fund
    fill's minimum width matches that fill height so its zero state stays a
@@ -100,10 +102,8 @@ function useCountUpOnView(target: number) {
   return { ref, shown, value };
 }
 
-export function CostsCard({ recoveredPaise }: { recoveredPaise: number }) {
+export function CostsCard({ fundPercent }: { fundPercent: number }) {
   const { ref, shown, value } = useCountUpOnView(MONTHLY_TOTAL);
-
-  const fundPct = Math.min(100, (recoveredPaise / BUILD_COST_PAISE) * 100);
 
   return (
     <div ref={ref}>
@@ -153,7 +153,7 @@ export function CostsCard({ recoveredPaise }: { recoveredPaise: number }) {
           // thing this section deliberately does not say.
           aria-valuemin={0}
           aria-valuemax={100}
-          aria-valuenow={Math.round(fundPct)}
+          aria-valuenow={fundPercent}
           aria-label="Progress towards recovering the one-time cost of building the site"
         >
           {/* Width set statically rather than animated with scaleX: a
@@ -162,7 +162,7 @@ export function CostsCard({ recoveredPaise }: { recoveredPaise: number }) {
               only), so the on-view reveal is an opacity fade instead. */}
           <m.div
             className="h-full rounded-full bg-canopy"
-            style={{ width: `max(${fundPct}%, ${FUND_FILL_H}px)` }}
+            style={{ width: `max(${fundPercent}%, ${FUND_FILL_H}px)` }}
             initial={{ opacity: 0 }}
             animate={{ opacity: shown ? 1 : 0 }}
             transition={SPRINGS.gentle}

@@ -24,6 +24,15 @@ export const metadata: Metadata = {
    payment redirects there, and everyone else sees the twelve-bird plate
    with its point-to-name interaction, eligible or not. */
 
+/* One-time, to design and build the site: the recovery bar's denominator, and
+   never published. Kept here, in the server component, because a figure the
+   browser receives is a figure anyone can read: it sat in the costs card's
+   client chunk, beside the exact recovered total in paise as a prop, so the two
+   numbers this page deliberately never prints went to every member, and with a
+   handful of supporters the total's movement told one gift's size (bug audit 3,
+   T8a-18). */
+const BUILD_COST_PAISE = 500000 * 100;
+
 export default async function SupportPage() {
   // Only read to decide whether to show the admin's test door below; the
   // page renders identically for everyone else.
@@ -44,6 +53,10 @@ export default async function SupportPage() {
     })
     .then((r) => netPaise(r._sum))
     .catch(() => 0);
+  /* The only thing the card is told: a whole percent. Rounded here, not in the
+     card, because the unrounded share reaches the page as the fill's width,
+     and anyone who knew the build cost could read the exact total back off it. */
+  const fundPercent = Math.min(100, Math.max(0, Math.round((recoveredPaise / BUILD_COST_PAISE) * 100)));
 
   // Powers the personal "your admission number" chip below; a missed read
   // (or no session, which should not happen behind the (main) layout but
@@ -58,7 +71,7 @@ export default async function SupportPage() {
 
   return (
     <SupportShell
-      costs={<CostsCard recoveredPaise={recoveredPaise} />}
+      costs={<CostsCard fundPercent={fundPercent} />}
       plate={<BirdPlate />}
       contribute={<SupportContribute admissionNumber={admissionNumber} />}
       contributeAside={
