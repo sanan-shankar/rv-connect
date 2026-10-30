@@ -212,7 +212,9 @@ export const GATES = {
     label: "Dependency advisories",
     blocking: true,
     async run() {
-      const { code, out } = await run("node", ["scripts/qa/npm-audit-gate.mjs"]);
+      return GATES.deps.read(await run("node", ["scripts/qa/npm-audit-gate.mjs"]));
+    },
+    read({ code, out }, env = process.env) {
       /* Exit 2 is "the audit could not run" -- no registry. On a laptop with
          no network that is a warning, because a gate that cannot be run
          offline is a gate that gets skipped; in CI it is a failure, because
@@ -220,10 +222,17 @@ export const GATES = {
       if (code === 2) {
         return {
           ok: false,
-          soft: !process.env.CI,
+          soft: !env.CI,
           detail: "could not reach the registry — not checked",
           out,
         };
+      }
+      /* A pass must SAY it passed. Exit 0 with no verdict line is a gate
+         that never ran its audit -- the shape C1-08 found, where an entry
+         guard that misread the path skipped the whole script -- and silence
+         is not a clean bill of health. */
+      if (code === 0 && !/^npm-audit-gate: clean\b/m.test(out)) {
+        return { ok: false, detail: "printed no verdict — not checked", out };
       }
       const fails = (out.match(/^ {2}FAIL /gm) ?? []).length;
       const allowed = (out.match(/^ {2}allowed /gm) ?? []).length;
@@ -242,14 +251,16 @@ export const GATES = {
     label: "Security audit status",
     blocking: true,
     async run() {
-      const { code, out } = await run("node", [
-        "scripts/qa/audit-status.mjs",
-        "--fail-on-open=critical,high",
-      ]);
+      return GATES.security.read(
+        await run("node", ["scripts/qa/audit-status.mjs", "--fail-on-open=critical,high"])
+      );
+    },
+    read({ code, out }) {
       const m = out.match(/(\d+) checked --/);
-      // Same crash test as lint and protocol: no summary line AND non-zero is
-      // the board failing to read itself, not a finding it found.
-      if (!m && code !== 0) return { ok: false, detail: "tool crashed", out };
+      // Same crash test as lint and protocol: no summary line is the board
+      // failing to read itself, not a finding it found. Whatever the exit
+      // code: a board that printed nothing has not said nothing is open.
+      if (!m) return { ok: false, detail: "tool crashed", out };
       return {
         ok: code === 0,
         detail: code === 0 ? `${m[1]} tracked, none open at high` : "a high or critical finding is open",

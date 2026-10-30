@@ -1,4 +1,9 @@
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
+import { chmodSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { delimiter, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import test from "node:test";
 
 import { gateVerdict, ALLOWLIST } from "./npm-audit-gate.mjs";
@@ -95,5 +100,31 @@ test("every allowlist entry carries a reason and an exit condition", () => {
   for (const [id, entry] of Object.entries(ALLOWLIST)) {
     assert.ok(entry.reason?.length > 20, `${id} has no real reason`);
     assert.ok(entry.clearsWhen?.length > 5, `${id} has no exit condition`);
+  }
+});
+
+/* Bug audit 3, C1-08. The gate decided whether it was being run with
+   `import.meta.url === \`file://${argv[1]}\``, which is false for a checkout
+   under a folder with a space in its name or reached through a symlink, so
+   there it skipped itself, printed nothing and exited 0, and check.mjs read
+   that as clean. Run it for real through both at once, with an `npm` on the
+   PATH that answers with an empty audit, so no registry is needed. */
+test("the gate runs, and says so, from a path with a space reached through a symlink", () => {
+  const dir = mkdtempSync(join(tmpdir(), "audit gate "));
+  try {
+    mkdirSync(join(dir, "bin"));
+    writeFileSync(join(dir, "bin", "npm"), `#!/bin/sh\necho '{"vulnerabilities":{}}'\n`);
+    chmodSync(join(dir, "bin", "npm"), 0o755);
+    const link = join(dir, "the gate.mjs");
+    symlinkSync(fileURLToPath(new URL("./npm-audit-gate.mjs", import.meta.url)), link);
+
+    const run = spawnSync(process.execPath, [link], {
+      encoding: "utf8",
+      env: { ...process.env, PATH: `${join(dir, "bin")}${delimiter}${process.env.PATH}` },
+    });
+    assert.equal(run.status, 0, run.stderr);
+    assert.match(run.stdout, /^npm-audit-gate: clean\b/m, "the gate printed no verdict: it did not run");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
   }
 });

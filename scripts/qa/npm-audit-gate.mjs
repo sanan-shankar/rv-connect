@@ -15,6 +15,8 @@
  * 2 when the audit could not run at all (no registry).
  */
 import { execSync } from "node:child_process";
+import { realpathSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 
 /**
  * Accepted advisories. Each entry needs the GHSA id, why it is accepted, and
@@ -75,9 +77,21 @@ export function gateVerdict(auditJson, allowlist = ALLOWLIST) {
   return { ok: blocking.length === 0, blocking, allowed };
 }
 
-// Runs the gate for real only when invoked as a script, so the test can
-// import gateVerdict without triggering an npm audit.
-if (import.meta.url === `file://${process.argv[1]}`) {
+/* Runs the gate for real only when invoked as a script, so the test can
+   import gateVerdict without triggering an npm audit.
+
+   The guard used to be `import.meta.url === \`file://${process.argv[1]}\``,
+   which is never true for a checkout under a folder with a space or another
+   escaped character in its name, or reached through a symlink (/tmp is one
+   on a Mac): the URL is percent-encoded and real-pathed, argv[1] is neither.
+   There the gate skipped itself, printed nothing, exited 0, and check.mjs
+   reported "clean" for an audit that never ran (bug audit 3, C1-08).
+   `import.meta.main` (Node 24.2 and up) answers the question on any path;
+   the fallback compares real paths. check.mjs also refuses a silent exit 0. */
+const isEntryPoint =
+  import.meta.main ??
+  (Boolean(process.argv[1]) && realpathSync(process.argv[1]) === fileURLToPath(import.meta.url));
+if (isEntryPoint) {
   let out;
   try {
     out = execSync("npm audit --omit=dev --json", { encoding: "utf8", maxBuffer: 32 * 1024 * 1024 });
