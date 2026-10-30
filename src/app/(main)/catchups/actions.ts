@@ -820,9 +820,10 @@ export async function setCatchupPicture(
  * by anyone, its page said "not out yet" for ever, and the confirmation did
  * not mention it. He chose refusing over sending it out first or throwing it
  * away, so the Keeper ends it once the Edition is over, and the End row says
- * so. The check and the write are one statement, so an Edition started a
- * moment before is seen; a Start landing in the same instant is not, because
- * neither write locks the Catch-up row.
+ * so. The check and the write are one statement, run while this transaction
+ * holds the Catch-up's row, which `openEdition` also takes first and only while
+ * the Catch-up has not ended (A3 review): a Start in the same instant either
+ * commits first and its Edition is seen here, or finds the Catch-up ended.
  */
 export async function endCatchup(catchupId: string) {
   return runAction(async () => {
@@ -841,9 +842,12 @@ export async function endCatchup(catchupId: string) {
     });
     if ("error" in scope) return scope;
 
-    const ended = await prisma.catchup.updateMany({
-      where: { id: catchupId, editions: { none: RUNNING_EDITION_WHERE } },
-      data: { status: "ended" },
+    const ended = await prisma.$transaction(async (tx) => {
+      await tx.catchup.updateMany({ where: { id: catchupId }, data: { updatedAt: new Date() } });
+      return tx.catchup.updateMany({
+        where: { id: catchupId, editions: { none: RUNNING_EDITION_WHERE } },
+        data: { status: "ended" },
+      });
     });
     if (ended.count === 0) {
       return { error: "An Edition is running. You can end this Catch-up once it is over." };
@@ -1342,6 +1346,8 @@ export async function startEdition(catchupId: string) {
       new Date()
     );
     if ("refused" in opened) {
+      // Ended between the check above and the start: refuseIfEnded's sentence.
+      if (opened.refused === "ended") return { error: "This Catch-up has ended." };
       return opened.refused === "running"
         ? { error: "An Edition is already running here." }
         : { error: "Somebody just started one. Reload the page." };

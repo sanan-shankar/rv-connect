@@ -374,9 +374,21 @@ test("T2a-07: a Catch-up cannot be ended while an Edition is running, and the En
   assert.ok(end, "endCatchup is gone; this pin is reading nothing");
   assert.match(
     end,
-    /prisma\.catchup\.updateMany\(\{\s*where: \{ id: catchupId, editions: \{ none: RUNNING_EDITION_WHERE \} \},\s*data: \{ status: "ended" \},?\s*\}\)/,
+    /tx\.catchup\.updateMany\(\{\s*where: \{ id: catchupId, editions: \{ none: RUNNING_EDITION_WHERE \} \},\s*data: \{ status: "ended" \},?\s*\}\)/,
     "ending no longer refuses a Catch-up with an Edition running, in the same statement"
   );
+  /* And never across a Start (A3 review): End holds the Catch-up's row before
+     it looks, and openEdition holds it first and only while not ended, so an
+     End landing between Start's own check and its Edition is seen. */
+  const held = end.search(/tx\.catchup\.updateMany\(\{ where: \{ id: catchupId \}, data: \{ updatedAt: new Date\(\) \} \}\)/);
+  assert.ok(held > -1 && held < end.indexOf("editions: { none: RUNNING_EDITION_WHERE }"), "End looks for a running Edition before it holds the Catch-up's row");
+  const lib = decomment(read("src/lib/catchups.ts"));
+  const open = balancedBody(lib, "export async function openEdition");
+  assert.ok(open, "openEdition is gone; this pin is reading nothing");
+  const gate = open.search(/tx\.catchup\.updateMany\(\{\s*where: \{ id: catchup\.id, status: \{ not: "ended" \} \}/);
+  assert.ok(gate > -1 && gate < open.indexOf("tx.catchupEdition.findFirst("), "openEdition reads the Editions before it holds a Catch-up that has not ended");
+  assert.match(open, /if \(held\.count === 0\) return \{ refused: "ended" as const \}/, "openEdition starts an Edition in an ended Catch-up");
+  assert.match(balancedBody(src, "export async function startEdition"), /opened\.refused === "ended"/, "a Start refused for an ended Catch-up says something else");
   assert.match(end, /if \(ended\.count === 0\) \{\s*return \{ error: "An Edition is running\./, "a refused end says nothing");
   assert.doesNotMatch(end, /prisma\.catchup\.update\(/, "a second, unconditional write ends it anyway");
 

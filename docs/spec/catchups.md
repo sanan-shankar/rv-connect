@@ -240,7 +240,9 @@ All four swallow their own errors and report them through `reportSwallowed`; non
   questions in it) or opens the next number, gives the questions 3 days to 07:00 IST, and tells every
   member but the starter, by name, in the same transaction. Two simultaneous presses make one Edition:
   the in-place path compare-and-swaps on the row it read, a new row has the unique `(catchupId,
-  number)` under it. It replaced "Start the next Edition now", which sat in Settings where a 2024
+  number)` under it. Its first statement holds the Catch-up's row, only while the Catch-up has not
+  ended, so an End landing after Start's own check cannot leave an ended Catch-up running (A3 review
+  of T2a-07). It replaced "Start the next Edition now", which sat in Settings where a 2024
   alumnus never found it (`2026-10-17-fold-2024-duplicate-into-batch.sql`).
 - **The refusals.** `submitPrompt`, `openAnswering` and `extendDeadline` refuse an idle Edition
   (`refuseIfIdle`), so nothing but Start can put the clock on one with nobody told.
@@ -250,8 +252,9 @@ All four swallow their own errors and report them through `reportSwallowed`; non
   that call for the rest of it. **Refused while an Edition is running** (collecting with a deadline,
   or answering): the clock stops for an ended Catch-up, so one caught mid-way stayed there for good
   and that week's answers were never read. The check (`RUNNING_EDITION_WHERE`, beside
-  `isEditionRunning`) and the write are one statement, and the End row says "You can end it once this
-  Edition is over" instead of opening (his Q2, 2026-10-29: refuse, rather than send out what is there
+  `isEditionRunning`) and the write are one statement, run while End holds the Catch-up's row, the
+  row `openEdition` takes first, and the End row says "You can end it once this Edition is over"
+  instead of opening (his Q2, 2026-10-29: refuse, rather than send out what is there
   or throw it away; bug audit 3, T2a-07). `refuseIfEnded` refuses every hand-driven write into an ended
   Catch-up's Edition, and the clock stops for it.
 - **Hold and resume are gone** (2026-10-17). Between Editions there is nothing scheduled to hold, and

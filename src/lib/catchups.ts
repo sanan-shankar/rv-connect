@@ -390,14 +390,28 @@ export async function advanceEdition(
  * did not start. Two members pressing Start together produce one Edition: the
  * in-place path compare-and-swaps on the row it read, and the new-row path has
  * the unique (catchupId, number) under it. The loser gets "moved".
+ *
+ * NEVER INTO AN ENDED CATCH-UP, decided while its row is held (bug audit 3, A3
+ * review of T2a-07). The action's own "not ended" check runs before the rate
+ * limit and this transaction, and an End landing in that gap left an ended
+ * Catch-up with a running Edition that nobody could ever read. The first
+ * statement here holds the Catch-up's row only while it has not ended, and
+ * `endCatchup` holds the same row before it looks for a running Edition, so
+ * whichever comes second sees the first.
  */
 export async function openEdition(
   catchup: { id: string; group: { id: string; name: string } },
   starter: { id: string; name: string },
   now: Date
-): Promise<{ editionId: string } | { refused: "running" | "moved" }> {
+): Promise<{ editionId: string } | { refused: "running" | "moved" | "ended" }> {
   try {
     return await prisma.$transaction(async (tx) => {
+      const held = await tx.catchup.updateMany({
+        where: { id: catchup.id, status: { not: "ended" } },
+        data: { updatedAt: now },
+      });
+      if (held.count === 0) return { refused: "ended" as const };
+
       const newest = await tx.catchupEdition.findFirst({
         where: { catchupId: catchup.id },
         orderBy: { number: "desc" },
