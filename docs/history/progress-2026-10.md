@@ -30,9 +30,8 @@ back (reset() clears consent, proved); a member who signs in afterwards lifts it
 
 `posthog-rule.test.mjs` pins all of it, including how the installed library treats the class, and
 its patterns fail on the old code. Not done: Catch-ups components still name people in their own
-links (track 1's files), and the privacy page sentence (a later unit). Found, not fixed: a
-password-reset link's live `?token=` and a Catch-up invite's path token both reach PostHog's
-`$current_url`.
+links (track 1's files), and the privacy page sentence (a later unit). Its follow-up masks a password-reset link's live `?token=`, `?email=` and a
+Catch-up invite's key wherever an address appears, by rule, with the route kept whole.
 
 ## 2026-10-29 (scripts) — bug audit 3, unit L1: the laptop scripts open the database verified and in UTC, and stop writing to real members
 

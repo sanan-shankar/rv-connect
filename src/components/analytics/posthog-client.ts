@@ -1,5 +1,5 @@
 import type { PostHog } from "posthog-js";
-import { MASKED_QUERY_PARAMS, maskSearchWords } from "@/lib/posthog-privacy";
+import { MASKED_QUERY_PARAMS, maskEventUrls } from "@/lib/posthog-privacy";
 
 /* ------------------------------------------------------------------ *
  *  Loading posthog-js, late and exactly once.
@@ -157,14 +157,18 @@ function start(): void {
            * mask_personal_data_properties is about event PROPERTIES rather than
            * elements: it masks the ad networks' click ids (gclid, fbclid and the
            * rest) wherever posthog-js records a URL. custom_personal_data_properties
-           * adds the site's own word to that list, `q`, the words typed into a
-           * search, which are as often as not a classmate's name; PostHog sees
-           * `q=<masked>`. The library leaves the referrer as the browser gave it,
-           * so before_send masks the same word there (posthog-privacy.ts). */
+           * adds the site's own words to that list: `q`, the words typed into a
+           * search, which are as often as not a classmate's name; `email`; and
+           * `token` with the other names a key goes by, because a password-reset
+           * link's key is live until it is used. PostHog sees `<masked>` for each.
+           * The library leaves the referrer as the browser gave it and never
+           * looks inside a path, so before_send masks the same words in every
+           * address an event carries, plus a Catch-up invite's key, which IS a
+           * path segment (posthog-privacy.ts). */
           mask_all_element_attributes: false,
           mask_personal_data_properties: true,
           custom_personal_data_properties: MASKED_QUERY_PARAMS,
-          before_send: maskSearchWords,
+          before_send: maskEventUrls,
 
           /* No page titles. posthog-js stamps document.title on every pageview,
            * and a page's title is its own words: a profile's is the member's

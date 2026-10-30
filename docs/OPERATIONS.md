@@ -390,9 +390,14 @@ off mailto:/tel: links. So everything that shows a person carries `NO_CAPTURE`
 notification lines, Collection tiles, the whole admin area. A click there sends nothing;
 "Write a letter" and the like still send their labels. Three presses open no page, so they
 are counted by name instead: `contact_tapped` with which kind of contact, `photo_opened`, and
-`composer_opened` (the New post button is the member's own bird). Pageviews carry no `title`, because a profile's title is the member's name. A
-new surface that shows a person takes the class and a line in
-`src/components/analytics/posthog-rule.test.mjs`.
+`composer_opened` (the New post button is the member's own bird). Pageviews carry no
+`title`, because a profile's title is the member's name. No key leaves either: a
+password-reset or confirmation link's `?token=`, the forgot-password page's `?email=`, and a
+Catch-up invite's key, which is part of its path, arrive as `<masked>` in every address an
+event carries, and the route keeps its shape (`/catchups/join/<masked>`), so pageviews per
+route count as before. A new surface that shows a person takes the class and a line in
+`src/components/analytics/posthog-rule.test.mjs`; a new route with a key in its path, or a
+new query word that looks like one, fails that test until it is masked.
 
 **Signing out ends the identity** (T7b-21): every sign-out goes through `signOutOfSite`
 (`src/components/auth/sign-out.ts`), which gives the browser a fresh anonymous id, so the

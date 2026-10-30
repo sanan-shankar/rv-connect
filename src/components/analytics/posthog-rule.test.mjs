@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { relative } from "node:path";
+import { readdirSync } from "node:fs";
+import { join, relative } from "node:path";
 import { ROOT, read, decomment, walk } from "../../lib/test-kit.mjs";
-import { MASKED_QUERY_PARAMS, NO_CAPTURE, maskSearchWords } from "../../lib/posthog-privacy.ts";
+import { MASKED_QUERY_PARAMS, NO_CAPTURE, SECRET_PATH_PREFIXES, maskEventUrls, maskUrl } from "../../lib/posthog-privacy.ts";
 import { renderRichText } from "../../lib/rich-text.ts";
 
 /* ------------------------------------------------------------------ *
@@ -16,6 +17,9 @@ import { renderRichText } from "../../lib/rich-text.ts";
  *     identity of whoever tapped. The owner's ruling (2026-10-29): hide
  *     anything that shows a person, keep the rest. So: NO_CAPTURE on every
  *     surface that shows a person, no page titles, and search words masked.
+ *     Its follow-up: a password-reset link's live key and a Catch-up invite's
+ *     key reached PostHog in every address an event carries; they leave as
+ *     `<masked>` now, by rule, and the route keeps its shape.
  *   - T7b-21: signing out never ended the PostHog identity, so the next
  *     person on that browser was filed under the member who had left; and
  *     the owner's opt-out outlived his sign-out with nothing to lift it, so a
@@ -33,7 +37,7 @@ const CLIENT = "src/components/analytics/posthog-client.ts";
 const IDENTIFY = "src/components/analytics/posthog-identify.tsx";
 const SIGN_OUT = "src/components/auth/sign-out.ts";
 
-test("PostHog gets no page title, no search words and no replay", () => {
+test("PostHog gets no page title, no search words, no keys and no replay", () => {
   const src = decomment(read(CLIENT));
   assert.match(
     src,
@@ -48,14 +52,16 @@ test("PostHog gets no page title, no search words and no replay", () => {
   );
   assert.match(
     src,
-    /before_send:\s*maskSearchWords/,
-    "the referrer carries the search words again: the library leaves it as the browser gave it"
+    /before_send:\s*maskEventUrls/,
+    "the referrer and every path carry search words and keys again: the library masks neither"
   );
   assert.match(src, /disable_session_recording:\s*true/);
-  assert.deepEqual(MASKED_QUERY_PARAMS, ["q"]);
+  for (const word of ["q", "email", "token", "code", "secret", "key", "sig"]) {
+    assert.ok(MASKED_QUERY_PARAMS.includes(word), `?${word}= reaches PostHog as it was typed or mailed`);
+  }
 });
 
-test("the search words are masked in every address an event carries, and only there", () => {
+test("search words, emails and keys are masked in every address an event carries, and only there", () => {
   const event = {
     event: "$pageview",
     properties: {
@@ -70,7 +76,7 @@ test("the search words are masked in every address an event carries, and only th
     $set: { $referrer: "$direct" },
     $set_once: { $initial_referrer: "https://rishivalley.space/admin/people?q=someone@example.com" },
   };
-  const out = maskSearchWords(event);
+  const out = maskEventUrls(event);
   assert.equal(out, event, "the same event comes back, so nothing posthog-js relies on is lost");
   assert.equal(out.properties.$current_url, "https://rishivalley.space/directory?q=<masked>&year=2004");
   assert.equal(out.properties.$referrer, "https://rishivalley.space/feed?q=<masked>#top");
@@ -80,12 +86,98 @@ test("the search words are masked in every address an event carries, and only th
   assert.equal(out.properties.token, "phc_project_key", "ingest rejects an event without its token");
   assert.equal(out.$set.$referrer, "$direct");
   assert.equal(out.$set_once.$initial_referrer, "https://rishivalley.space/admin/people?q=<masked>");
-  assert.equal(maskSearchWords(null), null);
+  assert.equal(maskEventUrls(null), null);
   // Masking twice changes nothing: the library has often masked $current_url first.
   assert.equal(
-    maskSearchWords({ properties: { $current_url: out.properties.$current_url } }).properties.$current_url,
+    maskEventUrls({ properties: { $current_url: out.properties.$current_url } }).properties.$current_url,
     out.properties.$current_url
   );
+});
+
+const KEY = "0123456789abcdef0123456789abcdef"; // an invite key's shape: 32 hex digits
+
+test("a password-reset link and a Catch-up invite leave with their keys masked, routes whole", () => {
+  assert.equal(
+    maskUrl("https://rishivalley.space/reset-password?token=AbC-123_live"),
+    "https://rishivalley.space/reset-password?token=<masked>"
+  );
+  assert.equal(
+    maskUrl("https://rishivalley.space/verify-email?token=AbC&from=mail#top"),
+    "https://rishivalley.space/verify-email?token=<masked>&from=mail#top"
+  );
+  assert.equal(maskUrl(`https://rishivalley.space/catchups/join/${KEY}`), "https://rishivalley.space/catchups/join/<masked>");
+  assert.equal(
+    maskUrl(`/signup?next=%2Fcatchups%2Fjoin%2F${KEY}`),
+    "/signup?next=%2Fcatchups%2Fjoin%2F<masked>",
+    "the invite page hands its own address to sign-up and sign-in, key and all"
+  );
+  assert.equal(maskUrl("https://rishivalley.space/forgot-password?email=jane%40example.com"), "https://rishivalley.space/forgot-password?email=<masked>");
+  // Nothing that is not a key moves: the bare join page, a Catch-up's id, the
+  // filters beside a search.
+  assert.equal(maskUrl("https://rishivalley.space/catchups/join"), "https://rishivalley.space/catchups/join");
+  assert.equal(maskUrl("/catchups/cmabc123def"), "/catchups/cmabc123def");
+
+  const pageview = maskEventUrls({
+    event: "$pageview",
+    properties: {
+      $current_url: `https://rishivalley.space/catchups/join/${KEY}`,
+      $pathname: `/catchups/join/${KEY}`,
+      $prev_pageview_pathname: "/reset-password",
+      $referrer: "https://rishivalley.space/reset-password?token=AbC-123_live",
+      $elements_chain: `a:attr__href="/login?next=%2Fcatchups%2Fjoin%2F${KEY}"href="/login?next=%2Fcatchups%2Fjoin%2F${KEY}"nth-child="2"text="Sign in"`,
+      $elements: [{ tag_name: "a", attr__href: `/catchups/join/${KEY}` }],
+      $heatmap_data: { [`https://rishivalley.space/catchups/join/${KEY}`]: [{ x: 1 }], [`https://rishivalley.space/catchups/join/${KEY.replace("0", "f")}`]: [{ x: 2 }] },
+    },
+    $set_once: { $initial_pathname: `/catchups/join/${KEY}` },
+  });
+  const sent = JSON.stringify(pageview);
+  assert.ok(!sent.includes(KEY) && !sent.includes("AbC-123_live"), `a key reached PostHog: ${sent}`);
+  assert.equal(pageview.properties.$pathname, "/catchups/join/<masked>", "the route keeps its shape, so its pageviews still count as one");
+  assert.equal(pageview.properties.$prev_pageview_pathname, "/reset-password");
+  assert.deepEqual(Object.keys(pageview.properties.$heatmap_data), ["https://rishivalley.space/catchups/join/<masked>"]);
+  assert.equal(pageview.properties.$heatmap_data["https://rishivalley.space/catchups/join/<masked>"].length, 2);
+});
+
+test("every route that carries a key in its address is covered, by rule", () => {
+  /* A folder like [token] under src/app is a path segment that may be a key.
+     Each one's prefix must be in SECRET_PATH_PREFIXES, or its key reaches
+     PostHog in every address of every pageview of that page. */
+  const KEYISH = /(token|secret|code|key|sig|signature|invite)\]$/i;
+  const routes = [];
+  const visit = (dir, url) => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      if (!entry.isDirectory()) continue;
+      const name = entry.name;
+      const next = /^\(.+\)$/.test(name) || name.startsWith("@") ? url : `${url}/${name}`;
+      if (KEYISH.test(name)) routes.push(`${url}/`);
+      visit(join(dir, name), next);
+    }
+  };
+  visit(join(ROOT, "src/app"), "");
+  assert.ok(routes.length > 0, "no keyed route found: the invite route moved, so re-check this rule");
+  for (const prefix of routes) {
+    assert.ok(SECRET_PATH_PREFIXES.includes(prefix), `${prefix}[key] is not in SECRET_PATH_PREFIXES`);
+    assert.equal(maskUrl(`${prefix}${KEY}`), `${prefix}<masked>`);
+  }
+
+  /* Every query word the app reads or writes that looks like a key or an
+     address must be masked: searchParams.get("x"), a page's searchParams type,
+     and every URL built as `?x=${...}`. */
+  const LOOKS_SECRET = /(token|secret|code|key|sig|signature|email|password|otp|nonce)$/i;
+  const words = new Set();
+  for (const full of walk(`${ROOT}/src`, { match: /\.(ts|tsx)$/ })) {
+    const src = read(relative(ROOT, full));
+    for (const m of src.matchAll(/searchParams\.get\("(\w+)"\)/g)) words.add(m[1]);
+    for (const m of src.matchAll(/searchParams:\s*Promise<\{([^}]*)\}>/g)) {
+      for (const k of m[1].matchAll(/(\w+)\??:/g)) words.add(k[1]);
+    }
+    for (const m of src.matchAll(/[?&](\w+)=\$\{/g)) words.add(m[1]);
+  }
+  const secretWords = [...words].filter((w) => LOOKS_SECRET.test(w));
+  assert.ok(secretWords.includes("token") && secretWords.includes("email"), "the scan no longer sees the reset link or forgot-password");
+  for (const word of secretWords) {
+    assert.ok(MASKED_QUERY_PARAMS.includes(word), `?${word}= is read or built by the app and is not masked for PostHog`);
+  }
 });
 
 test("the installed posthog-js still drops a click inside the class, and replay still blocks it", () => {
