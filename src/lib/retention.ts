@@ -20,8 +20,25 @@ import { valleyDayKey } from "./utils";
 
 const DAY_MS = 86_400_000;
 
-/** Accounts purged per nightly pass. See the comment at its use site. */
-const PURGE_BATCH = 10;
+/**
+ * The night's time, which is the sweep's real budget (bug audit 3, L11-07).
+ *
+ * The route may run for 300 seconds (`maxDuration`, sweep/route.ts). The
+ * purge step used to be capped at ten accounts, reasoned from the purge's
+ * 30-second transaction ceiling alone: ten of those IS 300 seconds, with no
+ * room for the deletes each purge then made inline, or for anything after.
+ * A night with a few large archives would be cut off mid-purge, losing the
+ * erased member's audit line and the night's own. So the sweep keeps time:
+ * no purge starts after LAST_PURGE_STARTS_MS (one may still run its whole
+ * transaction ceiling, tried again on a collision), the image drain gets what
+ * is left of SWEEP_BUDGET_MS, and what the night does not reach is due
+ * tomorrow, which the sweep's idempotence was always for. SWEEP_BUDGET_MS
+ * leaves the last drain round its ten seconds to answer and the night's line
+ * its moment, inside the route's ceiling; purge-rule.test.mjs holds the
+ * arithmetic to the route and the workflow.
+ */
+const SWEEP_BUDGET_MS = 270_000;
+const LAST_PURGE_STARTS_MS = 150_000;
 const cutoff = (days: number) => new Date(Date.now() - days * DAY_MS);
 
 /** Owner's schedule. Days, not "2y", so the cutoff arithmetic stays exact. */
@@ -160,11 +177,15 @@ export type SweepResult = {
   accountsSpared: number;
   /** Accounts that were due tonight and wait for tomorrow's pass for a reason
    *  that settles itself: every attempt at the purge met another write to
-   *  the member's rows (bug audit 3, L1-04). Not an error; the purge reports
-   *  each one to Sentry itself, so a run of them is still seen. */
+   *  the member's rows (bug audit 3, L1-04; the purge reports each one to
+   *  Sentry itself, so a run of them is still seen), or the night's time ran
+   *  out before their turn (L11-07). Not an error. */
   accountsDeferred: number;
-  /** Stored images an earlier purge could not remove, cleared on this pass. */
-  imagesRetried: number;
+  /** Stored images removed on this pass: tonight's erasures', and anything an
+   *  earlier pass or an admin's delete left queued. It was `imagesRetried`
+   *  while each purge drained its own and this step only swept up after them
+   *  (bug audit 3, L11-07). */
+  imagesDeleted: number;
   /** ...and how many R2 still refuses. A number that only ever grows is the
    *  signal that credentials or the bucket name have drifted. */
   imagesStillPending: number;
@@ -179,6 +200,7 @@ export type SweepResult = {
  * GitHub.
  */
 export async function runRetentionSweep(): Promise<SweepResult> {
+  const startedAt = Date.now();
   const errors: string[] = [];
   const step = async (name: string, fn: () => Promise<number>): Promise<number> => {
     try {
@@ -278,9 +300,9 @@ export async function runRetentionSweep(): Promise<SweepResult> {
 
   /* The deletion-request purge (audits H9 + M35): accounts whose 60-day
      grace window has closed are erased for real — rows and R2 bytes both,
-     via the same purgeUserAccount an admin delete uses. Context for the
-     audit entry is captured first, because afterwards nothing remembers who
-     the id belonged to. */
+     via the same purgeUserAccount an admin delete uses, the bytes by the
+     drain after the loop. Context for the audit entry is captured first,
+     because afterwards nothing remembers who the id belonged to. */
   let accountsPurged = 0;
   let accountsSpared = 0;
   let accountsDeferred = 0;
@@ -288,18 +310,17 @@ export async function runRetentionSweep(): Promise<SweepResult> {
     const rows = await prisma.user.findMany({
       where: { deletionRequestedAt: { lt: cutoff(DELETION_GRACE_DAYS) } },
       select: { id: true, name: true, email: true, deletionRequestedAt: true },
+      // Oldest first. Not capped by count any more: the purge loop below stops
+      // starting purges when the night's time is spent (LAST_PURGE_STARTS_MS),
+      // and the rest roll to tomorrow by design, counted as deferred (bug
+      // audit, Low 64, and bug audit 3, L11-07).
       orderBy: { deletionRequestedAt: "asc" },
-      // Capped, because this is the one step whose cost is unbounded: each
-      // purge is its own transaction with a 30s ceiling, run one at a time, all
-      // inside a single serverless invocation that has a platform duration
-      // limit. Uncapped, a night with a dozen due accounts gets killed
-      // mid-loop and the GitHub Actions job fails loudly for something that is
-      // working. Oldest first, and the remainder rolls to tomorrow BY DESIGN --
-      // the sweep is idempotent, so a backlog drains a batch a night rather
-      // than taking the whole run down with it (bug audit, Low 64).
-      take: PURGE_BATCH,
     });
-    for (const row of rows) {
+    for (const [i, row] of rows.entries()) {
+      if (Date.now() - startedAt >= LAST_PURGE_STARTS_MS) {
+        accountsDeferred += rows.length - i;
+        break;
+      }
       /* The cutoff goes WITH the purge, not just into the list above. Between
          that read and this call the member may have signed in, which is how
          the app lets somebody call a deletion off -- and the purge used to
@@ -322,6 +343,8 @@ export async function runRetentionSweep(): Promise<SweepResult> {
         continue;
       }
       accountsPurged += 1;
+      /* Written the moment the purge's transaction returns, before any byte
+         is deleted: the drain is after the loop (bug audit 3, L11-07). */
       await writeAudit({
         actorId: null,
         action: "account.purge",
@@ -332,8 +355,7 @@ export async function runRetentionSweep(): Promise<SweepResult> {
           // asked (audit C-146). In UTC the two named different days for any
           // request made between midnight and 05:30 IST.
           `${row.name} <${row.email}> — requested ${row.deletionRequestedAt ? valleyDayKey(row.deletionRequestedAt) : "unknown"}, ` +
-          `${purged.imagesDeleted} stored image(s) removed` +
-          (purged.imagesFailed > 0 ? `, ${purged.imagesFailed} still queued` : "") +
+          `${purged.queued.length} stored image(s) queued for deletion` +
           (purged.groupsRehomed > 0 ? `, ${purged.groupsRehomed} group(s) handed on` : ""),
       });
     }
@@ -344,22 +366,22 @@ export async function runRetentionSweep(): Promise<SweepResult> {
       `[retention] ${accountsSpared} account(s) were due but had been cancelled; left alone`
     );
   }
-  // A full batch means there is more waiting; the next sweep takes the rest.
-  if (due >= PURGE_BATCH) {
-    console.info(`[retention] purge batch full (${due}); more accounts are due tomorrow`);
+  if (accountsDeferred > 0) {
+    console.info(`[retention] ${accountsDeferred} of ${due} due account(s) wait for tomorrow`);
   }
 
-  /* Anything an earlier purge could not remove from R2 (a bad minute, a
-     timeout, a crash between the row delete and the object delete) waits in
-     PendingImagePurge. This is the retry: the one path that can still find
-     those bytes, because the rows that named them are long gone (B-011). */
-  let imagesRetried = 0;
+  /* Every stored image still queued: tonight's erasures', and anything an
+     earlier pass, an admin's delete or a bad minute at R2 left behind. This is
+     the one path that can still find those bytes, because the rows that named
+     them are gone (B-011), and it gets whatever is left of the night's time
+     (L11-07). */
+  let imagesDeleted = 0;
   let imagesStillPending = 0;
   await step("pendingImages", async () => {
-    const drained = await drainPendingImagePurges();
-    imagesRetried = drained.deleted;
+    const budget = SWEEP_BUDGET_MS - (Date.now() - startedAt);
+    if (budget > 0) imagesDeleted = (await drainPendingImagePurges(undefined, budget)).deleted;
     imagesStillPending = await prisma.pendingImagePurge.count();
-    return drained.deleted;
+    return imagesDeleted;
   });
 
   const result: SweepResult = {
@@ -369,7 +391,7 @@ export async function runRetentionSweep(): Promise<SweepResult> {
     accountsPurged,
     accountsSpared,
     accountsDeferred,
-    imagesRetried,
+    imagesDeleted,
     imagesStillPending,
     errors,
   };

@@ -272,11 +272,12 @@ class PurgeCancelled extends Error {}
 export type PurgeResult =
   | {
       ok: true;
-      /** Objects actually gone from R2, not delete attempts. */
-      imagesDeleted: number;
-      /** Objects R2 refused. They stay in PendingImagePurge for the sweep. */
-      imagesFailed: number;
-      /** Groups left with a new admin because this member was the last one. */
+      /** Every stored-image url the account's rows named, written to
+       *  PendingImagePurge in the same transaction as the delete. All of them
+       *  are still to remove when this returns: the caller writes its audit
+       *  line first, then drains them (`drainPendingImagePurges`). */
+      queued: string[];
+      /** Groups left with a new Keeper because this member was the last one. */
       groupsRehomed: number;
     }
   | {
@@ -413,8 +414,9 @@ async function clearCoversPointingAtThisMember(db: Db, userId: string): Promise<
 }
 
 /**
- * Delete the account row (cascading the member's content) and then the R2
- * objects those rows pointed at. Order matters twice over:
+ * Delete the account row (cascading the member's content), and queue the R2
+ * objects those rows pointed at for the caller to delete. Order matters twice
+ * over:
  *
  *  - URLs are collected FIRST, because the cascade takes the pointing rows
  *    with it and afterwards nothing can enumerate the objects;
@@ -425,11 +427,16 @@ async function clearCoversPointingAtThisMember(db: Db, userId: string): Promise<
  * The gap between those two is what `PendingImagePurge` closes: the collected
  * URLs are written as a worklist in the SAME transaction as the delete, so a
  * crash, a timeout or a bad minute at R2 leaves a durable record of exactly
- * which bytes are still out there instead of losing them forever. Whatever the
- * loop below cannot remove is left in the table for the nightly sweep.
+ * which bytes are still out there instead of losing them forever.
  *
- * The count returned is objects actually gone, not attempts (B-013): the audit
- * entry the CALLER writes quotes it, and it used to be a lie.
+ * The bytes are the CALLER's to delete, after it has written its audit line
+ * (bug audit 3, T7a-05 and L11-07). This function used to drain them itself,
+ * so the line recording an erasure came after the slowest step in it: an
+ * admin's delete cut off mid-drain left the account gone with no
+ * `admin.delete` line and the admin told it had not gone through, and a sweep
+ * night with a few large archives ran out of time mid-purge and lost the
+ * erased member's `account.purge` line for good. An admin's delete drains
+ * right after its line; the sweep drains once, after all its purges.
  */
 export async function purgeUserAccount(
   userId: string,
@@ -580,13 +587,7 @@ export async function purgeUserAccount(
     };
   }
 
-  const drained = await drainPendingImagePurges(urls);
-  return {
-    ok: true,
-    imagesDeleted: drained.deleted,
-    imagesFailed: drained.failed,
-    groupsRehomed,
-  };
+  return { ok: true, queued: urls, groupsRehomed };
 }
 
 /** Whether the member's request still stands by the sweep's cutoff. A read

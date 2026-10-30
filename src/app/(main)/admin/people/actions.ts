@@ -13,7 +13,7 @@ import {
 import { readPeopleFilters, type PeoplePage } from "@/lib/admin-people";
 import { loadPeoplePage } from "@/lib/admin-people-query";
 import { writeAudit } from "@/lib/audit";
-import { groupsKeptBy, purgeUserAccount } from "@/lib/account-purge";
+import { drainPendingImagePurges, groupsKeptBy, purgeUserAccount } from "@/lib/account-purge";
 import { CATCHUP_PEOPLE } from "@/lib/catchup-caps";
 import { lockGroup, promoteGroupSuccessor } from "@/lib/group-succession";
 import { purgeImageUrls } from "@/lib/image-purge";
@@ -661,6 +661,12 @@ export async function adminDeleteUser(userId: string): Promise<AdminActionResult
   // "Check the server log", which the admin cannot read.
   if (!purged.ok) return { error: purged.error };
 
+  /* On the record before a single byte is deleted (bug audit 3, T7a-05). The
+     line used to wait for the in-request drain, the slowest and least needed
+     step, so a request cut off or hung in it left an erased account with no
+     `admin.delete` line and an admin told "That did not go through". It
+     quotes what is certain at this point: what the account's rows named, all
+     of it queued in the transaction that deleted them. */
   await writeAudit({
     actorId: actor.actorId,
     action: "admin.delete",
@@ -668,13 +674,22 @@ export async function adminDeleteUser(userId: string): Promise<AdminActionResult
     targetId: userId,
     ip: actor.ip,
     detail:
-      `${target.name} <${target.email}> — ${purged.imagesDeleted} stored image(s) removed` +
-      (purged.imagesFailed > 0 ? `, ${purged.imagesFailed} still queued` : "") +
+      `${target.name} <${target.email}> — ${purged.queued.length} stored image(s) queued for deletion` +
       (purged.groupsRehomed > 0 ? `, ${purged.groupsRehomed} group(s) handed on` : ""),
   });
 
   revalidatePath("/directory");
   revalidatePath("/admin", "layout");
+
+  /* Then the bytes, while the admin waits, inside the drain's own time budget.
+     Whatever it cannot reach or R2 refuses stays queued for tonight's sweep,
+     whose line counts it; a failure here is the queue's to finish, so it is
+     reported and the delete still answers that it worked, because it did. */
+  try {
+    await drainPendingImagePurges(purged.queued);
+  } catch (err) {
+    reportSwallowed("purge", err, { userId, step: "drain" });
+  }
   return { success: true };
 }
 

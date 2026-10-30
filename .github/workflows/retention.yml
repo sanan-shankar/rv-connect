@@ -31,7 +31,11 @@ concurrency:
 jobs:
   sweep:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    # Longer than the route's own ceiling (maxDuration = 300 s), so a night
+    # that runs out still reaches the 504 or 502 and its body instead of being
+    # cancelled here first (bug audit 3, L11-07). purge-rule.test.mjs holds
+    # this above the route's number.
+    timeout-minutes: 7
     steps:
       - name: Call the sweep route
         env:
@@ -47,6 +51,8 @@ jobs:
           # failed; -f alone threw that away and a failed run showed nothing
           # about why. Flag added in curl 7.76.0 (2021); ubuntu-latest ships
           # 8.5+, so it's there.
-          curl -sS --fail-with-body \
+          # --max-time 310: ten seconds past the route's 300, so curl waits
+          # for Vercel's answer rather than hanging until the job's timeout.
+          curl -sS --fail-with-body --max-time 310 \
             -H "Authorization: Bearer $CRON_SECRET" \
             "https://rishivalley.space/api/retention/sweep"

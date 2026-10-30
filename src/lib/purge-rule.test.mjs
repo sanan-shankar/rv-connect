@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { read, decomment, balancedBody } from "./test-kit.mjs";
-import { DRAIN_PARALLEL, PURGE_ATTEMPTS, drainQueue, retryWriteConflicts } from "./purge-rule.ts";
+import { DRAIN_PARALLEL, DRAIN_REMOVE_TIMEOUT_MS, PURGE_ATTEMPTS, drainQueue, retryWriteConflicts } from "./purge-rule.ts";
 
 /* ------------------------------------------------------------------ *
  *  The purge has to be honest about what it removed.
@@ -33,24 +33,22 @@ test("a refused R2 delete is reported, not swallowed", () => {
   );
 });
 
-test("the purge counts objects gone, not delete attempts", () => {
+test("the purge's audit lines claim nothing it has not done (B-013, T7a-05)", () => {
+  /* B-013: the purge counted `deleted += 1` per attempt, and the audit line
+     quoting it called live objects removed. Since T7a-05 and L11-07 (bug audit
+     3) the purge deletes no bytes at all: it queues them with the delete and
+     returns that list, its callers write their line from it, saying queued,
+     and only then drain, and the drain counts what R2 actually let go of. */
   const src = decomment(read("src/lib/account-purge.ts"));
-  const fn = src.slice(src.indexOf("export async function purgeUserAccount"));
-  const body = fn.slice(0, fn.indexOf("\n}\n") + 2);
-  assert.ok(
-    !/for \(const url of urls\)/.test(body),
-    "purgeUserAccount deletes in a loop of its own again; the count it returns " +
-      "is attempts, and the audit line quoting it is a lie (B-013)"
-  );
-  assert.ok(
-    /drainPendingImagePurges/.test(body),
-    "purgeUserAccount no longer takes its count from the drain, which is the " +
-      "only thing that knows whether R2 accepted the delete"
-  );
-  assert.ok(
-    /imagesFailed/.test(src),
-    "PurgeResult no longer carries a failure count, so the audit line cannot be honest"
-  );
+  const purge = balancedBody(src, "export async function purgeUserAccount(");
+  assert.ok(purge, "purgeUserAccount is gone; this pin is reading nothing");
+  assert.doesNotMatch(purge, /delImage\(|drainPendingImagePurges\(/, "the purge deletes bytes before its caller has written the line that records it");
+  assert.match(purge, /return \{ ok: true, queued: urls, groupsRehomed \}/, "the purge no longer hands back what it queued");
+  for (const file of ["src/lib/retention.ts", "src/app/(main)/admin/people/actions.ts"]) {
+    const code = decomment(read(file));
+    assert.match(code, /\$\{purged\.queued\.length\} stored image\(s\) queued for deletion/, `${file}'s audit line no longer says what the purge queued`);
+    assert.doesNotMatch(code, /stored image\(s\) removed/, `${file}'s audit line calls objects removed that nothing has deleted yet`);
+  }
 });
 
 test("the image worklist is durable before the rows go", () => {
@@ -69,9 +67,10 @@ test("the image worklist is durable before the rows go", () => {
 });
 
 test("what the purge could not delete is retried by the nightly sweep", () => {
+  // The whole worklist (no url scope), with what is left of the night's time.
   const src = decomment(read("src/lib/retention.ts"));
   assert.ok(
-    /drainPendingImagePurges\(\)/.test(src),
+    /drainPendingImagePurges\(undefined, budget\)/.test(src),
     "the retention sweep no longer drains the pending-image worklist"
   );
 });
@@ -597,4 +596,51 @@ test("T7a-21: the app's drain is the budgeted loop, not a fixed slice", () => {
   assert.match(fn, /return drainQueue\(/, "the drain no longer goes through the budgeted parallel loop");
   assert.match(fn, /deadline: Date\.now\(\) \+ budgetMs/, "the drain has no time budget, so a large archive is either cut short or unbounded");
   assert.doesNotMatch(fn, /for \(const row of rows\)/, "the drain deletes one row at a time again");
+});
+
+/* ------------------------------------------------------------------ *
+ *  An erasure is on the record before its bytes are touched, and the
+ *  sweep keeps time (bug audit 3, T7a-05 and L11-07).
+ *
+ *  The admin's delete wrote its line after an in-request drain of up to 500
+ *  serial deletes, and the sweep's ten-purge cap was sized for the purges'
+ *  transactions and not the deletes each made inline, while GitHub's timeout
+ *  equalled the function's: a cut-off request or night erased the account
+ *  and lost the line that said so, and the job died before showing why.
+ * ------------------------------------------------------------------ */
+
+test("T7a-05: an admin's delete writes its audit line before it drains, and a failed drain does not undo the answer", () => {
+  const del = balancedBody(decomment(read("src/app/(main)/admin/people/actions.ts")), "export async function adminDeleteUser(");
+  assert.ok(del, "adminDeleteUser is gone; this pin is reading nothing");
+  const purged = del.indexOf("await purgeUserAccount(userId)");
+  const audited = del.indexOf('action: "admin.delete"');
+  const drained = del.indexOf("await drainPendingImagePurges(purged.queued)");
+  assert.ok(purged > -1 && audited > purged, "the audit line is written before the purge, or not at all");
+  assert.ok(drained > audited, "the bytes are deleted before the deletion is on the record");
+  assert.match(del.slice(drained - 40, drained + 200), /try \{[\s\S]*\} catch \(err\) \{\s*reportSwallowed\(/, "a failed drain turns a finished delete into an error for the admin");
+});
+
+test("L11-07: the sweep stops starting purges when its time is spent, and drains once, after them", () => {
+  const src = decomment(read("src/lib/retention.ts"));
+  const loop = src.slice(src.indexOf("for (const [i, row] of rows.entries())"));
+  assert.ok(loop.length > 0 && src.includes("for (const [i, row] of rows.entries())"), "the purge loop moved; this pin is reading nothing");
+  const timed = loop.search(/if \(Date\.now\(\) - startedAt >= LAST_PURGE_STARTS_MS\) \{\s*accountsDeferred \+= rows\.length - i;\s*break;/);
+  assert.ok(timed > -1 && timed < loop.indexOf("await purgeUserAccount("), "a purge starts whatever the hour, so a heavy night is cut off mid-purge");
+  assert.doesNotMatch(src, /take:\s*PURGE_BATCH/, "the purge step is capped by a count sized for its transactions again");
+  const budget = Number(/const SWEEP_BUDGET_MS = ([\d_]+);/.exec(src)?.[1].replaceAll("_", ""));
+  const lastStart = Number(/const LAST_PURGE_STARTS_MS = ([\d_]+);/.exec(src)?.[1].replaceAll("_", ""));
+  assert.ok(budget > 0 && lastStart > 0 && lastStart < budget, "the sweep's two times are missing, or the last purge may start after the budget ends");
+
+  /* The arithmetic between the three clocks: the sweep finishes inside the
+     route's ceiling with a drain round's answer to spare, curl waits past that
+     ceiling for Vercel's own answer, and GitHub waits past curl. */
+  const route = decomment(read("src/app/api/retention/sweep/route.ts"));
+  const ceiling = Number(/export const maxDuration = (\d+);/.exec(route)?.[1]) * 1000;
+  const workflow = read(".github/workflows/retention.yml");
+  const curl = Number(/--max-time (\d+)/.exec(workflow)?.[1]) * 1000;
+  const job = Number(/timeout-minutes: (\d+)/.exec(workflow)?.[1]) * 60_000;
+  assert.ok(ceiling > 0 && curl > 0 && job > 0, "a clock is missing from the route or the workflow");
+  assert.ok(budget + DRAIN_REMOVE_TIMEOUT_MS < ceiling, `the sweep plans ${budget + DRAIN_REMOVE_TIMEOUT_MS} ms against a ${ceiling} ms ceiling`);
+  assert.ok(curl > ceiling, "curl gives up before the route's own answer can arrive");
+  assert.ok(job > curl, "GitHub cancels the job before curl can print why the night failed");
 });

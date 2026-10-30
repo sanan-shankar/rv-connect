@@ -38,6 +38,12 @@ import { requireCronSecret } from "@/lib/api-gate";
  * nothing to do -- the sweep returns in milliseconds -- and it is the
  * difference between finishing and vanishing on the night an account purge
  * finally comes due.
+ *
+ * The sweep keeps its own time inside it (`SWEEP_BUDGET_MS` in retention.ts),
+ * and retention.yml waits longer than it, so a night that does run out still
+ * answers with the body that says why (bug audit 3, L11-07). The workflow's
+ * timeout used to equal this ceiling, and GitHub cancelled the request before
+ * Vercel's 504 could arrive.
  */
 export const maxDuration = 300;
 
