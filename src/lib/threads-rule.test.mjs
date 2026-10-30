@@ -159,3 +159,41 @@ test("C-058/C-081: every capped thread list carries a count and an escape", () =
    2026-08-23 (checked live: 0 rows before that date and 0 with a /notice/ link,
    on production and on demo). The race it closed cannot be reached because the
    code that could race is gone. `db` came off openAdminNoticeThread with it. */
+
+/* ---- T7a-02: a reporter is answered when the post goes --------- */
+
+test("T7a-02: deleting a post answers everyone still waiting on a report about it", () => {
+  /* Report.post is Cascade, so an author deleting a reported post took the
+     report off the desk before any admin decided anything, and the reporter's
+     thread, which outlives the report on purpose (AdminThread.reportId is
+     SetNull), never got its last line. */
+  const feed = decomment(read("src/app/(main)/feed/actions.ts"));
+  const start = feed.indexOf("async function deletePostWithImages");
+  assert.ok(start > -1, "deletePostWithImages is gone; this pin is reading nothing");
+  const body = feed.slice(start, feed.indexOf("\n}", start));
+  const tx = body.indexOf("prisma.$transaction(");
+  const noted = body.indexOf("await noteReportsOnDeletedPost(tx, postId, removedBy)");
+  const deleted = body.indexOf("tx.post.delete(");
+  assert.ok(tx > -1 && noted > tx, "the reporter's answer is not written inside the delete's transaction");
+  assert.ok(
+    deleted > noted,
+    "the answer is written after the post, and with it the report, is gone, when nothing names the thread any more"
+  );
+
+  const helper = decomment(read("src/lib/admin-threads-server.ts"));
+  const from = helper.indexOf("export async function noteReportsOnDeletedPost");
+  assert.ok(from > -1, "noteReportsOnDeletedPost is gone");
+  assert.match(
+    helper.slice(from, helper.indexOf("\n}", from)),
+    /report:\s*\{\s*postId,\s*status:\s*"pending"\s*\}/,
+    "a settled report's reporter is told twice, or a waiting one not at all"
+  );
+
+  // Who deleted it decides the sentence: an admin's delete is not the author's.
+  const del = feed.slice(feed.indexOf("export async function deletePost("));
+  assert.match(
+    del.slice(0, del.indexOf("\nexport ")),
+    /post\.authorId === session\.user\.id \? "author" : "admin"/,
+    "an admin's delete tells the reporter the author removed it"
+  );
+});

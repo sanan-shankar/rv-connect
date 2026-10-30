@@ -7,6 +7,7 @@ import {
   previewOf,
 } from "@/lib/admin-threads";
 import { IDENTITY_SELECT } from "@/lib/people-select";
+import type { Prisma } from "@/generated/prisma/client";
 /**
  * The database half of member <-> admin conversations. Split from
  * admin-threads.ts (which is client-safe) so the composer and the admin queue
@@ -112,6 +113,36 @@ export async function notifyAdmins(message: string, link: string): Promise<void>
 }
 
 /**
+ * The three writes a line from the app to a reporter is: the message in their
+ * thread, the thread's unread mark for them, and their bell. Through the
+ * caller's transaction, so a caller already inside one keeps it whole.
+ */
+async function writeReportNote(
+  tx: Prisma.TransactionClient,
+  thread: { id: string; memberId: string },
+  body: string
+): Promise<void> {
+  await tx.adminMessage.create({
+    data: { threadId: thread.id, authorId: null, fromAdmin: true, body },
+  });
+  await tx.adminThread.update({
+    where: { id: thread.id },
+    // Not `adminUnread: false`: a note added here is not an admin reading
+    // the thread, and clearing it would hide whatever the member had written
+    // and nobody had looked at yet (audit B-201's shape, same column).
+    data: { lastMessageAt: new Date(), memberUnread: true },
+  });
+  await tx.notification.create({
+    data: {
+      userId: thread.memberId,
+      type: "report_update",
+      message: previewOf(body, 80),
+      link: `/messages/${thread.id}`,
+    },
+  });
+}
+
+/**
  * Writes a line into the conversation a report opened and tells the reporter,
  * so "we looked at this" reaches the person who bothered to flag it. A no-op
  * when the report has no thread (reports filed before this feature shipped).
@@ -123,26 +154,39 @@ export async function noteOnReportThread(reportId: string, body: string): Promis
   });
   if (!thread) return;
 
-  await prisma.$transaction([
-    prisma.adminMessage.create({
-      data: { threadId: thread.id, authorId: null, fromAdmin: true, body },
-    }),
-    prisma.adminThread.update({
-      where: { id: thread.id },
-      // Not `adminUnread: false`: a note added here is not an admin reading
-      // the thread, and clearing it would hide whatever the member had written
-      // and nobody had looked at yet (audit B-201's shape, same column).
-      data: { lastMessageAt: new Date(), memberUnread: true },
-    }),
-    prisma.notification.create({
-      data: {
-        userId: thread.memberId,
-        type: "report_update",
-        message: previewOf(body, 80),
-        link: `/messages/${thread.id}`,
-      },
-    }),
-  ]);
+  await prisma.$transaction((tx) => writeReportNote(tx, thread, body));
+}
+
+/** What a waiting reporter is told when the post goes before any admin
+ *  decided, by who deleted it. */
+const POST_GONE = {
+  author:
+    "The post you reported has since been deleted by its author, so it's no longer on the site. Thank you for flagging it. If there's more to it, write back here.",
+  admin: "An admin has deleted the post you reported. Thank you for flagging it.",
+} as const;
+
+/**
+ * Answer everyone still waiting on a report about a post that is being
+ * deleted (bug audit 3, T7a-02).
+ *
+ * `Report.post` is Cascade, so the report leaves the queue with the post
+ * before any admin decided anything, and the reporter, told "An admin will
+ * read it.", heard nothing ever again: their thread keeps its own row
+ * (`AdminThread.reportId` is SetNull for exactly this) and nobody wrote its
+ * last line. Called by `deletePostWithImages` inside its transaction and
+ * BEFORE the delete, while the report still names its thread. A settled
+ * report's reporter already had their answer from `settleReport`.
+ */
+export async function noteReportsOnDeletedPost(
+  tx: Prisma.TransactionClient,
+  postId: string,
+  removedBy: keyof typeof POST_GONE
+): Promise<void> {
+  const threads = await tx.adminThread.findMany({
+    where: { report: { postId, status: "pending" } },
+    select: { id: true, memberId: true },
+  });
+  for (const thread of threads) await writeReportNote(tx, thread, POST_GONE[removedBy]);
 }
 
 /**

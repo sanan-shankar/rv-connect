@@ -12,6 +12,7 @@ import { droppedImages } from "@/lib/draft-images";
 import { copyPostImagesToCollection } from "@/lib/collection-intake";
 import { getViewerCities, cityScopeWhere, ownCity } from "@/lib/city-scope";
 import { notifyAdminNote } from "@/lib/admin-note";
+import { noteReportsOnDeletedPost } from "@/lib/admin-threads-server";
 import {
   AUTHOR_IN_GOOD_STANDING,
   PUBLISHED_ONLY,
@@ -74,7 +75,9 @@ async function deletePostWithImages(
   images: string | null,
   /* Only so the notifications can be found: the bell rows about a letter and
      about a feed post carry different links. */
-  kind: string | null
+  kind: string | null,
+  /* Who pressed delete, for the line a waiting reporter is told (T7a-02). */
+  removedBy: "author" | "admin"
 ): Promise<void> {
   const urls = parseJsonArray(images);
   const orphaned = await prisma.$transaction(async (tx) => {
@@ -104,6 +107,12 @@ async function deletePostWithImages(
         data: orphaned.map((url) => ({ url, reason: "post" })),
       });
     }
+    /* Anyone still waiting on a report about this post is answered before it
+       goes (bug audit 3, T7a-02). Report.post is Cascade, so the report leaves
+       the queue with the row, and its reporter used to hear nothing ever
+       again. In this transaction, so the answer and the delete land together
+       or not at all. */
+    await noteReportsOnDeletedPost(tx, postId, removedBy);
     await tx.post.delete({ where: { id: postId } });
     return orphaned;
   });
@@ -467,7 +476,7 @@ export async function deleteDraft(postId: string) {
   if (post.authorId !== session.user.id) return { error: "Not authorized" };
   if (post.status !== "draft") return { error: "That letter isn't a draft" };
 
-  await deletePostWithImages(postId, post.images, post.kind);
+  await deletePostWithImages(postId, post.images, post.kind, "author");
   revalidatePath("/letters");
   return { success: true };
 }
@@ -539,8 +548,14 @@ export async function deletePost(postId: string) {
     post.authorId === session.user.id || session.user.role === "admin";
   if (!authorized) return { error: "Not authorized" };
 
-  // Delete image files (and, inside, the bell rows that pointed at it).
-  await deletePostWithImages(postId, post.images, post.kind);
+  // Delete image files (and, inside, the bell rows that pointed at it, and
+  // the answer to anyone waiting on a report about it).
+  await deletePostWithImages(
+    postId,
+    post.images,
+    post.kind,
+    post.authorId === session.user.id ? "author" : "admin"
+  );
   revalidatePath("/feed");
   return { success: true };
 }
