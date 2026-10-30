@@ -48,5 +48,10 @@ export type SettingsCatchup = {
   /** Somebody has answered in it. With nobody, "Close and send it out" has
    *  nothing to send and offers more time instead (C3-01, his Q15). */
   answered: boolean;
+  /** The clock has already given it its one zero-answer extension
+   *  (`REMINDER_EXTENDED`), so if the deadline comes with still nobody's
+   *  answers it comes out as it is, empty. The offer's sentence says which
+   *  of the two will happen (routed follow-up (d) of bug audit 3). */
+  autoExtended: boolean;
   picture: { src: string; focus: string };
 };

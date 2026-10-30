@@ -529,7 +529,11 @@ extension again, and the line said "A week more" from local state (bug audit 3, 
 
 **Close and send it out** with nobody's answers in the Edition has nothing to send: the press opens
 "Nobody has answered yet" with "Give everyone 3 more days" (the same three days, from the deadline),
-and the server refuses a press from a page that did not know, which turns into the same dialog. The
+and the server refuses a press from a page that did not know, which turns into the same dialog. Its
+line says what the clock will do (§3.3): if nobody answers by the deadline, the Edition waits three
+more days, then comes out even if it is empty, or, once the clock has spent that extension, comes
+out at the deadline. It said there was "nothing to send out until someone answers", which the clock
+never kept (routed follow-up (d) of bug audit 3; the rule is unchanged). The
 answers are counted after the close's swap, in its transaction, and only rows with something in them,
 so an answer emptied as the press lands is not "somebody answered" (A3 review of C3-01). It
 used to move the deadline to three days from now, often earlier, ring everyone again, and say

@@ -680,6 +680,9 @@ export function confirmCopy(
   name: string,
   /** Everyone in the Catch-up, the viewer included. Only Start says it. */
   people = 0,
+  /** The clock's one zero-answer extension is spent. Only "Nobody has
+   *  answered yet" says it. */
+  autoExtended = false,
 ): { title: string; line: string; verb: string; oneWay: boolean } {
   switch (key) {
     case "open-answering":
@@ -698,11 +701,20 @@ export function confirmCopy(
       };
     /* What "Close and send it out" opens when nobody has answered (C3-01).
        The button is his wording from Q15 and runs the same three days the
-       row above offers, from the deadline. Not one-way: nothing is lost. */
+       row above offers, from the deadline. Not one-way: nothing is lost.
+
+       The line says what the clock will do, because it does not wait for an
+       answer: at a deadline with nobody's answers it gives the Edition three
+       more days, once, and after that it comes out as it is
+       (`shouldExtendForTooFew`). It said "There is nothing to send out until
+       someone answers", which promised the opposite (routed follow-up (d) of
+       bug audit 3; the clock's rule is unchanged). */
     case "nobody-answered":
       return {
         title: "Nobody has answered yet",
-        line: "There is nothing to send out until someone answers.",
+        line: autoExtended
+          ? "There is nothing to send yet. If nobody answers by the deadline, it comes out even if it is empty."
+          : "There is nothing to send yet. If nobody answers by the deadline, it waits three more days, then comes out even if it is empty.",
         verb: "Give everyone 3 more days",
         oneWay: false,
       };
@@ -983,7 +995,7 @@ export function SettingsDialogs({
         <DialogContent initialFocus={panel} ref={panel} tabIndex={-1}>
           {open?.shape === "confirm" &&
             (() => {
-              const copy = confirmCopy(open.key, c.name, c.people);
+              const copy = confirmCopy(open.key, c.name, c.people, c.autoExtended);
               return (
                 <ConfirmBody
                   title={copy.title}

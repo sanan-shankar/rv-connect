@@ -29,6 +29,7 @@ import {
   isBatchCatchup,
   catchupDisplayName,
   DEFAULT_REMINDER_MODE,
+  REMINDER_EXTENDED,
   type AdvanceEditionInput,
 } from "@/lib/catchups";
 import type {
@@ -501,6 +502,9 @@ async function loadHome(catchupId: string, viewerId: string): Promise<CatchupHom
       answersCloseAt: freshLatest?.answersCloseAt?.toISOString() ?? null,
       // Read only while answering, which is the one state the press exists in.
       answered: (editionView?.answeredAuthorIds.length ?? 0) > 0,
+      // Whether the clock's one zero-answer extension is spent, which decides
+      // what "Nobody has answered yet" tells a Keeper will happen next.
+      autoExtended: ((freshLatest?.remindersSent ?? 0) & REMINDER_EXTENDED) !== 0,
       picture: fallback,
     },
     promptLibrary: CATCHUP_PROMPT_SETS,

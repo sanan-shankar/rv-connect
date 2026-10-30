@@ -784,6 +784,30 @@ test("T7b-15 follow-up (g): the extend row and its toast name the hour, like eve
   assert.doesNotMatch(surface, /formatDayAndDate\(/, "a bare date names a deadline on this surface again");
 });
 
+test("routed follow-up (d): Nobody has answered yet says what the clock will do", async () => {
+  /* It said "There is nothing to send out until someone answers", and the
+     clock does not wait: at a deadline with nobody's answers it gives three
+     more days, once, then publishes what is there, empty or not. The rule
+     first, so a change to it fails here and the sentence is read again. */
+  const { shouldExtendForTooFew, REMINDER_EXTENDED } = await import("./catchups-core.ts");
+  assert.equal(shouldExtendForTooFew({ remindersSent: 0 }, 0), true, "no answers no longer buys three more days");
+  assert.equal(shouldExtendForTooFew({ remindersSent: REMINDER_EXTENDED }, 0), false, "an empty Edition no longer comes out after its one extension");
+
+  const surface = decomment(read("src/components/catchups/settings/settings-surface.tsx"));
+  const copy = balancedBody(surface, "export function confirmCopy(");
+  const offer = copy.slice(copy.indexOf('case "nobody-answered"'), copy.indexOf('case "start"'));
+  assert.doesNotMatch(offer, /until someone answers/, "the offer promises the Edition waits for an answer");
+  assert.match(
+    offer,
+    /autoExtended\s*\?\s*"[^"]*comes out even if it is empty\."\s*:\s*"[^"]*three more days[^"]*comes out even if it is empty\."/,
+    "the offer no longer says which of the clock's two next steps comes"
+  );
+  // The page tells it which of the two it is.
+  const page = decomment(read("src/app/(main)/catchups/[catchupId]/(home)/page.tsx"));
+  assert.match(page, /autoExtended: \(\(freshLatest\?\.remindersSent \?\? 0\) & REMINDER_EXTENDED\) !== 0/);
+  assert.match(surface, /confirmCopy\(open\.key, c\.name, c\.people, c\.autoExtended\)/);
+});
+
 test("C-149: every swallowed failure on the clock is reported, not just logged", () => {
   /* advanceEdition never re-throws -- an edition that cannot advance must not
      take down the page it was called from -- so the reportSwallowed calls in
