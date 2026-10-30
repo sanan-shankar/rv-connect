@@ -515,6 +515,22 @@ test("C-125: the answering surface actually sends the version it holds", () => {
   }
 });
 
+test("T2b-09: a reorder takes every question the soft cap can let in", () => {
+  /* The insert cap tolerates a 41st question when two land together (C-029),
+     and the reorder sends every accepted id, so a payload bound AT the cap
+     refused every drag on that Edition for good. The bound sits above it. */
+  const src = decomment(read("src/app/(main)/catchups/actions.ts"));
+  const cap = Number(src.match(/const MAX_ACCEPTED_PROMPTS_PER_EDITION = (\d+);/)?.[1]);
+  const bound = src.match(/const MAX_REORDER_PROMPT_IDS = MAX_ACCEPTED_PROMPTS_PER_EDITION \* (\d+);/);
+  assert.ok(cap > 0 && bound, "the insert cap or the reorder's bound moved; retarget this pin");
+  assert.ok(Number(bound[1]) >= 2, "the reorder's bound is not comfortably above the insert cap");
+  assert.match(
+    src,
+    /orderedPromptIds: z\.array\(z\.string\(\)\.min\(1\)\)\.min\(1\)\.max\(MAX_REORDER_PROMPT_IDS\)/,
+    "the reorder schema is bounded by something else again, likely the insert cap"
+  );
+});
+
 test("T2b-06: the empty-answer withdrawal deletes the row only while it is still empty", async () => {
   /* The write that empties an answer commits first, and the delete follows.
      A second device with no version upserts onto the same row in between, so

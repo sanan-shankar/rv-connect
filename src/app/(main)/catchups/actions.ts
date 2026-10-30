@@ -116,6 +116,14 @@ import { DOUBLE_SUBMIT_MS } from "@/lib/double-submit";
 // per-member pending cap is gone: since 2026-08-05 nothing pends.
 const MAX_ACCEPTED_PROMPTS_PER_EDITION = 40;
 
+/** The most ids one reorder may send. Above the insert cap on purpose (bug
+ *  audit 3, T2b-09): that cap is soft -- `submitPrompt` tolerates a 41st
+ *  question when two land together (C-029) -- and the reorder sends every
+ *  accepted id, so a bound AT the cap refused every drag on such an Edition,
+ *  for good, with "Invalid request.". This bounds the payload; the runaway
+ *  guard is the one on inserts. */
+const MAX_REORDER_PROMPT_IDS = MAX_ACCEPTED_PROMPTS_PER_EDITION * 2;
+
 // ─── Validation ──────────────────────────────────────────────────────────────
 
 const REMINDER_MODE_VALUES = ["all", "last", "off"] as const;
@@ -171,7 +179,7 @@ const curateRemoveSchema = z.object({
 const curateReorderSchema = z.object({
   action: z.literal("reorder"),
   editionId: z.string().min(1),
-  orderedPromptIds: z.array(z.string().min(1)).min(1).max(MAX_ACCEPTED_PROMPTS_PER_EDITION),
+  orderedPromptIds: z.array(z.string().min(1)).min(1).max(MAX_REORDER_PROMPT_IDS),
 });
 
 const submitEntrySchema = z.object({
