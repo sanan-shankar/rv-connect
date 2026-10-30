@@ -89,8 +89,11 @@ keep that safe:
 
 - One Supabase database serves production and the dev server (`http://localhost:3000`, already
   running; do not stop or restart it). Anything localhost does writes real rows.
-- Sign in only as the test account (Jerry Maguire, `sanan.shankar@gmail.com`): from Node with
-  `scripts/qa/_dev-login.mjs` in a `/tmp` script, or `npm run verify:shot`. Never as a real alumnus.
+- Sign in as the test account (Jerry Maguire, `sanan.shankar@gmail.com`, an admin): from Node with
+  `fetchSessionCookie(base, "sanan.shankar@gmail.com")` from `scripts/qa/_dev-login.mjs` in a `/tmp`
+  script. Note that `npm run verify:shot` signs in as `ADMIN_EMAIL`, which is the OWNER's own account:
+  it is allowed (CLAUDE.md's normal tooling identity) but it stamps his presence in his own analytics,
+  so prefer Jerry. Never as a real alumnus.
 - Never press a control on a real Catch-up. If a fix needs a live one, create a throwaway Catch-up as
   the test account and delete it afterwards, in a guarded transaction scoped to its id.
 - Never run `scripts/qa/phase*-probe.mjs` (they write to real members).
