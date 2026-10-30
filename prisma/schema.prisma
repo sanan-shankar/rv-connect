@@ -239,6 +239,11 @@ model User {
   // it would index the array as one opaque value, so every profession filter
   // would be a sequential scan over the whole membership.
   @@index([professionTags], type: Gin)
+  // The feed rail's "New in the directory" (newest seven, on every feed
+  // render) and the admin People list's newest-first walk. Unindexed, each was
+  // a scan and a sort of every member (bug audit 3, T1-22). A plain btree on a
+  // column nothing ever updates, so it costs no HOT update its chance.
+  @@index([createdAt])
   // Three more exist in the database and cannot appear here -- see the header:
   // the unique on lower(email) that makes address canonicalisation real, the
   // GIN trigram on name that serves every people search, and the PARTIAL index
@@ -807,6 +812,11 @@ model Comment {
   // Thread reads walk parentId. Unindexed, opening one comment thread
   // scanned every comment in the database (B-090).
   @@index([parentId])
+  // Everything a member wrote, by author: their data export, the account
+  // purge, the admin merge and the person page's count (bug audit 3, L5-09).
+  // authorId alone -- none of those readers orders a member's comments by
+  // date, and the export walks them by id.
+  @@index([authorId])
 }
 
 model Like {
@@ -915,6 +925,11 @@ model Notification {
   // The bell's page walk: newest-first keyset per user. Also what the
   // 100-per-user prune sorts by to find its cutoff.
   @@index([userId, createdAt])
+  // Bells cleared by what they point at, across every member: a post's
+  // delete, hide or report takedown, and a Catch-up's reminders by type and
+  // link. Neither index above can serve a predicate without userId (bug
+  // audit 3, T1-21).
+  @@index([link])
 }
 
 // ─── Messages between a member and the admins ────────────────────────────────
@@ -982,6 +997,10 @@ model PollOption {
 
   post  Post       @relation(fields: [postId], references: [id], onDelete: Cascade)
   votes PollVote[]
+
+  // Every feed, letters and Saved page loads its posts' options by postId,
+  // and a post's delete cascades by it (bug audit 3, T1-20).
+  @@index([postId])
 }
 
 model PollVote {
@@ -1279,6 +1298,11 @@ model CatchupEntry {
 
   @@unique([promptId, authorId])
   @@index([editionId])
+  // Everything a member answered, by author: the account purge (which
+  // collects their photographs and recordings with it), their data export
+  // and the admin merge. The unique above leads with promptId, so it could
+  // not serve these (bug audit 3, L5-10).
+  @@index([authorId])
 }
 
 // A pasted link's preview, keyed by the link (build phase 10, catchups-rework

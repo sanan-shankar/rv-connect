@@ -19,8 +19,10 @@ import { ROOT } from "./test-kit.mjs";
  *  This is a schema-shape test, not a database test: it reads
  *  prisma/schema.prisma, so it runs in the offline unit gate.
  *
- *  Two halves. REQUIRED below is the ten hot reads the B-090 audit actually
- *  measured, pinned by name. The DERIVED sweep after it is the general rule
+ *  Two halves. REQUIRED below is the hot reads the audits actually measured,
+ *  pinned by name: B-090's ten, and the foreign keys bug audit 3 found real
+ *  queries filtering on with nothing to serve them (LOOKUPS, after it, holds
+ *  that audit's two that are not foreign keys). The DERIVED sweep after it is the general rule
  *  the header used to claim on its own and did not have (bug-report-2 C-192):
  *  every `@@unique([aId, bId])` in the schema is an index Postgres can only
  *  use from `aId`, so the read that filters by `bId` needs an index of its
@@ -55,6 +57,10 @@ const REQUIRED = [
   ["CatchupEntryLove", "entryId", "an Edition's hearts"],
   ["Post", "authorId", "a profile's Posts and Letters tabs"],
   ["Photo", "uploaderId", "photos by this member, and the account purge"],
+  // Bug audit 3 (prisma/migrations-manual/2026-10-30-missing-indexes.sql).
+  ["PollOption", "postId", "every feed, letters and Saved page's poll options (T1-20)"],
+  ["Comment", "authorId", "a member's export, the purge, the merge and the person page (L5-09)"],
+  ["CatchupEntry", "authorId", "a member's export, the purge and the merge, for their answers (L5-10)"],
 ];
 
 for (const [name, column, why] of REQUIRED) {
@@ -62,6 +68,22 @@ for (const [name, column, why] of REQUIRED) {
     assert.ok(
       leadsWith(model(name), column),
       `${name} has no index leading with ${column}: ${why} scans the whole table (B-090)`
+    );
+  });
+}
+
+/** Columns that are not foreign keys but that a hot or cross-member read
+ *  filters or sorts on, each checked against the query that runs it. */
+const LOOKUPS = [
+  ["Notification", "link", "clearing a deleted or hidden post's bells, and a Catch-up's reminders, across every member (T1-21)"],
+  ["User", "createdAt", "the feed rail's newest members, on every feed render (T1-22)"],
+];
+
+for (const [name, column, why] of LOOKUPS) {
+  test(`${name}.${column} has an index its readers can use`, () => {
+    assert.ok(
+      leadsWith(model(name), column),
+      `${name} has no index leading with ${column}: ${why} scans the whole table`
     );
   });
 }
@@ -74,8 +96,6 @@ for (const [name, column, why] of REQUIRED) {
 const NO_INDEX_NEEDED = {
   "CatchupPref.userId":
     "every live read leads with catchupId (the reminder fan-out, the bin sweep, the member's own row); only adminMergeUsers filters by userId alone, once, by hand",
-  "CatchupEntry.authorId":
-    "the Edition reads lead with editionId or promptId, both indexed; authorId alone is only the account data export",
   "Report.reportedUserId":
     "the flag-count groupBy in reportUser is the only reader, on a moderation table that grows by a handful of rows a month",
 };
