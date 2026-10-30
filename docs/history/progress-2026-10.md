@@ -1,3 +1,20 @@
+## 2026-10-30 (birds) — the birds page in a calmer order, and its grid as cosy as the Support plate
+
+The owner found the top of the birds page too red and warm, with look-alikes bunched (three greens
+in row two), named eight birds to move down and ten to move up, wanted the Hoopoe first, and
+suggested swapping the owls. A new order (`bird-gallery-order.ts`, reasoning and the orders tried
+in `docs/planning/birds-expansion/ordering.md`) opens on the Hoopoe, keeps the first desktop screen
+to three red or orange birds against seven, puts every named bird where he asked, and holds every
+look-alike, colour and black-bird rule at 2, 4, 6 and 7 columns.
+
+He also found the page sparse beside the Support plate on desktop. The gallery's grid, glyph box
+and name are now shared constants (`GALLERY_GRID`, `GALLERY_GLYPH`, `GALLERY_NAME`) used by the
+birds page, the paid picker and its skeleton, which had been copies kept in step by comments. From
+`sm` up each bird fills its column, seven columns at `xl`, so a desktop bird is 145px with 16px
+between columns where it was 96px in a 210px column. A phone keeps two columns of 96px birds, as
+his comparison was of desktop. Names balance across two lines rather than breaking at a hyphen.
+Visible: the birds page and the picker.
+
 ## 2026-10-30 (support) — the Support plate is three across and four down on a phone
 
 The owner asked for the plate's phone grid to flip from four across and three down to three across

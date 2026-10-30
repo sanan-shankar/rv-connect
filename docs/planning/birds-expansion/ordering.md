@@ -60,3 +60,50 @@ reads fine), and the Spotted Owlet was moved into the last row so the page ends 
 
 A bird added to the set must be placed in the order by hand; `bird-gallery-order.test.mjs` fails
 until it is.
+
+## The 2026-10-30 round
+
+The owner looked at the page again and found four things wrong with the top:
+
+- It was too red and warm. Some red is good for vibrancy, but the top had so much that it read as
+  danger and unease rather than calm (the overture, then a journey that opened on red, put a warm
+  band across rows three to six).
+- Similar birds sat together: the overture's second row was three greens in a row.
+- Birds he wanted lower: the Common Iora, Brahminy Starling, Sirkeer Malkoha, Yellow-throated
+  Bulbul, Indian Spot-billed Duck, Pied Kingfisher, Jacobin Cuckoo and Coppersmith Barbet.
+- Birds he wanted higher: the Spotted Owlet, Peregrine Falcon, Laughing Dove, Brahminy Kite,
+  Indian Eagle-Owl, White-throated Kingfisher, Verditer Flycatcher, Yellow-footed Green-Pigeon,
+  Jerdon's Leafbird and Wire-tailed Swallow. The Hoopoe should be first, and he suggested
+  swapping the owls.
+
+In the same round the grid itself changed (`GALLERY_GRID` in `bird-gallery-order.ts`): from `sm`
+up each bird fills its column, seven columns at desktop instead of five, because he found the
+Support page's twelve birds cosy and full, and this page sparse beside them. So the order is now
+checked at 2, 4, 6 and 7 columns, not 2, 3, 4 and 5.
+
+**Taken: a calm first screen, then every colour spread out.** The Hoopoe opens. The Spotted Owlet
+takes the Eagle-Owl's old place in the top row, and the Eagle-Owl ends the second row: "swap the
+owls" read alongside both owls being on the move-up list. All ten move-up birds are in the first
+three desktop rows; all eight move-down birds sit between 35 and 53, below the first screen. The
+first four rows hold three red or orange birds (the Hoopoe, the Avadavat, the Brahminy Kite)
+against the old order's seven, and blues, greens, greys and soft browns lead.
+
+It was found the same way as the first order (scored and searched, then judged as the real grid),
+against these rules: never two of one colour side by side, never three of one colour in any five in
+a row, no warm pair touching (with the maroon Tricolored Munia counted as warm, which the first pass
+missed and put beside the Kite and the Lapwing); look-alikes never side by side, stacked or corner
+to corner, with the Support plate's measured pairs added to the families (the White-throated
+Kingfisher and the Verditer, the Avadavat and the Kite, the Owlet and the Dove, the two black
+robins); no two black birds beside or stacked; and a vivid last row.
+
+**Tried and not taken:**
+- **Keeping the hue journey and only moving his birds.** The warm band stays, just lower, and
+  his complaint was about warmth pooling, not where it pooled.
+- **Eight columns at desktop.** Closer to the plate's bird size, but names wrapped, and seventy
+  birds left a ragged last row of six.
+- **A refinement that reshuffled from scratch to part the two robins.** It moved sixty birds and
+  lost the top; a single swap of the Indian Robin with the Black Drongo did it instead.
+
+Two black birds still sit six apart (the half-ivory Pied Kingfisher and the Greater Coucal, the
+Asian Koel and the Spot-breasted Fantail). They are corner to corner at seven columns and stacked
+only at six (1024 to 1279px wide). That was accepted rather than chased.

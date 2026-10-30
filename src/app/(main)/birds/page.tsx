@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { PageHeader } from "@/components/layout/page-header";
 import { BirdGlyphV2, GALLERY_SPECIES } from "@/components/common/bird-avatar-v2";
+import { GALLERY_GLYPH, GALLERY_GRID, GALLERY_NAME } from "@/components/common/bird-gallery-order";
+import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
   title: "Birds",
@@ -27,21 +29,16 @@ export default function BirdsPage() {
     <div>
       {/* Title only, no subtitle (owner, 2026-08-18): the grid says what the
           page is better than a sentence can. /pick-bird mirrors this exact
-          layout; if the grid classes change here, change them there. */}
+          layout, through GALLERY_GRID (bird-gallery-order.ts). */}
       <PageHeader
         guide="birds" title="The Birds of the Valley" />
-      <ul className="grid grid-cols-2 gap-x-[var(--space-m)] gap-y-[var(--space-l)] sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+      <ul className={GALLERY_GRID}>
         {GALLERY_SPECIES.map(({ index: i, name }) => (
           <li key={i} className="flex flex-col items-center text-center">
-            <span
-              className="relative inline-grid shrink-0 place-items-center"
-              style={{ width: 96, height: 96 }}
-              aria-label={name}
-              role="img"
-            >
+            <span className={GALLERY_GLYPH} aria-label={name} role="img">
               <BirdGlyphV2 seed={`birds-gallery-${i}`} px={96} speciesOverride={i} />
             </span>
-            <span className="mt-[var(--space-xs)] text-[13px] font-medium leading-snug text-muted-foreground">
+            <span className={cn(GALLERY_NAME, "text-muted-foreground")}>
               {name}
             </span>
           </li>

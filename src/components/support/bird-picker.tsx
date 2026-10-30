@@ -32,6 +32,7 @@ import { toast } from "sonner";
 import { callAction } from "@/lib/call-action";
 import { cn } from "@/lib/utils";
 import { BirdGlyphV2 } from "@/components/common/bird-avatar-v2";
+import { GALLERY_GLYPH, GALLERY_GRID, GALLERY_NAME } from "@/components/common/bird-gallery-order";
 import { EASE_OUT_SMOOTH, SPRINGS } from "@/components/common/motion";
 import { chooseBird } from "@/app/(main)/support/actions";
 import { WEARABLE_SPECIES, seedFacingRight } from "./plate-data";
@@ -67,15 +68,14 @@ export function BirdPicker({ currentSlug }: { currentSlug: string | null }) {
 
   return (
     <div>
-      {/* THE /birds LAYOUT, exactly: same columns, same gaps, same 96px
-          glyph, same 13px muted name under every bird (owner: "use the birds
-          of the valley layout... why have two separate layouts"). What this
-          page adds on top is only behaviour: the plate's spotlight dim, the
-          press sink, selection and the confirm bar. If the grid classes
-          change in src/app/(main)/birds/page.tsx, change them here. */}
+      {/* THE /birds LAYOUT, exactly: the same GALLERY_GRID and GALLERY_GLYPH,
+          the same 13px muted name under every bird (owner: "use the birds of
+          the valley layout... why have two separate layouts"). What this page
+          adds on top is only behaviour: the plate's spotlight dim, the press
+          sink, selection and the confirm bar. */}
       <ul
         onPointerLeave={() => setOver(null)}
-        className="grid grid-cols-2 gap-x-[var(--space-m)] gap-y-[var(--space-l)] sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5"
+        className={GALLERY_GRID}
       >
         {WEARABLE_SPECIES.map(({ index, name, slug }) => {
           const isCurrent = slug === currentSlug;
@@ -108,10 +108,7 @@ export function BirdPicker({ currentSlug }: { currentSlug: string | null }) {
                   isSelected ? "bg-canopy/10" : "state-layer"
                 )}
               >
-                <span
-                  className="relative inline-grid shrink-0 place-items-center"
-                  style={{ width: 96, height: 96 }}
-                >
+                <span className={GALLERY_GLYPH}>
                   <BirdGlyphV2 seed={seedFacingRight(index)} px={96} speciesOverride={index} />
                   {isCurrent && (
                     <span
@@ -126,7 +123,8 @@ export function BirdPicker({ currentSlug }: { currentSlug: string | null }) {
                     reading colour on hover and canopy once selected. */}
                 <span
                   className={cn(
-                    "mt-[var(--space-xs)] text-[13px] font-medium leading-snug transition-colors duration-150 ease-out",
+                    GALLERY_NAME,
+                    "transition-colors duration-150 ease-out",
                     isSelected ? "text-canopy" : hovered ? "text-foreground" : "text-muted-foreground"
                   )}
                 >
