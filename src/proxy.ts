@@ -104,8 +104,12 @@ function derivedVisitId(seed: string): string {
   return `v-${bucket.toString(36)}-${h.toString(36)}`;
 }
 
+/* "/" is the landing page and nothing beneath it. As a prefix it would mean
+   `startsWith("//")`, and the public list below holds it: `//feed` or
+   `//api/users/search` walked past the cookie gate, with only Next's own
+   repeated-slash redirect standing behind it (bug audit 3, T8b-10). */
 function isUnder(pathname: string, prefixes: string[]): boolean {
-  return prefixes.some((p) => pathname === p || pathname.startsWith(p + "/"));
+  return prefixes.some((p) => pathname === p || (p !== "/" && pathname.startsWith(p + "/")));
 }
 
 export function proxy(request: NextRequest) {
@@ -296,11 +300,7 @@ export function proxy(request: NextRequest) {
     "/catchups/join",
     "/hoopoe",
   ];
-  const isPublic = publicPaths.some(
-    (path) => pathname === path || pathname.startsWith(path + "/")
-  );
-
-  if (isPublic) {
+  if (isUnder(pathname, publicPaths)) {
     return NextResponse.next();
   }
 

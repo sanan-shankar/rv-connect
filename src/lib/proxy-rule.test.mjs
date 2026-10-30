@@ -1,18 +1,22 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { existsSync } from "node:fs";
+import { createRequire, registerHooks } from "node:module";
 import { resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 import { ROOT, read, decomment, balancedBody } from "./test-kit.mjs";
 
 /* ------------------------------------------------------------------ *
  *  The edge boundary, and the four things that never reached the other
  *  side of it.
  *
- *  proxy.ts runs before every request and cannot be imported here: it
- *  is bundled for the edge runtime and pulls in next/server. So these
- *  read the source, the way demo.test.mjs already reads its
- *  DEMO_CLOSED_PATHS block -- and each one is DERIVED from the other
- *  file it has to agree with, never a second copy of the same list.
+ *  Most of these read the source, the way demo.test.mjs already reads its
+ *  DEMO_CLOSED_PATHS block -- and each one is DERIVED from the other file
+ *  it has to agree with, never a second copy of the same list. They were
+ *  written when proxy.ts could not be imported here; it can now, and the
+ *  tests at the bottom run the real function (see the harness above
+ *  them). The text ones stay for the shapes a request
+ *  cannot show.
  * ------------------------------------------------------------------ */
 
 const PROXY = read("src/proxy.ts");
@@ -231,4 +235,71 @@ test("the visit cookie is never set on a server action", () => {
     /if \(!isServerAction\) \{\s*$/.test(between),
     "the visit cookie is set outside the server-action guard again -- every action is a navigation"
   );
+});
+
+/* ------------------------------------------------------------------ *
+ *  The proxy itself, run.
+ *
+ *  Node strips TypeScript's types on load, and next/server is plain
+ *  CommonJS, so all that stands between this file and the real proxy is
+ *  the `@/` alias and the `.js` ESM resolution wants on `next/server`.
+ *  The hooks supply both, for files under src/ and for this process only
+ *  (the gate runs every test file in a process of its own).
+ * ------------------------------------------------------------------ */
+
+const SRC = pathToFileURL(resolve(ROOT, "src")).href + "/";
+registerHooks({
+  resolve(specifier, context, next) {
+    if (context.parentURL?.startsWith(SRC)) {
+      if (specifier.startsWith("@/")) {
+        return next(pathToFileURL(resolve(ROOT, "src", `${specifier.slice(2)}.ts`)).href, context);
+      }
+      if (specifier === "next/server") return next("next/server.js", context);
+    }
+    return next(specifier, context);
+  },
+  /* Said out loud, as test-kit's nextConfig() does, so Node does not guess
+     the module type and warn about guessing. */
+  load(url, context, next) {
+    const ts = url.startsWith(SRC) && url.endsWith(".ts");
+    return next(url, ts ? { ...context, format: "module-typescript" } : context);
+  },
+});
+const fromRoot = createRequire(resolve(ROOT, "package.json"));
+const { NextRequest } = fromRoot("next/server.js");
+const { proxy } = await import(pathToFileURL(resolve(ROOT, "src/proxy.ts")).href);
+
+const SESSION = { cookie: "authjs.session-token=a-session" };
+const ask = (path, headers = {}) => proxy(new NextRequest(`http://localhost:3000${path}`, { headers }));
+/** True when the proxy let the request through to the route as it was. */
+const wavedThrough = (res) => res.headers.get("x-middleware-next") === "1";
+
+test("T8b-10: the public path '/' is the landing page and nothing under it", () => {
+  /* As a prefix, "/" meant startsWith("//"), so any doubled slash walked past
+     the cookie gate and only Next's own repeated-slash redirect stood behind
+     it. The layout and every API door check again, so nothing leaked; the
+     proxy just stopped being the gate it says it is. */
+  for (const path of ["//feed", "//api/users/search?q=a", "///anything", "//api/presence"]) {
+    assert.ok(!wavedThrough(ask(path)), `${path} with no session went straight through as a public path`);
+  }
+  assert.ok(wavedThrough(ask("/")), "the landing page itself is no longer public");
+  assert.ok(wavedThrough(ask("/login")), "an ordinary public path is gated now");
+  // The gate still answers what "/" used to cover, each in its own language.
+  const page = ask("/feed");
+  assert.equal(page.status, 307, "a signed-out page is not sent to sign in");
+  assert.equal(new URL(page.headers.get("location")).pathname, "/login");
+  assert.equal(ask("/api/presence").status, 401, "a signed-out API call is not refused in JSON");
+  assert.equal(new URL(ask("/", SESSION).headers.get("location")).pathname, "/feed");
+});
+
+test("a signed-in page and the presence ping both leave carrying the visit id", () => {
+  /* The two readers of what this file forwards: the presence route records
+     against x-visit-id (last-seen.ts), the (main) layout's sign-in redirect
+     reads x-pathname and x-search (sign-in-redirect.ts). */
+  for (const path of ["/feed", "/api/presence"]) {
+    const res = ask(path, SESSION);
+    assert.ok(wavedThrough(res), `${path} with a session is not passed on`);
+    assert.match(res.headers.get("x-middleware-request-x-visit-id") ?? "", /^v-/, `${path} carries no visit id`);
+    assert.equal(res.headers.get("x-middleware-request-x-pathname"), path, `${path} carries no x-pathname`);
+  }
 });
