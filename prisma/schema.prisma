@@ -829,14 +829,21 @@ model Like {
 model Report {
   id             String   @id @default(cuid())
   reason         String
-  reporterId     String
+  // Nullable and SetNull, the shape Comment.authorId and AdminMessage.authorId
+  // already have: a report is moderation history about the person or post it
+  // names, so it outlives the member who filed it, drawn as "A member who has
+  // since left" (bug audit 3, T7a-01; the owner's Q1). Required with no
+  // onDelete was RESTRICT, so the purge and the merge deleted every report a
+  // member had filed, pending ones included, before they could delete the
+  // member (prisma/migrations-manual/2026-10-30-report-outlives-reporter.sql).
+  reporterId     String?
   targetType     String   @default("post") // "post" | "user"
   postId         String?
   reportedUserId String?
   status         String   @default("pending") // "pending" | "reviewed" | "dismissed"
   createdAt      DateTime @default(now())
 
-  reporter     User  @relation("ReportsFiled", fields: [reporterId], references: [id])
+  reporter     User? @relation("ReportsFiled", fields: [reporterId], references: [id], onDelete: SetNull)
   post         Post? @relation(fields: [postId], references: [id], onDelete: Cascade)
   reportedUser User? @relation("ReportsAgainst", fields: [reportedUserId], references: [id], onDelete: Cascade)
 
@@ -848,7 +855,9 @@ model Report {
   // flag count against someone by reporting them over and over (audit H5).
   // Post reports carry reportedUserId = NULL, and Postgres treats NULLs as
   // distinct in a unique index, so this constrains only user-to-user reports
-  // and leaves post reporting unaffected.
+  // and leaves post reporting unaffected. A departed reporter's rows carry
+  // reporterId = NULL, distinct the same way, so the SetNull above can never
+  // collide here or on the partial index below.
   @@unique([reporterId, reportedUserId])
   // ONE MORE INDEX EXISTS THAT PRISMA CANNOT SEE.
   // `Report_open_post_per_reporter_key` is a PARTIAL unique on

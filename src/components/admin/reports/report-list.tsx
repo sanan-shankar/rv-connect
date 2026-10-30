@@ -22,8 +22,10 @@ export interface ReportRow {
   status: string;
   targetType: string;
   createdAt: string;
-  reporterId: string;
-  reporterName: string;
+  /** Null once the member who filed it has left: a report outlives its
+   *  reporter, unnamed (bug audit 3, T7a-01). */
+  reporterId: string | null;
+  reporterName: string | null;
   postId: string | null;
   postExcerpt: string | null;
   postTruncated: boolean;
@@ -66,12 +68,19 @@ export function ReportList({
                   {/* One sentence, not a label grid. Who flagged whom is the
                       whole of a report's identity, and reads better as prose. */}
                   <p className="text-[13.5px] leading-snug text-foreground">
-                    <Link
-                      href={`/admin/people/${r.reporterId}`}
-                      className="font-semibold underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                    >
-                      {r.reporterName}
-                    </Link>{" "}
+                    {r.reporterId ? (
+                      <Link
+                        href={`/admin/people/${r.reporterId}`}
+                        className="font-semibold underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                      >
+                        {r.reporterName}
+                      </Link>
+                    ) : (
+                      /* The report stays when its reporter goes (T7a-01), and
+                         there is no page left to link to. The worklist says
+                         the same words (admin-worklist-query.ts). */
+                      <span className="font-semibold">A member who has since left</span>
+                    )}{" "}
                     {r.targetType === "user" ? "flagged" : "reported a post by"}{" "}
                     {subjectId ? (
                       <Link
@@ -161,7 +170,10 @@ export function ReportList({
                     </Button>
                   )}
 
-                  {r.threadId && (
+                  {/* A departed reporter's thread went with them
+                      (AdminThread.member is Cascade), so there is no one
+                      to talk to and no thread to open. */}
+                  {r.threadId && r.reporterName && (
                     <Link
                       href={`/admin/messages/${r.threadId}`}
                       className="inline-flex items-center gap-1 rounded-full px-2 text-[12.5px] font-medium text-canopy underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-canopy"

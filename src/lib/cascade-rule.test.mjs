@@ -57,7 +57,7 @@ function relations(src) {
     const args = rel[4];
     if (!args.includes("fields:")) continue; // the back-reference side
     const onDelete = args.match(/onDelete:\s*(\w+)/)?.[1] ?? "Default";
-    out.push({ child: model, parent: rel[2], onDelete });
+    out.push({ child: model, field: rel[1], parent: rel[2], onDelete });
   }
   return out;
 }
@@ -117,7 +117,7 @@ const OWN_CONTENT = {
   PollOption: "reachable only through their own post's poll",
   PollVote: "their votes; the tallies are counts of rows, so everyone else's stands",
   Post: "their own writing",
-  Report: "reports filed against them, which end with the account (their FILED reports go by the reporter edge, not Cascade)",
+  Report: "reports filed against them, which end with the account; the ones they FILED outlive them, because the reporter edge is SetNull (bug audit 3, T7a-01)",
   UserPlace: "the pins on their own map",
   Visit: "their own visit rows",
 };
@@ -169,6 +169,29 @@ test("a Catch-up outlives its Keeper, exactly as the schema comment promises", (
   const prompt = rels.find((r) => r.child === "CatchupPrompt" && r.parent === "User");
   assert.ok(prompt, "CatchupPrompt has no author relation any more");
   assert.notEqual(prompt.onDelete, "Cascade", "CatchupPrompt.author is Cascade again");
+});
+
+test("a report outlives the member who filed it", () => {
+  /* A report is moderation history about somebody ELSE: the person or post
+     it names. The reporter edge was required with no onDelete, which is
+     RESTRICT, so every way of deleting a member had to delete the reports
+     they had filed first, pending ones included -- a harasser's "reported N
+     times" shrank whenever a reporter left, while the privacy page promised
+     reports outlive deletion (bug audit 3, T7a-01; the owner's Q1). SetNull
+     keeps the row and drops the name, the shape Comment.author and
+     AdminMessage.author already had. The edge to the REPORTED person stays
+     Cascade: those reports end with the account they are about. */
+  const rels = relations(schema).filter((r) => r.child === "Report" && r.parent === "User");
+  const filed = rels.find((r) => r.field === "reporter");
+  const against = rels.find((r) => r.field === "reportedUser");
+  assert.ok(filed && against, "Report no longer has its two User relations, reporter and reportedUser");
+  assert.equal(filed.onDelete, "SetNull", "deleting a member deletes or blocks on the reports they filed again");
+  assert.equal(against.onDelete, "Cascade", "reports filed against a member no longer end with their account");
+  assert.match(
+    schema.slice(schema.indexOf("model Report {")),
+    /^\s*reporterId\s+String\?/m,
+    "Report.reporterId is required again, so SetNull cannot hold a departed reporter"
+  );
 });
 
 test("a member's own writing still goes with them", () => {

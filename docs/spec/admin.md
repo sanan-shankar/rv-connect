@@ -412,6 +412,13 @@ person has been reported five times. A report against a person also surfaces on 
 `Report` has a back-relation to `AdminThread` (the conversation the reporter can follow), so a
 report row links to its thread and back.
 
+A report outlives the member who filed it (bug audit 3, T7a-01; the owner's Q1). `Report.reporter`
+is SetNull, so when a reporter's account is erased the row stays in the queue and in the history as
+"A member who has since left", with no thread to open: theirs went with them. A merge moves the
+duplicate's reports, the ones it filed and the ones filed against it, onto the surviving account,
+dropping only a row that would collide with one the survivor already has, or that would leave the
+survivor flagging themselves.
+
 ### 9.4 People (`/admin/people`, `/admin/people/[id]`)
 
 **Replaces three sections**: Users, Verification, and Email & verification.

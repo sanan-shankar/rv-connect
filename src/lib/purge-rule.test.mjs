@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { read, decomment } from "./test-kit.mjs";
+import { read, decomment, balancedBody } from "./test-kit.mjs";
 
 /* ------------------------------------------------------------------ *
  *  The purge has to be honest about what it removed.
@@ -177,5 +177,55 @@ test("a cancelled purge is a skip, not an error", () => {
   assert.ok(
     cancelledAt < errorAt,
     "a cancellation is counted as a sweep error, which fails the nightly job for the right outcome"
+  );
+});
+
+/* ------------------------------------------------------------------ *
+ *  A report outlives the member who filed it (bug audit 3, T7a-01).
+ *
+ *  The reporter edge was RESTRICT, so the purge and the merge both deleted
+ *  every report the member had filed, pending ones included, to let the
+ *  account go. The edge is SetNull now (cascade-rule.test.mjs pins it), so
+ *  neither door has a reason to delete one, and the owner's Q1 says keep
+ *  them: the purge leaves them to the edge, the merge moves them.
+ * ------------------------------------------------------------------ */
+
+test("T7a-01: the purge deletes no report a member filed", () => {
+  const src = decomment(read("src/lib/account-purge.ts"));
+  assert.doesNotMatch(
+    src,
+    /report\.deleteMany/,
+    "account-purge.ts deletes reports again: a member who leaves takes their complaints off the desk"
+  );
+});
+
+test("T7a-01: a merge moves the duplicate's reports, both ways, instead of dropping them", () => {
+  const fn = balancedBody(
+    decomment(read("src/app/(main)/admin/people/actions.ts")),
+    "export async function adminMergeUsers("
+  );
+  assert.ok(fn, "adminMergeUsers is gone; this pin is reading nothing");
+  assert.match(
+    fn,
+    /report\.updateMany\(\{\s*where:\s*\{\s*reporterId:\s*sourceId\s*\},\s*data:\s*\{\s*reporterId:\s*targetId\s*\}/,
+    "the reports the duplicate filed no longer move to the survivor"
+  );
+  assert.match(
+    fn,
+    /report\.updateMany\(\{\s*where:\s*\{\s*reportedUserId:\s*sourceId\s*\},\s*data:\s*\{\s*reportedUserId:\s*targetId\s*\}/,
+    "the reports filed against the duplicate no longer name the survivor, so they cascade away with it"
+  );
+  /* A shed is a deleteMany scoped to a collision. A bare one on either column
+     is the old wholesale delete come back. */
+  assert.doesNotMatch(
+    fn,
+    /report\.deleteMany\(\{\s*where:\s*\{\s*(?:reporterId|reportedUserId):\s*sourceId\s*\}\s*\}\)/,
+    "the merge deletes every report on one side of the duplicate again"
+  );
+  const delAt = fn.indexOf("user.delete(");
+  assert.ok(delAt > -1, "the merge no longer deletes the duplicate");
+  assert.ok(
+    fn.lastIndexOf("reportedUserId: targetId") < delAt,
+    "the reports move after the duplicate is deleted, by which time they have cascaded away"
   );
 });

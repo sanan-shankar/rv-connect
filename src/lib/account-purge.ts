@@ -357,15 +357,14 @@ export async function purgeUserAccount(
             data: collected.map((url) => ({ url, reason: "purge" })),
           });
         }
-        // Report.reporterId is RESTRICT, not cascade: a member who has EVER
-        // filed a report cannot be deleted until those rows are cleared, or
-        // the delete throws and rolls back (audit H8). Reports filed AGAINST
-        // them cascade. ONE transaction: if the user.delete fails, the report
-        // clearing and the worklist roll back with it, so a failed purge can
-        // never silently destroy the report history while leaving the account
-        // alive (write-path review, Phase 8 — this matters doubly now that the
-        // retention sweep runs this unattended).
-        await tx.report.deleteMany({ where: { reporterId: userId } });
+        /* Nothing here touches the reports this member FILED. They are
+           moderation history about somebody else, and they outlive the
+           account: Report.reporter is SetNull, so the delete below detaches
+           them and the Reports page shows "a member who has since left" (bug
+           audit 3, T7a-01; the owner's Q1, and the privacy page's promise).
+           The edge was RESTRICT, and this line deleted every one of them,
+           pending ones included, so the delete could succeed (audit H8).
+           Reports filed AGAINST the member still go with them, by Cascade. */
         await tombstoneComments(tx, userId);
         await clearCoversPointingAtThisMember(tx, userId);
         await restoreCatchupPicturesUploadedBy(tx, userId);
@@ -406,7 +405,7 @@ export async function purgeUserAccount(
   } catch (err) {
     if (err instanceof PurgeCancelled) {
       // Everything above rolled back with the delete: the rehoming, the image
-      // worklist, the cleared reports. The account is exactly as they left it.
+      // worklist, the tombstoned comments. The account is exactly as they left it.
       console.info(`[purge] ${userId} was not deleted: the request no longer stands`);
       return { ok: false, cancelled: true, error: "That account is no longer due for deletion." };
     }

@@ -190,17 +190,22 @@ export async function loadWorklist(): Promise<WorkItem[]> {
       href: `/admin/messages/${t.id}`,
       at: t.lastMessageAt.toISOString(),
     })),
-    ...reports.map((r) => ({
-      key: `report-${r.id}`,
-      queue: "report" as const,
-      title:
-        r.targetType === "user"
-          ? `${r.reporter.name} flagged ${r.reportedUser?.name ?? "somebody"}`
-          : `${r.reporter.name} reported a post by ${r.post?.author.name ?? "somebody"}`,
-      detail: r.reason,
-      href: "/admin/reports",
-      at: r.createdAt.toISOString(),
-    })),
+    ...reports.map((r) => {
+      // A report outlives the member who filed it (bug audit 3, T7a-01); the
+      // Reports list names them in the same words (report-list.tsx).
+      const reporter = r.reporter?.name ?? "A member who has since left";
+      return {
+        key: `report-${r.id}`,
+        queue: "report" as const,
+        title:
+          r.targetType === "user"
+            ? `${reporter} flagged ${r.reportedUser?.name ?? "somebody"}`
+            : `${reporter} reported a post by ${r.post?.author.name ?? "somebody"}`,
+        detail: r.reason,
+        href: "/admin/reports",
+        at: r.createdAt.toISOString(),
+      };
+    }),
     ...photos.map((p) => ({
       key: `photo-${p.id}`,
       queue: "photo" as const,

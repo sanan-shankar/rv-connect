@@ -151,11 +151,14 @@ async function fileReport(
      `ReportUncheckedCreateInput` would also accept `status` -- so a third
      caller could file a report already marked resolved, past the admin, and
      `tsc` would agree. Both callers today build this literal by hand from
-     validated values; the narrower type is what keeps that true. */
+     validated values; the narrower type is what keeps that true.
+     `reporterId` is required HERE although the column is nullable: null
+     means the member who filed it has since left (bug audit 3, T7a-01),
+     which a report being filed never is. */
   data: Pick<
     Prisma.ReportUncheckedCreateInput,
-    "targetType" | "postId" | "reportedUserId" | "reporterId" | "reason"
-  >,
+    "targetType" | "postId" | "reportedUserId" | "reason"
+  > & { reporterId: string },
   thread: { subject: string; opening: string }
 ): Promise<{ id: string } | "duplicate"> {
   try {

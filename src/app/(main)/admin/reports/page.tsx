@@ -94,8 +94,10 @@ export default async function AdminReportsPage() {
     status: r.status,
     targetType: r.targetType,
     createdAt: r.createdAt.toISOString(),
-    reporterId: r.reporter.id,
-    reporterName: r.reporter.name,
+    // Null once the member who filed it has left: the report outlives them
+    // (bug audit 3, T7a-01), and the list says so in words.
+    reporterId: r.reporter?.id ?? null,
+    reporterName: r.reporter?.name ?? null,
     postId: r.post?.id ?? null,
     postExcerpt: r.post ? r.post.content.slice(0, 240) : null,
     postTruncated: (r.post?.content.length ?? 0) > 240,

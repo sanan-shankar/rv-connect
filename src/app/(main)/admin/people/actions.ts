@@ -310,8 +310,9 @@ export async function adminSetRole(
  *
  *  MOVED   the things that are a record of what somebody made or gave, and
  *          would be a real loss: posts, comments, photos, contributions,
- *          Catch-up prompts and entries, and the threads they opened with
- *          the admins.
+ *          Catch-up prompts and entries, the threads they opened with the
+ *          admins, and reports, both the ones they filed and the ones filed
+ *          against them (moderation history, bug audit 3, T7a-01).
  *
  *  DROPPED the duplicate's engagement: likes, comment likes, bookmarks, poll
  *          votes, photo loves, Catch-up loves, preferences. Every one of
@@ -412,9 +413,56 @@ export async function adminMergeUsers(
       prisma.catchupPref.deleteMany({ where: { userId: sourceId } }),
       prisma.userPlace.deleteMany({ where: { userId: sourceId } }),
 
-      // Reports they filed are RESTRICT, not cascade, so they block the
-      // delete below exactly as they do in adminDeleteUser.
-      prisma.report.deleteMany({ where: { reporterId: sourceId } }),
+      // Reports: moderation history, so MOVED, never dropped (bug audit 3,
+      // T7a-01; the owner's Q1). The ones the duplicate filed become the
+      // survivor's, and the ones filed AGAINST it name the survivor, or the
+      // human behind it loses their "reported N times" (the delete below
+      // used to cascade those away). Shed first, then move, as above. Shed
+      // only what cannot exist after the move: a flag between the two
+      // accounts, which would be one member flagging themselves (reportUser
+      // refuses that), and the same complaint on file twice, which
+      // @@unique([reporterId, reportedUserId]) and the partial
+      // Report_open_post_per_reporter_key refuse. Of two flags on one person
+      // a pending one is kept over a settled one, so an open complaint never
+      // leaves the desk; otherwise the survivor's own.
+      prisma.report.deleteMany({
+        where: {
+          OR: [
+            { reporterId: sourceId, reportedUserId: targetId },
+            { reporterId: targetId, reportedUserId: sourceId },
+          ],
+        },
+      }),
+      prisma.report.deleteMany({
+        where: {
+          reporterId: targetId,
+          status: { not: "pending" },
+          reportedUser: { reportsAgainst: { some: { reporterId: sourceId, status: "pending" } } },
+        },
+      }),
+      prisma.report.deleteMany({
+        where: { reporterId: sourceId, reportedUser: { reportsAgainst: { some: { reporterId: targetId } } } },
+      }),
+      prisma.report.deleteMany({
+        where: {
+          reporterId: sourceId,
+          targetType: "post",
+          status: "pending",
+          post: { reports: { some: { reporterId: targetId, targetType: "post", status: "pending" } } },
+        },
+      }),
+      prisma.report.updateMany({ where: { reporterId: sourceId }, data: { reporterId: targetId } }),
+      prisma.report.deleteMany({
+        where: {
+          reportedUserId: targetId,
+          status: { not: "pending" },
+          reporter: { reports: { some: { reportedUserId: sourceId, status: "pending" } } },
+        },
+      }),
+      prisma.report.deleteMany({
+        where: { reportedUserId: sourceId, reporter: { reports: { some: { reportedUserId: targetId } } } },
+      }),
+      prisma.report.updateMany({ where: { reportedUserId: sourceId }, data: { reportedUserId: targetId } }),
 
       prisma.user.delete({ where: { id: sourceId } }),
     ]);
@@ -536,9 +584,10 @@ export async function adminDeleteUser(userId: string): Promise<AdminActionResult
     }
   }
 
-  // The row delete, the RESTRICT-FK report clearing (audit H8) and the R2
-  // object cleanup (audit H9) all live in purgeUserAccount, shared with the
-  // retention sweep's grace-period purge — one definition of "gone".
+  // The row delete and the R2 object cleanup (audit H9) live in
+  // purgeUserAccount, shared with the retention sweep's grace-period purge —
+  // one definition of "gone". The reports this member filed outlive them,
+  // unnamed (bug audit 3, T7a-01).
   const purged = await purgeUserAccount(userId);
   if (!purged.ok) {
     return { error: "Could not delete this user. Check the server log." };
