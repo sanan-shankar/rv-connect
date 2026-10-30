@@ -627,6 +627,17 @@ export async function createCatchupWithPeople(input: {
  *
  * Ended Catch-ups refuse: joining something nobody will write in again is a
  * dead end, and it is better to say so than to add a silent membership.
+ *
+ * THE LINK IS READ AGAIN, AND THE ROSTER COUNTED, WHILE THE ROSTER IS HELD
+ * (bug audit 3, A3 review of L12-09 and of T3-17). The token was read here and
+ * the membership written later, so a removed member whose join read the old
+ * link just before the removal committed was written straight back in. And
+ * the hundred-person cap lived only in `addCatchupMembers`, while the restored
+ * "Copy invite link" made joining the other way in. Inside a transaction that
+ * holds the group's row, which a removal takes first (through
+ * `promoteGroupSuccessor`) and adding takes too, a join either finishes before
+ * the removal and is removed with it, or waits and finds the link changed; and
+ * its count sees every add and join before it.
  */
 export async function joinCatchupByToken(token: string) {
   return runAction(async () => {
@@ -657,13 +668,32 @@ export async function joinCatchupByToken(token: string) {
       return { error: "This Catch-up has ended." };
     }
 
-    // upsert, not create: two taps on the button, or a link followed twice,
-    // must not throw on the (groupId, userId) unique.
-    await prisma.groupMember.upsert({
-      where: { groupId_userId: { groupId: catchup.groupId, userId: session.user.id } },
-      create: { groupId: catchup.groupId, userId: session.user.id, role: "member" },
-      update: {},
+    const joined = await prisma.$transaction(async (tx) => {
+      await lockGroup(tx, catchup.groupId);
+      const still = await tx.catchup.findFirst({
+        where: { id: catchup.id, inviteToken: token },
+        select: { status: true },
+      });
+      if (!still) return "changed" as const;
+      if (still.status === "ended") return "ended" as const;
+      const key = { groupId_userId: { groupId: catchup.groupId, userId: session.user.id } };
+      if (await tx.groupMember.findUnique({ where: key, select: { id: true } })) return "in" as const;
+      const roster = await tx.groupMember.count({ where: { groupId: catchup.groupId } });
+      if (roster >= MAX_CATCHUP_PEOPLE) return "full" as const;
+      // upsert, not create: two taps on the button, or a link followed
+      // twice, must not throw on the (groupId, userId) unique.
+      await tx.groupMember.upsert({
+        where: key,
+        create: { groupId: catchup.groupId, userId: session.user.id, role: "member" },
+        update: {},
+      });
+      return "joined" as const;
     });
+    if (joined === "changed") return { error: "That invite link is not valid." };
+    if (joined === "ended") return { error: "This Catch-up has ended." };
+    if (joined === "full") {
+      return { error: `A Catch-up holds up to ${MAX_CATCHUP_PEOPLE} people, and this one is full.` };
+    }
     revalidatePath("/catchups");
     revalidatePath(`/catchups/${catchup.id}`);
     return { success: true as const, catchupId: catchup.id, groupName: catchup.group.name };

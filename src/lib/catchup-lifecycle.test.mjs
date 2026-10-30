@@ -342,6 +342,28 @@ test("L12-09: a removal changes the invite link, in the same transaction, and on
   assert.doesNotMatch(fn, /prisma\.catchup\.update(Many)?\(/, "the link is changed outside the removal's transaction");
 });
 
+test("A3 review of L12-09 and T3-17: a join reads the link again, and counts the roster, while the roster is held", () => {
+  /* The token was read, then the membership written later, so a removed
+     member whose join read the old link a moment before the removal committed
+     was written back in; and the hundred-person cap was the add's alone, while
+     the restored link made joining the other way in. A join now runs in a
+     transaction holding the group's row, the row a removal takes first
+     (succession's lockGroup, pinned in group-succession.test.mjs) and adding
+     takes too. */
+  const src = decomment(read("src/app/(main)/catchups/actions.ts"));
+  const fn = balancedBody(src, "export async function joinCatchupByToken(");
+  assert.ok(fn, "joinCatchupByToken is gone; this pin is reading nothing");
+  const tx = fn.indexOf("prisma.$transaction(");
+  const lock = fn.indexOf("await lockGroup(tx, catchup.groupId)");
+  const reread = fn.search(/tx\.catchup\.findFirst\(\{\s*where: \{ id: catchup\.id, inviteToken: token \}/);
+  const count = fn.indexOf("tx.groupMember.count(");
+  const cap = fn.indexOf(">= MAX_CATCHUP_PEOPLE", count);
+  const insert = fn.indexOf("tx.groupMember.upsert(");
+  assert.ok(tx > -1 && lock > tx && reread > lock && count > reread && cap > count && insert > cap, "a join no longer re-reads the link and counts the roster, holding the group, before it writes the membership");
+  assert.doesNotMatch(fn, /prisma\.groupMember\.(upsert|create)\(/, "a join writes the membership outside the transaction again");
+  assert.match(fn, /A Catch-up holds up to \$\{MAX_CATCHUP_PEOPLE\} people, and this one is full\./, "a full Catch-up refuses a join without the add's sentence");
+});
+
 test("L12-09: only a Keeper's page carries the invite link", () => {
   const page = decomment(read("src/app/(main)/catchups/[catchupId]/(home)/page.tsx"));
   const sets = [...page.matchAll(/inviteToken:\s*([^,\n]+)/g)].map((m) => m[1].trim());

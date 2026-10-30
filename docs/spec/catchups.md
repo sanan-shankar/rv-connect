@@ -273,7 +273,7 @@ Catch-up has ended; "idle" means refused while nothing is running (§3.5).
 | Action | People Catch-up | Batch Catch-up | Gates |
 |---|---|---|---|
 | `createCatchupWithPeople` | any alumnus | n/a | verified, rate-limited (`catchups`) |
-| `joinCatchupByToken` | anyone with the link, not a teacher; refuses an ended one | no link exists | verified |
+| `joinCatchupByToken` | anyone with the link, not a teacher; refuses an ended or a full one | no link exists | verified |
 | `startEdition` | **any member**, while idle | **any member**; same | verified, ended, rate-limited (`catchups`) |
 | `submitPrompt` (ask) | any member, while collecting | same | verified, ended, idle, 300 chars, 40 per Edition |
 | `curatePrompt` (remove, reorder) | Keeper, while collecting | **any member**, while collecting | verified, ended |
@@ -473,7 +473,10 @@ people Catch-up was still minted with (his Q11; bug audit 3, T3-17).
 
 The token is a bearer token, so only a Keeper's page carries it, and not once the Catch-up has ended
 (the home's view model; until 2026-10-29 every member's page did). A removal mints a new one (§5),
-and the removal's toast says so.
+and the removal's toast says so. **Joining reads the link again, and counts the roster, while the
+group's row is held**, the row a removal and an add take first: a join that read a link a removal
+is changing waits and is then refused, and the hundred-person cap holds for a join as it does for
+an add, with the same sentence (A3 review of L12-09 and T3-17).
 
 ### 7.7 Holding screens
 
