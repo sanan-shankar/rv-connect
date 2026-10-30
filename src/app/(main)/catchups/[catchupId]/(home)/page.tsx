@@ -18,6 +18,7 @@ import type { ListEdition } from "@/components/catchups/index/edition-cover-card
 import type { AnswerPromptData } from "@/components/catchups/answer/types";
 import {
   advanceEdition,
+  ANSWERED_ENTRY_WHERE,
   askerVisible,
   CATCHUP_PROMPT_SETS,
   editionCountdownLabel,
@@ -210,10 +211,14 @@ async function loadHome(catchupId: string, viewerId: string): Promise<CatchupHom
     const status = freshLatest.status as EditionStatus;
     const now = Date.now();
 
+    /* Who has answered: a row with something in it, the count the close takes
+       (`ANSWERED_ENTRY_WHERE`). Every row counted here, so an answer emptied
+       and not yet withdrawn told a Keeper somebody had answered, and Close and
+       send it out then said nobody had (routed follow-up (c)). */
     let answeredAuthorIds: string[] = [];
     if (status === "answering") {
       const distinct = await prisma.catchupEntry.findMany({
-        where: { editionId: freshLatest.id },
+        where: { editionId: freshLatest.id, ...ANSWERED_ENTRY_WHERE },
         select: { authorId: true },
         distinct: ["authorId"],
       });

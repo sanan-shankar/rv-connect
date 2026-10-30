@@ -1141,7 +1141,11 @@ export const EMPTY_ENTRY_WHERE = { body: null, images: null, audioUrl: null };
  * An answer, then, is a row with anything in it, and this is what "nobody has
  * answered" counts: the Keeper's early close and the clock's too-few rule alike.
  * A row emptied a moment ago and not yet withdrawn is not an answer to either
- * (bug audit 3, A3 review of C3-01).
+ * (bug audit 3, A3 review of C3-01). The home's "has anyone answered", which
+ * decides what Close and send it out opens, and the reminder's "who has not
+ * answered yet" ask the same question through this; both counted every row, so
+ * an emptied answer stopped a member's reminders and told a Keeper somebody
+ * had answered when the close would then say nobody had (routed follow-up (c)).
  */
 export const ANSWERED_ENTRY_WHERE = { NOT: EMPTY_ENTRY_WHERE };
 

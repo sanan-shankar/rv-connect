@@ -29,7 +29,7 @@
  *  All copy is placeholder. The owner rewrites it later (spec section 11).
  * ------------------------------------------------------------------ */
 
-import { answerReminderMessage, DEFAULT_REMINDER_MODE } from "@/lib/catchups-core";
+import { ANSWERED_ENTRY_WHERE, answerReminderMessage, DEFAULT_REMINDER_MODE } from "@/lib/catchups-core";
 import { formatDisplayDateLong } from "@/lib/utils";
 import type {
   CatchupDb,
@@ -100,9 +100,13 @@ async function takingPartIds(
   return members.filter((id) => taking.has(id));
 }
 
+/** Whoever has answered this Edition: a row with something in it
+ *  (`ANSWERED_ENTRY_WHERE`), the count the close and the clock take. Every row
+ *  counted here, so a member who emptied their answer was neither reminded nor
+ *  re-told answers were open (routed follow-up (c)). */
 async function answeredUserIds(db: CatchupDb, editionId: string): Promise<Set<string>> {
   const rows = await db.catchupEntry.findMany({
-    where: { editionId },
+    where: { editionId, ...ANSWERED_ENTRY_WHERE },
     select: { authorId: true },
     distinct: ["authorId"],
   });

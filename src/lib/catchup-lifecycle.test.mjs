@@ -307,6 +307,12 @@ test("C3-01: a hand close with nobody's answers in it writes nothing, and says s
   const advance = balancedBody(lib, "export async function advanceEdition(");
   assert.ok(advance, "advanceEdition is gone; this pin is reading nothing");
   assert.match(advance, /catchupEntry\.count\(\{\s*where: \{ editionId: edition\.id, \.\.\.ANSWERED_ENTRY_WHERE \}/, "the clock counts empty rows as answers again");
+
+  // And the home's "has anyone answered", which picks the dialog Close and
+  // send it out opens (routed follow-up (c); the reminder's half runs in
+  // catchup-bells.test.mjs).
+  const home = decomment(read("src/app/(main)/catchups/[catchupId]/(home)/page.tsx"));
+  assert.match(home, /catchupEntry\.findMany\(\{\s*where: \{ editionId: freshLatest\.id, \.\.\.ANSWERED_ENTRY_WHERE \}/, "the home counts an emptied answer as somebody having answered again");
 });
 
 test("T3-06: an extension swaps on the deadline the caller saw, never on its own read", () => {

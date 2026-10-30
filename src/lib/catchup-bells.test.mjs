@@ -122,3 +122,43 @@ test("T7b-15: an author's own reminder goes when they answer, and nobody else's"
   await notify.clearReminders(db, "c1", "u-member");
   assert.deepEqual(db.deleted, [{ ...REMINDERS_HERE, userId: "u-member" }]);
 });
+
+/* "Answered" is a row with something in it, everywhere it is counted (routed
+   follow-up (c)). The close and the clock counted that way; the reminder's
+   audience counted every row, so a member who emptied their answer was
+   neither reminded nor re-told answers were open. The fake answers the
+   builder's own `where`, so the test fails if the predicate goes missing. */
+const { ANSWERED_ENTRY_WHERE, EMPTY_ENTRY_WHERE } = await import("./catchups-core.ts");
+
+function answeringDb() {
+  const db = fakeDb();
+  const entries = [
+    { authorId: "u-emptied", body: null, images: null, audioUrl: null },
+    { authorId: "u-wrote", body: "Hello", images: null, audioUrl: null },
+  ];
+  const isEmpty = (row) => Object.keys(EMPTY_ENTRY_WHERE).every((k) => row[k] == null);
+  db.groupMember.findMany = async () => [{ userId: "u-emptied" }, { userId: "u-wrote" }];
+  db.catchupPref.findMany = async () => [
+    { userId: "u-emptied", reminderMode: "all" },
+    { userId: "u-wrote", reminderMode: "all" },
+  ];
+  db.catchupEntry.findMany = async ({ where }) => {
+    db.entryWhere = where;
+    return entries.filter((row) => !(where.NOT && isEmpty(row))).map(({ authorId }) => ({ authorId }));
+  };
+  return db;
+}
+
+test("routed (c): an emptied answer is not an answer, so its author is still reminded", async () => {
+  const db = answeringDb();
+  await notify.notifyReminder(db, { ...base, daysLeft: 2, closesAt: new Date(Date.now() + 2 * 86_400_000) });
+  assert.deepEqual(db.entryWhere, { editionId: "e1", ...ANSWERED_ENTRY_WHERE }, "the reminder's audience counts rows with nothing in them again");
+  assert.deepEqual(db.written.map((r) => r.userId), ["u-emptied"]);
+});
+
+test("routed (c): the no-answers extension re-tells whoever emptied their answer", async () => {
+  const db = answeringDb();
+  db.catchupPrompt.findMany = async () => [{ authorId: "u-emptied" }, { authorId: "u-wrote" }];
+  await notify.notifyAnswersOpen(db, { ...base, onlyNonAnswerers: true });
+  assert.deepEqual(db.written.map((r) => r.userId), ["u-emptied"]);
+});
