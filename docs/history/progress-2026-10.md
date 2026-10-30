@@ -79,7 +79,7 @@ Not run: the sweep itself, which acts on every member's rows; its pieces were, o
 on the way: a jiti harness needs `nativeModules: ["@prisma/client"]`, or Prisma's error path
 crashes on `path.sep` and every database failure reads as a TypeError.
 
-## 2026-10-30 (db) — bug audit 3, unit L3: the database
+## 2026-10-30 (db) — bug audit 3, unit L3: five indexes real queries were missing, counts that count only the page, a pool the app holds, and the database's size by table
 
 Thirteen rows in four commits, `npm run check` green before each: ten done, three parked.
 
