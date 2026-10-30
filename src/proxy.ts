@@ -417,9 +417,24 @@ export function proxy(request: NextRequest) {
  * doing "Add to Home Screen" from the landing page, a link preview, a browser
  * filling in a tab. Redirecting those to /login hands the installer an HTML
  * page where it expected an image, which is how iOS ended up drawing a plain
- * letter "R" instead of the mark. */
+ * letter "R" instead of the mark.
+ *
+ * Everything else skipped is a file served as it is, which nothing above has
+ * anything to say to: Next's own build output, the image optimizer, and the
+ * public folder's images/ and geo/ (the directory map's world atlas, until
+ * 2026-10-30 a pass through here for no reason). Every pass costs a Routing
+ * Middleware invocation and its CPU, against Vercel Hobby's four hours a month
+ * (bug audit 3, L5-01). What stays is everything that needs this file: every
+ * page and its RSC requests (the session gate, x-pathname and x-search for the
+ * layout's sign-in redirect, the visit cookie), the server actions posted to
+ * those pages (an excluded path skips its actions too), /api/presence (the
+ * x-visit-id it records against), /ingest (the cookie strip), the demo's
+ * closed prefixes, and public/lab/, whose files have no admin gate of their
+ * own: the cookie check here is the only thing in front of them.
+ * proxy-rule.test.mjs walks the app's routes and the public folder against
+ * this matcher, so a new folder has to be put on one side or the other. */
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|icon.svg|apple-icon.png|manifest.webmanifest|robots.txt|sitemap.xml|images/|uploads/).*)",
+    "/((?!_next/static|_next/image|favicon.ico|icon.svg|apple-icon.png|manifest.webmanifest|robots.txt|sitemap.xml|images/|uploads/|geo/).*)",
   ],
 };

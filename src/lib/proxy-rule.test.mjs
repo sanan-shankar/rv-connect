@@ -1,10 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { existsSync } from "node:fs";
+import { AsyncLocalStorage } from "node:async_hooks";
+import { existsSync, readdirSync } from "node:fs";
 import { createRequire, registerHooks } from "node:module";
-import { resolve } from "node:path";
+import { dirname, relative, resolve, sep } from "node:path";
 import { pathToFileURL } from "node:url";
-import { ROOT, read, decomment, balancedBody } from "./test-kit.mjs";
+import { ROOT, read, decomment, balancedBody, walk } from "./test-kit.mjs";
 
 /* ------------------------------------------------------------------ *
  *  The edge boundary, and the four things that never reached the other
@@ -14,8 +15,8 @@ import { ROOT, read, decomment, balancedBody } from "./test-kit.mjs";
  *  DEMO_CLOSED_PATHS block -- and each one is DERIVED from the other file
  *  it has to agree with, never a second copy of the same list. They were
  *  written when proxy.ts could not be imported here; it can now, and the
- *  tests at the bottom run the real function (see the harness above
- *  them). The text ones stay for the shapes a request
+ *  tests at the bottom run the real function and the real matcher (see
+ *  the harness above them). The text ones stay for the shapes a request
  *  cannot show.
  * ------------------------------------------------------------------ */
 
@@ -265,14 +266,22 @@ registerHooks({
     return next(url, ts ? { ...context, format: "module-typescript" } : context);
   },
 });
+/* Next's own server puts AsyncLocalStorage on globalThis at boot, and its
+   modules read it once, as they load: one loaded before it is set keeps a
+   stand-in that throws an invariant when the matcher helper touches it. So it
+   goes first, before anything from next is required. */
+globalThis.AsyncLocalStorage ??= AsyncLocalStorage;
 const fromRoot = createRequire(resolve(ROOT, "package.json"));
 const { NextRequest } = fromRoot("next/server.js");
-const { proxy } = await import(pathToFileURL(resolve(ROOT, "src/proxy.ts")).href);
+const { unstable_doesMiddlewareMatch } = fromRoot("next/experimental/testing/server.js");
+const { proxy, config } = await import(pathToFileURL(resolve(ROOT, "src/proxy.ts")).href);
 
 const SESSION = { cookie: "authjs.session-token=a-session" };
 const ask = (path, headers = {}) => proxy(new NextRequest(`http://localhost:3000${path}`, { headers }));
 /** True when the proxy let the request through to the route as it was. */
 const wavedThrough = (res) => res.headers.get("x-middleware-next") === "1";
+/** True when Next would run the proxy for this URL at all. */
+const proxied = (url) => unstable_doesMiddlewareMatch({ config, url, nextConfig: {} });
 
 test("T8b-10: the public path '/' is the landing page and nothing under it", () => {
   /* As a prefix, "/" meant startsWith("//"), so any doubled slash walked past
@@ -301,5 +310,90 @@ test("a signed-in page and the presence ping both leave carrying the visit id", 
     assert.ok(wavedThrough(res), `${path} with a session is not passed on`);
     assert.match(res.headers.get("x-middleware-request-x-visit-id") ?? "", /^v-/, `${path} carries no visit id`);
     assert.equal(res.headers.get("x-middleware-request-x-pathname"), path, `${path} carries no x-pathname`);
+  }
+});
+
+/** Every path the app answers, from its route files: groups dropped, a
+ *  dynamic segment filled with a stand-in, private folders left out. */
+function appRoutes() {
+  const app = resolve(ROOT, "src/app");
+  return walk(app, { match: /^(page(\.lab)?\.tsx|route\.ts)$/ })
+    .map((file) => relative(app, dirname(file)).split(sep).filter(Boolean))
+    .filter((segments) => !segments.some((s) => s.startsWith("_")))
+    .map((segments) =>
+      `/${segments
+        .filter((s) => !/^\(.*\)$/.test(s))
+        .map((s) => (s.startsWith("[") ? "x" : s))
+        .join("/")}`
+    );
+}
+
+test("L5-01: the proxy still sees every route, the rewrites and the demo's closed doors", () => {
+  /* An excluded path loses the session gate, the visit id, the demo's
+     refusals and every server action posted to it (Next's proxy docs:
+     actions are POSTs to the page's own path). So every route the app
+     answers must stay matched, whatever is added to the exclusions. */
+  const routes = appRoutes();
+  assert.ok(routes.length >= 100, `only found ${routes.length} routes; the walk has drifted`);
+  const skipped = routes.filter((r) => !proxied(r));
+  assert.deepEqual(skipped, [], `the matcher skips routes that need the proxy: ${skipped.join(", ")}`);
+
+  for (const url of ["/feed?_rsc=1abcd", "/ingest/e/?ip=0", "/ingest/static/array.js", "/ingest/flags/?v=2"]) {
+    assert.ok(proxied(url), `${url} skips the proxy: an RSC request loses its gate, /ingest its cookie strip (C-198)`);
+  }
+
+  const src = read("src/proxy.ts");
+  for (const name of ["DEMO_CLOSED_PATHS", "DEMO_CLOSED_APIS"]) {
+    const block = src.match(new RegExp(`const ${name} = \\[([\\s\\S]*?)\\];`));
+    assert.ok(block, `${name} moved; re-point this test`);
+    const prefixes = [...block[1].replace(/\/\/.*$/gm, "").matchAll(/"([^"]+)"/g)].map((m) => m[1]);
+    assert.ok(prefixes.length >= 4, `only scraped ${prefixes.length} prefixes from ${name}`);
+    for (const p of prefixes) {
+      for (const url of [p, `${p}/x`]) {
+        assert.ok(proxied(url), `the demo closes ${p}, but the matcher never shows it ${url}`);
+      }
+    }
+  }
+});
+
+test("L5-01: the matcher skips the files served as they are, and nothing else", () => {
+  /* Each of these used to cost a Routing Middleware invocation for nothing,
+     against Vercel Hobby's four hours of CPU a month. Next's build output and
+     the image optimizer; the app's own metadata files (src/app/favicon.ico,
+     icon.svg, apple-icon.png, manifest.ts, robots.ts, sitemap.ts). */
+  for (const url of [
+    "/_next/static/chunks/main.js",
+    "/_next/static/media/font.woff2",
+    "/_next/image?url=%2Fimages%2Fbrand%2Fmark.png&w=640&q=75",
+    "/favicon.ico",
+    "/icon.svg",
+    "/apple-icon.png",
+    "/manifest.webmanifest",
+    "/robots.txt",
+    "/sitemap.xml",
+  ]) {
+    assert.ok(!proxied(url), `${url} is a file served as it is, and passes through the proxy for nothing`);
+  }
+
+  /* And the public folder, read off the disk, so a new folder there has to
+     be put on one side: skipped, or kept here with its reason. */
+  const KEPT = {
+    lab: "the lab's files have no admin gate of their own; the proxy's cookie check is all that stands in front of them",
+  };
+  const pub = resolve(ROOT, "public");
+  for (const entry of readdirSync(pub, { withFileTypes: true })) {
+    if (entry.name.startsWith(".")) continue;
+    const file = entry.isDirectory() ? walk(resolve(pub, entry.name), { match: () => true })[0] : resolve(pub, entry.name);
+    if (!file) continue;
+    const url = `/${relative(pub, file).split(sep).join("/")}`;
+    if (KEPT[entry.name]) {
+      assert.ok(proxied(url), `${url} skips the proxy, but ${KEPT[entry.name]}`);
+    } else {
+      assert.ok(
+        !proxied(url),
+        `public/${entry.name} is served as it is and passes through the proxy for nothing: add it to the ` +
+          `matcher's exclusions, or to KEPT here with the reason it needs the proxy`
+      );
+    }
   }
 });
