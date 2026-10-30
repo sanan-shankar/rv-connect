@@ -493,6 +493,28 @@ Last, one pass. Comment and doc lies are fixed by making the comment true, not b
 - **High and Medium** (full entries in the report §8): —
 - **Low** (the report's Low table): C2-03, C7b-08, L7-04, L7-05, L7-07, L8-09, L8-10, L9-12, T4a-10, T4b-11, T8b-04, T8b-05, T8b-20, T9-11
 
+## Follow-ups routed to later units
+
+Found by a worker or a review outside its own rows. Each names the unit that takes it; the unit that
+closes one strikes it here in its own commit.
+
+- **Track 1 (Catch-ups), next Phase H unit:** (a) after `lockGroup`, re-check that the acting Keeper
+  still wears a hat in `removeCatchupMember`, `addCatchupMembers` and the `setCatchupKeeper` revoke
+  (Phase A review 1); (b) `submitPrompt` touches the collecting Edition's row first, as the curate path
+  does, so the 40 cap and the reorder bound of 80 hold under a burst (review 3); (c) one definition of
+  "answered" (rows with content) for the home's count and the reminder audience, matching the close and
+  the clock (review 4); (d) the "Nobody has answered yet" dialog's sentence must match what the clock
+  then does (it can still publish an empty Edition after one extension) (review 5); (e) convert
+  `src/lib/catchups-core.test.mjs`'s git-based sweep to read the disk and take it off `ASKS_GIT` (L2);
+  (f) T3-08: `settings.answered` now reads the `answeredAuthorIds` query T3-08 calls dead (A3);
+  (g) T7b-15's wording must also cover A3's extend toast and the extend row's line (A3).
+- **Track 2, the purge-robustness unit:** `promoteOrphanedGroups` in `src/lib/account-purge.ts` takes
+  `lockGroup` before choosing a successor (A4 note, Phase A review 2).
+- **Phase O:** `joinCatchupByToken` has no rate limit (A4 note).
+- **Phase F, O-01's fix:** delete `drafts-strip.tsx`'s entry from the date sweep's exemption list (L2).
+- **The privacy page unit (T8b-06):** the sentences B1 (Sentry), B2 (PostHog) and B3a (reports outlive
+  the reporter; answered Catch-up questions stay unnamed) reported, in their month entries.
+
 ## Ledger
 
 One line per row as it lands: `<id> — DONE (<commit subject>) | DECLINED (why) | PARKED (why)`; a commit cannot carry its own sha, so the subject names it. A row's verdict-corrected
