@@ -3,6 +3,7 @@ import { statSync } from "node:fs";
 import test from "node:test";
 
 import { read } from "../../src/lib/test-kit.mjs";
+import { GATES, blocks } from "./check.mjs";
 
 /* ------------------------------------------------------------------ *
  *  CI runs nothing that `npm run check` does not.
@@ -77,6 +78,26 @@ test("check.yml still runs the gate at all", () => {
   );
 });
 
+/* Three more ways the workflow can stop being the gate while every `run:`
+   above still reads right (bug audit 3, L9-04): an action that is not a
+   `run:` step at all, and a gate step that is allowed to fail or never runs.
+   The two actions here install the code and the runtime; anything else that
+   can fail the job is a check the laptop does not run. */
+const ALLOWED_ACTIONS = [/^actions\/checkout@/, /^actions\/setup-node@/];
+
+test("check.yml uses no action but checkout and setup-node", () => {
+  const actions = [...read(WORKFLOW).matchAll(/^\s*-?\s*uses\s*:\s*["']?([^\s"'#]+)/gm)].map((m) => m[1]);
+  assert.ok(actions.length >= 2, `found only ${actions.length} actions; the parser has drifted`);
+  const strays = actions.filter((a) => !ALLOWED_ACTIONS.some((ok) => ok.test(a)));
+  assert.deepEqual(strays, [], "check.yml runs an action `npm run check` does not:\n" + strays.join("\n"));
+});
+
+test("nothing in check.yml lets the gate fail quietly or skip itself", () => {
+  const yaml = read(WORKFLOW);
+  assert.doesNotMatch(yaml, /^\s*-?\s*continue-on-error\s*:/m, "continue-on-error lets a red gate pass the push");
+  assert.doesNotMatch(yaml, /^\s*-?\s*if\s*:/m, "an `if:` can switch the gate step, or the whole job, off");
+});
+
 /* The other direction. The parity above is satisfied just as well by
    deleting both security gates, which would be silent: fewer checks, every
    run green. These name them. */
@@ -88,6 +109,31 @@ test("the two gates that moved out of the workflow are still gates", () => {
       `${script} ran in CI until it moved into check.mjs, and check.mjs no longer calls it`
     );
   }
+});
+
+/* Called is not the same as gating (L9-04): flip `blocking` to false, or
+   make a failure read as a warning, and the scripts above are still called
+   while a high advisory or a re-opened finding stops nothing. So the gates
+   are asked what they DO with a failure. One gate is non-blocking by
+   design, the protocol audit, whose findings a human triages. */
+const NON_BLOCKING = ["protocol"];
+
+test("every gate but the protocol audit blocks the push when it fails", () => {
+  assert.deepEqual(
+    Object.keys(GATES).filter((name) => GATES[name].blocking !== true),
+    NON_BLOCKING,
+    "a gate stopped blocking: check.yml runs it, and a failure there no longer fails the push"
+  );
+  assert.equal(
+    blocks(GATES.deps, GATES.deps.read({ code: 1, out: "  FAIL     GHSA-xxxx-xxxx-xxxx (high) crafted\n" })),
+    true,
+    "a new high advisory no longer fails the push"
+  );
+  assert.equal(
+    blocks(GATES.security, GATES.security.read({ code: 1, out: "  74 checked -- 1 open\nFAIL: 1 open finding(s)" })),
+    true,
+    "a re-opened high finding no longer fails the push"
+  );
 });
 
 /* The laptop half (owner, 2026-10-28). CI running the gate only means the
