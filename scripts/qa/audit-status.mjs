@@ -224,14 +224,27 @@ const CHECKS = [
       return missing.length ? open(`headers() present but missing: ${missing.join(", ")}`) : ok("next.config.ts's code names all five headers");
     }},
   { id: "H8", sev: "high", title: "deleteAccount throws for anyone who filed a report", probe: () => {
-      // Phase 8 moved deletion into purgeUserAccount (account-purge.ts),
-      // shared by adminDeleteUser and the retention sweep's grace purge; the
-      // filed-report clearing must sit there, before the user.delete.
+      /* The guarantee is that a filed report cannot block the account's
+         delete, and two shapes give it. Since T7a-01 (bug audit 3) the schema
+         says so itself: Report.reporter is onDelete: SetNull, so the account
+         goes and the report stays, filed by someone who has left. Before
+         that, the purge had to delete the reports first (Phase 8 moved
+         deletion into purgeUserAccount, shared by adminDeleteUser and the
+         retention sweep's grace purge). Either is read as fixed, so the row
+         holds through the move from one to the other. */
+      const model = read("prisma/schema.prisma").match(/^model Report \{[\s\S]*?^\}/m)?.[0] ?? "";
+      const relation =
+        model
+          .split("\n")
+          .map((line) => line.replace(/\/\/.*$/, ""))
+          .find((line) => /@relation\("ReportsFiled"/.test(line)) ?? "";
+      const onDelete = relation.match(/onDelete:\s*(SetNull|Cascade)\b/)?.[1];
+      if (onDelete) return ok(`the schema's Report.reporter relation is onDelete: ${onDelete}, so a filed report cannot block the delete`);
       const purge = read("src/lib/account-purge.ts");
       if (!purge) return open("account-purge.ts not found");
       return /report\.deleteMany/.test(decomment(purge))
         ? ok("account-purge.ts calls report.deleteMany")
-        : open("no report.deleteMany in purgeUserAccount");
+        : open("Report.reporter has no onDelete that lets the account go, and the purge deletes no reports");
     }},
   { id: "H9", sev: "high", title: "Deletion never removes stored image bytes", probe: () => {
       // Three parts, all required: the purge deletes R2 objects, the admin
