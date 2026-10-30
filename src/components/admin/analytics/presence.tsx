@@ -25,8 +25,11 @@ function since(d: Date): string {
   return `${Math.floor(m / 60)}h ago`;
 }
 
-/** A visit's length, measured to the minute by the beacon's heartbeat. Under a
- *  minute means they opened a page and left before the first beat. */
+/** A visit's length, from its first ping to its last (presence-beacon.tsx). A
+ *  member who closes or hides the tab is timed to that moment, and one who
+ *  stops touching it to the five-minute idle line; only a tab that dies
+ *  without a word ends up to a beat (three minutes) early. Under a minute
+ *  means they left within a minute of arriving. */
 function lasted(a: Date, b: Date): string {
   const s = Math.floor((b.getTime() - a.getTime()) / 1000);
   if (s < 60) return `${s}s`;

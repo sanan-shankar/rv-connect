@@ -9,8 +9,8 @@ import { statsWritesEnabled } from "@/lib/stats-exclusion";
  *  Two writers, deliberately apart. `touchLastSeen` runs from the (main)
  *  layout on every authenticated render and only stamps User.lastSeenAt.
  *  `recordPageView` runs from /api/presence, which the browser calls on a
- *  real navigation and once a minute while the member is active, and it
- *  alone writes Visit. The layout used to write Visit too, and it renders
+ *  real navigation and every three minutes while the member is active, and
+ *  it alone writes Visit. The layout used to write Visit too, and it renders
  *  for link prefetches and never while somebody reads, which is how most
  *  visits came to read as one page and 0s (2026-09-15).
  *

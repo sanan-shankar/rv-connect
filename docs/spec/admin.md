@@ -647,8 +647,11 @@ account and the test account, which also corrects the history already skewed. Bo
 **A visit is reported by the browser, not by a layout render** (2026-09-15). The `(main)` layout
 renders for link prefetches and never while somebody reads, so when it wrote `Visit` most visits
 read one page and 0s. `<PresenceBeacon>` (`src/components/analytics/presence-beacon.tsx`) posts a
-"view" to `/api/presence` on each real navigation and a "beat" each minute while the member is active,
-and `Visit.paths` keeps the pages in order. The Live view reads length, depth and journeys only from
+"view" to `/api/presence` on each real navigation and a "beat" every three minutes while the member is
+active (once a minute until 2026-10-30, cut for the Hobby plan's four hours of server time a month: bug
+audit 3, L5-01), and `Visit.paths` keeps the pages in order. A visit ends at its last ping: the moment the
+tab was hidden or closed, the five-minute idle line, or, for a tab that died silently, up to a beat early.
+"On the site now" is any visit pinged in the last 15 minutes, so someone who left stays listed that long. The Live view reads length, depth and journeys only from
 visits with a trail (`TRACKED_SINCE` in `admin-analytics.ts`); device, OS, days and people read every
 visit. Pinned by `presence-rule.test.mjs`.
 

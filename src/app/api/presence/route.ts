@@ -9,8 +9,8 @@ import { presencePingSchema } from "@/lib/validators";
  * POST /api/presence  { kind: "view" | "beat", path }
  *
  * The only writer of Visit. Called by <PresenceBeacon> when a member's page
- * actually changes, and once a minute while they are active on it. See that
- * component for why the (main) layout stopped being the witness.
+ * actually changes, and every three minutes while they are active on it. See
+ * that component for why the (main) layout stopped being the witness.
  *
  * Always answers 204 once the caller is signed in, including when nothing is
  * recorded: the beacon does nothing with a response, and a statistics endpoint
@@ -22,8 +22,8 @@ import { presencePingSchema } from "@/lib/validators";
  * The update is scoped to their row and the counts are capped in
  * last-seen.ts, so that is the whole reach: page popularity is roughly
  * honest, not tamper-proof. No rate limiter, deliberately: it would cost a
- * round trip on every minute's beat to bound a write that can only touch the
- * caller's own row.
+ * round trip on every beat to bound a write that can only touch the caller's
+ * own row.
  */
 
 export async function POST(req: Request) {

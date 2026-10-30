@@ -17,17 +17,25 @@ import { usePathname } from "next/navigation";
  *     while somebody read. One letter for ten minutes lasted 0s.
  *
  *  So the browser reports instead: a "view" when the pathname actually
- *  changes, and a "beat" once a minute while the tab is visible AND the
- *  member has touched it recently. The second condition is what stops a tab
- *  left open overnight from reading as an eight-hour visit.
+ *  changes, and a "beat" every three minutes while the tab is visible AND
+ *  the member has touched it recently. The second condition is what stops a
+ *  tab left open overnight from reading as an eight-hour visit.
  *
  *  Renders nothing. Mounted once in the (main) layout, which persists across
  *  navigations, so the interval and listeners live for the whole sitting.
  * ------------------------------------------------------------------ */
 
-/* One minute: a visit's length is honest to within a minute, which is finer
-   than any question the room asks, for one small UPDATE per active member. */
-const BEAT_MS = 60_000;
+/* Three minutes, the owner's pick (bug audit 3, Q27, 2026-10-29). Each beat
+   is a function invocation and a pass through the proxy, and on Vercel's
+   Hobby plan the whole site has four hours of server time a month; a beat a
+   minute was the steadiest cost in it and the cheapest to cut. What the
+   cadence still decides is where a visit ends when nothing else marks it:
+   leaving is marked to the moment (the hidden-tab beat below) and going idle
+   at the idle line itself (the closing beat below), so the three minutes
+   only show when a tab dies without a word. presence-rule.test.mjs holds this
+   against the windows that count on it: "On the site now" and the visit
+   cookie both have to outlast more than one beat. */
+const BEAT_MS = 3 * 60_000;
 /* Idle past five minutes and the beats stop. Long enough to read a letter
    without scrolling; short enough that a forgotten tab stops counting. */
 const IDLE_MS = 5 * 60_000;
@@ -43,7 +51,7 @@ function ping(kind: "view" | "beat", path: string) {
     body: JSON.stringify({ kind, path }),
     keepalive: true,
   }).catch(() => {
-    /* Statistics. A failed ping is a minute missing from a chart. */
+    /* Statistics. A failed ping is a few minutes missing from a chart. */
   });
 }
 
@@ -59,6 +67,7 @@ export function PresenceBeacon() {
   }, [pathname]);
 
   useEffect(() => {
+    let closing: number | undefined;
     const mark = () => {
       lastActive.current = Date.now();
     };
@@ -66,13 +75,32 @@ export function PresenceBeacon() {
       document.visibilityState === "visible" && Date.now() - lastActive.current < IDLE_MS;
 
     const timer = window.setInterval(() => {
-      if (active()) ping("beat", path.current);
+      if (!active()) return;
+      /* The closing beat. When the member will cross the idle line before the
+         next beat (unless they touch the page again), this beat waits for the
+         line instead of going now, so a visit that ends in stillness ends at
+         the five minutes IDLE_MS promises rather than up to BEAT_MS before
+         them. Still one ping per beat, only later. At most, not under: when
+         the line falls exactly on the next beat, that beat already finds the
+         member idle and sends nothing, so this one has to be the closer. */
+      const idleAt = lastActive.current + IDLE_MS;
+      if (idleAt <= Date.now() + BEAT_MS) {
+        window.clearTimeout(closing);
+        closing = window.setTimeout(() => {
+          if (document.visibilityState === "visible") ping("beat", path.current);
+        }, idleAt - Date.now());
+      } else {
+        ping("beat", path.current);
+      }
     }, BEAT_MS);
 
-    /* Leaving: close the visit at the moment they went, not up to a minute
-       before. Coming back: counts as activity, so the next beat is not lost. */
+    /* Leaving: close the visit at the moment they went, not up to a beat
+       before, and drop a closing beat still waiting, which would stretch the
+       visit past it. Coming back: counts as activity, so the next beat is not
+       lost. */
     const onVisibility = () => {
       if (document.visibilityState === "hidden") {
+        window.clearTimeout(closing);
         if (Date.now() - lastActive.current < IDLE_MS) ping("beat", path.current);
       } else {
         mark();
@@ -84,6 +112,7 @@ export function PresenceBeacon() {
     document.addEventListener("visibilitychange", onVisibility);
     return () => {
       window.clearInterval(timer);
+      window.clearTimeout(closing);
       for (const e of events) window.removeEventListener(e, mark);
       document.removeEventListener("visibilitychange", onVisibility);
     };

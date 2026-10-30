@@ -68,6 +68,50 @@ test("a page view comes from the browser, never from a layout render", () => {
   assert.match(route, /IS_DEMO/, "the presence route no longer skips the demo");
 });
 
+/** A numeric constant as declared: `const NAME = 3 * 60_000;` -> 180000. */
+function constant(src, name) {
+  const m = src.match(new RegExp(`const ${name} = ([\\d_ *]+);`));
+  assert.ok(m, `${name} is no longer a plain numeric constant; re-point this test`);
+  return m[1].split("*").reduce((n, f) => n * Number(f.replace(/[_ ]/g, "")), 1);
+}
+
+test("the beat is every three minutes, and every window timed by it outlasts it (L5-01)", () => {
+  /* The owner's pick (bug audit 3, Q27, 2026-10-29): every beat is a function
+     invocation plus a pass through the proxy, against Vercel Hobby's four
+     hours of server time a month. Faster spends that again; slower blurs the
+     end of a visit that dies without a word. Change it with him, not here. */
+  const beacon = decomment(read("src/components/analytics/presence-beacon.tsx"));
+  const BEAT_MS = constant(beacon, "BEAT_MS");
+  const IDLE_MS = constant(beacon, "IDLE_MS");
+  assert.equal(BEAT_MS, 3 * 60_000, "the presence beat moved off the three minutes the owner chose (Q27)");
+
+  /* Three windows count on a beat arriving, and each has to outlast more
+     than one, or a member sitting still reads as gone. */
+  const ONLINE_MIN = constant(decomment(read("src/lib/admin-analytics.ts")), "ONLINE_MIN");
+  assert.ok(
+    ONLINE_MIN * 60_000 >= 2 * BEAT_MS,
+    `"On the site now" looks back ${ONLINE_MIN} minutes, under two beats: a member reading drops out of it between beats`
+  );
+  const VISIT_TTL_SECONDS = constant(decomment(read("src/proxy.ts")), "VISIT_TTL_SECONDS");
+  assert.ok(
+    VISIT_TTL_SECONDS * 1000 >= 2 * BEAT_MS,
+    "the rolling visit cookie can lapse between two beats, so one long read splits into several visits"
+  );
+  assert.ok(IDLE_MS >= BEAT_MS, "a member can go idle before the first beat, so a still reader is never counted");
+
+  /* And the beat that would land short of the idle line waits for it, so a
+     visit ending in stillness ends at IDLE_MS, not up to a beat before; a
+     hidden tab drops it, or it would stretch the visit past the moment of
+     leaving. */
+  assert.match(beacon, /lastActive\.current \+ IDLE_MS/, "the closing beat no longer aims at the idle line");
+  const hidden = beacon.slice(beacon.indexOf('visibilityState === "hidden"'));
+  assert.match(
+    hidden.slice(0, 200),
+    /clearTimeout\(closing\)/,
+    "a hidden tab no longer drops the waiting closing beat, which then lands after the member left"
+  );
+});
+
 test("a rotating cookie cannot mint rows for ever", () => {
   const src = decomment(read("src/lib/last-seen.ts"));
   assert.match(src, /MAX_VISITS_PER_DAY/, "the per-member daily ceiling on new visits is gone");

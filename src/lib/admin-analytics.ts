@@ -312,7 +312,12 @@ export async function loadMail() {
  *  design, and it belongs in the site's privacy text.
  * ---------------------------------------------------------------- */
 
-/** A visit is "live" if it saw a page view in the last 15 minutes. */
+/** A visit is "live" if the browser pinged it in the last 15 minutes: a page
+ *  view, or a beat. A member reading pings every three minutes
+ *  (presence-beacon.tsx), so 15 is five beats and nobody active drops out of
+ *  "On the site now" between two of them; someone who left stays listed for
+ *  up to 15 minutes after their last ping, however often the beat runs.
+ *  presence-rule.test.mjs fails if this window ever shrinks under two beats. */
 
 /* Every Visit read below that speaks about pages, length or depth is limited
    to rows with a trail. Before 2026-09-15 views were counted from layout
