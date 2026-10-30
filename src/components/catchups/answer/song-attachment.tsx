@@ -49,7 +49,11 @@ export function SongNameField({
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        onBlur={onCommit}
+        /* Called bare. `onBlur={onCommit}` handed the blur EVENT to the card's
+           `flushBody(latest?: string)`, which read it as the words and threw on
+           `.trim()`, so a song name saved only when Next was pressed (bug
+           audit 3, found beside T3-04). */
+        onBlur={() => onCommit()}
         onKeyDown={(e) => {
           if (e.key === "Enter") {
             e.preventDefault();

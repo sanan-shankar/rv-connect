@@ -29,6 +29,7 @@ import { SongNameField } from "./song-attachment";
 import { MicInTheBox, useVoiceRecorder } from "./voice-recorder";
 import { bodyWithTranscript } from "@/lib/voice-transcript";
 import type { StoredRecording } from "@/lib/voice-upload-client";
+import { shouldFlush, type SaveStatus } from "./answer-flow";
 import type { AnswerEntryDraft, AnswerPromptData } from "./types";
 
 const MIN_TEXTAREA_HEIGHT = 168;
@@ -39,6 +40,7 @@ export function AnswerCard({
   position,
   isLast,
   saveStatus,
+  refusal,
   onBodyBlur,
   onImagesChange,
   onAudioChange,
@@ -49,7 +51,9 @@ export function AnswerCard({
   entry: AnswerEntryDraft;
   position: number;
   isLast: boolean;
-  saveStatus: "idle" | "saving" | "saved" | "failed";
+  saveStatus: SaveStatus;
+  /** The server's sentence when it refused this question's last save. */
+  refusal?: string;
   onBodyBlur: (body: string) => void;
   onImagesChange: (images: string[]) => void;
   onAudioChange: (audio: StoredRecording | null) => void;
@@ -94,9 +98,11 @@ export function AnswerCard({
 
   // `latest` covers the blur path, where the setBody from the same event has
   // not re-rendered yet; the advance buttons call it bare and use state.
+  // Unchanged words go again after a failed save: that is the retry the red
+  // line promises (`shouldFlush`, bug audit 3, T3-04).
   function flushBody(latest?: string) {
     const value = latest ?? body;
-    if (value.trim() === savedRef.current.trim()) return;
+    if (!shouldFlush(value, savedRef.current, saveStatus)) return;
     savedRef.current = value;
     onBodyBlur(value);
   }
@@ -170,7 +176,7 @@ export function AnswerCard({
         )}
 
         {prompt.kind === "songs" && (
-          <SongNameField value={body} onChange={setBody} onCommit={flushBody} />
+          <SongNameField value={body} onChange={setBody} onCommit={() => flushBody()} />
         )}
       </div>
 
@@ -190,23 +196,34 @@ export function AnswerCard({
       <div className="mt-[var(--space-m)] flex flex-wrap items-center gap-3">
         <div className="flex min-w-0 items-center gap-3">
           {saveStatus !== "idle" && (
-            /* A failed save says so, in the destructive red, and stays said.
-               It used to fall back to "idle", which renders nothing at all, so
-               the only trace was a toast that scrolls away (audit M11). Same
-               treatment the letter desk got for the same bug (B-043). The text
-               is still on screen and blurring the field again retries, which
-               is what "not saved" has to imply here. */
+            /* A save that did not land says so, in the destructive red, and
+               stays said. It used to fall back to "idle", which renders nothing
+               at all, so the only trace was a toast that scrolls away (audit
+               M11). Same treatment the letter desk got for the same bug
+               (B-043).
+
+               TWO WAYS NOT TO LAND, and only one of them is worth another try
+               (bug audit 3, T3-04). A save that failed is sent again by the
+               next blur or Next, so the line says how; a photograph question
+               has no field to click away from, so it names the pill. A save
+               the server refused (answering closed, another device saved
+               first, too long) would be refused again, so the line is the
+               server's own sentence, which says what to do instead. */
             <span
               className={cn(
                 "text-xs font-medium",
-                saveStatus === "failed" ? "text-destructive" : "text-muted-foreground"
+                saveStatus === "failed" || saveStatus === "refused" ? "text-destructive" : "text-muted-foreground"
               )}
             >
               {saveStatus === "saving"
                 ? "Saving..."
                 : saveStatus === "failed"
-                  ? "Not saved. Click away and back to try again."
-                  : "Saved"}
+                  ? prompt.kind === "photo"
+                    ? `Not saved. Press ${advanceLabel} to try again.`
+                    : "Not saved. Click away and back to try again."
+                  : saveStatus === "refused"
+                    ? (refusal ?? "Not saved.")
+                    : "Saved"}
             </span>
           )}
         </div>

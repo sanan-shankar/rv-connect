@@ -21,18 +21,21 @@ import { submitEntry } from "@/app/(main)/catchups/actions";
 import type { StoredRecording } from "@/lib/voice-upload-client";
 import { AnswerCard } from "./answer-card";
 import { CompletionCard } from "./completion-card";
+import { saveLanded, type SaveStatus } from "./answer-flow";
 import { isMeaningfulEntry, type AnswerEntryDraft, type AnswerPromptData } from "./types";
 
-/**
- * "failed" is the one that was missing (audit M11). A save that did not land
- * used to drop back to "idle", which renders nothing, so the only trace was a
- * toast that scrolls away -- and because "have they answered?" is derived from
- * the text on screen rather than from what reached the database, the prompt
- * still counted as answered: a tick on the progress rail, a place in "N of M
- * have written in", and the completion card congratulating somebody whose
- * answer was never saved.
- */
-type SaveStatus = "idle" | "saving" | "saved" | "failed";
+/* "failed" is the status that was missing (audit M11). A save that did not
+   land used to drop back to "idle", which renders nothing, so the only trace
+   was a toast that scrolls away -- and because "have they answered?" is
+   derived from the text on screen rather than from what reached the
+   database, the prompt still counted as answered: a tick on the progress
+   rail, a place in "N of M have written in", and the completion card
+   congratulating somebody whose answer was never saved. "refused" is its
+   other half (bug audit 3, T3-04): a no from the server that sending again
+   cannot change. Both are in answer-flow.ts. */
+
+/** What one save sends, beside the question it is for. */
+type EntryPatch = { body?: string; images?: string[]; audio?: StoredRecording | null };
 
 /* The "N people have answered so far" line and its row of birds are GONE
    from this surface. Answering is now a region on the Catch-up's own home
@@ -53,6 +56,9 @@ export function AnswerExperience({
     Object.fromEntries(prompts.map((p) => [p.id, p.entry]))
   );
   const [saveStatus, setSaveStatus] = useState<Record<string, SaveStatus>>({});
+  /** The server's own sentence for a refused save, which is the line under
+   *  the box: it says what to do, and a toast scrolls away. */
+  const [refusal, setRefusal] = useState<Record<string, string>>({});
   const [index, setIndex] = useState(0);
   const [direction, setDirection] = useState(1);
 
@@ -61,15 +67,13 @@ export function AnswerExperience({
 
   /* Answered means SAVED, not typed (audit M11). The text stays on screen
      either way -- nobody's writing is ever thrown away over a network blip --
-     but a prompt whose last save failed does not count towards the progress
-     rail, the "N of M have written in" line, or the completion card. Only
-     "failed" disqualifies: a save still in flight is optimistically counted,
-     because it usually lands and because a tick that flickers off on every
-     blur would be worse than one that is briefly generous. */
+     but a prompt whose last save did not land does not count towards the
+     progress rail, the "N of M have written in" line, or the completion card.
+     A save still in flight is optimistically counted (`saveLanded`). */
   const answeredIds = useMemo(() => {
     const s = new Set<string>();
     for (const p of prompts) {
-      if (isMeaningfulEntry(entries[p.id]) && saveStatus[p.id] !== "failed") s.add(p.id);
+      if (isMeaningfulEntry(entries[p.id]) && saveLanded(saveStatus[p.id])) s.add(p.id);
     }
     return s;
   }, [entries, prompts, saveStatus]);
@@ -126,23 +130,37 @@ export function AnswerExperience({
     Object.fromEntries(prompts.map((p) => [p.id, p.entryUpdatedAt]))
   );
 
-  function persist(
-    promptId: string,
-    patch: { body?: string; images?: string[]; audio?: StoredRecording | null }
-  ) {
+  /* What a failed save was carrying, per prompt, so the retry sends it again
+     along with whatever is new (bug audit 3, T3-04). The retry is a blur or a
+     Next, which send the words; without this, a photograph or a recording
+     whose save failed would never be re-sent, and a retry that landed only
+     the words would say "Saved" over a photograph that never arrived. Read
+     and cleared inside the queued run, so it sees every failure queued
+     before it. */
+  const unsent = useRef<Record<string, EntryPatch>>({});
+
+  function persist(promptId: string, patch: EntryPatch) {
     const run = async () => {
+      const send = { ...unsent.current[promptId], ...patch };
+      delete unsent.current[promptId];
       setSaveStatus((s) => ({ ...s, [promptId]: "saving" }));
       // callAction: a rejected save (deploy skew, dropped network, expired
       // session) used to leave this prompt's status stuck on "saving" forever,
       // since neither branch below ever ran (audit B-042).
       const result = await callAction(() =>
-        submitEntry({ promptId, ...patch, baseUpdatedAt: versions.current[promptId] ?? undefined })
+        submitEntry({ promptId, ...send, baseUpdatedAt: versions.current[promptId] ?? undefined })
       );
       if (result && "error" in result) {
         toast.error(result.error);
-        // "failed", not "idle": idle renders nothing, and this prompt must
-        // stop counting as answered until a save actually lands (audit M11).
-        setSaveStatus((s) => ({ ...s, [promptId]: "failed" }));
+        /* Not "idle": idle renders nothing, and this prompt must stop
+           counting as answered until a save actually lands (audit M11).
+           `final` is the server's word that the same save would be refused
+           again (closed, stale, over the cap); anything else, a call that
+           never landed included, is worth sending again. */
+        const final = "final" in result && result.final === true;
+        if (final) setRefusal((r) => ({ ...r, [promptId]: result.error }));
+        else unsent.current[promptId] = send;
+        setSaveStatus((s) => ({ ...s, [promptId]: final ? "refused" : "failed" }));
         return;
       }
       // Hold the version this save produced; without it every save after the
@@ -237,6 +255,7 @@ export function AnswerExperience({
                   position={index + 1}
                   isLast={index === total - 1}
                   saveStatus={saveStatus[current.id] ?? "idle"}
+                  refusal={refusal[current.id]}
                   onBodyBlur={(body) => handleBodyBlur(current.id, body)}
                   onImagesChange={(images) => handleImagesChange(current.id, images)}
                   onAudioChange={(audio) => handleAudioChange(current.id, audio)}

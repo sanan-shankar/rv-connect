@@ -1617,8 +1617,12 @@ export async function submitEntry(input: {
     const gate = await requireVerifiedMember();
     if (!gate.ok) return { error: gate.error };
 
+    /* `final: true` marks a refusal the same save would meet again, so the
+       answering surface says the sentence instead of inviting a retry (bug
+       audit 3, T3-04). Everything else, a crash included, is worth another
+       try, and that is the default a new refusal gets. */
     const parsed = submitEntrySchema.safeParse(input);
-    if (!parsed.success) return { error: parsed.error.issues[0].message };
+    if (!parsed.success) return { error: parsed.error.issues[0].message, final: true as const };
     const { promptId } = parsed.data;
 
     const prompt = await prisma.catchupPrompt.findFirst({
@@ -1631,7 +1635,7 @@ export async function submitEntry(input: {
     if ("error" in scope) return scope;
     const { edition } = scope;
     if (edition.status !== "answering") {
-      return { error: "Answering is not open for this Edition right now." };
+      return { error: "Answering is not open for this Edition right now.", final: true as const };
     }
     const ended = refuseIfEnded(edition.catchup.status);
     if (ended) return ended;
@@ -1762,12 +1766,13 @@ export async function submitEntry(input: {
     });
 
     if (entry === "closed") {
-      return { error: "Answering has closed for this Edition. Your answer was not saved." };
+      return { error: "Answering has closed for this Edition. Your answer was not saved.", final: true as const };
     }
     if (entry === "stale") {
       return {
         error:
           "This answer has changed somewhere else. Reload the page before you carry on, or your writing here will replace it.",
+        final: true as const,
       };
     }
 
