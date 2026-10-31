@@ -68,7 +68,10 @@ export function SupportShell({
         <p className="mt-[var(--space-m)] text-base leading-relaxed text-foreground">
           The site is not for profit and all donations go solely toward recovering what it cost to
           build and what it takes to keep running. Any amount helps: ₹500, ₹1,000, or even your
-          admission number! Please consider donating. We would deeply appreciate your support.
+          admission number!
+        </p>
+        <p className="mt-[var(--space-m)] text-base leading-relaxed text-foreground">
+          Please consider donating. We would deeply appreciate your support.
         </p>
       </header>
 

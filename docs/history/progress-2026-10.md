@@ -47,7 +47,9 @@ too: the site is not for profit, donations go solely toward recovering what it c
 what it takes to keep running, any amount helps (₹500, ₹1,000, or your admission number), and
 please consider donating. It replaces the page's opening paragraph, which had said the site will
 always be free to use and that anything left over goes to the school. His "₹1000" is written
-"₹1,000" to match the amount chips further down the page.
+"₹1,000" to match the amount chips further down the page. At his word, "Please consider donating.
+We would deeply appreciate your support." then became a paragraph of its own, here and in the
+announcement window.
 
 
 ## 2026-10-30 (birds) — the birds page in a calmer order, and its grid as cosy as the Support plate
