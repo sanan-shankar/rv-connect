@@ -1,3 +1,34 @@
+## 2026-10-30 (announcement) — a window that opens once over the Feed: the new birds, the ask, and the site on a phone
+
+The owner asked for a second once-only screen like the guide's tour: the expanded bird collection as
+rows of bright birds drifting in alternating directions, the site as an app on a phone, the
+headcount in passing, and an ask for support written from the heart, with the payment inline. Three
+rounds of his feedback shaped it (docs/spec/announcement.md section 1 restates each):
+- three titled pages became one;
+- a pastel-tiled wall, sorted by colour family, became the Support plate set moving (big round
+  birds close together on its cream, each row a hand-composed mix of complements and shared
+  accents);
+- the motion slowed to a third;
+- he rewrote the copy himself, Murukku bird included.
+
+**What shipped.** The window wears the guide's shape (`guide-window.ts`, shared with the tour). It
+uses the Support page's own contribute form, split into parts so both surfaces share one payment
+path. The wall is 45 birds that each move on their own: the old wall slid three-copy strips, and
+Safari's tiling of strips that wide was the flicker he saw. Speeds were measured in the live window
+at 11 to 13px a second, alternating. On a laptop the phone row sits in the footer with a QR code to
+a new public page, `/app`, which shows each phone its own way to install.
+
+**Once per account.** `User.announcementSeenAt` was added to both databases with his go-ahead, is
+carried by "Download your data", and is stamped when the window opens. The Feed offers the window
+only once the guide is done. A guide finished in this visit holds it to the next one, so a new
+joiner gets the guide first and this window when they next open the site. It never runs on the demo.
+An admin's `/feed?announcement=replay` (linked from the guide's admin line) replays it and records
+nothing.
+
+Ten tests in `announcement.test.mjs` pin the rules, the wall's birds, and that the phone's four rows
+hold every bird the copy names.
+
+
 ## 2026-10-30 (support) — the Support page says what donations are for, in the owner's words
 
 The owner wrote the announcement window's ask himself and asked for its middle on the Support page
@@ -22,7 +53,8 @@ and name are now shared constants (`GALLERY_GRID`, `GALLERY_GLYPH`, `GALLERY_NAM
 birds page, the paid picker and its skeleton, which had been copies kept in step by comments. From
 `sm` up each bird fills its column up to 100px, seven columns at `xl`, with more room between rows.
 A first cut let the birds fill the whole 145px column; he found that crowded and overstimulating,
-so the cap sits between that and the old 96px bird in a 210px column. A phone keeps two columns of 96px birds, as
+so the cap sits between that and the old 96px bird in a 210px column. On 2026-10-31 he swapped the
+Cattle Egret and the Black-crowned Night Heron. A phone keeps two columns of 96px birds, as
 his comparison was of desktop. Names balance across two lines rather than breaking at a hyphen.
 Visible: the birds page and the picker.
 
