@@ -130,7 +130,14 @@ function loadCheckout() {
   return checkoutPromise;
 }
 
-export function SupportContribute({ admissionNumber }: { admissionNumber: number | null }) {
+/**
+ * Everything the panel knows and does, apart from where its parts are drawn.
+ * The Support page draws them in one column (SupportContribute, below); the
+ * announcement window over the Feed draws the amounts on its last page and the
+ * button in its footer, where each of its pages keeps its one action
+ * (components/announcement). One hook, so the checkout cannot fork.
+ */
+export function useContribution(admissionNumber: number | null) {
   const suggestions = useMemo(() => buildSuggestions(admissionNumber), [admissionNumber]);
   // Tracks the amount itself ("other" for the free-text chip), not a
   // position in `suggestions` -- that array's length and order both move
@@ -268,6 +275,26 @@ export function SupportContribute({ admissionNumber }: { admissionNumber: number
     rzp.open();
   }
 
+  return {
+    suggestions,
+    selectedAmount,
+    setSelectedAmount,
+    isOther,
+    custom,
+    setCustom,
+    customRef,
+    amount,
+    amountValid,
+    working,
+    warm,
+    pay,
+  };
+}
+
+export type Contribution = ReturnType<typeof useContribution>;
+
+export function SupportContribute({ admissionNumber }: { admissionNumber: number | null }) {
+  const contribution = useContribution(admissionNumber);
   return (
     /* [--ring:var(--sky)]: this card runs on sky (the Other pill, the
        Contribute button, per the header note: office blue stays the one
@@ -281,149 +308,174 @@ export function SupportContribute({ admissionNumber }: { admissionNumber: number
        --color-ring exists at runtime to override. (A first attempt set
        --color-ring and changed nothing, measured.) */
     <div className="flex flex-col gap-[var(--space-m)] [--ring:var(--sky)]">
-      <div>
-        {/* No "PICK AN AMOUNT" eyebrow: the card is titled Contribute and the
-            row is five rupee figures, so a label above it was the same fact a
-            third time (owner's hierarchy complaint, 2026-08-18). */}
-        <div className="flex flex-wrap gap-[var(--space-xs)]">
-          {suggestions.map((s) => {
-            const on = s.amount === null ? isOther : s.amount === selectedAmount;
-            return (
-              <button
-                key={s.amount ?? "other"}
-                type="button"
-                aria-pressed={on}
-                onPointerEnter={warm}
-                onClick={() => {
-                  setSelectedAmount(s.amount === null ? "other" : s.amount);
-                  if (s.amount === null) requestAnimationFrame(() => customRef.current?.focus());
-                }}
-                className={cn(
-                  "inline-flex items-center gap-[var(--space-xxs)] rounded-full border px-[var(--space-m)] py-[var(--space-s)] text-sm font-semibold tabular-nums",
-                  "transition-[transform,background-color,border-color,color] duration-150 ease-out",
-                  "active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
-                  // Selected keeps its sky wash (semantic). The idle chip
-                  // hovered from bg-card to bg-mist, one rung and ~2 dL*,
-                  // so the neutral half is the state layer now.
-                  on
-                    ? "border-sky/40 bg-sky/12 text-sky"
-                    : "border-border bg-card text-muted-foreground state-layer hover:text-foreground",
-                )}
-              >
-                {s.label}
-                {/* The one chip whose number means something beyond a
-                    suggestion: without this it is indistinguishable from
-                    the five fixed ones, and nothing else on the row says
-                    why this particular figure showed up. */}
-                {s.isMine && (
-                  <span className="text-[11px] font-normal normal-case tracking-normal opacity-70">
-                    admission no.
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* The amount field only exists once "Other" is chosen: an always-on
-            input beside four chips reads as a fifth, contradictory ask. */}
-        <AnimatePresence initial={false}>
-          {isOther && (
-            <m.div
-              key="custom"
-              initial={{ opacity: 0, y: -4 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -4 }}
-              transition={{ duration: 0.22, ease: EASE_OUT_SMOOTH }}
-              className="mt-[var(--space-s)]"
-            >
-              <label htmlFor="contribute-amount" className="sr-only">
-                Amount in rupees
-              </label>
-              <div className="relative w-full max-w-[13rem]">
-                <IndianRupee
-                  className="pointer-events-none absolute left-[var(--space-s)] top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
-                  aria-hidden
-                />
-                <input
-                  ref={customRef}
-                  id="contribute-amount"
-                  type="number"
-                  inputMode="numeric"
-                  min={MIN_RUPEES}
-                  step={1}
-                  placeholder="Amount"
-                  value={custom}
-                  onChange={(e) => setCustom(e.target.value)}
-                  className={cn(
-                    // --radius-input, the design system's 12px for inputs, not
-                    // the card's 16px: a box nested in another box never
-                    // repeats its container's radius.
-                    "h-12 w-full rounded-[var(--radius-input)] border border-border bg-card pl-[calc(var(--space-s)+1.5rem)] pr-[var(--space-s)]",
-                    "text-[15px] font-semibold tabular-nums text-foreground placeholder:font-normal placeholder:text-muted-foreground",
-                    // FIELD_FOCUS, imported, not a copy: the comment that used
-                    // to sit here said "same as ui/input.tsx" and had been
-                    // false for two weeks -- the owner picked this box at
-                    // random and it was the odd one out.
-                    "transition-[border-color] duration-150 ease-out",
-                    "hover:border-sky/40",
-                    FIELD_FOCUS,
-                  )}
-                />
-              </div>
-              {custom !== "" && !amountValid && (
-                <p className="mt-[var(--space-xs)] text-sm text-cinnamon" role="alert">
-                  Please enter a whole amount of {inr(MIN_RUPEES)} or more.
-                </p>
-              )}
-            </m.div>
-          )}
-        </AnimatePresence>
-
-
-      </div>
+      <AmountChoice contribution={contribution} />
 
       {/* The single primary action, in office blue */}
-      <button
-        type="button"
-        onClick={pay}
-        onPointerEnter={warm}
-        onFocus={warm}
-        disabled={!amountValid || working}
-        className={cn(
-          // gap-2, the same 8px the shared Button primitive puts between its
-          // own segments: a clearly visible word space. 0.35em was tried and
-          // the owner read it as no space at all. No middle dot: the dot is
-          // the app's separator for meta segments with no grammar between
-          // them, and a verb and its object are not that.
-          "inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-sky px-[var(--space-l)] text-[15px] font-semibold text-white sm:w-auto sm:self-start",
-          "shadow-[0_6px_16px_-12px_var(--color-sky)]",
-          "transition-[transform,filter,opacity] duration-150 ease-out",
-          "hover:brightness-[1.06] active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
-          "disabled:pointer-events-none disabled:opacity-50",
-        )}
-      >
-        {working ? (
-          <>
-            {/* The one place a spinner is right: the payer must not click
-                again, and the Razorpay modal takes a beat to appear. */}
-            <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-            Opening
-          </>
-        ) : (
-          <>
-            Contribute
-            {amountValid && <span className="tabular-nums">{inr(amount as number)}</span>}
-          </>
-        )}
-      </button>
+      <ContributeButton contribution={contribution} />
 
       <SecureNote />
     </div>
   );
 }
 
-function SecureNote() {
+/** The suggested amounts, and the field "Other" opens. `chipClassName` is for
+ *  a caller that sizes the chips to sit level with its own button. */
+export function AmountChoice({
+  contribution,
+  chipClassName,
+}: {
+  contribution: Contribution;
+  chipClassName?: string;
+}) {
+  const { suggestions, selectedAmount, setSelectedAmount, isOther, custom, setCustom, customRef, amountValid, warm } =
+    contribution;
+  return (
+    <div>
+      {/* No "PICK AN AMOUNT" eyebrow: the card is titled Contribute and the
+          row is five rupee figures, so a label above it was the same fact a
+          third time (owner's hierarchy complaint, 2026-08-18). */}
+      <div className="flex flex-wrap gap-[var(--space-xs)]">
+        {suggestions.map((s) => {
+          const on = s.amount === null ? isOther : s.amount === selectedAmount;
+          return (
+            <button
+              key={s.amount ?? "other"}
+              type="button"
+              aria-pressed={on}
+              onPointerEnter={warm}
+              onClick={() => {
+                setSelectedAmount(s.amount === null ? "other" : s.amount);
+                if (s.amount === null) requestAnimationFrame(() => customRef.current?.focus());
+              }}
+              className={cn(
+                "inline-flex items-center gap-[var(--space-xxs)] rounded-full border px-[var(--space-m)] py-[var(--space-s)] text-sm font-semibold tabular-nums",
+                "transition-[transform,background-color,border-color,color] duration-150 ease-out",
+                "active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+                // Selected keeps its sky wash (semantic). The idle chip
+                // hovered from bg-card to bg-mist, one rung and ~2 dL*,
+                // so the neutral half is the state layer now.
+                on
+                  ? "border-sky/40 bg-sky/12 text-sky"
+                  : "border-border bg-card text-muted-foreground state-layer hover:text-foreground",
+                chipClassName,
+              )}
+            >
+              {s.label}
+              {/* The one chip whose number means something beyond a
+                  suggestion: without this it is indistinguishable from
+                  the five fixed ones, and nothing else on the row says
+                  why this particular figure showed up. */}
+              {s.isMine && (
+                <span className="text-[11px] font-normal normal-case tracking-normal opacity-70">
+                  admission no.
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* The amount field only exists once "Other" is chosen: an always-on
+          input beside four chips reads as a fifth, contradictory ask. */}
+      <AnimatePresence initial={false}>
+        {isOther && (
+          <m.div
+            key="custom"
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: 0.22, ease: EASE_OUT_SMOOTH }}
+            className="mt-[var(--space-s)]"
+          >
+            <label htmlFor="contribute-amount" className="sr-only">
+              Amount in rupees
+            </label>
+            <div className="relative w-full max-w-[13rem]">
+              <IndianRupee
+                className="pointer-events-none absolute left-[var(--space-s)] top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+                aria-hidden
+              />
+              <input
+                ref={customRef}
+                id="contribute-amount"
+                type="number"
+                inputMode="numeric"
+                min={MIN_RUPEES}
+                step={1}
+                placeholder="Amount"
+                value={custom}
+                onChange={(e) => setCustom(e.target.value)}
+                className={cn(
+                  // --radius-input, the design system's 12px for inputs, not
+                  // the card's 16px: a box nested in another box never
+                  // repeats its container's radius.
+                  "h-12 w-full rounded-[var(--radius-input)] border border-border bg-card pl-[calc(var(--space-s)+1.5rem)] pr-[var(--space-s)]",
+                  "text-[15px] font-semibold tabular-nums text-foreground placeholder:font-normal placeholder:text-muted-foreground",
+                  // FIELD_FOCUS, imported, not a copy: the comment that used
+                  // to sit here said "same as ui/input.tsx" and had been
+                  // false for two weeks -- the owner picked this box at
+                  // random and it was the odd one out.
+                  "transition-[border-color] duration-150 ease-out",
+                  "hover:border-sky/40",
+                  FIELD_FOCUS,
+                )}
+              />
+            </div>
+            {custom !== "" && !amountValid && (
+              <p className="mt-[var(--space-xs)] text-sm text-cinnamon" role="alert">
+                Please enter a whole amount of {inr(MIN_RUPEES)} or more.
+              </p>
+            )}
+          </m.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+/** The button that opens the checkout. `className` is for a caller that stands
+ *  it somewhere other than the Support page's column. */
+export function ContributeButton({ contribution, className }: { contribution: Contribution; className?: string }) {
+  const { pay, warm, amountValid, working, amount } = contribution;
+  return (
+    <button
+      type="button"
+      onClick={pay}
+      onPointerEnter={warm}
+      onFocus={warm}
+      disabled={!amountValid || working}
+      className={cn(
+        // gap-2, the same 8px the shared Button primitive puts between its
+        // own segments: a clearly visible word space. 0.35em was tried and
+        // the owner read it as no space at all. No middle dot: the dot is
+        // the app's separator for meta segments with no grammar between
+        // them, and a verb and its object are not that.
+        "inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-sky px-[var(--space-l)] text-[15px] font-semibold text-white sm:w-auto sm:self-start",
+        "shadow-[0_6px_16px_-12px_var(--color-sky)]",
+        "transition-[transform,filter,opacity] duration-150 ease-out",
+        "hover:brightness-[1.06] active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+        "disabled:pointer-events-none disabled:opacity-50",
+        className,
+      )}
+    >
+      {working ? (
+        <>
+          {/* The one place a spinner is right: the payer must not click
+              again, and the Razorpay modal takes a beat to appear. */}
+          <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+          Opening
+        </>
+      ) : (
+        <>
+          Contribute
+          {amountValid && <span className="tabular-nums">{inr(amount as number)}</span>}
+        </>
+      )}
+    </button>
+  );
+}
+
+export function SecureNote() {
   return (
     <p className="flex items-start gap-[var(--space-xs)] text-xs leading-relaxed text-muted-foreground">
       <ShieldCheck className="mt-[0.15em] h-3.5 w-3.5 shrink-0" aria-hidden />

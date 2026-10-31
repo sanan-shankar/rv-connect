@@ -18,6 +18,7 @@
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { currentGuide, subscribeGuide } from "@/lib/guide-open";
+import { currentAnnouncement, subscribeAnnouncement } from "@/lib/announcement-open";
 import { CelebrationHoopoe, type CelebrationKind } from "./celebration-hoopoe";
 import { anotherHoopoeOnScreen } from "./one-hoopoe-guard";
 import { hasFired, markFired, readProgress, writeProgress } from "./one-shot";
@@ -167,8 +168,15 @@ export function CelebrationDetector({
      arriving with the first-run tour would fly across its first page
      (docs/spec/guide.md 5.4). */
   const guideOpen = useSyncExternalStore(subscribeGuide, () => currentGuide() !== null, () => false);
+  /* The announcement window over the Feed is the same kind of sheet, and
+     waits the same way (docs/spec/announcement.md). */
+  const announcementOpen = useSyncExternalStore(
+    subscribeAnnouncement,
+    () => currentAnnouncement() !== null,
+    () => false,
+  );
 
-  if (!playing || !canRender || guideOpen) return null;
+  if (!playing || !canRender || guideOpen || announcementOpen) return null;
 
   return (
     <CelebrationHoopoe

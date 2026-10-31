@@ -40,12 +40,16 @@ setup("authenticate as admin", async ({ page, baseURL }) => {
    * not seen it, and this is the owner's own account. Write the browser's
    * "tour ended" note (src/lib/guide-tour.ts) into the saved state rather
    * than closing the tour, which would stamp his real row and spend the one
-   * tour he has not seen yet. Every later check then photographs the Feed. */
+   * tour he has not seen yet. The announcement window is the same case
+   * (src/lib/announcement-open.ts), and opening it at all would stamp his
+   * row, so its note is written too. Every later check then photographs the
+   * Feed. */
   await page.evaluate(async () => {
     const session = await fetch("/api/auth/session").then((r) => r.json());
     const id = session?.user?.id;
     if (!id) throw new Error("signed in, but /api/auth/session has no user id");
     localStorage.setItem(`rv:moment:guideTour:${id}`, "fired");
+    localStorage.setItem(`rv:moment:announcement-2026-10-birds:${id}`, "fired");
   });
 
   await page.context().storageState({ path: AUTH_FILE });

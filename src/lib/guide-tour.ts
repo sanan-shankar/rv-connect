@@ -14,7 +14,9 @@
  *
  *  Both are moment keys in one-shot.ts, the app's one localStorage latch,
  *  per member, so a shared browser never hands one member's tour to
- *  another. The e2e sign-in writes TOUR_ENDED for its own account so the
+ *  another. A third, TOUR_ENDED_AT, is this tab's own (sessionStorage):
+ *  when the tour ended here, which the announcement window reads so it
+ *  never follows the tour in the same sitting (announcement-open.ts). The e2e sign-in writes TOUR_ENDED for its own account so the
  *  visual suite photographs the Feed, not the tour (e2e/auth.setup.ts).
  * ------------------------------------------------------------------ */
 
@@ -40,7 +42,27 @@ export function noteTourAt(userId: string, index: number): void {
   writeProgress(userId, TOUR_AT, index);
 }
 
+const TOUR_ENDED_AT = "rv:tour-ended-at";
+/** This tab's own clock reading of when the tour ended in it, or null. */
+let endedAt: number | null = null;
+
 export function noteTourEnded(userId: string): void {
   endedThisVisit = true;
   markFired(userId, TOUR_ENDED);
+  try {
+    sessionStorage.setItem(TOUR_ENDED_AT, String(Date.now()));
+  } catch {
+    // Refused storage (private modes): the in-memory flag below still holds for this page.
+  }
+  endedAt = Date.now();
+}
+
+export function tourEndedAt(): number | null {
+  if (endedAt !== null) return endedAt;
+  try {
+    const stamped = Number(sessionStorage.getItem(TOUR_ENDED_AT));
+    return stamped > 0 ? stamped : null;
+  } catch {
+    return null;
+  }
 }

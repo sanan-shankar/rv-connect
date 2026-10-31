@@ -50,7 +50,7 @@ test("every chapter in the chain has a component", () => {
 
 test("the Feed starts the tour only for an account that has not had it, and never on the demo", () => {
   const feed = decomment(read("src/app/(main)/feed/page.tsx"));
-  assert.match(feed, /select: \{ feedSeenAt: true, guideSeenAt: true \}/, "the Feed no longer reads the tour marker");
+  assert.match(feed, /select: \{ feedSeenAt: true, guideSeenAt: true\b/, "the Feed no longer reads the tour marker");
   assert.match(
     feed,
     /\{!IS_DEMO && marker && \(replayTour \|\| !marker\.guideSeenAt\) && \(\s*<GuideTourStart/,

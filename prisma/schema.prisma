@@ -203,6 +203,11 @@ model User {
   // same reason as feedSeenAt: "only once", not once per device. Null = not yet,
   // which is every row that existed when the tour shipped.
   guideSeenAt   DateTime?
+  // When this member's account saw the announcement window over the Feed
+  // (docs/spec/announcement.md). Once per account, not per device, like the
+  // tour. A timestamp so a later announcement can reuse it: the window is due
+  // while this is older than its own date (src/lib/announcement.ts).
+  announcementSeenAt DateTime?
   visits        Visit[]
   // Their answers at the trivia gate, stamped when they joined (trivia-log.ts).
   triviaEvents  TriviaEvent[]

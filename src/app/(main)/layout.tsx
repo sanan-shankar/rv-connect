@@ -17,6 +17,7 @@ import { PresenceBeacon } from "@/components/analytics/presence-beacon";
 import { IS_DEMO } from "@/lib/demo";
 import { DemoBar } from "@/components/demo/demo-bar";
 import { GuideLayer } from "@/components/guide/guide-layer";
+import { AnnouncementLayer } from "@/components/announcement/announcement-layer";
 
 export default async function MainLayout({
   children,
@@ -219,6 +220,9 @@ export default async function MainLayout({
         isTeacher={isTeacher}
         isAdmin={session.user.role === "admin"}
       />
+      {/* Renders nothing until the Feed opens the announcement window, which
+          never happens on the demo (docs/spec/announcement.md). */}
+      {!IS_DEMO && <AnnouncementLayer userId={session.user.id} />}
     </>
   );
 }

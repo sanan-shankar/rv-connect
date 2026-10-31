@@ -42,7 +42,7 @@
  *  same height (owner: "the panels all start at different heights").
  * ------------------------------------------------------------------ */
 
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { AnimatePresence, m } from "motion/react";
 import { BottomSheet, BOTTOM_SHEET_MS } from "@/components/ui/sheet";
@@ -50,23 +50,7 @@ import { EASE_OUT_SMOOTH } from "@/components/common/motion";
 import { closeGuide } from "@/lib/guide-open";
 import { cn } from "@/lib/utils";
 import type { GuidePhoto } from "./guide-photos";
-
-/** Where the sheet turns into photograph-and-column: BottomSheet's own lg. */
-const WIDE = "(min-width: 1024px)";
-function subscribeWide(onChange: () => void) {
-  const query = window.matchMedia(WIDE);
-  query.addEventListener("change", onChange);
-  return () => query.removeEventListener("change", onChange);
-}
-/** One photograph is rendered, not both behind a media query: an <img> in a
- *  display:none box still downloads, and each is a few hundred KB. */
-export function useWide() {
-  return useSyncExternalStore(
-    subscribeWide,
-    () => window.matchMedia(WIDE).matches,
-    () => false,
-  );
-}
+import { GUIDE_FOOTER, GUIDE_HEADER, GUIDE_WINDOW, useWide } from "./guide-window";
 
 /** The phone's collapsed bar: 12px, the X's 32px box, 12px. */
 const BAR_PX = 56;
@@ -219,10 +203,8 @@ export function GuideOverlay({
       /* Rendered at every width: the sheet shows it from lg up, and its image
          is lazy, so a phone, where it is display:none, never downloads it. */
       media={photo ? <PhotoPane slug={slug} photo={photo} /> : undefined}
-      /* The X's glyph is 20px in a 32px box, so the box stands 6px short of
-         the margin for the glyph's edge to meet the writing's. */
       headerClassName={cn(
-        "pt-5 pr-[18px] pb-4 pl-6 lg:pt-10 lg:pr-[42px] lg:pl-12",
+        GUIDE_HEADER,
         banner && [
           "max-lg:absolute max-lg:inset-x-0 max-lg:top-0 max-lg:z-10 max-lg:isolate max-lg:py-3",
           // The bar's paper, faded in rather than switched on.
@@ -236,15 +218,9 @@ export function GuideOverlay({
          window that floats clear of every edge, with the blur all round it
          (owner, 2026-09-27: "on laptop I think a floating window is better
          than this dialog from the bottom. [...] End it early and let the
-         bottom be blurred like the other sides"). It rises 16px and fades
-         in rather than travelling up from below the screen. */
-      className={cn(
-        "h-[calc(100svh-2rem)] max-h-none",
-        "lg:inset-y-0 lg:my-auto lg:h-[min(54rem,calc(100svh-4rem))] lg:max-w-[1120px] lg:overflow-hidden lg:rounded-2xl",
-        "lg:data-starting-style:translate-y-4 lg:data-starting-style:opacity-0 lg:data-ending-style:translate-y-4 lg:data-ending-style:opacity-0",
-        /* The cover's photograph runs under the sheet's rounded corners. */
-        "overflow-hidden",
-      )}
+         bottom be blurred like the other sides"). guide-window.ts has the
+         measurements, shared with the announcement window. */
+      className={GUIDE_WINDOW}
       overlay={
         <AnimatePresence onExitComplete={onUncovered}>
           {cover && (
@@ -260,7 +236,7 @@ export function GuideOverlay({
       }
       overlayed={Boolean(cover)}
       bodyClassName={cn("px-6 pt-0 lg:px-12 lg:pt-1", footer ? "pb-8" : "pb-14")}
-      footerClassName="px-6 lg:px-12"
+      footerClassName={GUIDE_FOOTER}
       bodyRef={body}
       footer={footer?.(close)}
     >

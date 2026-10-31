@@ -1,8 +1,8 @@
-## 2026-10-30 (announcement) — a window that opens once over the Feed: the new birds, the ask, and the site on a phone
+## 2026-10-30 (announcement) — a window that opens once over the Feed: the new birds and the ask
 
 The owner asked for a second once-only screen like the guide's tour: the expanded bird collection as
-rows of bright birds drifting in alternating directions, the site as an app on a phone, the
-headcount in passing, and an ask for support written from the heart, with the payment inline. Three
+rows of bright birds drifting in alternating directions, the headcount in passing, and an ask for
+support written from the heart, with the payment inline. Three
 rounds of his feedback shaped it (docs/spec/announcement.md section 1 restates each):
 - three titled pages became one;
 - a pastel-tiled wall, sorted by colour family, became the Support plate set moving (big round
@@ -15,18 +15,29 @@ rounds of his feedback shaped it (docs/spec/announcement.md section 1 restates e
 uses the Support page's own contribute form, split into parts so both surfaces share one payment
 path. The wall is 45 birds that each move on their own: the old wall slid three-copy strips, and
 Safari's tiling of strips that wide was the flicker he saw. Speeds were measured in the live window
-at 11 to 13px a second, alternating. On a laptop the phone row sits in the footer with a QR code to
-a new public page, `/app`, which shows each phone its own way to install.
+at 11 to 13px a second, alternating. A phone section (a row per device, a QR code, a public `/app`
+page) was built and then taken out at his word: the app gets its own announcement later, and the
+research for it is kept in `docs/planning/app-install/research.md`.
 
 **Once per account.** `User.announcementSeenAt` was added to both databases with his go-ahead, is
-carried by "Download your data", and is stamped when the window opens. The Feed offers the window
-only once the guide is done. A guide finished in this visit holds it to the next one, so a new
-joiner gets the guide first and this window when they next open the site. It never runs on the demo.
-An admin's `/feed?announcement=replay` (linked from the guide's admin line) replays it and records
-nothing.
+carried by "Download your data", and is stamped the moment the window opens, with two retries over
+ten seconds if the write does not land. The Feed offers the window only once the guide is done, and
+the window waits for the next sitting when the tour ended in this one. That rule reads the tour's own
+end time from this tab, on the browser's clock, because comparing the server's `guideSeenAt` with a
+phone's clock would show it straight after the tour on a phone running fast. It never runs on the
+demo (the action refuses, and so does the demo's Prisma guard). An admin's
+`/feed?announcement=replay`, linked from the guide's admin line, replays it and records nothing.
 
-Ten tests in `announcement.test.mjs` pin the rules, the wall's birds, and that the phone's four rows
-hold every bird the copy names.
+**Proved end to end** against the live dev server as the test account, restored afterwards:
+- an existing member sees it and is stamped at once;
+- a reload, a new tab and a fresh browser never show it again;
+- a new joiner gets the guide alone, the same tab stays shut after it, and the next tab shows the
+  window once;
+- a non-admin cannot replay it.
+
+The write-path review caught a stamp that would have been resent from the browser's note, which the
+visual suite plants on the owner's account. That would have spent his real showing; it is gone.
+`announcement.test.mjs` pins the rules and the wall's birds.
 
 
 ## 2026-10-30 (support) — the Support page says what donations are for, in the owner's words

@@ -16,6 +16,8 @@ import { CelebrationSignals } from "@/components/mascot/moments/celebration-sign
 import { batchTargetKey } from "@/lib/post-visibility-rule";
 import { IS_DEMO } from "@/lib/demo";
 import { GuideTourStart } from "@/components/guide/guide-tour-start";
+import { AnnouncementStart } from "@/components/announcement/announcement-start";
+import { announcementDue } from "@/lib/announcement";
 
 export const metadata: Metadata = {
   title: "Feed",
@@ -24,15 +26,17 @@ export const metadata: Metadata = {
 export default async function FeedPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; tour?: string }>;
+  searchParams: Promise<{ q?: string; tour?: string; announcement?: string }>;
 }) {
   const session = await auth();
   if (!session?.user) return null;
 
-  const { q, tour } = await searchParams;
+  const { q, tour, announcement } = await searchParams;
   /* The admin's replay of the first-run tour (the guide's own link, shown
      to admins only). Anyone else sending ?tour=replay gets the Feed. */
   const replayTour = tour === "replay" && session.user.role === "admin";
+  /* And of the announcement window, by the same rule. */
+  const replayAnnouncement = announcement === "replay" && session.user.role === "admin";
 
   /* The header pill submits here, so this is where a feed search becomes
      visible. after(), not the old `void`: the feed still renders at the same
@@ -55,9 +59,22 @@ export default async function FeedPage({
        second round trip (docs/spec/guide.md 5.3). */
     prisma.user.findUnique({
       where: { id: session.user.id },
-      select: { feedSeenAt: true, guideSeenAt: true },
+      select: { feedSeenAt: true, guideSeenAt: true, admissionNumber: true, announcementSeenAt: true },
     }),
   ]);
+
+  /* The announcement window (docs/spec/announcement.md section 2): once per
+     account, only after the guide (the window itself waits for the next visit
+     when the guide ended in this one), never on the demo. Its ask says how
+     many members there are, so that is counted, but only on the visit that
+     shows it. */
+  const announce =
+    !IS_DEMO &&
+    marker !== null &&
+    (replayAnnouncement || (marker.guideSeenAt !== null && announcementDue(marker)));
+  const headcount = announce
+    ? await prisma.user.count({ where: { isBlocked: false, deletionRequestedAt: null } })
+    : 0;
 
   const you = {
     id: session.user.id,
@@ -82,6 +99,14 @@ export default async function FeedPage({
           replay={replayTour}
           userId={session.user.id}
           isTeacher={session.user.accountType === "teacher" || session.user.accountType === "ex_teacher"}
+        />
+      )}
+      {announce && (
+        <AnnouncementStart
+          replay={replayAnnouncement}
+          userId={session.user.id}
+          headcount={headcount}
+          admissionNumber={marker?.admissionNumber ?? null}
         />
       )}
       {/* The New post badge in the header and the composer in the column are

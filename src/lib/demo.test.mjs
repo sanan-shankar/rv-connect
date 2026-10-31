@@ -133,6 +133,16 @@ test("a visitor cannot make themselves an admin", () => {
   );
 });
 
+test("a visitor cannot stamp the announcement window as seen", () => {
+  assert.equal(
+    demoWriteAllowed("User", "updateMany", {
+      where: { id: DEMO_USER_ID, OR: [{ announcementSeenAt: null }] },
+      data: { announcementSeenAt: new Date() },
+    }),
+    false,
+  );
+});
+
 test("a visitor cannot launder their own standing or unblock themselves", () => {
   for (const data of [
     { verifyState: "verified" },

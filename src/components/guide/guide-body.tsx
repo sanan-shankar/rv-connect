@@ -38,6 +38,9 @@ import { GuideOverlay } from "./guide-overlay";
 import { GUIDE_PHOTOS } from "./guide-photos";
 import { DoorHint } from "./tap";
 
+const ADMIN_LINK =
+  "rounded-sm font-medium text-leaf underline decoration-leaf/40 underline-offset-[3px] outline-none transition-colors duration-150 hover:decoration-leaf active:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-leaf";
+
 export function GuideBody({
   slug,
   title,
@@ -132,11 +135,15 @@ export function GuideBody({
            Only the tour is replayed; his own "seen" stamp is left alone. */
         <p className="mt-10 text-sm text-muted-foreground">
           Only admins see this:{" "}
-          <a
-            href="/feed?tour=replay"
-            className="rounded-sm font-medium text-leaf underline decoration-leaf/40 underline-offset-[3px] outline-none transition-colors duration-150 hover:decoration-leaf active:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-leaf"
-          >
+          <a href="/feed?tour=replay" className={ADMIN_LINK}>
             play the first-run tour again
+          </a>
+          {/* The announcement window has the same door, for the same reason
+              (docs/spec/announcement.md): it opens once per account, and the
+              owner looks at it many times. Its replay records nothing. */}
+          , or{" "}
+          <a href="/feed?announcement=replay" className={ADMIN_LINK}>
+            open the announcement window
           </a>
           .
         </p>

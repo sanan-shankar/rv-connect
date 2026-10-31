@@ -74,6 +74,7 @@ export const EXPORT_PROFILE = {
   lastSeenAt: true,
   feedSeenAt: true,
   guideSeenAt: true,
+  announcementSeenAt: true,
   createdAt: true,
   updatedAt: true,
 } as const satisfies Prisma.UserSelect;
