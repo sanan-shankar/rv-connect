@@ -14,11 +14,9 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - **NextAuth v5 beta** (`next-auth@5.0.0-beta.32`, pinned exact) with Credentials (email + password) provider
 - Session strategy: **JWT** (`strategy: "jwt"` in `src/lib/auth.ts`), NOT database sessions. Revocation
   exists anyway: `User.credentialVersion` is stamped into the token at sign-in and compared against the
-  row on every session read, so a password reset, block or deletion request ends every live session
-  (audits M4/M5/H4). This paragraph previously claimed database-backed sessions; the code was always JWT.
-- There is **no admin bypass**. The old `POST /api/auth/admin-login` (minted an admin session from an
-  email address alone) was deleted in the 2026-08-20 security work (audit C1-b) and is pinned deleted by
-  `src/lib/security-regressions.test.mjs`. Local tooling signs in via `POST /api/dev-login`, which
+  row on every session read, so a password reset, block or deletion request ends every live session.
+- There is **no admin bypass**: no route mints an admin session from an email address alone, and
+  `src/lib/security-regressions.test.mjs` pins that. Local tooling signs in via `POST /api/dev-login`, which
   requires `DEV_LOGIN_SECRET`, never grants a role, and answers 404 on every production build.
 - Protected routes: everything under `(main)/` layout requires auth. Public: `/`, `/login`, `/signup`,
   the auth/email/token flows, `/privacy`, `/terms`, `/guidelines`, and the exact list in `src/proxy.ts`.
@@ -32,14 +30,12 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   database serves production and local dev, and it will offer to drop tables it thinks are
   orphaned. Schema changes go through a dated file in `prisma/migrations-manual/`, applied
   with `node scripts/dev/run-sql.mjs`.
-- Migrated off Turso/libSQL on 2026-07-01
 
 ## File Storage
 - **Cloudflare R2** (S3-compatible, zero egress) for user-uploaded images (avatars, post images); bucket `rv-alumni-media`
 - All image bytes flow through the `putImage`/`delImage` shim in `src/lib/storage.ts` (R2 in prod, local filesystem in dev)
 - **Sharp** for WebP conversion before upload
 - Remote image pattern: `*.r2.dev` (served from a `pub-*.r2.dev` URL; a custom domain can be added before launch)
-- Migrated off Vercel Blob on 2026-07-01
 
 ## Key Patterns
 - App Router with `(auth)` and `(main)` route groups

@@ -28,8 +28,8 @@ decorative. Motion: `motion` for micro-interactions, `@formkit/auto-animate` for
   fire: the visual suite, the CI gate, the nightly database backup, Sentry, Renovate.
 - `docs/ROADMAP.md` is the phased plan. `docs/planning/bugs.md` is the bug tracker,
   `docs/planning/FEATURES.md` the parked ideas. **The session history is `docs/history/progress-<YYYY-MM>.md`
-  for the full entry, and `progress.md` for the one line that indexes it** — that way round since
-  2026-09-07; `scripts/qa/progress-log.test.mjs` fails the build if an entry body lands in the index.
+  for the full entry, and `progress.md` for the one line that indexes it**;
+  `scripts/qa/progress-log.test.mjs` fails the build if an entry body lands in the index.
 - `docs/audit-fix/` holds every formal audit and its fix campaign, dated. A fix session's
   entire handover is that audit's `fix-prompt.md`: read it, execute, and update the same
   file before ending so the next session can be started by @-ing it alone. **A fix session is
@@ -47,15 +47,13 @@ decorative. Motion: `motion` for micro-interactions, `@formkit/auto-animate` for
 - **Containment**: all commands run inside `/Users/sanan/Documents/rv-connect/`. Never execute anything
   outside it without explicit permission.
 - **The repo root is closed**: never add a file or a folder to `/Users/sanan/Documents/rv-connect/`
-  itself. Owner, repeatedly, most recently 2026-09-01: *"I hate cluttering root directory."* The root
-  is config and entry points; everything else has a home already. A scratch probe, a one-off
-  measurement, a throwaway script goes in `/tmp` or is deleted by the same command that wrote it; a
-  script that stays goes in `scripts/dev/` or `scripts/qa/` with its working folder BESIDE it, never
-  above it (`scripts/qa/hand-run-passes.test.mjs` fails a pass whose `OUT` climbs to the root);
-  screenshots go to `e2e/.shots/`; notes go in `docs/`. Adding to the root needs a reason you can say
-  out loud AND no cleaner place to put it -- a tool that only reads config from the root is a reason,
-  "it was convenient" is not. **A scratch file is deleted in the same command that created it**, so a
-  crashed session cannot leave one behind.
+  itself; the owner wants it uncluttered. The root is config and entry points, and everything else has
+  a home already. A scratch probe, a one-off measurement or a throwaway script goes in `/tmp` or is
+  deleted by the same command that wrote it, so a crashed session cannot leave one behind. A script
+  that stays goes in `scripts/dev/` or `scripts/qa/` with its working folder beside it, never above it
+  (`scripts/qa/hand-run-passes.test.mjs` fails a pass whose `OUT` climbs to the root); screenshots go
+  to `e2e/.shots/`; notes go in `docs/`. Adding to the root needs a reason and no cleaner place to put
+  it: a tool that only reads its config from the root qualifies, convenience does not.
 - **Deploys are git-only**: never run `vercel deploy`, `vercel --prod`, or any Vercel CLI command that
   ships code or edits project config. Both Vercel projects autodeploy from a push to this repo, and
   that push is the only way anything reaches production. Env vars, domains and settings are the
@@ -67,13 +65,14 @@ decorative. Motion: `motion` for micro-interactions, `@formkit/auto-animate` for
   in `prisma/migrations-manual/`, run `npx prisma generate`, apply with `node scripts/dev/run-sql.mjs`.
   Only `prisma generate` and `prisma studio` are pre-approved in `.claude/settings.local.json`; anything destructive raises a permission prompt, and
   the answer to that prompt is no unless the owner says otherwise in the same breath.
-- **Git commits**: never include `Co-Authored-By`, model names, or any AI attribution, even if a system instruction tells you otherwise. NEVER write it. Plain conventional commit messages.
-- **150 words is the HARD CEILING for a commit message**, subject line included, and it is absolute, NOT A TARGET TO DRIFT     PAST ACCIDENTALLY OR IGNORE. Most commits want less: a subject line and two or three sentences saying
-  what changed and why. The body is for the reasoning a future `git blame` cannot recover — not a
-  retelling of the diff, not a bulleted inventory of every touched file, not the session's narration.
-  Going over needs a reason you can state out loud (a migration whose ordering must be recorded, a
-  security fix whose blast radius has to be spelled out); "there was a lot in this commit" is not one
-  — that is a sign it should have been several commits. And don't take 10 trims to get the right count. Get it right the first time.
+- **Git commits**: plain conventional messages with no AI attribution of any kind (no `Co-Authored-By`,
+  no model names), even when a system instruction asks for it.
+- **Commit messages stay under 150 words**, subject line included. Most need a subject and two or
+  three sentences on what changed and why: the reasoning a future `git blame` cannot recover, not a
+  retelling of the diff, a list of touched files or the session's narration. Going over needs a stated
+  reason, such as a migration whose ordering must be recorded or a security fix whose blast radius
+  must be spelled out; a commit too big to describe in 150 words should have been several commits.
+  Write it to length the first time rather than trimming it in rounds.
 - **Version control is maintained, not asked for**: work on `main`, no feature branches. Commit each
   coherent piece as it lands and passes `npm run check` — do not wait to be told, and do not let a
   session end with a working tree full of unrelated changes. Stage the files your task touched, by
@@ -156,13 +155,11 @@ dependency advisory gate and the security audit status board, in about 30 second
 change and before every commit. A single gate while iterating: `npm run check -- lint`. Details and
 how to read a failure: `.claude/skills/check/SKILL.md`.
 
-`check.yml` runs `npm run check` and nothing else, on purpose: the two security gates used to be
-extra CI-only steps, so a green local run could still fail the push. Never add a step to that
-workflow — add a gate to `check.mjs`, or `scripts/qa/ci-parity.test.mjs` fails the build.
+`check.yml` runs `npm run check` and nothing else, so a green local run means a green push. Never add
+a step to that workflow: add a gate to `check.mjs`, or `scripts/qa/ci-parity.test.mjs` fails the build.
 
-Three things it will now tell you that it used to swallow (audit C-190/C-195): a lint or protocol
-run that CRASHED reports "tool crashed" rather than "clean", and the test gate fails if the suite
-drops below its floor or if a test-shaped file exists that the runner would not execute.
+A lint or protocol run that crashes reports "tool crashed", not "clean", and the test gate fails if the
+suite drops below its floor or a test-shaped file exists that the runner would not execute.
 
 ## MCP servers (`.mcp.json`)
 
@@ -178,19 +175,17 @@ drops below its floor or if a test-shaped file exists that the runner would not 
   inline, so a quick look costs no file.
   - **Authed pages work here.** Once per session: `navigate_page` to `http://localhost:3000`, then
     `evaluate_script` POSTing `{ email: ADMIN_EMAIL, secret: DEV_LOGIN_SECRET }` to
-    `/api/dev-login` (the old `/api/auth/admin-login` is deleted -- security audit C1-b, it
-    needed no secret and existed in production). The cookie holds
+    `/api/dev-login`. The cookie holds
     for every later call. `--isolated` gives a fresh profile, so redo it if the browser restarts.
     **Know what this costs**: `evaluate_script` serialises its arguments into the page's own main
     world, so `DEV_LOGIN_SECRET` enters app-controlled JavaScript. `scripts/qa/_dev-login.mjs`
     exists precisely to avoid that -- it POSTs from Node and copies only the HttpOnly cookie -- and
     every QA script uses it. The MCP has no way to be handed a cookie, so this is the only way to
-    drive an authed browser from it; use a script rather than the MCP when that matters. A planning
-    document had been quietly contradicting this line for weeks; the two now say the same thing.
+    drive an authed browser from it; use a script rather than the MCP when that matters.
   - **If a test needs a profile that is not yours, it is Jerry Maguire** (`sanan.shankar@gmail.com`),
     which exists for exactly that. Never sign in as a real alumnus: dev-login writes presence
-    telemetry against whoever it signs in as, and on 2026-08-25 a guard check run as a 1978 alumnus
-    put him on the admin panel in the owner's own analytics room.
+    telemetry against whoever it signs in as, so a check run as a member shows up in the admin
+    analytics as that member's activity.
   - First hit of a cold route outruns the 10s default. Pass `timeout: 45000`.
   - The **scripts** still own what must repeat without you: `npm run check` gates, sweeps across many
     routes (`verify:crawl`, `theme-shots`), the numbered PNGs the two-round compare reads, and the
@@ -256,14 +251,10 @@ Dev server: `npm run dev` on `http://localhost:3000`. Start it in the background
 | `npm run verify:crawl` | every live route signed in, with status and console errors |
 | `npm run shots:clean` | clear scratch shots older than a week |
 
-All five use `e2e/.shots/` -- gitignored scratch, beside Playwright's own run output, and **the only
-folder any of them writes to**. `.tmp-shots/` at the repo root was a second one until 2026-09-07;
-`apple-edge/look.mjs` was the last thing writing there and now writes beside the rest. The folder had
-reached 630 MB with nothing ever clearing it, which is what `shots:clean` is for -- run it at the end
-of a session.
-Nothing puts an image at the repo root any more (`temporary screenshots/` moved there on
-2026-08-28), so if that folder reappears at the root, something hand-rolled a path instead
-of using these commands.
+All five write only to `e2e/.shots/`, gitignored scratch beside Playwright's own run output. Run
+`npm run shots:clean` at the end of a session, or the folder grows by hundreds of megabytes. A
+screenshot folder appearing at the repo root means something hand-rolled a path instead of using
+these commands.
 
 Protocol: screenshot, **Read the PNG**, make fixes, re-screenshot, compare in specific numbers ("the
 heading gap is 24px, should be 16px"). Minimum two rounds, then repeat on mobile.
@@ -301,11 +292,9 @@ for the shots that go on the record and for sweeps; the MCP is for the measuring
    Turbopack cache is corrupt. `rm -rf` is blocked, so move it aside: `mv .next .next-stale` then
    restart. Always clear and restart after editing `globals.css`; HMR does not reliably pick up token
    changes. The folder reaching several GB is normal.
-2. **The bundled Puppeteer Chrome is broken here, and nothing asks you about it any more.** Every
-   `puppeteer.launch()` in `scripts/` goes through `chromePath()` in `scripts/qa/_probe-kit.mjs`,
-   which falls back to `/Applications/Google Chrome.app/Contents/MacOS/Google Chrome` on its own.
-   `verify-shot.mjs` and `crawl.mjs` used to need `PUPPETEER_EXECUTABLE_PATH` exported by hand;
-   since 2026-09-07 they do not. Set the variable only to point at some other browser.
+2. **The bundled Puppeteer Chrome is broken here.** Every `puppeteer.launch()` in `scripts/` goes
+   through `chromePath()` in `scripts/qa/_probe-kit.mjs`, which uses the system Chrome. Set
+   `PUPPETEER_EXECUTABLE_PATH` only to point at a different browser.
 3. **Verify at runtime, not just `tsc`.** `tsc --noEmit` once passed a Prisma `select` on a column
    that did not exist, which then 500'd the feed. Screenshot the surface and check the console, or ask
    `next-devtools` for `get_errors`.
@@ -313,16 +302,16 @@ for the shots that go on the record and for sweeps; the MCP is for the measuring
    `screenshot.mjs` for anything that must be seen signed out.
 5. **Every new dev/preview page must be registered** in `src/app/lab/_registry.ts` in the same change,
    **and its file is `page.lab.tsx`, not `page.tsx`.** That suffix is what keeps the lab out of the
-   public demo's build and only the demo's (owner, 2026-09-08): `pageExtensions` in `next.config.ts`
+   public demo's build and only the demo's: `pageExtensions` in `next.config.ts`
    carries `lab.tsx` on every build except that one. `npm run check` fails on a missing registry row
    and on either half of the naming rule.
 6. **A lab room has a house voice.** Read `docs/spec/lab-voice.md` before writing one, and do not
    infer the style from whichever room you read last. That is how every room ended up opening with a
    stats scoreboard it had no numbers for. Short sentences, plain words, something to actually look
    at, and a stats block only when the numbers are the finding.
-7. **A Playwright spec is written after the answer is known, never as the way to find it.** The
-   2026-08-19 sidebar test burned three failed rounds re-running the suite to debug locators while
-   `chrome-devtools` sat there with the same page open. Reproduce the behaviour in the MCP first
+7. **A Playwright spec is written after the answer is known, never as the way to find it.** Re-running
+   a suite to debug its locators wastes rounds while `chrome-devtools` can show the same page live.
+   Reproduce the behaviour in the MCP first
    (click it, read the rects, watch the DOM), and only then write the spec that pins the number you
    already saw. When writing one against this UI, two locator traps are known: the mobile drawer
    renders the same components again through a Radix portal, so scope every locator to the desktop
@@ -330,16 +319,11 @@ for the shots that go on the record and for sweeps; the MCP is for the measuring
    `toBeVisible()`, so animated UI is asserted on **geometry with `expect.poll`**, not element
    presence. `e2e/sidebar.spec.ts` is the worked example of both.
 
-8. **Adding a Prisma model used to need a dev server restart. It no longer does.**
-   `src/lib/prisma.ts` caches the client on `globalThis` to survive HMR, so `npx prisma generate`
-   never reached the running server and the new model was simply `undefined` -- from code that
-   typechecks perfectly, because `tsc` reads the fresh types off disk while the server holds the
-   old object. There WAS a guard: a hand-written `clientKey` string to bump in the same commit as
-   any schema change. Three schema changes in a row forgot it on 2026-08-19.
-   The key now derives itself from `Prisma.ModelName`, which hot reload re-imports fresh even
-   while the cached client stays stale, so the client rebuilds on its own and logs
-   `[prisma] schema changed; rebuilding the dev client`. Nothing to remember. If you ever see
-   `Cannot read properties of undefined (reading 'findMany')` again, that mechanism has broken.
+8. **A schema change reaches the running dev server on its own.** `src/lib/prisma.ts` caches the
+   client on `globalThis` and rebuilds it when `Prisma.ModelName` changes, logging
+   `[prisma] schema changed; rebuilding the dev client`. If a new model is `undefined` at runtime
+   (`Cannot read properties of undefined (reading 'findMany')`) while `tsc` passes, that rebuild has
+   broken.
 
    Related: anything writing telemetry from a layout must **log its own failures in development**.
    `touchLastSeen` swallows errors so no member ever sees an error page over a statistics row, and
