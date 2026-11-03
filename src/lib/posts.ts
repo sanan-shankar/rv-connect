@@ -8,7 +8,7 @@ import {
   type LinkCardView,
   type PreviewRow,
 } from "@/lib/link-preview-core";
-import { scheduleLinkPreviews } from "@/lib/link-preview";
+import { scheduleLinkPreviewsByWriter } from "@/lib/link-preview";
 
 /**
  * Shared Post query fragments.
@@ -150,8 +150,8 @@ export function audienceWhere(
  * preview attached as `links`. The same on-read trigger `catchups-edition-
  * view.ts` uses for an Edition: a link with no preview row, or one whose
  * failed resolve is more than a day old, is handed to `scheduleLinkPreviews`
- * (after() -- never awaited) and prints as an ordinary link on THIS render;
- * the next one has the card.
+ * on its author's behalf (after() -- never awaited) and prints as an ordinary
+ * link on THIS render; the next one has the card.
  *
  * ONE extra query, whatever `rows.length` is: every pasted link across the
  * whole page is collected first, then read back in a single
@@ -168,16 +168,23 @@ export function audienceWhere(
  * content plus the resolved cards, and cutting only for DISPLAY, keeps editing
  * safe without a second fetcher.
  */
-export async function withLinkCards<T extends { id: string; content: string }>(
+export async function withLinkCards<T extends { id: string; content: string; authorId: string }>(
   rows: T[]
 ): Promise<(T & { links: LinkCardView[] })[]> {
   const pastedByPost = new Map<string, string[]>();
   const allUrls = new Set<string>();
+  /* Whose day a missing card is fetched on: the author of the first post on
+     the page that pastes it, never the reader (bug audit 3, T2b-02;
+     link-preview.ts, scheduleLinkPreviewsByWriter, says why). */
+  const writerOf = new Map<string, string>();
   for (const row of rows) {
     const urls = findLinks(row.content).flatMap((f) => (f.url ? [f.url] : []));
     if (urls.length === 0) continue;
     pastedByPost.set(row.id, urls);
-    for (const url of urls) allUrls.add(url);
+    for (const url of urls) {
+      allUrls.add(url);
+      if (!writerOf.has(url)) writerOf.set(url, row.authorId);
+    }
   }
   const pasted = [...allUrls];
   const previewRows: PreviewRow[] = pasted.length
@@ -188,7 +195,7 @@ export async function withLinkCards<T extends { id: string; content: string }>(
     : [];
   const previewsByUrl = new Map(previewRows.map((r) => [r.url, r]));
   const now = new Date();
-  scheduleLinkPreviews(pasted.filter((url) => needsResolve(previewsByUrl.get(url), now)));
+  scheduleLinkPreviewsByWriter(pasted.filter((url) => needsResolve(previewsByUrl.get(url), now)), writerOf);
 
   const cardsByUrl = new Map<string, LinkCardView>();
   for (const row of previewRows) {

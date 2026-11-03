@@ -377,6 +377,24 @@ function ownKey(key: string): string | null {
 }
 
 /**
+ * The object key behind a link preview's stored thumbnail, and nothing else
+ * (bug audit 3, T2b-02). `link-previews/` stays outside KNOWN_ROOTS, so
+ * keyForUrl and delImage refuse it, and that fence is right for every path a
+ * member's URL can reach. The one path that deletes a thumbnail is the
+ * retention sweep's, which holds only the URL it read off a `LinkPreview` row
+ * it is about to delete, and this is its only way to a key: a key under
+ * `link-previews/`, or null. It can never name an upload, an avatar, a
+ * Collection photograph or anything else.
+ */
+export function linkPreviewKeyForUrl(url: string | null | undefined): string | null {
+  if (!url) return null;
+  const base = publicBaseFor(url);
+  const key = base ? url.slice(base.length + 1) : null;
+  if (!key || key.split("/").includes("..") || !key.startsWith("link-previews/")) return null;
+  return key;
+}
+
+/**
  * Whether `url` is one of this bucket's objects that THIS process cannot
  * reach: it holds no R2 credentials, so nothing it does can delete the bytes.
  * A laptop set up the way AGENTS.md describes ("local filesystem in dev"),

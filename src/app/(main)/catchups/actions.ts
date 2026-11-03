@@ -1960,7 +1960,7 @@ export async function submitEntry(input: {
        (build phase 10, spec 3.8), so its card is ready by the morning the
        Edition publishes rather than on the second page view after. Never
        awaited: the save must not wait on somebody else's website. */
-    if (bodyValue) scheduleLinkPreviews(findLinks(bodyValue).map((f) => f.raw));
+    if (bodyValue) scheduleLinkPreviews(findLinks(bodyValue).map((f) => f.raw), session.user.id);
 
     revalidatePath(`/catchups/${edition.catchupId}`);
     /* The new version, so the surface that just saved can hold it and keep

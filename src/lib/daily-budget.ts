@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { upstashRedis, reportLimiterFailure } from "@/lib/rate-limit";
 import { IS_DEMO } from "@/lib/demo";
 import { reportSwallowed } from "@/lib/report-error";
+import { createSpentMemo } from "@/lib/spent-memo";
 
 /* ------------------------------------------------------------------ *
  *  What one account, or one address, may spend in a day (bug audit 3,
@@ -97,6 +98,24 @@ const BUDGETS = {
     outage: "closed",
     sentence: null,
   },
+  /** Links the server fetches on a member's behalf per day (bug audit 3,
+   *  T2b-02): a page of up to 512 KB, an image of up to 5 MB, a decode and
+   *  one permanent object each. Counted on NEW urls only, ones with no
+   *  LinkPreview row yet, so re-saving a letter, or every reader of it,
+   *  costs nothing; charged to whoever wrote the link, at every door that
+   *  schedules one (link-preview.ts). 40 is four link-heavy letters a day:
+   *  eight previews exist after two months, and the busiest body holds two.
+   *  Silent: the link prints as an ordinary link until a later save or view
+   *  finds room. Closed, because a preview is decoration: an Upstash outage
+   *  costs a missing card, where open would hand a flood a free fetcher. */
+  previewFetches: {
+    per: "account",
+    limit: 40,
+    window: "24 h",
+    store: "redis",
+    outage: "closed",
+    sentence: null,
+  },
 } as const satisfies Record<string, BudgetSpec>;
 
 export type BudgetName = keyof typeof BUDGETS;
@@ -110,6 +129,13 @@ function spec(name: BudgetName): BudgetSpec {
 /* ------------------------------------------------------------ plumbing */
 
 const limiters = new Map<string, Ratelimit>();
+
+/* A subject this instance has already seen with nothing left answers from
+   memory until its window turns, at most fifteen minutes (spent-memo.ts, the
+   sign-in door's memo): a link that cannot be fetched must not cost an
+   Upstash command on every page view that shows it. */
+const spent = createSpentMemo();
+const memoKey = (name: BudgetName, subject: string) => `${name}\0${subject}`;
 
 function windowFor(name: BudgetName, limit: number): Ratelimit | null {
   const r = upstashRedis();
@@ -194,8 +220,10 @@ export async function spendBudget(
   if (IS_DEMO) return { ok: true };
   const limiter = windowFor(name, s.limit);
   if (!limiter) return onOutage(name, s);
+  if (spent.known(memoKey(name, subject))) return refusal(name, s);
   try {
-    const { success } = await limiter.limit(subject, { rate: cost });
+    const { success, remaining, reset } = await limiter.limit(subject, { rate: cost });
+    if (!success || remaining <= 0) spent.remember(memoKey(name, subject), reset);
     if (success) return { ok: true };
   } catch (err) {
     reportLimiterFailure(name, "budget", err, s.outage === "open");
@@ -220,8 +248,11 @@ export async function budgetLeft(name: BudgetName, subject: string): Promise<num
   if (IS_DEMO) return s.limit;
   const limiter = windowFor(name, s.limit);
   if (!limiter) return s.outage === "open" ? s.limit : 0;
+  if (spent.known(memoKey(name, subject))) return 0;
   try {
-    return Math.max(0, (await limiter.getRemaining(subject)).remaining);
+    const { remaining, reset } = await limiter.getRemaining(subject);
+    if (remaining <= 0) spent.remember(memoKey(name, subject), reset);
+    return Math.max(0, remaining);
   } catch (err) {
     reportLimiterFailure(name, "budget-read", err, s.outage === "open");
     return s.outage === "open" ? s.limit : 0;

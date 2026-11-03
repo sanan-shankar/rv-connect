@@ -4,6 +4,7 @@ import { purgeUserAccount, drainPendingImagePurges } from "./account-purge";
 import { deletionDueBefore } from "./purge-rule";
 import { reportSwallowed } from "./report-error";
 import { valleyDayKey } from "./utils";
+import { sweepStaleLinkPreviews } from "./link-preview-retention";
 
 /**
  * The retention sweep (audit M34, GDPR Art. 5(1)(e)): personal data stops
@@ -102,6 +103,17 @@ const KEEP_DAYS = {
 } as const;
 
 /**
+ * LinkPreview, and its thumbnail: 90 days after its fetch, once no post,
+ * letter or Catch-up answer holds its link (bug audit 3, T2b-02). Until this
+ * nothing ever deleted one. Not in KEEP_DAYS, whose every window is personal
+ * data with its row on the privacy page: a preview is a page's title and
+ * picture, shared by everyone who pasted it, and names nobody. 90, the
+ * telemetry window, so a letter being rewritten never loses its card in the
+ * middle; link-preview-retention.ts decides "holds" exactly.
+ */
+const PREVIEW_KEEP_DAYS = 90;
+
+/**
  * How many notifications one member keeps, regardless of age.
  *
  * The age cutoff above is the real bound on this table; this is the second
@@ -172,6 +184,10 @@ export type SweepResult = {
   visits: number;
   searches: number;
   triviaEvents: number;
+  /** Link previews no body holds, gone with their thumbnails. */
+  linkPreviews: number;
+  /** ...and ones whose thumbnail the bucket refused, kept to try again. */
+  linkPreviewsPending: number;
   accountsPurged: number;
   /** Accounts that were due tonight and are still here, because the member
    *  signed in (which cancels the request) before their turn came round. */
@@ -290,6 +306,16 @@ export async function runRetentionSweep(): Promise<SweepResult> {
     `,
   );
 
+  /* Link previews nobody's writing shows any more, and their thumbnails
+     (T2b-02). Before the purge, which is the night's long step: this one is
+     a handful of rows. */
+  let linkPreviewsPending = 0;
+  const linkPreviews = await step("linkPreviews", async () => {
+    const swept = await sweepStaleLinkPreviews({ keepDays: PREVIEW_KEEP_DAYS });
+    linkPreviewsPending = swept.stillPending;
+    return swept.removed;
+  });
+
   /* The "Recently deleted" Catch-up sweep WAS here (bug audit B-063): the
      step that, on the thirtieth night, took the `GroupMember` row of anyone
      who had binned their own copy. Deleting became LEAVING in build phase 5
@@ -394,6 +420,8 @@ export async function runRetentionSweep(): Promise<SweepResult> {
     adminMessages,
     ...cut,
     notificationsCapped,
+    linkPreviews,
+    linkPreviewsPending,
     accountsPurged,
     accountsSpared,
     accountsDeferred,

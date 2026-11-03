@@ -301,6 +301,7 @@ test("nothing new reads an answer without being looked at for a sealed Edition",
     ["src/app/api/account/export/route.ts", "a member's own words, argued in the file"],
     ["src/app/(main)/admin/people/actions.ts", "merging two accounts, no reading"],
     ["src/lib/demo-seed/seed.ts", "the demo's nightly reset, deleting its own rows"],
+    ["src/lib/link-preview-retention.ts", "whether any answer, a sealed one included, still holds a link, so a capsule's cards outlive the seal; shows nothing to anyone"],
   ]);
   const readers = walk(resolve(ROOT, "src"), { skip: ["generated", "node_modules", "lab"] })
     .filter((f) => /\.tsx?$/.test(f) && /catchupEntry\.(findMany|findFirst|findUnique|deleteMany|updateMany)\(/.test(decomment(read(f))))

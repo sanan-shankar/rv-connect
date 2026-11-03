@@ -149,7 +149,7 @@ export default async function LetterPage({
      each one's place, so the page reserves the right space before a byte of
      them arrives. The three need nothing from each other. */
   const [[withLinks], counts, photos] = await Promise.all([
-    withLinkCards([{ id: letter.id, content: letter.content }]),
+    withLinkCards([{ id: letter.id, content: letter.content, authorId: letter.authorId }]),
     postCounts([letter]),
     photoFactsFor(images),
   ]);

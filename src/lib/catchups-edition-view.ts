@@ -53,7 +53,7 @@ import {
   type LinkCardView,
   type PreviewRow,
 } from "@/lib/link-preview-core";
-import { scheduleLinkPreviews } from "@/lib/link-preview";
+import { scheduleLinkPreviewsByWriter } from "@/lib/link-preview";
 
 /**
  * One member's answer, as both readers receive it: the stored row plus the
@@ -178,6 +178,14 @@ export async function loadPublishedEditionView(
      failed resolve is more than a day old, is handed to `after()` and prints
      as an ordinary link on this view. A render never waits on somebody else's
      website -- link-preview.ts says why, and when the other trigger fires. */
+  /* Each link with the answer's author, whose day a missing card is fetched
+     on, never the reader's (bug audit 3, T2b-02; link-preview.ts says why). */
+  const writerOf = new Map<string, string>();
+  for (const e of edition.prompts.flatMap((p) => p.entries)) {
+    for (const f of findLinks(e.body)) {
+      if (f.url && e.author && !writerOf.has(f.url)) writerOf.set(f.url, e.author.id);
+    }
+  }
   const pasted = [
     ...new Set(
       edition.prompts.flatMap((p) =>
@@ -199,7 +207,7 @@ export async function loadPublishedEditionView(
   ]);
   const previews = new Map<string, PreviewRow>(previewRows.map((r) => [r.url, r]));
   const now = new Date();
-  scheduleLinkPreviews(pasted.filter((url) => needsResolve(previews.get(url), now)));
+  scheduleLinkPreviewsByWriter(pasted.filter((url) => needsResolve(previews.get(url), now)), writerOf);
   /* Every link in the Edition that has a card, decided once. */
   const cards = new Map<string, LinkCardView>();
   for (const row of previewRows) {

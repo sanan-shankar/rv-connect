@@ -629,8 +629,17 @@ url (`src/lib/link-preview-core.ts` is the pure half, `src/lib/link-preview.ts` 
 - **When**: never inside a render. On save (`submitEntry` schedules it with `after()`), and lazily on
   read for a link with no row or with a failure more than a day old; that view prints the plain link
   and the next one has the card.
+- **How much** (bug audit 3, T2b-02): a link with no row yet is a fetch, and it spends one of its
+  writer's 40 a day (`previewFetches`, `src/lib/daily-budget.ts`), at every door: the saver on save,
+  each body's author on read, never the reader. A link that already has a row costs nothing, and a
+  failed one is retried free. Past the 40 the link stays an ordinary link until a later save or view
+  finds room. A post or letter holds at most 16 distinct links (`MAX_LINKS_PER_BODY`), refused with a
+  sentence. An answer is not capped yet: that sentence belongs in `submitEntry`, which a Catch-ups
+  unit holds.
 - **Images are re-hosted** into our own bucket under `link-previews/`, boxed to 480px WebP, never
-  hotlinked. `link-previews/` is deliberately not in `KNOWN_ROOTS`.
+  hotlinked. `link-previews/` is deliberately not in `KNOWN_ROOTS`. The nightly sweep removes a
+  preview, and its image through `linkPreviewKeyForUrl` alone, once no post, letter or answer holds
+  its link and it was fetched over 90 days ago (`src/lib/link-preview-retention.ts`).
 - **The guard** against server-side request forgery: http(s) on ports 80 and 443, no credentials;
   every resolved address checked at connect time (any private, loopback, link-local or metadata
   answer refuses the host), literal IPs and the connected socket checked too; at most three

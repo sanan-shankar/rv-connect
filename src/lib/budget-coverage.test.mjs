@@ -42,6 +42,9 @@ const METERED_HELPERS = {
   isMessageRateLimited: { file: "src/lib/admin-threads-server.ts", proof: /MAX_MESSAGES_PER_HOUR/ },
   /* A confirmation link goes through the mail queue, metered per account. */
   sendVerificationEmail: { file: "src/lib/verification-mail.ts", proof: /\benqueueMail\s*\(/ },
+  /* Link previews: every door that makes the server fetch a pasted link
+     spends the writer's previewFetches inside ensureLinkPreviews (T2b-02). */
+  scheduleLinkPreviews: { file: "src/lib/link-preview.ts", proof: /\bensureLinkPreviews\(urls, memberId\)/ },
   /* Presence: at most MAX_VISITS_PER_DAY visits opened per member a day
      (bug-report-2 C-163), counted inside recordVisit, which this calls. */
   recordPageView: { file: "src/lib/last-seen.ts", proof: /\brecordVisit\s*\(/ },
@@ -88,7 +91,6 @@ const BUDGET_EXEMPT = {
     closeAndPublish: "bounded: once per Edition, answering to published; Editions are metered at startEdition",
     extendDeadline: "bounded: moves one Edition's deadline in place, Keeper only; rings nobody",
     setEditionTimeCapsule: "bounded: one Edition's sealing date, in place, Keeper only",
-    submitEntry: "pending: T2b-02 (its link previews; an answer is one row per member per question, a unique)",
     toggleEntryLove: "bounded: one heart per member per answer (a unique row); its bell is deduped on the actor (notifyLove)",
     loadEntryComments: "own-page: one bounded page of one answer's comments",
     toggleEntryCommentLike: "own-row: one like per member per comment (a unique row), ringing nobody",
@@ -110,8 +112,6 @@ const BUDGET_EXEMPT = {
   "src/app/(main)/feed/actions.ts": {
     deleteDraft: "own-delete: the author's own draft",
     votePoll: "own-row: one vote per member per poll, upserted",
-    publishDraft: "pending: T2b-02",
-    editPost: "pending: T2b-02",
     deletePost: "own-delete: the author's own post (or a site or group admin's)",
     adminRemovePost: "admin-only: checks the role itself",
     toggleLike: "pending: C6-02",
@@ -361,6 +361,15 @@ test("a cached read never reads the session", () => {
   }
 });
 
+/** The argument text of the call whose "(" is at `open`. */
+function argsAt(text, open) {
+  for (let i = open, depth = 0; i < text.length; i++) {
+    if (text[i] === "(") depth++;
+    else if (text[i] === ")" && --depth === 0) return text.slice(open + 1, i);
+  }
+  return "";
+}
+
 /* ------------------------------------------------------------ the instances */
 /* One named assertion per O-09 instance closed, so a row cannot regress
    without its own line going red (design section 7). The rest are still on
@@ -381,4 +390,32 @@ test("C6-04: a new search row is one of the member's 200 a day, spent before it 
   const entry = budgets.find((b) => b.name === "searchRows")?.text ?? "";
   assert.match(entry, /limit: 200,/, "searchRows' ceiling moved; re-argue it in daily-budget.ts");
   assert.match(entry, /sentence: null/, "a refused search row must be silent: the search itself has answered");
+});
+
+test("T2b-02: a link the server has never fetched spends its writer's previewFetches, at every door", () => {
+  const src = decomment(read("src/lib/link-preview.ts"));
+  const ensure = fnBody(src, "ensureLinkPreviews") ?? "";
+  assert.match(ensure, /const fresh = wanted\.filter\(\(l\) => !byUrl\.has\(l\.url\)\)/, "new urls are no longer told apart from retries");
+  const left = ensure.indexOf('budgetLeft("previewFetches", memberId)');
+  const spend = ensure.indexOf('spendBudget("previewFetches", memberId, room)');
+  const fetch = ensure.indexOf("resolveAndStore(");
+  assert.ok(left !== -1 && spend > left && fetch > spend, "ensureLinkPreviews fetches before it has spent the writer's budget");
+
+  const entry = budgets.find((b) => b.name === "previewFetches")?.text ?? "";
+  assert.match(entry, /limit: 40,/, "previewFetches' ceiling moved; re-argue it in daily-budget.ts");
+  assert.match(entry, /outage: "closed"/, "a preview is decoration: an Upstash outage must cost a card, not open a free fetcher");
+
+  /* Every call names whose day it spends, and a reader is never charged:
+     the read loaders go through the by-writer door. */
+  for (const file of filesContaining(/\bscheduleLinkPreviews(ByWriter)?\s*\(/).filter((f) => f !== "src/lib/link-preview.ts")) {
+    const text = decomment(read(file));
+    for (const m of text.matchAll(/\bscheduleLinkPreviews\s*\(/g)) {
+      assert.match(argsAt(text, m.index + m[0].length - 1), /,\s*session\.user\.id\s*$/, `${file}: scheduleLinkPreviews is not charged to the saver`);
+    }
+  }
+  for (const file of ["src/lib/posts.ts", "src/lib/catchups-edition-view.ts"]) {
+    const text = decomment(read(file));
+    assert.match(text, /scheduleLinkPreviewsByWriter\(/, `${file}: the read path no longer charges each link to its writer`);
+    assert.doesNotMatch(text, /\bscheduleLinkPreviews\s*\(/, `${file}: the read path charges somebody other than the writer`);
+  }
 });

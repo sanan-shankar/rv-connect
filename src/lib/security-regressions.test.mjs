@@ -83,6 +83,20 @@ test("C2: keyForUrl refuses keys outside the app's own roots", () => {
   assert.ok(/includes\(["']\.\.["']\)/.test(keyForUrl), "keyForUrl no longer rejects '..'");
 });
 
+test("T2b-02: link-previews/ never joins the delete fence", () => {
+  /* A preview image is shared by every post and answer that pastes the same
+     link and belongs to nobody, so a delete path trusting a stored URL must
+     never reach it. The one deleter is the retention sweep, through
+     linkPreviewKeyForUrl, which names nothing else (link-preview-retention.
+     test.mjs runs it). */
+  const src = decomment(read("src/lib/storage.ts"));
+  const roots = src.slice(src.indexOf("const KNOWN_ROOTS"), src.indexOf("as const", src.indexOf("const KNOWN_ROOTS")));
+  assert.ok(roots.length > 0, "KNOWN_ROOTS moved; re-point this test");
+  assert.doesNotMatch(roots, /link-previews/, "link-previews joined KNOWN_ROOTS, so a member's stored URL can delete a shared preview");
+  const own = src.slice(src.indexOf("export function linkPreviewKeyForUrl"));
+  assert.match(own.slice(0, own.indexOf("\n}")), /startsWith\("link-previews\/"\)/, "linkPreviewKeyForUrl no longer holds itself to link-previews/");
+});
+
 test("C2: uploads mint under owner-scoped keys", () => {
   const src = decomment(read("src/lib/storage.ts"));
   assert.match(src, /function ownerPrefix/, "ownerPrefix is gone");

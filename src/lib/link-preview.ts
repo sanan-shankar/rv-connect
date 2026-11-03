@@ -14,12 +14,24 @@
  *               wrote, so an answer pasted during the week already has its
  *               card by the morning the Edition publishes.
  *    on READ    the reader's loader hands over any link with no row (every
- *               answer written before this phase shipped) or whose failed
- *               resolve is more than a day old. That page view prints the
- *               ordinary link; the next one has the card.
+ *               answer written before this phase shipped, or one its
+ *               writer's day had no room for) or whose failed resolve is
+ *               more than a day old. That page view prints the ordinary
+ *               link; the next one has the card.
  *
  *  Neither path can make a page wait, and neither can make one fail: every
  *  function exported here swallows its own errors.
+ *
+ *  HOW MUCH, per member (bug audit 3, T2b-02). Per link the cost was always
+ *  bounded; per member it was not, and the letters desk's autosave made one
+ *  of the doors fire on its own while somebody typed. Every door now names
+ *  the member who WROTE the links -- the saver on save, each body's author on
+ *  read -- and a url with no row yet spends one of that member's
+ *  `previewFetches` (daily-budget.ts, 40 a day). A url that already has a
+ *  row costs nothing, so re-saving a letter or a hundred readers opening it
+ *  spends nothing; a failed one is retried at most once a day, free, since
+ *  its first fetch was paid for. Past the budget the link prints as an
+ *  ordinary link until a later save or view finds room.
  *
  *  THE SERVER NOW FETCHES URLS A MEMBER TYPED, which is the classic
  *  server-side request forgery shape. What stands in the way, in order:
@@ -65,6 +77,7 @@ import { IS_DEMO } from "@/lib/demo";
 import { directUploadAvailable, putImage } from "@/lib/storage";
 import { sharpImage } from "@/lib/image";
 import { reportSwallowed } from "@/lib/report-error";
+import { budgetLeft, spendBudget } from "@/lib/daily-budget";
 import {
   classifyLink,
   isRefusedAddress,
@@ -358,10 +371,11 @@ async function resolveAndStore(link: ClassifiedLink): Promise<void> {
 
 /**
  * Resolve every link in `urls` that has no preview yet or failed more than a
- * day ago. Takes raw or normalised links; anything `classifyLink` refuses is
- * skipped. Never throws.
+ * day ago, on behalf of `memberId`, the member who wrote them: a link with no
+ * row is a new fetch and spends their `previewFetches`. Takes raw or
+ * normalised links; anything `classifyLink` refuses is skipped. Never throws.
  */
-export async function ensureLinkPreviews(urls: readonly string[]): Promise<void> {
+export async function ensureLinkPreviews(urls: readonly string[], memberId: string): Promise<void> {
   if (IS_DEMO || urls.length === 0) return;
   try {
     const links = new Map<string, ClassifiedLink>();
@@ -377,12 +391,29 @@ export async function ensureLinkPreviews(urls: readonly string[]): Promise<void>
     });
     const byUrl = new Map(rows.map((r) => [r.url, r]));
     const now = new Date();
-    const due = [...links.values()]
-      .filter((l) => needsResolve(byUrl.get(l.url), now) && !inflight.has(l.url))
-      .slice(0, MAX_PER_CALL);
-    /* Claimed before the first await, the whole batch at once: a link still
-       waiting for a free worker must not look unclaimed to the next page view. */
-    for (const link of due) inflight.add(link.url);
+    const wanted = [...links.values()].filter((l) => needsResolve(byUrl.get(l.url), now) && !inflight.has(l.url));
+    /* Claimed before the next await, the whole batch at once: a link still
+       waiting for the budget or a free worker must not look unclaimed to the
+       next page view, which would fetch it, and pay for it, twice. */
+    for (const link of wanted) inflight.add(link.url);
+
+    /* A url with a row is a retry of a fetch already paid for; one without is
+       new, and only as many as the writer's day has room for go (T2b-02). */
+    const retries = wanted.filter((l) => byUrl.has(l.url));
+    const fresh = wanted.filter((l) => !byUrl.has(l.url));
+    let due: ClassifiedLink[] = [];
+    try {
+      let granted = 0;
+      if (fresh.length > 0) {
+        const room = Math.min(fresh.length, MAX_PER_CALL, await budgetLeft("previewFetches", memberId));
+        if (room > 0 && (await spendBudget("previewFetches", memberId, room)).ok) granted = room;
+      }
+      due = [...fresh.slice(0, granted), ...retries].slice(0, MAX_PER_CALL);
+    } finally {
+      // What this call will not fetch is released for the next one.
+      const kept = new Set(due.map((l) => l.url));
+      for (const link of wanted) if (!kept.has(link.url)) inflight.delete(link.url);
+    }
 
     let next = 0;
     const worker = async () => {
@@ -400,17 +431,37 @@ export async function ensureLinkPreviews(urls: readonly string[]): Promise<void>
 }
 
 /**
- * Schedule `ensureLinkPreviews` for after the response. The `try { after }
- * catch` shape because `after()` throws synchronously outside a request scope
- * (docs/TRAPS.md), and a script or a test must still be able to call the
- * code that calls this.
+ * Schedule `ensureLinkPreviews` for after the response, on behalf of the
+ * member who wrote the links. The `try { after } catch` shape because
+ * `after()` throws synchronously outside a request scope (docs/TRAPS.md), and
+ * a script or a test must still be able to call the code that calls this.
  */
-export function scheduleLinkPreviews(urls: readonly string[]): void {
+export function scheduleLinkPreviews(urls: readonly string[], memberId: string): void {
   if (urls.length === 0) return;
-  const run = () => ensureLinkPreviews(urls);
+  const run = () => ensureLinkPreviews(urls, memberId);
   try {
     after(run);
   } catch {
     void run();
   }
+}
+
+/**
+ * The read path's door: each due link scheduled on behalf of the member who
+ * wrote it (`writerOf`, url to author), one call per writer, and none for a
+ * link nobody can be named for. Never the reader: a view must not spend the
+ * viewer's day on somebody else's links, and charging the writer is what
+ * bounds what one account can make the server fetch however many members
+ * read it (T2b-02).
+ */
+export function scheduleLinkPreviewsByWriter(
+  due: readonly string[],
+  writerOf: ReadonlyMap<string, string>,
+): void {
+  const byWriter = new Map<string, string[]>();
+  for (const url of due) {
+    const writer = writerOf.get(url);
+    if (writer) byWriter.set(writer, [...(byWriter.get(writer) ?? []), url]);
+  }
+  for (const [writer, urls] of byWriter) scheduleLinkPreviews(urls, writer);
 }

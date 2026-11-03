@@ -85,6 +85,24 @@ export function findLinks(body: string | null | undefined): FoundLink[] {
   return out;
 }
 
+/**
+ * The most distinct links one post, letter or answer may hold (bug audit 3,
+ * T2b-02). Each is a fetch the server makes and a card it keeps, so a body is
+ * held to what one resolve call takes (MAX_PER_CALL in link-preview.ts), and
+ * every link in it resolves in one go. The busiest body anyone has written
+ * holds two.
+ */
+export const MAX_LINKS_PER_BODY = 16;
+
+/** The refusal for a body over MAX_LINKS_PER_BODY distinct links, or null.
+ *  Distinct as the previews count them: two pastes of one page are one. */
+export function tooManyLinks(body: string, noun: string): string | null {
+  const distinct = new Set(findLinks(body).map((f) => f.url ?? f.raw));
+  return distinct.size > MAX_LINKS_PER_BODY
+    ? `A ${noun} can hold at most ${MAX_LINKS_PER_BODY} links. Take one out to save it.`
+    : null;
+}
+
 /* ── normalising and classifying ───────────────────────────────────── */
 
 /** Query parameters that only ever say who shared a link, never what it is.

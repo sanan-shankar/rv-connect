@@ -45,7 +45,7 @@ import {
   writeComment,
 } from "@/lib/comment-thread";
 import { withLinkCards } from "@/lib/posts";
-import { findLinks, type LinkCardView } from "@/lib/link-preview-core";
+import { findLinks, tooManyLinks, type LinkCardView } from "@/lib/link-preview-core";
 import { scheduleLinkPreviews } from "@/lib/link-preview";
 
 /**
@@ -192,6 +192,11 @@ export async function createPost(formData: FormData) {
   const parsed = postSchema.safeParse(raw);
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
+  // Every distinct link is a fetch the server makes and a card it keeps, so a
+  // body holds at most what one resolve takes (bug audit 3, T2b-02).
+  const linkCap = tooManyLinks(parsed.data.content, postNoun(parsed.data.kind));
+  if (linkCap) return { error: linkCap };
+
   // Every image on the post must be one THIS member uploaded here: app-minted,
   // under their own `uploads/<id>/` prefix, at most three. This is the write
   // that C2 turned catastrophic — the `images` array was stored straight
@@ -300,8 +305,9 @@ export async function createPost(formData: FormData) {
      ups"; same trigger a Catch-up answer's save uses, catchups/actions.ts).
      Scheduled for a draft too: writing privately does not mean the preview
      should not be ready the moment it publishes. Never awaited: the save
-     must not wait on somebody else's website. */
-  scheduleLinkPreviews(findLinks(parsed.data.content).map((f) => f.raw));
+     must not wait on somebody else's website. The author's own day of new
+     fetches pays for it (T2b-02). */
+  scheduleLinkPreviews(findLinks(parsed.data.content).map((f) => f.raw), session.user.id);
 
   /* "And, also, yeah, obviously, notify the person who is tagged." (owner)
    *
@@ -419,7 +425,7 @@ export async function publishDraft(postId: string, opts: { asPost?: boolean } = 
   // `finalContent`, not `post.content`: publishing as a post can prepend the
   // title as an opening line (asPost above), which moves where a link sits
   // in the text without changing which links there are.
-  scheduleLinkPreviews(findLinks(finalContent).map((f) => f.raw));
+  scheduleLinkPreviews(findLinks(finalContent).map((f) => f.raw), session.user.id);
 
   /* A draft has no readers -- `decidePostVisibility` refuses every viewer but
    * its author while status is "draft" -- so THIS is the letter's real
@@ -634,6 +640,10 @@ export async function editPost(postId: string, formData: FormData) {
   if (title && title.length > 160) {
     return { error: "Title must be 160 characters or fewer" };
   }
+  // The same link ceiling creation holds (T2b-02): this is the desk's
+  // autosave, which would otherwise schedule fetches on its own.
+  const linkCap = tooManyLinks(content, postNoun(post.kind));
+  if (linkCap) return { error: linkCap };
 
   // Images may be rewritten ONLY on the author's own letter DRAFT (the
   // immersive /letters/[id]/edit surface adds photos mid-draft). A published
@@ -782,7 +792,7 @@ export async function editPost(postId: string, formData: FormData) {
 
   // Same trigger as createPost: an edit may add, change or remove a pasted
   // link, so the save schedules a resolve over whatever the content says now.
-  scheduleLinkPreviews(findLinks(content).map((f) => f.raw));
+  scheduleLinkPreviews(findLinks(content).map((f) => f.raw), session.user.id);
 
   /* Only people NEWLY mentioned: diff this edit's ids against the ids the
    * body already carried, so re-saving a post that still mentions the same

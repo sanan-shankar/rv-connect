@@ -60,6 +60,7 @@ fake.prisma = {
 };
 
 const { logSearch } = await import("./search-log.ts");
+const { spendBudget, budgetLeft } = await import("./daily-budget.ts");
 
 test("C6-04: alternating two words writes at most 200 search rows a day for one member", async () => {
   fake.rows.length = 0;
@@ -98,4 +99,13 @@ test("C6-04: one person typing is still one row, and does not spend the day", as
   const mine = fake.rows.filter((r) => r.userId === "u-typist");
   assert.equal(mine.length, 1);
   assert.equal(mine[0].query, "Bengaluru");
+});
+
+test("T2b-02: with Upstash out of reach, no link is fetched for anyone", async () => {
+  /* previewFetches is closed on an outage: a preview is decoration, and an
+     open budget there would be a free fetcher for whoever emptied Upstash. */
+  assert.equal(await budgetLeft("previewFetches", "u-any"), 0);
+  const spent = await spendBudget("previewFetches", "u-any", 1);
+  assert.equal(spent.ok, false);
+  assert.equal(spent.ok === false && spent.silent, true, "a refused preview must be silent: the save itself went through");
 });
