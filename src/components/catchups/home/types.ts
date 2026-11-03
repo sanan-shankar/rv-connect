@@ -61,12 +61,11 @@ export type HomeEditionView = {
   questionsCloseAt: string | null;
   answersCloseAt: string | null;
   publishedAt: string | null;
-  /** Countdown-only copy used beside the Catch-up name in the page heading. */
-  countdownLabel: string | null;
   /** collecting: every prompt the viewer may see. answering: frozen accepted prompts only. */
   prompts: HomePromptView[];
-  /** Who has written in. The count is derived from this, not stored twice. */
-  answeredAuthorIds: string[];
+  /* No countdown and no list of who has written in (bug audit 3, T3-08): no
+     surface drew either, and the list cost a read of every answer. Whether
+     anyone has answered is the settings panel's `answered`. */
 };
 
 /* `HomeArchiveRow` is gone. It carried an Edition NUMBER, a contributor

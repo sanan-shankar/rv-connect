@@ -21,7 +21,6 @@ import {
   ANSWERED_ENTRY_WHERE,
   askerVisible,
   CATCHUP_PROMPT_SETS,
-  editionCountdownLabel,
   homeStateLine,
   isEditionRunning,
   isEffectiveKeeper,
@@ -215,23 +214,27 @@ async function loadHome(catchupId: string, viewerId: string): Promise<CatchupHom
   const viewerName = members.find((m) => m.id === viewerId)?.name ?? "You";
 
   let editionView: HomeEditionView | null = null;
+  let anyoneAnswered = false;
 
   if (freshLatest) {
     const status = freshLatest.status as EditionStatus;
-    const now = Date.now();
 
-    /* Who has answered: a row with something in it, the count the close takes
-       (`ANSWERED_ENTRY_WHERE`). Every row counted here, so an answer emptied
-       and not yet withdrawn told a Keeper somebody had answered, and Close and
-       send it out then said nobody had (routed follow-up (c)). */
-    let answeredAuthorIds: string[] = [];
+    /* Whether anyone has answered: a row with something in it, the count the
+       close takes (`ANSWERED_ENTRY_WHERE`). Every row counted here, so an
+       answer emptied and not yet withdrawn told a Keeper somebody had
+       answered, and Close and send it out then said nobody had (routed
+       follow-up (c)).
+
+       One row, not the list. This read every answer in the Edition and
+       de-duplicated their authors in memory (Prisma's `distinct` is not SQL's
+       here), to ship a list of ids nothing drew; its one reader wants only
+       whether the list is empty, which decides the dialog Close and send it
+       out opens (bug audit 3, T3-08). */
     if (status === "answering") {
-      const distinct = await prisma.catchupEntry.findMany({
+      anyoneAnswered = !!(await prisma.catchupEntry.findFirst({
         where: { editionId: freshLatest.id, ...ANSWERED_ENTRY_WHERE },
-        select: { authorId: true },
-        distinct: ["authorId"],
-      });
-      answeredAuthorIds = distinct.map((d) => d.authorId);
+        select: { id: true },
+      }));
     }
 
     let promptPool =
@@ -288,23 +291,7 @@ async function loadHome(catchupId: string, viewerId: string): Promise<CatchupHom
       questionsCloseAt: freshLatest.questionsCloseAt?.toISOString() ?? null,
       answersCloseAt: freshLatest.answersCloseAt?.toISOString() ?? null,
       publishedAt: freshLatest.publishedAt?.toISOString() ?? null,
-      // No countdown on an ended Catch-up. The clock genuinely is not running
-      // (advanceEdition returns early once it has ended), and a header reading
-      // "3 days left" over that was the page contradicting itself (audit
-      // B-061). A legacy `paused` row runs, so it counts down like any other.
-      countdownLabel:
-        catchup.status !== "ended"
-          ? editionCountdownLabel(
-              {
-                status,
-                questionsCloseAt: freshLatest.questionsCloseAt,
-                answersCloseAt: freshLatest.answersCloseAt,
-              },
-              new Date(now)
-            )
-          : null,
       prompts,
-      answeredAuthorIds,
     };
   }
 
@@ -515,7 +502,7 @@ async function loadHome(catchupId: string, viewerId: string): Promise<CatchupHom
       questionsCloseAt: freshLatest?.questionsCloseAt?.toISOString() ?? null,
       answersCloseAt: freshLatest?.answersCloseAt?.toISOString() ?? null,
       // Read only while answering, which is the one state the press exists in.
-      answered: (editionView?.answeredAuthorIds.length ?? 0) > 0,
+      answered: anyoneAnswered,
       // Whether the clock's one zero-answer extension is spent, which decides
       // what "Nobody has answered yet" tells a Keeper will happen next.
       autoExtended: ((freshLatest?.remindersSent ?? 0) & REMINDER_EXTENDED) !== 0,

@@ -312,7 +312,12 @@ test("C3-01: a hand close with nobody's answers in it writes nothing, and says s
   // send it out opens (routed follow-up (c); the reminder's half runs in
   // catchup-bells.test.mjs).
   const home = decomment(read("src/app/(main)/catchups/[catchupId]/(home)/page.tsx"));
-  assert.match(home, /catchupEntry\.findMany\(\{\s*where: \{ editionId: freshLatest\.id, \.\.\.ANSWERED_ENTRY_WHERE \}/, "the home counts an emptied answer as somebody having answered again");
+  assert.match(home, /catchupEntry\.findFirst\(\{\s*where: \{ editionId: freshLatest\.id, \.\.\.ANSWERED_ENTRY_WHERE \}/, "the home counts an emptied answer as somebody having answered again");
+  /* One row is the whole question (bug audit 3, T3-08): the list of every
+     answer's author, de-duplicated in memory, had one reader, and it asked
+     only whether the list was empty. */
+  assert.doesNotMatch(home, /distinct: \["authorId"\]|answeredAuthorIds/, "the home reads every answer in the Edition again to ask whether there is one");
+  assert.match(home, /answered: anyoneAnswered,/, "the settings panel no longer hears whether anyone has answered");
 });
 
 test("T3-06: an extension swaps on the deadline the caller saw, never on its own read", () => {
@@ -582,13 +587,18 @@ test("L2-04: the Edition page's tab title reads nothing the page does not", () =
   assert.doesNotMatch(meta, /\bprisma\./, "the tab title queries the database itself again");
 });
 
-test("B-062: the header does not count down a Catch-up whose clock is stopped", () => {
-  const src = decomment(read("src/app/(main)/catchups/[catchupId]/(home)/page.tsx"));
-  assert.match(
-    src,
-    /catchup\.status !== "ended"\s*\?\s*editionCountdownLabel/,
-    "the page header prints a live countdown over an ended Catch-up again"
-  );
+test("B-062: the home does not count down a Catch-up whose clock is stopped", async () => {
+  /* B-062 was the header printing "3 days left" over an ended Catch-up, from a
+     `countdownLabel` the page worked out. Nothing drew that field by bug audit
+     3 and it went with the home's other dead payload (T3-08); the line the
+     home does draw is the state line, so the pin is on it: over an ended
+     Catch-up it says Ended, whatever deadline its last Edition still holds. */
+  const { homeStateLine } = await import("./catchups-core.ts");
+  const answering = { status: "answering", answersCloseAt: new Date("2026-11-08T01:30:00.000Z") };
+  assert.equal(homeStateLine("ended", answering, { dayAndDate: () => "Sunday 8 November" }), "Ended");
+  const page = decomment(read("src/app/(main)/catchups/[catchupId]/(home)/page.tsx"));
+  assert.match(page, /stateLine: homeStateLine\(\s*catchup\.status as CatchupStatus,/, "the home's state line no longer hears that the Catch-up has ended");
+  assert.doesNotMatch(page, /countdownLabel/, "the home computes a countdown again; draw it through homeStateLine or not at all");
 });
 
 test("C-125: a stale device cannot replace an answer written on another one", () => {

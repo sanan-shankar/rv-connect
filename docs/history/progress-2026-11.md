@@ -1,3 +1,36 @@
+## 2026-11-03 (catchups) — bug audit 3, unit H4 (stopped part-way): every Catch-up failure reaches the owner, a missing column is not a missing table, and the Edition page and the home read less
+
+Four of the unit's rows, in three commits, before the owner asked for one agent at a time and this
+track wound down. `npm run check` green before each.
+
+Failures (L4-01, T2a-04). The missing-table guard matched any "does not exist" that named a Catchup
+table, and Postgres names the table in a column error, so a field reaching production before its
+ALTER, or dropped while still read, would have put every Catch-up page behind "almost ready",
+answered every action with "not set up yet" and stopped the clock, with nothing reported. The guard
+now matches only a relation or a table named as missing. The clock's and the batch heal's catches
+report every failure; the five pages and `runAction` keep the holding scene and sentence for a real
+missing table (both databases hold all seven tables, checked) and report it first. `runAction`
+reported nothing at all: it now names the failing action to Sentry, each export by its own name. The
+sweep pinning it reads all eight files and fails a catch that returns before its report; run against
+the old code it named all ten silent sites.
+
+Reads (L2-04, T3-08). The Edition page's tab title fetched the Edition and the membership itself, so
+each was read twice a view; both loaders are now `cache()`d and shared. The home read every answer
+of an answering Edition and de-duplicated their authors in memory, to learn only whether anyone had
+answered (routed (f): that was its one reader); it now reads one row. Its unused countdown went too.
+Nothing visible to members: the pages read live as the test account render as before.
+
+Not reached, for the next track-1 unit: T2b-10 with routed (h) (the premise for deleting the
+`audioUrl` count does not hold for a hand-made call: `ownedVoiceRecording` checks the author's
+prefix, not the answer, so one member can put one recording on two of their answers; a third option
+to weigh against the index is scoping the count to `authorId`, which the existing index serves and
+which is exact, since every row naming a recording is its author's or their merge survivor's; live,
+no answer carries a recording yet); routed (b) (`submitPrompt`'s window check becomes the curate
+path's `updatedAt` touch, so a burst queues on the Edition's row and the 40 cap holds); routed (e)
+(`catchups-core.test.mjs`'s asker sweep to `filesContaining("asker:", { under: ["src/app",
+"src/components"] })`, and its `ASKS_GIT` entry out of `test-kit.test.mjs`); and Phase H's T3-11,
+T3-12, T3-24. No migration was written or applied.
+
 ## 2026-11-03 (demo) — bug audit 3, unit L5 (stopped part-way): a nested write is judged by the model it reaches, and the tables a visitor can grow stop at a ceiling
 
 Two of the unit's seven rows, in two commits, before the owner asked for one agent at a time and this
