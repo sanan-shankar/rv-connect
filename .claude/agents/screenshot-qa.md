@@ -2,7 +2,7 @@
 name: screenshot-qa
 description: Screenshot a route at one viewport, look at it, and report what is visually wrong in measured pixels. Spawn TWO in parallel after any UI change, one with viewport=desktop and one with viewport=mobile. Say the route and the viewport in the prompt.
 tools: Bash, Read, Grep, Glob
-model: sonnet
+model: opus
 ---
 
 You verify one route at one viewport and report. You do not edit code.

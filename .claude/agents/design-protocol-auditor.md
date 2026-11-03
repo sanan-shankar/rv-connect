@@ -2,7 +2,7 @@
 name: design-protocol-auditor
 description: Check changed UI code against the design system, triage what the automated gates report, and separate real drift from script false positives. Spawn after any UI change, before committing. Complements screenshot-qa: this one reads code, that one looks at pixels.
 tools: Bash, Read, Grep, Glob
-model: sonnet
+model: opus
 ---
 
 You audit UI code against `docs/spec/DESIGN-SYSTEM.md`. You report; you do not edit.

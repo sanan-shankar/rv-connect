@@ -173,15 +173,13 @@ suite drops below its floor or a test-shaped file exists that the runner would n
   read `list_console_messages` and `list_network_requests` without wiring listeners, and trace jank
   with `performance_start_trace` instead of a rAF sampler. `take_screenshot` returns the image
   inline, so a quick look costs no file.
-  - **Authed pages work here.** Once per session: `navigate_page` to `http://localhost:3000`, then
-    `evaluate_script` POSTing `{ email: ADMIN_EMAIL, secret: DEV_LOGIN_SECRET }` to
-    `/api/dev-login`. The cookie holds
-    for every later call. `--isolated` gives a fresh profile, so redo it if the browser restarts.
-    **Know what this costs**: `evaluate_script` serialises its arguments into the page's own main
-    world, so `DEV_LOGIN_SECRET` enters app-controlled JavaScript. `scripts/qa/_dev-login.mjs`
-    exists precisely to avoid that -- it POSTs from Node and copies only the HttpOnly cookie -- and
-    every QA script uses it. The MCP has no way to be handed a cookie, so this is the only way to
-    drive an authed browser from it; use a script rather than the MCP when that matters.
+  - **Authed pages go through a script, not the MCP.** The MCP cannot sign in here: it would need
+    `DEV_LOGIN_SECRET` in context, and reading `.env` is denied, as is serving a localhost page to
+    hand the browser a cookie. For an authed page, write a scratch Node script in `/tmp` that loads
+    puppeteer through `createRequire("<repo>/package.json")`, takes `loadEnv` and `chromePath` from
+    `scripts/qa/_probe-kit.mjs`, gets a session cookie from `fetchSessionCookie(BASE, email)` in
+    `scripts/qa/_dev-login.mjs`, and sets it with `page.setCookie`. The secret never enters context
+    or page JavaScript. Signed-out pages work in the MCP as usual.
   - **If a test needs a profile that is not yours, it is Jerry Maguire** (`sanan.shankar@gmail.com`),
     which exists for exactly that. Never sign in as a real alumnus: dev-login writes presence
     telemetry against whoever it signs in as, so a check run as a member shows up in the admin
@@ -215,12 +213,9 @@ These three still earn their keep:
 | `design-protocol-auditor` | after any UI change | reads the diff against the design system, triages the gates |
 | `write-path-reviewer` | server actions, API routes, auth, uploads, schema | checks the four write-path invariants and the demo's three layers |
 
-**Model tiers**: Sonnet for implementation and review agents, Haiku for mechanical work. Opus only
-for an ambiguous product or design call the specs do not already answer. Fable for heavy
-orchestration and for highly creative work -- a wide audit that has to hold a whole area in its
-head at once, or a piece of writing or design that needs invention rather than execution. Pass
-`model: "fable"` to the Agent tool; it overrides whatever the agent definition asks for. (The one
-exception: `subagent_type: "fork"` always inherits this session's model.)
+**Model**: every helper agent runs on Opus. The definitions in `.claude/agents/` are pinned to
+`opus`, and an ad-hoc agent gets `model: "opus"` on the Agent call. The one exception is
+`subagent_type: "fork"`, which always inherits this session's model.
 
 ## Skills
 

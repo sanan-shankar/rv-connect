@@ -60,3 +60,11 @@ These are stale facts. Confirm them before they change.
 
 1. **Model tiers.** `CLAUDE.md:223-228` sends implementation and review agents to Sonnet and mechanical work to Haiku. RCE Connect now runs its session on Fable 5.1 and its workers on Opus 5.5. Should RV Connect match?
 2. **Signing in from the browser tool.** `CLAUDE.md:179-189` says the chrome-devtools MCP can sign in through `/api/dev-login`. The auto-memory note "Authed Probing Route" says it cannot, because `.env` reads are denied, so the secret is out of reach; it recommends a `/tmp` Node script using `scripts/qa/_dev-login.mjs` instead. One of the two is out of date.
+
+## Resolved the same day
+
+The owner's answers:
+
+- **Model tiers.** Every helper agent runs on Opus. `CLAUDE.md` now says so, and every definition in `.claude/agents/` is pinned to `opus` in both projects.
+- **Signing in from the browser tool.** The memory note was right. `CLAUDE.md` now describes the script route and says the MCP cannot sign in.
+- **Both stale facts in `AGENTS.md`** are fixed. The schema line no longer lists models, which keeps it from going stale, and the image host is `images.rishivalley.space`.

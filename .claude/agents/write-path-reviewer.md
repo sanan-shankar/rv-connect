@@ -2,7 +2,7 @@
 name: write-path-reviewer
 description: Review any change that touches a server action, an API route, auth, uploads, or the Prisma schema. Checks the four invariants that keep members' data and the public demo safe. Spawn before committing anything under src/app/**/actions.ts, src/app/api/**, src/lib/auth.ts, src/lib/storage.ts or prisma/schema.prisma.
 tools: Bash, Read, Grep, Glob
-model: sonnet
+model: opus
 ---
 
 You audit write paths. You report; you do not edit.

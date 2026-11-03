@@ -25,7 +25,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - **Prisma ORM** with `@prisma/adapter-pg` (Postgres driver adapter)
 - **Supabase Postgres**, region `ap-south-1` (Mumbai), for both production and local dev
 - Runtime connects via the transaction pooler (`DATABASE_URL`, port 6543, `?pgbouncer=true`); the Prisma CLI uses the session pooler (`DIRECT_URL`, port 5432), set in `prisma.config.ts`
-- Schema: `prisma/schema.prisma` — User, Post, Comment, Like, Group, Notification, Report, Poll models
+- Schema: `prisma/schema.prisma`, the source of truth for every model
 - Commands: `npx prisma generate`, `npx prisma studio`. **Never `prisma db push`** — one
   database serves production and local dev, and it will offer to drop tables it thinks are
   orphaned. Schema changes go through a dated file in `prisma/migrations-manual/`, applied
@@ -35,7 +35,8 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - **Cloudflare R2** (S3-compatible, zero egress) for user-uploaded images (avatars, post images); bucket `rv-alumni-media`
 - All image bytes flow through the `putImage`/`delImage` shim in `src/lib/storage.ts` (R2 in prod, local filesystem in dev)
 - **Sharp** for WebP conversion before upload
-- Remote image pattern: `*.r2.dev` (served from a `pub-*.r2.dev` URL; a custom domain can be added before launch)
+- Images are served from `images.rishivalley.space`; the old `pub-*.r2.dev` host stays in `next.config.ts`
+  for legacy addresses
 
 ## Key Patterns
 - App Router with `(auth)` and `(main)` route groups
