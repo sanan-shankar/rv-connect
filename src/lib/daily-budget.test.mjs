@@ -16,7 +16,7 @@ import { ROOT } from "./test-kit.mjs";
  *  (a list), and the production-only telemetry switch (on).
  * ------------------------------------------------------------------ */
 
-const fake = { rows: [], reported: [] };
+const fake = { rows: [], reported: [], posts: [] };
 globalThis.__budgetTest = fake;
 
 const STUBS = {
@@ -41,6 +41,10 @@ registerHooks({
 
 /** Only what the code under test asks of each table. */
 fake.prisma = {
+  post: {
+    count: async ({ where }) =>
+      fake.posts.filter((p) => p.authorId === where.authorId && p.kind === where.kind && p.status === where.status).length,
+  },
   searchLog: {
     findFirst: async ({ where }) =>
       fake.rows
@@ -108,4 +112,35 @@ test("T2b-02: with Upstash out of reach, no link is fetched for anyone", async (
   const spent = await spendBudget("previewFetches", "u-any", 1);
   assert.equal(spent.ok, false);
   assert.equal(spent.ok === false && spent.silent, true, "a refused preview must be silent: the save itself went through");
+});
+
+/** `n` letter drafts for `authorId`, and a published letter and a post that must not count. */
+function drafts(authorId, n) {
+  fake.posts = [
+    ...Array.from({ length: n }, () => ({ authorId, kind: "letter", status: "draft" })),
+    { authorId, kind: "letter", status: "published" },
+    { authorId, kind: "post", status: "published" },
+  ];
+}
+
+test("C6-03: the twenty-first letter in progress is refused, in a sentence", async () => {
+  drafts("u-writer", 19);
+  assert.deepEqual(await spendBudget("letterDrafts", "u-writer"), { ok: true });
+  drafts("u-writer", 20);
+  const refused = await spendBudget("letterDrafts", "u-writer");
+  assert.equal(refused.ok, false);
+  assert.equal(refused.ok === false && refused.silent, false, "a refused draft must say so: the member pressed Save");
+  assert.match(refused.ok === false ? refused.error : "", /^You have 20 letters in progress\./);
+  assert.equal(await budgetLeft("letterDrafts", "u-writer"), 0);
+});
+
+test("C6-03: an account that never confirmed its email keeps three", async () => {
+  drafts("u-new", 2);
+  assert.deepEqual(await spendBudget("letterDraftsUnconfirmed", "u-new"), { ok: true });
+  drafts("u-new", 3);
+  const refused = await spendBudget("letterDraftsUnconfirmed", "u-new");
+  assert.equal(refused.ok, false);
+  assert.match(refused.ok === false ? refused.error : "", /Confirm your email address to keep more/);
+  // Another account's drafts are not this one's.
+  assert.deepEqual(await spendBudget("letterDraftsUnconfirmed", "u-someone-else"), { ok: true });
 });

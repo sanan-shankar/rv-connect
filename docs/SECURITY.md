@@ -48,6 +48,7 @@ by tests that will say so.
 | Contact details ("Get in touch") | ✗ | ✗ | ✓ |
 | EVERY community write (post, comment, upload, report, Catch-ups…) | ✗ | ✗ | ✓ |
 | Own profile; message the admin | ✓ | ✓ | ✓ |
+| Private letter drafts, seen by nobody else (audit M32; how many, bug audit 3 C6-03) | 3 | 20 | 20 |
 
 `requireVerifiedEmail()` / `requireVerifiedMember()` in `src/lib/`. Verification is manual (the
 owner) plus the roster (`RosterEntry`, 2,134 people from the office sheets; never auto-filling

@@ -347,6 +347,23 @@ async function resolve(link: ClassifiedLink): Promise<Resolved> {
   return { kind: "link", title: meta.title, subtitle: meta.siteName, thumbUrl };
 }
 
+/**
+ * Whether the server fetches anything new on this member's behalf: only for a
+ * verified member who is not blocked (bug audit 3, C6-03). A letter draft is
+ * the one thing an unverified account may write, so without this every draft
+ * of a never-confirmed account scheduled fetches; its links resolve the day it
+ * is published, which needs a verified member anyway. Asked here, at the one
+ * door every save and every read comes through, rather than at each caller.
+ * One read of one row, and only when there is something new to fetch.
+ */
+async function fetchesFor(memberId: string): Promise<boolean> {
+  const row = await prisma.user.findUnique({
+    where: { id: memberId },
+    select: { verifyState: true, isBlocked: true },
+  });
+  return row?.verifyState === "verified" && !row.isBlocked;
+}
+
 /* One resolve per url at a time in this process, however many renders ask. */
 const inflight = new Set<string>();
 
@@ -404,7 +421,7 @@ export async function ensureLinkPreviews(urls: readonly string[], memberId: stri
     let due: ClassifiedLink[] = [];
     try {
       let granted = 0;
-      if (fresh.length > 0) {
+      if (fresh.length > 0 && (await fetchesFor(memberId))) {
         const room = Math.min(fresh.length, MAX_PER_CALL, await budgetLeft("previewFetches", memberId));
         if (room > 0 && (await spendBudget("previewFetches", memberId, room)).ok) granted = room;
       }

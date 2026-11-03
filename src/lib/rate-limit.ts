@@ -70,9 +70,15 @@ const LIMITS = {
    *  bot check at all, and a run that guesses right must not get a free ride. */
   "login-unverified": { tokens: 5, window: "1 h" },
   /** Per IP. Ten allows for the launch-day case of a reunion table or an
-   *  office NAT signing up together; a bot farm burning 240 accounts a day
-   *  per IP is still pointless, because every account it mints is Stage 0,
-   *  which can write nothing until a human verifies it. */
+   *  office NAT signing up together. A bot farm burning 240 accounts a day
+   *  per IP buys little, because every account it mints is Stage 0, which
+   *  can put nothing in front of anyone until a human verifies it. It can
+   *  still keep some rows of its own, and each kind is held to a ceiling:
+   *  three letter drafts (`letterDraftsUnconfirmed`, daily-budget.ts),
+   *  200 search rows a day, its own bookmarks, messages to the admins
+   *  (forty threads an hour, kept two years). This used to say it "can
+   *  write nothing", and a draft was the hole in that (bug audit 3, C6-03);
+   *  budget-coverage.test.mjs keeps the list. */
   signup: { tokens: 10, window: "1 h" },
   /** Per IP (audit M3). The mail budget is ~95 messages a day; before
    *  this, one address could burn the whole day's budget in minutes by

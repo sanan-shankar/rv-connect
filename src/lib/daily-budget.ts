@@ -98,6 +98,39 @@ const BUDGETS = {
     outage: "closed",
     sentence: null,
   },
+  /** Letters in progress one account keeps at once (bug audit 3, C6-03). A
+   *  draft is the one thing an account that never confirmed its email may
+   *  write (audit M32: writing privately harms nobody), and it is kept for
+   *  ever, seen by nobody else, so the `posts` meter bounded how fast and
+   *  nothing bounded how many: about 86 MB a day from one account. 20 is
+   *  what the Letters page's drafts strip already shows, so a member at the
+   *  ceiling can see every draft that holds them there; 0 drafts exist
+   *  today. A standing count, not a day's. Open on an outage: if the count
+   *  cannot be asked, the save that follows cannot be written either. */
+  letterDrafts: {
+    per: "account",
+    limit: 20,
+    window: "standing",
+    store: "rows",
+    index: "Post(authorId, createdAt)",
+    count: (subject) => prisma.post.count({ where: { authorId: subject, kind: "letter", status: "draft" } }),
+    outage: "open",
+    sentence: "You have 20 letters in progress. Publish or delete one to start another.",
+  },
+  /** The same, for an account whose email is not confirmed: 3, so the
+   *  never-confirmed account the finding describes keeps about 60 KB, not a
+   *  share of the database. Confirming lifts it to 20, which is what the
+   *  sentence offers; such an account cannot publish yet. */
+  letterDraftsUnconfirmed: {
+    per: "account",
+    limit: 3,
+    window: "standing",
+    store: "rows",
+    index: "Post(authorId, createdAt)",
+    count: (subject) => prisma.post.count({ where: { authorId: subject, kind: "letter", status: "draft" } }),
+    outage: "open",
+    sentence: "You have 3 letters in progress. Confirm your email address to keep more, or delete one to start another.",
+  },
   /** Links the server fetches on a member's behalf per day (bug audit 3,
    *  T2b-02): a page of up to 512 KB, an image of up to 5 MB, a decode and
    *  one permanent object each. Counted on NEW urls only, ones with no

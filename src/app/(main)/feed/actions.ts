@@ -16,6 +16,8 @@ import { noteReportsOnDeletedPost } from "@/lib/admin-threads-server";
 import { AUTHOR_IN_GOOD_STANDING, PUBLISHED_ONLY, audienceWhere } from "@/lib/posts";
 import { postCounts, type PostCounts } from "@/lib/page-counts";
 import { requireVerifiedMember } from "@/lib/member-gate";
+import { requireVerifiedEmail } from "@/lib/email-verification";
+import { spendBudget } from "@/lib/daily-budget";
 import { rateLimit } from "@/lib/rate-limit";
 import { canViewPost, canViewPostOfComment, POST_NOT_VISIBLE } from "@/lib/post-visibility";
 import { storedBatchTargets } from "@/lib/post-visibility-rule";
@@ -280,6 +282,18 @@ export async function createPost(formData: FormData) {
     if (!isDraft) revalidatePath("/feed");
     if (parsed.data.kind === "letter") revalidatePath("/letters");
     return { success: true, postId: twin.id, isDraft };
+  }
+
+  /* How MANY drafts, which the meter above never said (bug audit 3, C6-03).
+     A draft skips the member gate and is kept for ever, so an account that
+     never confirmed its email could store a 20,000-character letter every
+     ten seconds. Three until the address is confirmed, twenty after, counted
+     here, after the twin check: a double-submitted twentieth draft is
+     handed back, not refused. */
+  if (isDraft) {
+    const confirmed = (await requireVerifiedEmail()).ok;
+    const room = await spendBudget(confirmed ? "letterDrafts" : "letterDraftsUnconfirmed", session.user.id);
+    if (!room.ok) return { error: room.error };
   }
 
   const post = await prisma.post.create({

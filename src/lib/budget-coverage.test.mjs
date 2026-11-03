@@ -419,3 +419,94 @@ test("T2b-02: a link the server has never fetched spends its writer's previewFet
     assert.doesNotMatch(text, /\bscheduleLinkPreviews\s*\(/, `${file}: the read path charges somebody other than the writer`);
   }
 });
+
+test("C6-03: a draft is counted against its ceiling before it is written, and never fetches a link for an unverified writer", () => {
+  const body = fnBody(decomment(read("src/app/(main)/feed/actions.ts")), "createPost") ?? "";
+  const twin = body.indexOf("if (twin)");
+  const spend = body.search(/spendBudget\(confirmed \? "letterDrafts" : "letterDraftsUnconfirmed", session\.user\.id\)/);
+  const create = body.indexOf("prisma.post.create(");
+  assert.ok(twin !== -1 && spend > twin, "the draft ceiling runs before the twin check, so a double-submitted last draft is refused");
+  assert.ok(create > spend, "a draft is written before its ceiling is counted");
+  assert.match(body.slice(body.lastIndexOf("if (isDraft)", spend), spend), /requireVerifiedEmail\(\)/, "the ceiling no longer follows whether the email is confirmed");
+  for (const [name, limit] of [["letterDrafts", 20], ["letterDraftsUnconfirmed", 3]]) {
+    const entry = budgets.find((b) => b.name === name)?.text ?? "";
+    assert.match(entry, new RegExp(`limit: ${limit},`), `${name}' ceiling moved; re-argue it in daily-budget.ts`);
+    assert.match(entry, /window: "standing"/, `${name} must count what the account keeps, not what it wrote today`);
+  }
+
+  const ensure = fnBody(decomment(read("src/lib/link-preview.ts")), "ensureLinkPreviews") ?? "";
+  const stage = ensure.indexOf("await fetchesFor(memberId)");
+  assert.ok(stage !== -1 && stage < ensure.indexOf('budgetLeft("previewFetches"'), "a new link is fetched for a writer nobody has verified");
+  assert.match(fnBody(decomment(read("src/lib/link-preview.ts")), "fetchesFor") ?? "", /verifyState === "verified" && !row\.isBlocked/);
+});
+
+/* ------------------------------------------------------------ Stage 0 */
+/* Every action an account that never confirmed its email can reach that
+   writes a row, each with the ceiling that bounds it (bug audit 3, C6-03:
+   the signup meter's comment said such an account "can write nothing", and a
+   draft was the hole). `proof` is what must still be true for the ceiling to
+   hold, read off the file it names. A new action that writes without the
+   Stage 2 gate fails the sweep below until it is listed here with its
+   ceiling. Admin actions are the owner's and are not here. */
+const STAGE0_WRITERS = {
+  "src/app/(main)/feed/actions.ts": {
+    createPost: { ceiling: "letter drafts: 3 kept before the email is confirmed, 20 after (C6-03)", file: "src/app/(main)/feed/actions.ts", proof: /"letterDraftsUnconfirmed"/ },
+    toggleBookmark: { ceiling: "one bookmark per member per post", file: "prisma/schema.prisma", proof: /model Bookmark \{[\s\S]*?@@unique\(\[userId, postId\]\)/ },
+    deleteDraft: { ceiling: "queues the author's own photographs for deletion, at most MAX_IMAGES a post", file: "src/app/(main)/feed/actions.ts", proof: /reason: "post"/ },
+    deletePost: { ceiling: "queues the author's own photographs for deletion, at most MAX_IMAGES a post", file: "src/app/(main)/feed/actions.ts", proof: /reason: "post"/ },
+  },
+  "src/app/(main)/catchups/actions.ts": {
+    setCatchupArchived: { ceiling: "one preference row per member per Catch-up", file: "prisma/schema.prisma", proof: /@@unique\(\[catchupId, userId\]\)\s*\n\s*@@map\("CatchupReminderPref"\)/ },
+    setReminderPref: { ceiling: "one preference row per member per Catch-up", file: "prisma/schema.prisma", proof: /@@unique\(\[catchupId, userId\]\)\s*\n\s*@@map\("CatchupReminderPref"\)/ },
+  },
+  "src/app/(main)/messages/actions.ts": {
+    startThread: { ceiling: "MAX_NEW_THREADS_PER_HOUR, kept two years", file: "src/lib/admin-threads-server.ts", proof: /MAX_NEW_THREADS_PER_HOUR/ },
+    replyToThread: { ceiling: "MAX_MESSAGES_PER_HOUR, kept two years", file: "src/lib/admin-threads-server.ts", proof: /MAX_MESSAGES_PER_HOUR/ },
+  },
+  "src/app/(main)/support/actions.ts": {
+    /* A rate, not a size: an unpaid order is a row kept with the payment
+       records. Noted in O2's report for Phase J, which holds this file. */
+    startContribution: { ceiling: "the contributions meter, ten an hour", file: "src/app/(main)/support/actions.ts", proof: /rateLimit\("contributions"/ },
+  },
+  "src/components/auth/actions.ts": {
+    registerUser: { ceiling: "the signup meter, ten an hour per address, behind Turnstile and the entry question", file: "src/components/auth/actions.ts", proof: /rateLimit\("signup"/ },
+  },
+  "src/components/auth/trivia-actions.ts": {
+    getTriviaQuestion: { ceiling: "TRIVIA_ROWS_PER_HOUR (C4-01 sizes it)", file: "src/lib/trivia-log.ts", proof: /TRIVIA_ROWS_PER_HOUR/ },
+    checkTrivia: { ceiling: "TRIVIA_ROWS_PER_HOUR (C4-01 sizes it)", file: "src/lib/trivia-log.ts", proof: /TRIVIA_ROWS_PER_HOUR/ },
+  },
+};
+
+const WRITES_A_ROW = /\.(create|createMany|upsert)\s*\(|\brecordTrivia\s*\(/;
+const STAGE2 = /\brequireVerifiedMember\s*\(/;
+const ADMIN = /\b(requireAdminAction|requireAdminActor|requireAdmin|actingAdmin)\s*\(|role\s*!==\s*"admin"/;
+
+test("every row a never-confirmed account can write is on the Stage 0 list, with its ceiling", () => {
+  const found = [];
+  for (const file of actionFiles) {
+    const src = decomment(read(file));
+    const fns = [...src.matchAll(/(?:export\s+)?(?:async\s+)?function\s+([A-Za-z0-9_]+)/g)].map((m) => m[1]);
+    for (const door of doorsOf(file, src)) {
+      const own = fnBody(src, door) ?? "";
+      // Its own body and the same-file helpers it calls.
+      const whole = [own, ...fns.filter((h) => h !== door && callsAny(own, [h])).map((h) => fnBody(src, h) ?? "")].join("\n");
+      if (!WRITES_A_ROW.test(whole) || ADMIN.test(whole)) continue;
+      /* No Stage 2 gate at all, or createPost's, the one that sits behind a
+         condition (a letter draft skips it, audit M32). */
+      const gated = STAGE2.test(whole) && !(file === "src/app/(main)/feed/actions.ts" && door === "createPost");
+      if (!gated) found.push(`${file} → ${door}`);
+    }
+  }
+  const listed = Object.entries(STAGE0_WRITERS).flatMap(([file, doors]) => Object.keys(doors).map((d) => `${file} → ${d}`));
+  assert.deepEqual(found.sort(), listed.sort(), "the Stage 0 writers changed: list each with the ceiling that bounds it, or delete a stale one");
+  for (const [file, doors] of Object.entries(STAGE0_WRITERS)) {
+    for (const [door, { ceiling, file: proofFile, proof }] of Object.entries(doors)) {
+      assert.match(read(proofFile), proof, `${file} → ${door}: its ceiling (${ceiling}) is no longer where the list says`);
+    }
+  }
+});
+
+test("createPost's Stage 2 gate is skipped for a letter draft and for nothing else", () => {
+  const body = fnBody(decomment(read("src/app/(main)/feed/actions.ts")), "createPost") ?? "";
+  assert.match(body, /if \(!savingDraft\) \{\s*const gate = await requireVerifiedMember\(\);/, "createPost's gate moved; the Stage 0 list's reasoning about it no longer holds");
+});
