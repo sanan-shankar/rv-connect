@@ -548,7 +548,12 @@ an add, with the same sentence (A3 review of L12-09 and T3-17).
 ### 7.7 Holding screens
 
 `AlmostReady` renders on any Catch-ups route when Prisma reports a missing table (P2021), and on
-nothing else. `runAction` turns the same error into a sentence for every action.
+nothing else. `runAction` turns the same error into a sentence for every action. Each of them also
+reports it (`reportSwallowed`), as `runAction` reports every failure it turns into "Something went
+wrong", named by the action: the tables exist on both databases, so a missing one is a failure, never
+a state. A missing COLUMN is not a missing table: the guard once read one as Catch-ups not being set
+up, which put the whole feature behind this screen with nothing reported, and stopped the clock,
+whose catch now reports everything (bug audit 3, L4-01 and T2a-04).
 
 ---
 

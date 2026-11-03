@@ -31,7 +31,6 @@ import {
   ANSWERED_ENTRY_WHERE,
   catchupDisplayName,
   isEditionRunning,
-  isMissingCatchupTable,
   nextEditionStatus,
   planNextAction,
   QUESTION_WINDOW_DAYS,
@@ -276,9 +275,11 @@ async function applyEditionAction(
 /**
  * Bring one Edition to the status the clock justifies, firing each crossed
  * transition's one-time side effects. Loops so a very stale Edition settles fully
- * in a single visit; bounded so a logic bug can never spin. Never throws: a
- * missing table (pre-migration) or any error is swallowed, because the app-shell
- * piggyback that calls this runs on every authenticated page.
+ * in a single visit; bounded so a logic bug can never spin. Never throws: any
+ * error is swallowed, and reported, because the app-shell piggyback that calls
+ * this runs on every authenticated page. A missing table is reported too: the
+ * early return that kept it quiet also kept a missing COLUMN quiet, and the
+ * Editions simply stopped (bug audit 3, L4-01).
  */
 /* `restoreOwnCatchupCopy` stood here until build phase 5. It took one
    member's copy back out of the thirty-day bin when they followed their own
@@ -376,7 +377,6 @@ export async function advanceEdition(
       if (ed.status !== "collecting") promptCount = null;
     }
   } catch (err) {
-    if (isMissingCatchupTable(err)) return;
     /* Reported, not just logged (bug-report-2 C-149). This function never
        re-throws -- an edition that cannot advance must not take the page it
        was called from down -- so the reportSwallowed call in
@@ -489,8 +489,8 @@ export async function openEdition(
  * /api/catchups/tick is a thin wrapper) and advances each. It opens nothing:
  * an Edition starts only when somebody starts it. Wrapped so it can NEVER throw:
  * it is piggy-backed on the app-shell notification-count query that runs on
- * essentially every authenticated page view, and a missing table (pre-migration)
- * or any error must degrade to a no-op, never a 500.
+ * essentially every authenticated page view, and any error must degrade to a
+ * no-op, never a 500. Reported, a missing table included (bug audit 3, L4-01).
  *
  * `userId` is not just a filter: it is the difference between the two callers,
  * and one thing here happens on only one of them. The batch self-heal below
@@ -566,7 +566,6 @@ export async function advanceDueCatchups(userId?: string): Promise<void> {
       }
     }
   } catch (err) {
-    if (isMissingCatchupTable(err)) return; // tables absent (pre-migration): no-op
     // Swallow: this runs on every authenticated page and must never break one.
     // But say so somewhere a human will hear it. Before this the whole
     // Catch-ups feature could be failing on every page view and the only

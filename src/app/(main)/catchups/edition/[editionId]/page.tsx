@@ -14,8 +14,9 @@
  *      answer bodies are never even pulled into a server render for an
  *      Edition that is not published yet, Keeper included.
  *
- *  Every query path is wrapped so a missing table (P2021, pre-migration)
- *  renders the shared <AlmostReady/> holding scene instead of a 500.
+ *  Every query path is wrapped so a missing table (P2021, a migration not
+ *  yet run) renders the shared <AlmostReady/> holding scene instead of a
+ *  500, and is reported (bug audit 3, L4-01).
  * ------------------------------------------------------------------ */
 
 import type { Metadata } from "next";
@@ -40,6 +41,7 @@ import type { ReaderQuestion } from "@/components/catchups/edition/reader-types"
 import { NotYetPublished } from "@/components/catchups/edition/not-yet-published";
 import { recordView } from "@/lib/content-view";
 import { markEditionRead } from "@/lib/catchup-reads";
+import { reportSwallowed } from "@/lib/report-error";
 
 const LIGHT_EDITION_SELECT = {
   id: true,
@@ -153,6 +155,8 @@ export default async function EditionPage({
     edition = await advanceAndReload(base, editionId);
   } catch (err) {
     if (isMissingCatchupTable(err)) {
+      // The holding scene for a member, and a report for the owner (L4-01).
+      reportSwallowed("catchups", err, { page: "edition", editionId });
       return (
         <div className="py-10">
           <AlmostReady />

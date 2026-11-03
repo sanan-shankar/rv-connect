@@ -1450,9 +1450,14 @@ export function catchupStageLine(
 // ─── The missing-table guard (P2021) ─────────────────────────────────────────
 
 /**
- * True when an error means "a Catchup* table does not exist yet" (pre-migration).
- * Shared surfaces (the app-shell piggyback, the group card) wrap their queries
- * with this so a missing table degrades to "no Catch-up data" instead of a 500.
+ * True when an error means "a Catchup* table does not exist" (P2021, a
+ * migration not yet run). The five Catch-up pages draw their holding scene for
+ * it and `runAction` its sentence, and every one of them reports it as well:
+ * the tables exist on both databases, so this is a failure, never a state.
+ * The engine and the batch heal no longer ask; they report like any failure.
+ *
+ * A missing COLUMN answers false (bug audit 3, L4-01): it used to answer true,
+ * which put all of Catch-ups behind "almost ready" with nothing reported.
  */
 export function isMissingCatchupTable(err: unknown): boolean {
   return isMissingTable(err, /Catchup/);

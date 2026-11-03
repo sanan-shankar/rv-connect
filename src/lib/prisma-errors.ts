@@ -55,12 +55,27 @@ export function isSerializationFailure(err: unknown): boolean {
  * two error CODES are unambiguous, but Prisma does not always produce them,
  * and matching "does not exist" alone would swallow an unrelated failure and
  * render an empty page instead of reporting it.
+ *
+ * A missing COLUMN is not a missing table, and the fallback used to say it
+ * was. Postgres names the table in a column error (`column CatchupEntry.x
+ * does not exist`, P2022 or 42703), so "names our table and says does not
+ * exist" matched a field that reached production before its ALTER TABLE, or
+ * one dropped while the code still read it: every Catch-up surface went to
+ * its "almost ready" scene and nothing was reported (bug audit 3, L4-01). So
+ * the message must name a RELATION or a TABLE as missing, in the two shapes
+ * Postgres and Prisma write, and the pattern is tested against that name only.
+ * Not after "of": `column "x" of relation "T" does not exist` is the column
+ * error an INSERT or an ALTER writes, and its relation is there.
  */
+const MISSING_RELATION = /(?:(?<!of )relation "([^"]+)"|table `([^`]+)`) does not exist/i;
+
 export function isMissingTable(err: unknown, table: RegExp): boolean {
   const c = code(err);
   if (c === "P2021") return true; // Prisma: the table does not exist
   if (c === "42P01") return true; // Postgres undefined_table, raw via the pg adapter
+  if (c === "P2022" || c === "42703") return false; // a missing column
   const message = (err as { message?: unknown } | null)?.message;
   if (typeof message !== "string") return false;
-  return table.test(message) && /does not exist/i.test(message);
+  const named = MISSING_RELATION.exec(message);
+  return !!named && table.test(named[1] ?? named[2]);
 }

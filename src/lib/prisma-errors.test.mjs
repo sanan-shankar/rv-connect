@@ -29,9 +29,34 @@ test("a missing table is recognised by code, or by a message about OUR table", (
   assert.ok(isMissingTable({ code: "P2021" }, /Catchup/));
   assert.ok(isMissingTable({ code: "42P01" }, /LabRoomState/));
 
-  // The message fallback, which exists because neither code always arrives.
+  // The message fallback, which exists because neither code always arrives:
+  // Postgres's sentence, and the one Prisma writes for P2021.
   assert.ok(isMissingTable(new Error('relation "CatchupEdition" does not exist'), /Catchup/));
-  assert.ok(isMissingTable({ message: "LabRoomState does not exist" }, /LabRoomState/));
+  assert.ok(isMissingTable({ message: 'relation "LabRoomState" does not exist' }, /LabRoomState/));
+  assert.ok(
+    isMissingTable(new Error("The table `public.CatchupEntry` does not exist in the current database."), /Catchup/)
+  );
+});
+
+test("a missing COLUMN on our table is not a missing table (bug audit 3, L4-01)", () => {
+  /* Postgres names the table in a column error, so the old fallback ("names
+     our table, says does not exist") read a field added before its ALTER
+     TABLE, or one dropped while the code still read it, as Catch-ups not
+     being set up: every surface went to its holding scene and nobody was
+     told. Each shape the pg adapter and Prisma 7 produce, with and without
+     the code that would have been enough on its own. */
+  const typed = "The column `CatchupEntry.songUrl` does not exist in the current database.";
+  const raw = "column CatchupEntry.songUrl does not exist";
+  for (const err of [
+    { code: "P2022", message: typed },
+    { code: "42703", message: raw },
+    { code: "P2010", message: `Raw query failed. Code: \`42703\`. Message: \`${raw}\`` },
+    new Error(typed),
+    new Error(raw),
+    new Error('column "songUrl" of relation "CatchupEntry" does not exist'),
+  ]) {
+    assert.ok(!isMissingTable(err, /Catchup/), err.message);
+  }
 });
 
 test("the message fallback cannot swallow somebody else's failure", () => {

@@ -10,6 +10,7 @@ import { catchupDisplayName, isMissingCatchupTable } from "@/lib/catchups";
 import { AcceptInvite } from "@/components/catchups/join/accept-invite";
 import { IDENTITY_SELECT } from "@/lib/people-select";
 import { IN_GOOD_STANDING } from "@/lib/catchup-caps";
+import { reportSwallowed } from "@/lib/report-error";
 
 export const metadata: Metadata = {
   title: "You're invited",
@@ -76,9 +77,11 @@ export default async function JoinCatchupPage({
         },
       });
     } catch (err) {
-      // Pre-migration the column does not exist; a dead link is the honest
-      // thing to show rather than a stack trace.
+      // A missing table reads as a dead link rather than a stack trace, and
+      // is reported. A missing COLUMN, which this comment once named as the
+      // case, is not swallowed at all any more (bug audit 3, L4-01).
       if (!isMissingCatchupTable(err)) throw err;
+      reportSwallowed("catchups", err, { page: "join" });
     }
   }
 

@@ -18,6 +18,7 @@ import { advanceDueCatchups, isMissingCatchupTable } from "@/lib/catchups";
 import { catchupDisplayName, catchupStageLine, isEditionRunning } from "@/lib/catchups-core";
 import type { CatchupStatus, EditionStatus } from "@/lib/catchups-types";
 import { formatDayAndDate, formatDisplayDateLong, parseJsonArray } from "@/lib/utils";
+import { reportSwallowed } from "@/lib/report-error";
 
 export const metadata: Metadata = {
   title: "Catch-ups",
@@ -265,6 +266,8 @@ export default async function CatchupsPage() {
     data = await loadIndexData(session.user.id);
   } catch (err) {
     if (!isMissingCatchupTable(err)) throw err;
+    // The holding scene for a member, and a report for the owner (L4-01).
+    reportSwallowed("catchups", err, { page: "index" });
   }
 
   if (!data) {

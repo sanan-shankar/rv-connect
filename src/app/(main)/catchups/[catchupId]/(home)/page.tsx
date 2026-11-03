@@ -44,15 +44,17 @@ import { COVER_SHOTS } from "@/lib/catchup-pictures";
 import { readEditionIds } from "@/lib/catchup-reads";
 import { promptKind, type PromptCategory } from "@/lib/catchups-types";
 import { formatDayAndDate, parseJsonArray } from "@/lib/utils";
+import { reportSwallowed } from "@/lib/report-error";
 
 /* ------------------------------------------------------------------ *
  *  The Catch-up home (spec 3.3): the command surface for the live
  *  cycle plus the archive. Asymmetric two-column shape, never a
  *  centered stack - see `home/catchup-home-shell.tsx`.
  *
- *  Every query path is wrapped so a missing Catchup* table (P2021,
- *  pre-migration) renders the shared `<AlmostReady/>` holding scene
- *  instead of a 500 (migration handoff rule 3b).
+ *  Every query path is wrapped so a missing Catchup* table (P2021, a
+ *  migration not yet run) renders the shared `<AlmostReady/>` holding
+ *  scene instead of a 500 (migration handoff rule 3b), and is reported:
+ *  the tables exist, so it is a failure, not a state (bug audit 3, L4-01).
  * ------------------------------------------------------------------ */
 
 /* One read of the Catch-up for the two functions Next runs on the same
@@ -539,6 +541,8 @@ export default async function CatchupHomePage({
     result = await loadHome(catchupId, session.user.id);
   } catch (err) {
     if (isMissingCatchupTable(err)) {
+      // The holding scene for a member, and a report for the owner (L4-01).
+      reportSwallowed("catchups", err, { page: "home", catchupId });
       return (
         <div>
           <PageHeader title="Catch-ups" />

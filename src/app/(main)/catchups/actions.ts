@@ -24,10 +24,9 @@
  *  answering now" click after the window had already auto-advanced past
  *  collecting), and an account outside the group cannot move its clock.
  *
- *  Every action is wrapped by `runAction`, which turns a missing-table error
- *  (P2021, pre-migration) into a friendly `{ error }` instead of throwing, so
- *  calling any of these before the owner applies the migration degrades
- *  gracefully rather than surfacing a raw server-action exception.
+ *  Every action is wrapped by `runAction`, which turns any failure into a
+ *  friendly `{ error }` instead of a raw server-action exception, and reports
+ *  it, because nothing it catches reaches Sentry any other way.
  *
  *  No song field, and no Spotify fetch from here: a pasted link becomes a
  *  card through `lib/link-preview.ts` (build phase 10), which is the one place
@@ -58,6 +57,7 @@ import { ownedUploadUrls } from "@/lib/upload-ownership";
 import { MAX_IMAGES } from "@/lib/upload-ownership-rule";
 import { ownedVoiceRecording } from "@/lib/voice-answer";
 import { purgeImageUrls } from "@/lib/image-purge";
+import { reportSwallowed } from "@/lib/report-error";
 import { parseJsonArray } from "@/lib/utils";
 import { revalidatePath } from "next/cache";
 import {
@@ -216,19 +216,27 @@ const submitEntrySchema = z.object({
 //     functions, so every internal helper/schema/constant below stays local) ──
 
 /**
- * Every action shares one failure shape: a missing-table error (P2021,
- * pre-migration) becomes a friendly message instead of throwing, and any
- * other error is logged but still degrades to a friendly `{ error }` rather
- * than a raw server-action exception reaching the client.
+ * Every action shares one failure shape: anything it throws degrades to a
+ * friendly `{ error }` rather than a raw server-action exception reaching the
+ * client, and a missing table (P2021) gets its own sentence.
+ *
+ * REPORTED, BOTH WAYS, BEFORE EITHER SENTENCE. This catch is why no Catch-up
+ * failure is ever thrown, and Sentry hears only what is thrown, so it used to
+ * reach a console line on Vercel and nobody else: a curate that lost a race, a
+ * transaction that timed out, a bell that threw after its heart was saved, or
+ * a schema change that broke one action told the member to try again for as
+ * long as it lasted, with Sentry green (bug audit 3, T2a-04, and L4-01 for the
+ * missing-table branch). `action` is the export's own name, so a report says
+ * which press failed; catchup-lifecycle.test.mjs holds every caller to it.
  */
-async function runAction<T>(fn: () => Promise<T>): Promise<T | { error: string }> {
+async function runAction<T>(action: string, fn: () => Promise<T>): Promise<T | { error: string }> {
   try {
     return await fn();
   } catch (err) {
+    reportSwallowed("catchups/actions", err, { action });
     if (isMissingCatchupTable(err)) {
       return { error: "Catch-ups is not set up for this community yet. Please check back soon." };
     }
-    console.error("[catchups/actions]", err);
     return { error: "Something went wrong. Please try again." };
   }
 }
@@ -526,7 +534,7 @@ export async function createCatchupWithPeople(input: {
   name: string;
   memberIds: string[];
 }) {
-  return runAction(async () => {
+  return runAction("createCatchupWithPeople", async () => {
     const session = await auth();
     if (!session?.user?.id) return { error: "Not authenticated" };
 
@@ -676,7 +684,7 @@ export async function createCatchupWithPeople(input: {
  * its count sees every add and join before it.
  */
 export async function joinCatchupByToken(token: string) {
-  return runAction(async () => {
+  return runAction("joinCatchupByToken", async () => {
     const session = await auth();
     if (!session?.user?.id) return { error: "Not authenticated" };
     // Joining puts this account inside a private group, reading and writing
@@ -772,7 +780,7 @@ export async function joinCatchupByToken(token: string) {
  * Edition clock, and a name is not part of the cycle.
  */
 export async function renameCatchup(catchupId: string, title: string) {
-  return runAction(async () => {
+  return runAction("renameCatchup", async () => {
     const session = await auth();
     if (!session?.user?.id) return { error: "Not authenticated" };
     const gate = await requireVerifiedMember();
@@ -838,7 +846,7 @@ export async function setCatchupPicture(
   catchupId: string,
   picture: { src: string; focus: string }
 ) {
-  return runAction(async () => {
+  return runAction("setCatchupPicture", async () => {
     const session = await auth();
     if (!session?.user?.id) return { error: "Not authenticated" };
     const gate = await requireVerifiedMember();
@@ -923,7 +931,7 @@ export async function setCatchupPicture(
  * hand-made call, can never take a picture something still shows.
  */
 export async function discardPictureUpload(url: string) {
-  return runAction(async () => {
+  return runAction("discardPictureUpload", async () => {
     const session = await auth();
     if (!session?.user?.id) return { error: "Not authenticated" };
     // Only someone who could upload has anything to throw away.
@@ -971,7 +979,7 @@ export async function discardPictureUpload(url: string) {
  * commits first and its Edition is seen here, or finds the Catch-up ended.
  */
 export async function endCatchup(catchupId: string) {
-  return runAction(async () => {
+  return runAction("endCatchup", async () => {
     const session = await auth();
     if (!session?.user?.id) return { error: "Not authenticated" };
     // It ends the Catch-up for everyone in it, so it is a Stage 2 write like
@@ -1023,7 +1031,7 @@ export async function submitPrompt(input: {
   category?: PromptCategory | null;
   showAsker?: boolean;
 }) {
-  return runAction(async () => {
+  return runAction("submitPrompt", async () => {
     const session = await auth();
     if (!session?.user?.id) return { error: "Not authenticated" };
 
@@ -1149,7 +1157,7 @@ export type CuratePromptInput =
  * around an empty room.
  */
 export async function curatePrompt(input: CuratePromptInput) {
-  return runAction(async () => {
+  return runAction("curatePrompt", async () => {
     const session = await auth();
     if (!session?.user?.id) return { error: "Not authenticated" };
     // Removing a question takes it out of everyone's Edition: the same Stage
@@ -1243,7 +1251,7 @@ export async function curatePrompt(input: CuratePromptInput) {
 /** Keeper-only on a people Catch-up; any member on a batch one. Collecting
  *  -> answering, ahead of `questionsCloseAt`. */
 export async function openAnswering(editionId: string) {
-  return runAction(async () => {
+  return runAction("openAnswering", async () => {
     const session = await auth();
     if (!session?.user?.id) return { error: "Not authenticated" };
     // Rings everyone taking part: a Stage 2 write, like Start (bug audit 3,
@@ -1342,7 +1350,7 @@ export async function openAnswering(editionId: string) {
  * pressing it always meant.
  */
 export async function closeAndPublish(editionId: string) {
-  return runAction(async () => {
+  return runAction("closeAndPublish", async () => {
     const session = await auth();
     if (!session?.user?.id) return { error: "Not authenticated" };
     // Ends everyone's week of writing and rings the whole group, one way: a
@@ -1465,7 +1473,7 @@ export async function closeAndPublish(editionId: string) {
  * running and settles two simultaneous presses into one Edition.
  */
 export async function startEdition(catchupId: string) {
-  return runAction(async () => {
+  return runAction("startEdition", async () => {
     const session = await auth();
     if (!session?.user?.id) return { error: "Not authenticated" };
     if (typeof catchupId !== "string" || !catchupId) return { error: "Invalid request." };
@@ -1523,7 +1531,7 @@ export async function startEdition(catchupId: string) {
  * sealed Edition is a different (and unasked-for) feature.
  */
 export async function extendDeadline(editionId: string, days: number, seenCloseAt: string) {
-  return runAction(async () => {
+  return runAction("extendDeadline", async () => {
     const session = await auth();
     if (!session?.user?.id) return { error: "Not authenticated" };
     // Moves everyone's deadline: a Stage 2 write, like Start (bug audit 3,
@@ -1617,7 +1625,7 @@ export async function extendDeadline(editionId: string, days: number, seenCloseA
  * NOTHING CALLS THIS YET.
  */
 export async function setEditionTimeCapsule(editionId: string, timeCapsule: boolean) {
-  return runAction(async () => {
+  return runAction("setEditionTimeCapsule", async () => {
     const session = await auth();
     if (!session?.user?.id) return { error: "Not authenticated" };
     if (typeof editionId !== "string" || !editionId) return { error: "Invalid request." };
@@ -1680,7 +1688,7 @@ export async function submitEntry(input: {
   images?: string[];
   baseUpdatedAt?: string;
 }) {
-  return runAction(async () => {
+  return runAction("submitEntry", async () => {
     const session = await auth();
     if (!session?.user?.id) return { error: "Not authenticated" };
 
@@ -1972,7 +1980,7 @@ export async function submitEntry(input: {
  * `published`.
  */
 export async function toggleEntryLove(entryId: string) {
-  return runAction(async () => {
+  return runAction("toggleEntryLove", async () => {
     const session = await auth();
     if (!session?.user?.id) return { error: "Not authenticated" };
     // Same tier as the feed's likes: a public gesture is a Stage 2 write.
@@ -2103,7 +2111,7 @@ export async function loadEntryComments(
   entryId: string,
   opts?: { cursor?: string | null; take?: number }
 ) {
-  return runAction(async () => {
+  return runAction("loadEntryComments", async () => {
     const session = await auth();
     if (!session?.user?.id) return EMPTY_COMMENT_PAGE;
 
@@ -2129,7 +2137,7 @@ export async function createEntryComment(
   content: string,
   parentId?: string | null
 ) {
-  return runAction(async () => {
+  return runAction("createEntryComment", async () => {
     const session = await auth();
     if (!session?.user?.id) return { error: "Not authenticated" };
     // The same tier as the feed's comments: writing in public is a Stage 2 write.
@@ -2214,7 +2222,7 @@ export async function createEntryComment(
 
 /** The heart on one comment under an answer. */
 export async function toggleEntryCommentLike(commentId: string) {
-  return runAction(async () => {
+  return runAction("toggleEntryCommentLike", async () => {
     const session = await auth();
     if (!session?.user?.id) return { error: "Not authenticated" };
     const gate = await requireVerifiedMember();
@@ -2427,7 +2435,7 @@ async function loadKeeperScope(
  * shared `catchups` bucket gave a Keeper five adds an hour, one person each.
  */
 export async function addCatchupMembers(catchupId: string, userIds: string[]) {
-  return runAction(async () => {
+  return runAction("addCatchupMembers", async () => {
     const session = await auth();
     if (!session?.user?.id) return { error: "Not authenticated" };
 
@@ -2593,7 +2601,7 @@ export async function addCatchupMembers(catchupId: string, userIds: string[]) {
  * misfire here would leave a Catch-up with nobody able to tend it.
  */
 export async function removeCatchupMember(catchupId: string, userId: string) {
-  return runAction(async () => {
+  return runAction("removeCatchupMember", async () => {
     const session = await auth();
     if (!session?.user?.id) return { error: "Not authenticated" };
     // Takes somebody else out: a Stage 2 write, like adding them (bug audit
@@ -2685,7 +2693,7 @@ export async function removeCatchupMember(catchupId: string, userId: string) {
  * end it, or hand the hat over first.
  */
 export async function leaveCatchup(catchupId: string) {
-  return runAction(async () => {
+  return runAction("leaveCatchup", async () => {
     const session = await auth();
     if (!session?.user?.id) return { error: "Not authenticated" };
     if (IS_DEMO) return { error: DEMO_SHARED_COPY_REFUSAL };
@@ -2756,7 +2764,7 @@ export async function leaveCatchup(catchupId: string) {
  * reversible, which is why it asks nothing before doing it.
  */
 export async function setCatchupArchived(catchupId: string, archived: boolean) {
-  return runAction(async () => {
+  return runAction("setCatchupArchived", async () => {
     const session = await auth();
     if (!session?.user?.id) return { error: "Not authenticated" };
     if (IS_DEMO) return { error: DEMO_SHARED_COPY_REFUSAL };
@@ -2805,7 +2813,7 @@ export async function setCatchupArchived(catchupId: string, archived: boolean) {
  * nothing while looking like it had. Saying so is better than a silent no-op.
  */
 export async function setCatchupKeeper(catchupId: string, userId: string, isKeeper: boolean) {
-  return runAction(async () => {
+  return runAction("setCatchupKeeper", async () => {
     const session = await auth();
     if (!session?.user?.id) return { error: "Not authenticated" };
     // Hands another member every control here, or takes them away: a Stage 2
@@ -2885,7 +2893,7 @@ export async function setCatchupKeeper(catchupId: string, userId: string, isKeep
 
 /** A member's own reminder setting for one Catchup: all / last only / off. */
 export async function setReminderPref(catchupId: string, reminderMode: ReminderMode) {
-  return runAction(async () => {
+  return runAction("setReminderPref", async () => {
     const session = await auth();
     if (!session?.user?.id) return { error: "Not authenticated" };
     if (typeof catchupId !== "string" || !catchupId) return { error: "Invalid request." };

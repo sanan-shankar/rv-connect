@@ -740,6 +740,9 @@ test("isMissingCatchupTable: true for P2021 / 42P01 / scoped message, false othe
   assert.equal(isMissingCatchupTable({ code: "P2021" }), true);
   assert.equal(isMissingCatchupTable({ code: "42P01" }), true);
   assert.equal(isMissingCatchupTable(new Error("The table `public.Catchup` does not exist")), true);
+  // A missing column is a failure to report, not Catch-ups being absent (L4-01).
+  assert.equal(isMissingCatchupTable({ code: "P2022", message: "The column `CatchupEntry.x` does not exist" }), false);
+  assert.equal(isMissingCatchupTable(new Error("column CatchupSeries.x does not exist")), false);
   assert.equal(isMissingCatchupTable({ code: "P2002" }), false);
   assert.equal(isMissingCatchupTable(new Error("something else broke")), false);
   assert.equal(isMissingCatchupTable(null), false);

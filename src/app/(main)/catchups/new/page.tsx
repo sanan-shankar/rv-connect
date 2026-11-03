@@ -6,6 +6,7 @@ import { AlmostReady } from "@/components/catchups/almost-ready";
 import { CreateCatchupForm } from "@/components/catchups/create/create-catchup-form";
 import type { PickedPerson } from "@/components/catchups/create/people-picker";
 import { isMissingCatchupTable } from "@/lib/catchups";
+import { reportSwallowed } from "@/lib/report-error";
 import { IDENTITY_SELECT } from "@/lib/people-select";
 
 export const metadata: Metadata = {
@@ -86,6 +87,8 @@ export default async function NewCatchupPage() {
 
   } catch (err) {
     if (!isMissingCatchupTable(err)) throw err;
+    // The holding scene for a member, and a report for the owner (L4-01).
+    reportSwallowed("catchups", err, { page: "new" });
     tableMissing = true;
   }
 

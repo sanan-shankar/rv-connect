@@ -57,7 +57,7 @@ import { prisma } from "@/lib/prisma";
 import { reportSwallowed } from "@/lib/report-error";
 import { isUniqueViolation } from "@/lib/prisma-errors";
 import { pickCatchupPicture } from "@/lib/catchup-picture-pick";
-import { BATCH_CATCHUP_FLOOR, isMissingCatchupTable } from "@/lib/catchups-core";
+import { BATCH_CATCHUP_FLOOR } from "@/lib/catchups-core";
 import { IN_GOOD_STANDING } from "@/lib/catchup-caps";
 import { clearCatchupNotifications } from "@/lib/catchup-notifications";
 import { dropUnsentWriting } from "@/lib/group-succession";
@@ -286,7 +286,6 @@ export async function syncBatchGroupQuietly(userId: string): Promise<void> {
   try {
     await syncBatchGroup(userId);
   } catch (err) {
-    if (isMissingCatchupTable(err)) return;
     reportSwallowed("catchups", err, { step: "syncBatchGroup", userId });
   }
 }
@@ -426,7 +425,6 @@ export async function healBatchCatchupsAndMemberships(): Promise<void> {
     await healBatchGroupMemberships();
     await healBatchCatchups();
   } catch (err) {
-    if (isMissingCatchupTable(err)) return; // tables absent (pre-migration): no-op
     reportSwallowed("catchups", err, { step: "healBatchCatchupsAndMemberships" });
   }
 }

@@ -867,52 +867,101 @@ test("routed follow-up (d): Nobody has answered yet says what the clock will do"
   assert.match(surface, /confirmCopy\(open\.key, c\.name, c\.people, c\.autoExtended[,)]/);
 });
 
-test("C-149: every swallowed failure on the clock is reported, not just logged", () => {
+test("C-149, L4-01, T2a-04: every Catch-up failure that is swallowed is reported, not just logged", () => {
   /* advanceEdition never re-throws -- an edition that cannot advance must not
-     take down the page it was called from -- so the reportSwallowed calls in
-     advanceDueCatchups and openNextEditionIfDue cannot see a per-edition
-     failure. Its catch did console.error only, and console.error on Vercel
-     reaches nobody: round-OPENING failures went to Sentry and round-ADVANCING
-     failures did not, which is the M09 fix applied to half the clock. The
-     Edition just stops moving while the countdown keeps counting down.
+     take down the page it was called from -- and its catch did console.error
+     only, which on Vercel reaches nobody (C-149). runAction, which wraps every
+     Catch-up action, did the same (T2a-04). And four catches on the clock and
+     the batch heal, the five pages and runAction swallowed "a missing table"
+     before any report, which a missing COLUMN also matched (L4-01): Catch-ups
+     went to "almost ready" for everyone, the Editions stopped, and nothing was
+     said. The old sweep let that through, because it only asked that a
+     `reportSwallowed(` appear somewhere in the block, and it did, after the
+     early return.
 
-     Swept rather than pinned to one function: every catch in this file that
-     swallows (does not re-throw) has to report. */
-  const src = decomment(read("src/lib/catchups.ts"));
-  /* `catch (err)` AND the parenless `catch {`. The old pattern required
-     parentheses, so a swallowing block written without a binding was
-     invisible to this sweep -- a gap, not a decision. */
-  const catches = [...src.matchAll(/\}\s*catch\s*(?:\([^)]*\)\s*)?\{/g)];
-  assert.ok(catches.length >= 3, `only found ${catches.length} catch blocks; the sweep has drifted`);
-
-  for (const m of catches) {
-    // The block, brace-matched from the catch's own opening brace.
-    let depth = 0;
-    let end = m.index + m[0].length - 1;
-    for (let i = end; i < src.length; i++) {
-      if (src[i] === "{") depth++;
-      else if (src[i] === "}") {
-        depth--;
-        if (depth === 0) { end = i; break; }
+     Swept, not pinned to functions: every catch in these files rethrows,
+     reports before anything returns, or only answers a race the database has
+     already settled. */
+  const FILES = [
+    "src/lib/catchups.ts",
+    "src/lib/batch-catchups.ts",
+    "src/app/(main)/catchups/actions.ts",
+    "src/app/(main)/catchups/(index)/page.tsx",
+    "src/app/(main)/catchups/[catchupId]/(home)/page.tsx",
+    "src/app/(main)/catchups/edition/[editionId]/page.tsx",
+    "src/app/(main)/catchups/new/page.tsx",
+    "src/app/catchups/join/[token]/page.tsx",
+  ];
+  /* A settled race: the row the caller asked for exists, or is gone, or the
+     transaction found the Edition already moved. The question was answered;
+     nothing failed. */
+  const SETTLED = /\b(?:isUniqueViolation|isSerializationFailure)\(err\)|err instanceof EmptyAfterSwap/;
+  let swept = 0;
+  for (const file of FILES) {
+    const src = decomment(read(file));
+    /* `catch (err)` AND the parenless `catch {`. The old pattern required
+       parentheses, so a swallowing block written without a binding was
+       invisible to this sweep -- a gap, not a decision. */
+    for (const m of src.matchAll(/\}\s*catch\s*(?:\([^)]*\)\s*)?\{/g)) {
+      // The block, brace-matched from the catch's own opening brace.
+      let depth = 0;
+      let end = m.index + m[0].length - 1;
+      for (let i = end; i < src.length; i++) {
+        if (src[i] === "{") depth++;
+        else if (src[i] === "}") {
+          depth--;
+          if (depth === 0) { end = i; break; }
+        }
       }
-    }
-    const block = src.slice(m.index, end + 1);
-    // A catch that re-throws is not swallowing: its caller still hears.
-    if (/\bthrow\b/.test(block)) continue;
-    // ...nor is one that only classifies and returns to a caller that reports.
-    if (/isMissingCatchupTable/.test(block) && !/console\.error/.test(block)) {
-      assert.match(
-        block,
-        /reportSwallowed\(/,
-        `a catch in catchups.ts swallows a failure without reporting it:\n${block.slice(0, 200)}`
+      const block = src.slice(m.index, end + 1);
+      const where = `${file}:\n${block.slice(0, 240)}`;
+      swept++;
+
+      const report = block.indexOf("reportSwallowed(");
+      if (report !== -1) {
+        // Nothing gets out before the report: the L4-01 shape.
+        assert.ok(
+          !/\breturn\b/.test(block.slice(0, report)),
+          `a catch returns before it reports, so that path is silent:\n${where}`
+        );
+        continue;
+      }
+      /* A metadata title: the page under it makes the same reads, and what
+         fails there fails again in the page, which throws. */
+      if (/^\}\s*catch\s*\{\s*return \{ title: "[^"]*" \};\s*\}$/.test(block)) continue;
+      assert.ok(
+        /\bthrow\b/.test(block) && SETTLED.test(block),
+        `a catch swallows a failure without reporting it, which on Vercel reaches nobody:\n${where}`
       );
-      continue;
     }
-    assert.ok(
-      /reportSwallowed\(/.test(block),
-      `a catch in catchups.ts swallows a failure with console alone, which on Vercel reaches ` +
-        `nobody (C-149):\n${block.slice(0, 200)}`
+  }
+  assert.ok(swept >= 20, `only ${swept} catch blocks swept; the sweep has drifted`);
+
+  // A missing table is never the clock's or the heal's reason to say nothing.
+  for (const file of ["src/lib/catchups.ts", "src/lib/batch-catchups.ts"]) {
+    assert.doesNotMatch(
+      decomment(read(file)),
+      /isMissingCatchupTable/,
+      `${file} asks about a missing table again; its catch reports every failure`
     );
+  }
+});
+
+test("T2a-04: every Catch-up action names itself to the report", () => {
+  /* runAction reports what it catches with the action's name, so a report
+     says which press failed. A label copied from the action above would send
+     the owner to the wrong one, so each must be its export's own name. */
+  const src = decomment(read("src/app/(main)/catchups/actions.ts"));
+  const run = balancedBody(src, "async function runAction");
+  assert.ok(run, "runAction is gone; this pin is reading nothing");
+  assert.match(run, /reportSwallowed\("catchups\/actions", err, \{ action \}\)/);
+  const exports = [...src.matchAll(/export async function (\w+)/g)];
+  assert.ok(exports.length >= 20, `only ${exports.length} actions found; this pin has drifted`);
+  for (let i = 0; i < exports.length; i++) {
+    const body = src.slice(exports[i].index, exports[i + 1]?.index ?? src.length);
+    const label = body.match(/runAction\("(\w+)"/);
+    assert.ok(label, `${exports[i][1]} does not go through runAction, so its failures are not reported`);
+    assert.equal(label[1], exports[i][1], `${exports[i][1]} reports its failures as ${label[1]}`);
   }
 });
 
