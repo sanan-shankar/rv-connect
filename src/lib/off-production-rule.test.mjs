@@ -99,3 +99,11 @@ test("the nightly sweep runs only on the production deployment, unless its serve
   // Behind the cron secret, so a caller without it learns nothing about where it runs.
   assert.ok(body.indexOf("requireCronSecret(") > -1 && body.indexOf("requireCronSecret(") < guard);
 });
+
+test("the night's audit line says where the sweep ran", () => {
+  /* A sweep run on purpose from a laptop (SWEEP_IN_DEV=1) writes the same
+     retention.sweep line as the night's; this is what tells them apart in
+     /admin/audit (bug audit 3, L11-06's third half). */
+  const sweep = balancedBody(decomment(read("src/lib/retention.ts")), "export async function runRetentionSweep") ?? "";
+  assert.match(sweep, /action: "retention\.sweep",\s*detail: JSON\.stringify\(\{ \.\.\.result, ranOn: process\.env\.VERCEL_ENV \?\? "local" \}\)/);
+});

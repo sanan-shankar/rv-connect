@@ -430,10 +430,12 @@ export async function runRetentionSweep(): Promise<SweepResult> {
     errors,
   };
 
+  /* Where it ran, so a deliberate SWEEP_IN_DEV run reads "local" in
+     /admin/audit and cannot pass for the night's (bug audit 3, L11-06). */
   await writeAudit({
     actorId: null,
     action: "retention.sweep",
-    detail: JSON.stringify(result),
+    detail: JSON.stringify({ ...result, ranOn: process.env.VERCEL_ENV ?? "local" }),
   });
 
   return result;
