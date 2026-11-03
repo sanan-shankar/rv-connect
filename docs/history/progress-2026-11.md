@@ -1,3 +1,40 @@
+## 2026-11-03 (budgets) — bug audit 3, unit O2: one daily budget for what an account may spend, a sweep that every door spends one, and four doors closed
+
+Six commits, `npm run check` green before each. One migration, applied to both databases before the
+code that counts on it.
+
+The helper (O-09). `src/lib/daily-budget.ts` is the second instrument beside `rate-limit.ts`: how
+much per subject per day, or a standing ceiling on what one account keeps. A `rows` budget counts the
+action's own rows (no Upstash command, exact, cannot be switched off by emptying Upstash); a `redis`
+one is a 24-hour sliding window under its own prefix for what writes no row. Each entry argues its
+number, its outage posture and whether a refusal is a sentence or silent. `budget-coverage.test.mjs`
+sweeps 110 actions and 20 route files: each spends a meter, calls a helper proved to, opens with an
+admin gate, or is on a reviewed list with a reason. O-09 stays open until its `pending:` entries are
+gone (C6-02, C6-05, C4-01, L8-04, C3-02).
+
+Sign-in floods (L5-02). A refused sign-in still spent two to four of Upstash's 500,000 monthly
+commands, so one machine could switch every limiter off in hours. A key the meters have refused is
+now remembered for up to fifteen minutes, and the door asks that memory and the bot check before
+anything that costs a command: a tokenless flood never spent a `login-ip` failure, so it had paid
+for the door's reads on every attempt.
+
+Search rows (C6-04): at most 200 a member a day, counted on a new `SearchLog(userId, createdAt)`
+index; the busiest real member-day is 13. Link previews (T2b-02): at most 40 new fetches a day,
+charged to whoever wrote the link at every door, readers never; 16 distinct links a post or letter;
+the nightly sweep removes a preview no body holds after 90 days, its thumbnail through a key that can
+only name `link-previews/` (first night: nothing to take). Drafts (C6-03): 3 letters in progress
+before an email is confirmed, 20 after, and no link fetched for an unverified writer. The signup
+meter's comment no longer says Stage 0 "can write nothing"; a test lists the twelve rows it can.
+
+Check D measured: a newcomer makes 11 to 13 requests through the sign-in and sign-up doors, a brisk
+signed-in visitor 77 a minute, so the rules are 1,300 and 1,000 per ten minutes (the design said
+1,000 and 600), with a fallback rule if the dashboard cannot hold the cookie conditions.
+
+Visible to members: two refusal sentences ("A letter can hold at most 16 links...", "You have 20
+letters in progress..."). Not screenshotted: the shared dev server is serving stale server-action
+code (it saved a 17-link test draft twice despite the compiled cap; both drafts and their preview rows
+were deleted), and this unit may not restart it.
+
 ## 2026-11-03 (catchups) — bug audit 3, unit H4 (stopped part-way): every Catch-up failure reaches the owner, a missing column is not a missing table, and the Edition page and the home read less
 
 Four of the unit's rows, in three commits, before the owner asked for one agent at a time and this

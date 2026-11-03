@@ -260,22 +260,48 @@ cost nothing against any allowance. Members browsing while signed in barely touc
      **AND** `Cookie` · `__Secure-authjs.session-token` · `Does not exist`
      **AND** `Cookie` · `__Secure-authjs.session-token.0` · `Does not exist`
 3. **Then:** `Rate Limit` · `Fixed Window` · **Time Window** `600` seconds (10 minutes) ·
-   **Request Limit** `1000` · **Key** `IP Address` · action **Default (429)**
+   **Request Limit** `1300` · **Key** `IP Address` · action **Default (429)**
 4. **Save Rule** → **Review Changes** → **Publish**.
+
+**If the dashboard will not put the two cookie conditions inside the last OR line** (the fallback):
+the same rule with the fourth line left out entirely, so the `If` reads only the first three lines,
+joined by **OR**, and the `Then` is unchanged (`600` seconds, `1300`, `IP Address`, 429). Nothing is
+lost that matters: the image optimizer already refuses every URL it does not render (C5-01, live
+from the next push), so the line only ever slowed a signed-out visitor's photographs.
 
 **Demo** (the **rv-alumni-demo** project, same steps):
 
 1. **Name:** `Everything on the demo`
 2. **If:** `Request Path` · `Does not start with` · `/_next/static`
-3. **Then:** `Rate Limit` · `Fixed Window` · `600` seconds · **Request Limit** `600` · `IP Address` ·
+3. **Then:** `Rate Limit` · `Fixed Window` · `600` seconds · **Request Limit** `1000` · `IP Address` ·
    **Default (429)**
 
-**Why those numbers.** A newcomer makes about ten requests through those doors (the front page, the
-sign-up page, about five for the entry question and the form, the sign-in page, two to sign in). A
-thousand in ten minutes is a hundred newcomers on one venue Wi-Fi at the same moment. A script at ten
-requests a second makes 6,000 in that time, so five in six are refused, free. On the demo, an engaged
-visitor clicking briskly makes about sixty a minute; 600 in ten minutes is that for the whole window.
-The image line counts only visitors who are not signed in, so members browsing photos never use it up.
+**Why those numbers: measured (O2, 2026-11-03, the dev server, signed out in the chrome-devtools
+MCP; signed in as the test account in a scripted browser).** Counted are only requests the rule's
+paths match; `/_next/static`, Cloudflare's widget and PostHog's `/ingest` are not.
+
+| Step | Requests the production rule sees |
+|---|---|
+| The front page, signed out | 2 (`/`, one `/_next/image` for the banyan) |
+| "Join the community" to the entry question | 3 (the `/signup` page's own fetch, and two server actions posting to `/signup`) |
+| Answering it | 1 (one more post to `/signup`); each wrong answer or "Try a different question" adds 1 |
+| The sign-up form, submitted | 5, counted from the code rather than pressed: `registerUser` posts to `/signup`, then NextAuth's `signIn` reads `/api/auth/providers` and `/api/auth/csrf`, posts `/api/auth/callback/credentials` and reads `/api/auth/session`; `/welcome` is outside the rule |
+| **A newcomer, start to finish** | **11**, or about 13 with one wrong answer and one new question |
+| The sign-in page, opened directly | 2 (`/login`, the banyan's `/_next/image`) |
+| Signing in, submitted | 4 (the same four `signIn` requests; counted from the code, because a sign-in from the dev server writes a `LoginAttempt` row into production's table, T7b-09) |
+| **A returning member signing in** | **about 8** with the front page; a signed-in member's browsing reaches none of these paths (no session polling, checked below) |
+| Demo rule: five minutes of brisk signed-in browsing, a new page every 5.5 seconds (55 pages) | **389**, 77 a minute: 214 page and page-data fetches, 55 presence beats, 64 PostHog, 39 images, 17 server actions; no `/api/auth/` request at all |
+
+So **1,300** in ten minutes is a hundred newcomers on one venue Wi-Fi in the same ten minutes at
+13 each, or about 118 at a clean 11; **1,000** (the estimate this replaces) would have started
+refusing at about the seventy-seventh. A script at ten requests a second makes 6,000 in the window and loses
+four in five, free. On the demo, the brisk browse above is a visitor reading nothing, a ceiling no
+real visitor reaches: 770 in ten minutes, so **1,000** lets that visitor through the whole window
+with room for a second person on the same connection, where 600 (the estimate) cut them off at
+eight minutes; a script loses five in six. The image line counts only visitors who are not signed
+in, so members browsing photographs never use it up. Measured on the dev server, whose page-data
+fetches may differ a little from production's; the doors' own requests (the server actions and
+NextAuth's four) are the same code on both.
 
 **What it does not do.** It counts per computer, so one machine kept just under the limit all day
 still gets 144,000 requests through, and many machines are not slowed at all. The code half of this
@@ -360,12 +386,12 @@ Each in his format, each with the answer the campaign takes if he says "go with 
 - What happens now: there is no firewall rule, so nothing slows a script at the sign-in door.
 - The problem: the one rule Hobby allows counts per internet address, and everyone on a venue's Wi-Fi
   shares one. Too tight and a reunion's sign-ups are refused; too loose and it slows nobody.
-- What I'd change: check D's 1,000 requests in ten minutes, which is about 100 newcomers signing up in
-  the same ten minutes on one Wi-Fi.
+- What I'd change: check D's 1,300 requests in ten minutes, which is about 100 newcomers signing up in
+  the same ten minutes on one Wi-Fi (measured: a newcomer makes 11 to 13 requests through those doors).
 - What you'd notice: nothing, unless a bigger crowd signs up at once, when some see "Too many
   requests" and succeed a few minutes later.
 - If I guess wrong: at the Centenary meet, the crowd is bigger than that.
-- Options: (a) 1,000 (about 100 at once); (b) 2,500 (about 250 at once, slows a script less).
+- Options: (a) 1,300 (about 100 at once); (b) 3,300 (about 250 at once, slows a script less).
   **Default: (a)**, unless you expect a bigger crowd at one moment.
 
 ## 12. Considered and not taken
@@ -436,3 +462,23 @@ Each departure is the smallest correct thing where the design, built literally, 
   would have needed an exemption that lies.
 - **Admin actions are recognised by their gate** (`requireAdminAction`, `requireAdminActor`,
   `requireAdmin`), not listed one by one; the handful that check the role inline are listed.
+- **L5-02's memo had to cover `login-unverified` and move the bot check ahead of the meters.** §2's
+  memo on `login-ip` and `login-account` alone bounds nothing for the commonest flood: a script with
+  no Turnstile token, or a junk one, is refused by `login-unverified` and never spends a `login-ip`
+  failure, so the door's two paid reads ran on every attempt. `hasBudget` now remembers any key with
+  nothing left (only nothing: `catchupAdds` asks for n), capped at fifteen minutes so a 30-day meter
+  is asked again soon, and `authorize` asks the memo, then the bot check, then the paid reads.
+- **T2b-02's meter is charged to the writer at every door, the two read loaders included.** §2 named
+  the four save doors. The Edition reader and the feed and letter loaders also create rows (a link
+  with none, written before the phase or refused at save), and charging the reader would let one
+  account spend every reader's day on its links. `scheduleLinkPreviewsByWriter` charges each link to
+  the author whose body holds it, which is what makes §4's stock bound per account true.
+- **C6-03's "no previews below Stage 2" sits at that same door** (`fetchesFor` in
+  `ensureLinkPreviews`), not in `createPost`: the letter page shows a draft to its author through the
+  read loader, so a save-side check alone would have been walked round.
+- **The `LinkPreview` window is outside `KEEP_DAYS`** (`PREVIEW_KEEP_DAYS` in `retention.ts`): every
+  `KEEP_DAYS` window is personal data with its row on the privacy page, and a preview names nobody.
+- **A Stage 0 list rides in the shape test** (C6-03's pin): every action an account that never
+  confirmed its email can reach that writes a row, twelve today, each with the ceiling that bounds it
+  and the place that ceiling must still be. One of the twelve, `startContribution`, is a rate and not
+  a size (ten unpaid orders an hour, kept with the payment records); it is Phase J's file.
