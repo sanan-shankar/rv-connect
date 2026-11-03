@@ -217,7 +217,10 @@ export type LimitName = keyof typeof LIMITS;
 let redis: Redis | null | undefined;
 const limiters = new Map<LimitName, Ratelimit>();
 
-function getRedis(): Redis | null {
+/** The one Upstash client, or null where there are no keys (the demo). Shared
+ *  with daily-budget.ts, whose `redis` budgets live in the same database under
+ *  their own prefix. */
+export function upstashRedis(): Redis | null {
   if (redis !== undefined) return redis;
   const url = process.env.UPSTASH_REDIS_REST_URL;
   const token = process.env.UPSTASH_REDIS_REST_TOKEN;
@@ -233,7 +236,7 @@ function getRedis(): Redis | null {
 }
 
 function limiterFor(name: LimitName): Ratelimit | null {
-  const r = getRedis();
+  const r = upstashRedis();
   if (!r) return null;
   let limiter = limiters.get(name);
   if (!limiter) {
@@ -273,12 +276,17 @@ function limiterFor(name: LimitName): Ratelimit | null {
 const REPORT_EVERY_MS = 60_000;
 const lastReported = new Map<string, number>();
 
-function reportLimiterFailure(name: string, step: string, err: unknown): void {
+export function reportLimiterFailure(
+  name: string,
+  step: string,
+  err: unknown,
+  failedOpen = step !== "consume",
+): void {
   const key = `${name}:${step}`;
   const now = Date.now();
   if ((lastReported.get(key) ?? 0) + REPORT_EVERY_MS > now) return;
   lastReported.set(key, now);
-  reportSwallowed("rate-limit", err, { limiter: name, step, failedOpen: step !== "consume" });
+  reportSwallowed("rate-limit", err, { limiter: name, step, failedOpen });
 }
 
 /**
