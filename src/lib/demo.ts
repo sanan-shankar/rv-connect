@@ -204,8 +204,9 @@ export class DemoWriteError extends Error {
  * Decide whether a single Prisma operation may proceed. Exported for the
  * unit test; the enforcement point is the client extension in prisma.ts.
  *
- * `args` is inspected only for User updates, where the verdict depends on
- * WHICH row and WHICH columns rather than on the model alone.
+ * `args` is inspected for two things: on a User update, WHICH row and WHICH
+ * columns; on any other write, the nested writes its payload carries, each
+ * judged by the model it reaches (nestedWritesAllowed below).
  */
 export function demoWriteAllowed(
   model: string | undefined,
@@ -232,12 +233,110 @@ export function demoWriteAllowed(
   // post.deleteMany({}) emptied the feed before this check existed.
   if (BULK_OPS.has(op) && !hasFilter(args)) return false;
 
-  if (ALLOWED_WRITE_MODELS.has(model)) return true;
+  if (ALLOWED_WRITE_MODELS.has(model)) return nestedWritesAllowed(model, op, args);
 
   // The visitor's own profile is the one exception outside the model list.
   if (model === "User") return isOwnProfileEdit(op, args);
 
   return false;
+}
+
+/**
+ * The nested writes the product makes through a writable model, and the model
+ * each one reaches. A Prisma call arrives at the extension in prisma.ts as ONE
+ * (model, operation) pair, its root, so a write nested inside `data` is
+ * invisible to the model list above unless this policy walks into the payload
+ * itself. Until bug audit 3 (L9-10) it did not:
+ * `post.update({ data: { author: { update: { role: "admin" } } } })` passed
+ * because Post is writable, and so did a Comment create carrying
+ * `post: { update: { reports: { create: ... } } }`, a Report through two
+ * writable parents.
+ *
+ * Default-deny holds here too. A relation not named below is refused whatever
+ * it reaches, and a named one may only CREATE, which is all the product does
+ * through one; each row it creates is judged as a create on the model it
+ * reaches, nested writes and all. demo.test.mjs finds every nested write in
+ * src/ and fails on one rooted at a writable model that this list does not
+ * name, so a new one is refused here only until somebody decides about it.
+ */
+export const DEMO_NESTED_CREATES: ReadonlyMap<string, string> = new Map([
+  // A poll is posted with its options in the same write (createPost).
+  ["Post.pollOptions", "PollOption"],
+  // A Catch-up's roster is written with its Group (createCatchupWithPeople).
+  ["Group.members", "GroupMember"],
+]);
+
+/** The keys that make an object in a write's payload a nested relation write
+ *  rather than a value. `set` is the one shared with the scalar atomic
+ *  operations (`{ set: "x" }`), so isNestedWrite looks at its value. */
+const RELATION_VERBS: ReadonlySet<string> = new Set([
+  "create",
+  "createMany",
+  "connect",
+  "connectOrCreate",
+  "update",
+  "updateMany",
+  "upsert",
+  "delete",
+  "deleteMany",
+  "set",
+  "disconnect",
+]);
+
+const isObject = (v: unknown): v is Record<string, unknown> =>
+  v !== null && typeof v === "object" && !Array.isArray(v) && !(v instanceof Date);
+
+/** True when a payload value is a nested write. A Date, an array of scalars
+ *  and an atomic number operation (`{ increment: 1 }`) are values; so is a
+ *  scalar `{ set: x }`. A relation's `set` takes rows, an object or an array.
+ *  There is no Json column on any writable model, so no value can be an
+ *  object that merely happens to hold one of these keys; if one is added, the
+ *  failure is a refusal, never a pass. */
+function isNestedWrite(value: unknown): boolean {
+  if (!isObject(value)) return false;
+  return Object.keys(value).some(
+    (k) =>
+      RELATION_VERBS.has(k) &&
+      (k !== "set" || Array.isArray(value.set) || isObject(value.set)),
+  );
+}
+
+/** The row payloads a write carries: what a nested write could hide in. */
+function payloadsOf(op: string, args: unknown): unknown[] {
+  const a = (isObject(args) ? args : {}) as Record<string, unknown>;
+  if (op === "upsert") return [a.create, a.update];
+  if (op === "createMany" || op === "createManyAndReturn") {
+    return Array.isArray(a.data) ? a.data : [a.data];
+  }
+  if (op === "create" || op === "update" || op === "updateMany" || op === "updateManyAndReturn") {
+    return [a.data];
+  }
+  return []; // delete and deleteMany carry no payload
+}
+
+/** A write on a writable model passes when every nested write in its payload
+ *  is a named relation's create, and every row that create makes would pass
+ *  as a create of its own. */
+function nestedWritesAllowed(model: string, op: string, args: unknown): boolean {
+  for (const payload of payloadsOf(op, args)) {
+    if (!isObject(payload)) continue;
+    for (const [field, value] of Object.entries(payload)) {
+      if (!isNestedWrite(value)) continue;
+      const target = DEMO_NESTED_CREATES.get(`${model}.${field}`);
+      if (!target) return false;
+      for (const [verb, inner] of Object.entries(value as Record<string, unknown>)) {
+        if (verb === "create") {
+          const rows = Array.isArray(inner) ? inner : [inner];
+          if (!rows.every((row) => demoWriteAllowed(target, "create", { data: row }))) return false;
+        } else if (verb === "createMany") {
+          if (!demoWriteAllowed(target, "createMany", inner)) return false;
+        } else {
+          return false;
+        }
+      }
+    }
+  }
+  return true;
 }
 
 /** Operations that can hit an unbounded number of rows in one call. */

@@ -112,7 +112,11 @@ function createPrismaClient() {
   // before it reaches Postgres (src/lib/demo.ts). This is the backstop
   // under the per-action guards: an unguarded action, a nested write, a
   // route someone forgot about — none of them can write a model the demo
-  // policy does not list. In every other build `IS_DEMO` is false and this
+  // policy does not list. (The nested write is the policy's to catch, not
+  // this hook's: a call arrives here as its root model alone, so demo.ts
+  // walks the payload and judges each nested write by the model it reaches.
+  // Until bug audit 3, L9-10, it judged the root alone, and this sentence
+  // was not true.) In every other build `IS_DEMO` is false and this
   // branch is never constructed, so the real client stays a plain client
   // with no per-query wrapper in its path.
   if (!IS_DEMO) return client;

@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { read } from "./test-kit.mjs";
+import { read, decomment, walk, ROOT } from "./test-kit.mjs";
+import { relative, resolve } from "node:path";
+import { readFileSync } from "node:fs";
 
-import { demoWriteAllowed, DEMO_CLOSED_PATHS, DEMO_USER_ID } from "./demo.ts";
+import { demoWriteAllowed, DEMO_CLOSED_PATHS, DEMO_NESTED_CREATES, DEMO_USER_ID } from "./demo.ts";
 
 /* ------------------------------------------------------------------ *
  *  These tests are the demo's security policy written down.
@@ -202,9 +204,10 @@ test("a visitor cannot edit everybody at once", () => {
 });
 
 test("a visitor cannot smuggle a write through a nested relation", () => {
-  // Prisma lets `data` carry nested creates. Any object-valued field on an
-  // otherwise allowlisted column is refused, because what it writes is not
-  // decidable from the column name.
+  // Prisma lets `data` carry nested writes, and the extension in prisma.ts
+  // sees only the call's ROOT model. On the persona's own row any
+  // object-valued field is refused, because what it writes is not decidable
+  // from the column name.
   assert.equal(
     demoWriteAllowed("User", "update", {
       where: { id: DEMO_USER_ID },
@@ -219,6 +222,154 @@ test("a visitor cannot smuggle a write through a nested relation", () => {
     }),
     false,
   );
+  // ...and through any OTHER writable model, which is where it used to get
+  // through (bug audit 3, L9-10): both of these passed, judged by their root.
+  assert.equal(
+    demoWriteAllowed("Post", "update", {
+      where: { id: "p" },
+      data: { author: { update: { role: "admin" } } },
+    }),
+    false,
+    "a post's update promoted its author to admin",
+  );
+  assert.equal(
+    demoWriteAllowed("Comment", "create", {
+      data: { content: "x", post: { update: { reports: { create: { reason: "x" } } } } },
+    }),
+    false,
+    "a comment's create filed a Report, a model the demo refuses, through two writable parents",
+  );
+  // An upsert hides two payloads and a createMany one per row.
+  assert.equal(
+    demoWriteAllowed("Like", "upsert", {
+      where: { id: "l" },
+      create: { postId: "p", userId: DEMO_USER_ID },
+      update: { post: { delete: true } },
+    }),
+    false,
+    "an upsert's update half deleted a post through its like",
+  );
+  assert.equal(
+    demoWriteAllowed("Notification", "createMany", { data: [{ user: { update: { isBlocked: false } } }] }),
+    false,
+    "a createMany row carried a nested write",
+  );
+  // A relation the product does create through is still held to that: it may
+  // only create, and what it creates is judged as a create of its own.
+  assert.equal(
+    demoWriteAllowed("Post", "update", { where: { id: "p" }, data: { pollOptions: { deleteMany: {} } } }),
+    false,
+    "a named nested create was allowed to delete",
+  );
+  assert.equal(
+    demoWriteAllowed("Group", "create", {
+      data: { name: "x", members: { create: [{ userId: DEMO_USER_ID, user: { update: { role: "admin" } } }] } },
+    }),
+    false,
+    "a roster row carried a write to the person it names",
+  );
+});
+
+test("values that only look like objects are not nested writes", () => {
+  // Dates, atomic number operations and a scalar `set` are columns' values;
+  // refusing them would refuse ordinary edits.
+  for (const data of [
+    { updatedAt: new Date() },
+    { count: { increment: 1 } },
+    { content: { set: "edited" } },
+    { title: null },
+  ]) {
+    assert.equal(
+      demoWriteAllowed("Post", "update", { where: { id: "p" }, data }),
+      true,
+      JSON.stringify(data),
+    );
+  }
+});
+
+test("the nested writes the product makes still pass", () => {
+  // The two the app makes today, with the rows it really writes.
+  assert.equal(
+    demoWriteAllowed("Post", "create", {
+      data: {
+        authorId: DEMO_USER_ID,
+        content: "Which one?",
+        pollOptions: { create: [{ text: "This", position: 0 }, { text: "That", position: 1 }] },
+      },
+    }),
+    true,
+    "posting a poll",
+  );
+  assert.equal(
+    demoWriteAllowed("Group", "create", {
+      data: {
+        name: "Old friends",
+        creatorId: DEMO_USER_ID,
+        members: { create: [{ userId: DEMO_USER_ID, role: "admin" }, { userId: "demo-u-x", role: "member" }] },
+      },
+    }),
+    true,
+    "starting a Catch-up",
+  );
+});
+
+/* Every nested write in src/, by the relation it names: `field: { verb: ...`.
+   A relation write's object holds only verbs, so the verb is its first key. */
+const NESTED_WRITE = /\b([A-Za-z]\w*)\s*:\s*\{\s*(create|createMany|connect|connectOrCreate|update|updateMany|upsert|delete|deleteMany|set|disconnect)\s*:/g;
+
+/** model -> { field -> related model }, for the relation fields schema.prisma declares. */
+function relationFields() {
+  const schema = read("prisma/schema.prisma");
+  const models = new Set([...schema.matchAll(/^model (\w+) \{/gm)].map((m) => m[1]));
+  const out = new Map();
+  for (const block of schema.matchAll(/^model (\w+) \{([\s\S]*?)^\}/gm)) {
+    const fields = new Map();
+    for (const line of block[2].split("\n")) {
+      const f = line.match(/^\s+(\w+)\s+(\w+)(\[\])?\??(\s|$)/);
+      if (f && models.has(f[2])) fields.set(f[1], f[2]);
+    }
+    out.set(block[1], fields);
+  }
+  return out;
+}
+
+test("every nested write the app makes through a writable model is one the demo names", () => {
+  /* The policy refuses any nested write it was not told about (L9-10), which
+     is right for a stranger and wrong for the product: a nested write the
+     app itself makes, through a model the demo writes, would be refused in
+     the demo and reach the visitor as a generic failure. So every one in the
+     source is found here and must be on DEMO_NESTED_CREATES, as a create. */
+  const relations = relationFields();
+  const found = [];
+  for (const full of walk(resolve(ROOT, "src"))) {
+    if (/\.test\./.test(full) || full.includes("/lab/")) continue;
+    const src = decomment(readFileSync(full, "utf8"));
+    for (const m of src.matchAll(NESTED_WRITE)) found.push({ file: relative(ROOT, full), field: m[1], verb: m[2] });
+  }
+  assert.ok(found.length >= 3, `only ${found.length} nested writes found in src/; re-read this sweep`);
+  for (const { file, field, verb } of found) {
+    const owners = [...relations].filter(([, fields]) => fields.has(field)).map(([model]) => model);
+    assert.ok(owners.length > 0, `${file}: \`${field}: { ${verb}\` names no relation in schema.prisma; re-read this sweep`);
+    for (const model of owners) {
+      const writable = model === "User" || demoWriteAllowed(model, "create", {});
+      if (!writable) continue; // the demo refuses the root itself
+      assert.equal(
+        demoWriteAllowed(model, "create", { data: { [field]: { [verb]: {} } } }),
+        true,
+        `${file} writes ${model}.${field} with a nested ${verb}, which the demo refuses: ` +
+          `name it in DEMO_NESTED_CREATES (demo.ts) if it is a create the demo should allow`,
+      );
+    }
+  }
+});
+
+test("each named nested create reaches the model schema.prisma says it does", () => {
+  const relations = relationFields();
+  for (const [key, target] of DEMO_NESTED_CREATES) {
+    const [model, field] = key.split(".");
+    assert.equal(relations.get(model)?.get(field), target, `${key} is not a relation to ${target}`);
+    assert.equal(demoWriteAllowed(target, "create", {}), true, `${key} reaches ${target}, which the demo refuses`);
+  }
 });
 
 test("a visitor cannot create or delete accounts", () => {
