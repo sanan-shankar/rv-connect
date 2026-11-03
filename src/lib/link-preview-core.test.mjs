@@ -5,10 +5,12 @@ import {
   classifyLink,
   findLinks,
   isRefusedAddress,
+  MAX_LINKS_PER_BODY,
   needsResolve,
   parsePageMeta,
   RETRY_AFTER_MS,
   stripReplacedLinks,
+  tooManyLinks,
   urlRefused,
 } from "./link-preview-core.ts";
 
@@ -268,4 +270,17 @@ test("a hostile page parses in linear time, at the fetcher's whole 512 KB", () =
     const ms = performance.now() - started;
     assert.ok(ms < 500, `${name} took ${ms.toFixed(0)} ms; a pattern in parsePageMeta is backtracking again`);
   }
+});
+
+/* ── the per-body ceiling (bug audit 3, T2b-02) ───────────────────── */
+
+test("a body holds at most MAX_LINKS_PER_BODY distinct links; a repeat paste is not another", () => {
+  const links = (n) => Array.from({ length: n }, (_, i) => `https://example.org/page-${i}`).join(" and ");
+  assert.equal(MAX_LINKS_PER_BODY, 16);
+  assert.equal(tooManyLinks(links(16), "letter"), null);
+  assert.equal(tooManyLinks(`${links(16)} https://example.org/page-0?utm_source=x`, "letter"), null);
+  assert.equal(
+    tooManyLinks(links(17), "letter"),
+    "A letter can hold at most 16 links. Take one out to save it.",
+  );
 });
