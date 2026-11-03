@@ -567,6 +567,21 @@ test("B-060's successor: there is always a way to start the next Edition", () =>
   assert.match(page, /const idle =/, "the home no longer works out whether it is idle");
 });
 
+test("L2-04: the Edition page's tab title reads nothing the page does not", () => {
+  /* generateMetadata and the page run on one request, and the title used to
+     fetch the Edition and the membership itself, so every view read each
+     twice. Both loaders are cache()d and the title goes through them; a
+     query of its own in generateMetadata is the double read back. */
+  const page = decomment(read("src/app/(main)/catchups/edition/[editionId]/page.tsx"));
+  assert.match(page, /const loadEditionBase = cache\(/, "the Edition's light read is not cache()d");
+  assert.match(page, /const loadMembership = cache\(/, "the membership read is not cache()d");
+  const meta = balancedBody(page, "export async function generateMetadata");
+  assert.ok(meta, "generateMetadata is gone; this pin is reading nothing");
+  assert.match(meta, /loadEditionBase\(editionId\)/);
+  assert.match(meta, /loadMembership\(/);
+  assert.doesNotMatch(meta, /\bprisma\./, "the tab title queries the database itself again");
+});
+
 test("B-062: the header does not count down a Catch-up whose clock is stopped", () => {
   const src = decomment(read("src/app/(main)/catchups/[catchupId]/(home)/page.tsx"));
   assert.match(

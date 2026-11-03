@@ -20,6 +20,7 @@
  * ------------------------------------------------------------------ */
 
 import type { Metadata } from "next";
+import { cache } from "react";
 import { notFound } from "next/navigation";
 import { after } from "next/server";
 import { auth } from "@/lib/auth";
@@ -73,13 +74,21 @@ type LightEdition = Prisma.CatchupEditionGetPayload<{ select: typeof LIGHT_EDITI
    a non-member must not be able to trigger that status transition just by
    opening the URL. The two sibling pages (catchups/[catchupId] and its answer
    page) already check membership before advancing; this page used to advance
-   first, inside a combined loadFreshEdition, which was the ordering bug. */
-async function loadEditionBase(editionId: string): Promise<LightEdition | null> {
+   first, inside a combined loadFreshEdition, which was the ordering bug.
+
+   cache()d, with loadMembership below, for the two functions Next runs on one
+   request: the tab title asked for the Edition and the membership itself, so
+   every view read each twice (bug audit 3, L2-04). Keyed on id strings, which
+   is what lets the memo hit (TRAPS, "cache()"). The re-read after the advance
+   is deliberately not this function: it must see what the advance wrote. */
+const loadEditionBase = cache(async function loadEditionBase(
+  editionId: string
+): Promise<LightEdition | null> {
   return prisma.catchupEdition.findUnique({
     where: { id: editionId },
     select: LIGHT_EDITION_SELECT,
   });
-}
+});
 
 /* Advance the Edition's clock-based status, then return the fresh row. Only
    reached once the caller is a confirmed member of the edition's group. */
@@ -94,12 +103,12 @@ async function advanceAndReload(
   });
 }
 
-async function loadMembership(groupId: string, userId: string) {
+const loadMembership = cache(async function loadMembership(groupId: string, userId: string) {
   return prisma.groupMember.findUnique({
     where: { groupId_userId: { groupId, userId } },
     select: { role: true },
   });
-}
+});
 
 export async function generateMetadata({
   params,
@@ -111,14 +120,9 @@ export async function generateMetadata({
   if (!session?.user) return { title: "Catch-ups" };
 
   try {
-    const edition = await prisma.catchupEdition.findUnique({
-      where: { id: editionId },
-      select: {
-        number: true,
-        status: true,
-        catchup: { select: { title: true, group: { select: { id: true, name: true } } } },
-      },
-    });
+    // The page's own read, shared through cache(): its select has every
+    // column the title needs.
+    const edition = await loadEditionBase(editionId);
     if (!edition || edition.status !== "published") return { title: "Catch-ups" };
 
     const membership = await loadMembership(edition.catchup.group.id, session.user.id);
