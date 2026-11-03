@@ -204,6 +204,13 @@ the list, which is the point.
 3. **`src/lib/demo.ts` + the Prisma extension in `src/lib/prisma.ts`** — the
    backstop. Every query in demo mode passes `demoWriteAllowed()` before it
    reaches Postgres. This is what catches whatever nobody thought to name.
+   It also bounds volume: every meter is off on the demo and everyone is one
+   persona, so the tables a visitor can grow (posts, comments, bells,
+   Catch-ups and their questions) each stop at a ceiling in
+   `DEMO_ROW_CEILINGS`, far above anything a real visit makes. A script that
+   fills one makes the next create there fail until the reset clears it,
+   rather than filling the free-tier database to its read-only line, where
+   the reset could not run either (bug audit 3, L12-08).
 
 Layer 3's policy is written down as tests in `src/lib/demo.test.mjs`, phrased
 as the attacks they prevent:

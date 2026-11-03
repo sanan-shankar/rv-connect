@@ -6,7 +6,7 @@ import { Pool } from "pg";
 import { attachDatabasePool } from "@vercel/functions/db-connections";
 import { PrismaClient, Prisma } from "@/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
-import { IS_DEMO, DemoWriteError, demoWriteAllowed } from "./demo";
+import { IS_DEMO, DEMO_ROW_CEILINGS, DemoWriteError, demoRowsAdded, demoWriteAllowed } from "./demo";
 import { withDatabaseTls } from "./db-tls";
 
 const globalForPrisma = globalThis as unknown as {
@@ -134,6 +134,26 @@ function createPrismaClient() {
       async $allOperations({ model, operation, args, query }) {
         if (!demoWriteAllowed(model, operation, args)) {
           throw new DemoWriteError();
+        }
+        // How MANY rows, which the policy cannot see: a create that would
+        // take one of the tables a visitor can grow past its ceiling is
+        // refused (demo.ts, DEMO_ROW_CEILINGS; bug audit 3, L12-08). Counted
+        // on the plain client, outside the extension, so the count is an
+        // ordinary read and never comes back through here.
+        const ceiling = model === undefined ? undefined : DEMO_ROW_CEILINGS.get(model);
+        if (model !== undefined && ceiling !== undefined) {
+          const adding = demoRowsAdded(operation, args);
+          if (adding > 0) {
+            const table = (client as unknown as Record<string, { count(): Promise<number> }>)[
+              model[0].toLowerCase() + model.slice(1)
+            ];
+            const held = await table.count();
+            if (held + adding > ceiling) {
+              throw new DemoWriteError(
+                `Demo row ceiling: ${model} holds ${held} of its ${ceiling} rows; the next reset clears it.`,
+              );
+            }
+          }
         }
         return query(args);
       },

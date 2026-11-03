@@ -6,7 +6,8 @@
  *  invented people. That separation is the real security boundary: a demo
  *  process never has a connection string, an R2 key, or a Razorpay secret
  *  that can reach anything real, so the worst a visitor can do is scribble
- *  on a sandbox that restores itself every night.
+ *  on a sandbox that restores itself every night -- and only so much of it:
+ *  the tables a visitor can grow stop at DEMO_ROW_CEILINGS below.
  *
  *  Everything in this file is the SECOND layer, for the case where someone
  *  gets further than they should. Its posture is default-deny: writes are
@@ -371,6 +372,65 @@ function isOwnProfileEdit(operation: string, args: unknown): boolean {
     if (value !== null && typeof value === "object") return false;
   }
   return true;
+}
+
+/* ---------------------------------------------------------------- *
+ *  How far a visitor can grow a table
+ * ---------------------------------------------------------------- */
+
+/**
+ * The most rows each table a visitor can grow may hold. A create that would
+ * take a table past its number is refused, by the extension in prisma.ts,
+ * which counts the table first (one count on a tiny database).
+ *
+ * Why there has to be one (bug audit 3, L12-08). Every per-account meter is
+ * off in demo mode (rate-limit.ts), and could not tell visitors apart if it
+ * were on, since everyone is the same persona. Nothing else bounded how MANY
+ * rows a script against the public link could make: a 20,000-character
+ * letter a call, a Catch-up with its group and a bell for each person. The
+ * demo database is a free-tier project, and Supabase puts one that passes
+ * its size limit into read-only mode, so the nightly reset, a delete and a
+ * rewrite, could not run either, and the demo would stay down until somebody
+ * intervened by hand. With these, a scripted fill costs the visitors after
+ * it until the next reset (nightly, or the demo bar's button), not the
+ * database.
+ *
+ * Sized against the worst row each table takes (text at three bytes a
+ * character, its Zod cap full): Post 1,000 x ~60 KB, CatchupPrompt 2,000 x
+ * ~1 KB and the one answer each allows 2,000 x ~18 KB, Comment 5,000 x ~3 KB,
+ * Notification 20,000 small rows. About 125 MB above the seed's 14 MB at the
+ * very worst, against a 500 MB line, and each far above what the seed writes
+ * (23 posts, 35 comments, 5 questions, 2 Editions, 1 group) or a real visit
+ * could reach in a day. Concurrent creates can overshoot a number by however
+ * many land together; the bound is on volume, not an exact count.
+ *
+ * A writable model with no number here is bounded by its own unique key,
+ * which pairs a person with a parent row (Like: one per person per post),
+ * and the demo creates no people, so it holds at most 40 a parent of a table
+ * that has one. demo.test.mjs holds every writable model to one or the other.
+ */
+export const DEMO_ROW_CEILINGS: ReadonlyMap<string, number> = new Map([
+  ["Post", 1_000],
+  ["Comment", 5_000],
+  ["PollOption", 5_000],
+  ["Notification", 20_000],
+  ["UserPlace", 1_000],
+  ["Group", 200],
+  ["Catchup", 200],
+  ["CatchupEdition", 1_000],
+  ["CatchupPrompt", 2_000],
+]);
+
+/** How many rows an operation would add to its table, for the ceiling: an
+ *  upsert counts as one, since it may create. Everything else adds none. */
+export function demoRowsAdded(operation: string, args: unknown): number {
+  const op = operation.startsWith("$") ? operation.slice(1) : operation;
+  if (op === "create" || op === "upsert") return 1;
+  if (op === "createMany" || op === "createManyAndReturn") {
+    const data = (args as { data?: unknown } | undefined)?.data;
+    return Array.isArray(data) ? data.length : 1;
+  }
+  return 0;
 }
 
 /* ---------------------------------------------------------------- *

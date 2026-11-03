@@ -4,7 +4,14 @@ import { read, decomment, walk, ROOT } from "./test-kit.mjs";
 import { relative, resolve } from "node:path";
 import { readFileSync } from "node:fs";
 
-import { demoWriteAllowed, DEMO_CLOSED_PATHS, DEMO_NESTED_CREATES, DEMO_USER_ID } from "./demo.ts";
+import {
+  demoRowsAdded,
+  demoWriteAllowed,
+  DEMO_CLOSED_PATHS,
+  DEMO_NESTED_CREATES,
+  DEMO_ROW_CEILINGS,
+  DEMO_USER_ID,
+} from "./demo.ts";
 
 /* ------------------------------------------------------------------ *
  *  These tests are the demo's security policy written down.
@@ -370,6 +377,60 @@ test("each named nested create reaches the model schema.prisma says it does", ()
     assert.equal(relations.get(model)?.get(field), target, `${key} is not a relation to ${target}`);
     assert.equal(demoWriteAllowed(target, "create", {}), true, `${key} reaches ${target}, which the demo refuses`);
   }
+});
+
+test("a create counts the rows it would add, and nothing else adds any", () => {
+  assert.equal(demoRowsAdded("create", { data: {} }), 1);
+  assert.equal(demoRowsAdded("upsert", { where: {}, create: {}, update: {} }), 1, "an upsert may create");
+  assert.equal(demoRowsAdded("createMany", { data: [{}, {}, {}] }), 3);
+  assert.equal(demoRowsAdded("$createManyAndReturn", { data: [{}, {}] }), 2);
+  for (const op of ["update", "updateMany", "delete", "deleteMany", "findMany", "count"]) {
+    assert.equal(demoRowsAdded(op, { data: {} }), 0, op);
+  }
+});
+
+test("a visitor cannot grow any table without end", () => {
+  /* L12-08: every meter is off on the demo and the persona is shared, so the
+     only bound on how many rows a script can make is in the write guard.
+     Every writable model is held to one of two: a ceiling of its own, or a
+     unique key that pairs a person with a parent row (the demo creates no
+     people, so such a table holds at most one row per person per parent,
+     and the parents are bounded). A new writable model must pick one. */
+  const schema = read("prisma/schema.prisma");
+  const models = [...schema.matchAll(/^model (\w+) \{([\s\S]*?)^\}/gm)];
+  const writable = models.filter(([, name]) => demoWriteAllowed(name, "create", {}));
+  assert.ok(writable.length >= 15, `only ${writable.length} writable models; re-read this test`);
+  for (const [, name, body] of writable) {
+    if (DEMO_ROW_CEILINGS.has(name)) continue;
+    const keys = [...body.matchAll(/@@(?:unique|id)\(\[([^\]]+)\]/g)].map((m) => m[1].split(",").map((f) => f.trim()));
+    const parents = new Set([...body.matchAll(/@relation\([^)]*fields:\s*\[(\w+)\]/g)].map((m) => m[1]));
+    const bounded = keys.some(
+      (k) => k.some((f) => f === "userId" || f === "authorId") && k.some((f) => f !== "userId" && f !== "authorId" && parents.has(f)),
+    );
+    assert.ok(
+      bounded,
+      `${name} is writable in the demo with no row ceiling and no unique key pairing a person with a parent, ` +
+        `so a script can grow it without end: give it a number in DEMO_ROW_CEILINGS (demo.ts)`,
+    );
+  }
+  for (const [name, ceiling] of DEMO_ROW_CEILINGS) {
+    assert.equal(demoWriteAllowed(name, "create", {}), true, `${name} has a ceiling but is not writable; a stale entry`);
+    assert.ok(Number.isInteger(ceiling) && ceiling >= 100, `${name}'s ceiling of ${ceiling} would refuse an ordinary visit`);
+  }
+});
+
+test("the ceiling is enforced where every query passes, before the query runs", () => {
+  const ext = decomment(read("src/lib/prisma.ts"));
+  const hook = ext.slice(ext.indexOf("async $allOperations"));
+  const body = hook.slice(0, hook.indexOf("return query(args)") + "return query(args)".length);
+  for (const needle of ["demoWriteAllowed(", "DEMO_ROW_CEILINGS.get(", "demoRowsAdded(", ".count()", "throw new DemoWriteError("]) {
+    assert.ok(body.includes(needle), `the demo extension no longer calls ${needle}`);
+  }
+  assert.ok(
+    body.indexOf("DEMO_ROW_CEILINGS.get(") > body.indexOf("demoWriteAllowed("),
+    "the ceiling is counted before the policy has refused what it refuses",
+  );
+  assert.match(body, /\(client as unknown as/, "the count must go through the plain client, not back through the extension");
 });
 
 test("a visitor cannot create or delete accounts", () => {
