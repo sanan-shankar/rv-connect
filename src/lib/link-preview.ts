@@ -27,10 +27,12 @@
  *  of the doors fire on its own while somebody typed. Every door now names
  *  the member who WROTE the links -- the saver on save, each body's author on
  *  read -- and a url with no row yet spends one of that member's
- *  `previewFetches` (daily-budget.ts, 40 a day). A url that already has a
- *  row costs nothing, so re-saving a letter or a hundred readers opening it
- *  spends nothing; a failed one is retried at most once a day, free, since
- *  its first fetch was paid for. Past the budget the link prints as an
+ *  `previewFetches` (daily-budget.ts, 40 a day). A url with a card costs
+ *  nothing, so re-saving a letter or a hundred readers opening it spends
+ *  nothing; a failed one is retried at most once a day and each retry is a
+ *  fetch like any other, paid the same way (free retries piled up past the
+ *  cap: a body kept full of links to a titleless page fetched them all
+ *  again every day, for ever). Past the budget the link prints as an
  *  ordinary link until a later save or view finds room.
  *
  *  THE SERVER NOW FETCHES URLS A MEMBER TYPED, which is the classic
@@ -414,18 +416,19 @@ export async function ensureLinkPreviews(urls: readonly string[], memberId: stri
        next page view, which would fetch it, and pay for it, twice. */
     for (const link of wanted) inflight.add(link.url);
 
-    /* A url with a row is a retry of a fetch already paid for; one without is
-       new, and only as many as the writer's day has room for go (T2b-02). */
-    const retries = wanted.filter((l) => byUrl.has(l.url));
-    const fresh = wanted.filter((l) => !byUrl.has(l.url));
+    /* Every fetch is paid from the writer's day, a retry of a failed row as
+       much as a new url, and only as many go as that day has room for
+       (T2b-02). New urls first: a card nobody has seen yet matters more
+       than another try at a page that had no title yesterday. */
+    const ordered = [...wanted.filter((l) => !byUrl.has(l.url)), ...wanted.filter((l) => byUrl.has(l.url))];
     let due: ClassifiedLink[] = [];
     try {
       let granted = 0;
-      if (fresh.length > 0 && (await fetchesFor(memberId))) {
-        const room = Math.min(fresh.length, MAX_PER_CALL, await budgetLeft("previewFetches", memberId));
+      if (ordered.length > 0 && (await fetchesFor(memberId))) {
+        const room = Math.min(ordered.length, MAX_PER_CALL, await budgetLeft("previewFetches", memberId));
         if (room > 0 && (await spendBudget("previewFetches", memberId, room)).ok) granted = room;
       }
-      due = [...fresh.slice(0, granted), ...retries].slice(0, MAX_PER_CALL);
+      due = ordered.slice(0, granted);
     } finally {
       // What this call will not fetch is released for the next one.
       const kept = new Set(due.map((l) => l.url));

@@ -395,7 +395,10 @@ test("C6-04: a new search row is one of the member's 200 a day, spent before it 
 test("T2b-02: a link the server has never fetched spends its writer's previewFetches, at every door", () => {
   const src = decomment(read("src/lib/link-preview.ts"));
   const ensure = fnBody(src, "ensureLinkPreviews") ?? "";
-  assert.match(ensure, /const fresh = wanted\.filter\(\(l\) => !byUrl\.has\(l\.url\)\)/, "new urls are no longer told apart from retries");
+  // A retry of a failed row is a fetch like a new url: both are granted from
+  // the writer's day, new ones first (the O2 write-path review).
+  assert.match(ensure, /const ordered = \[\.\.\.wanted\.filter\(\(l\) => !byUrl\.has\(l\.url\)\), \.\.\.wanted\.filter\(\(l\) => byUrl\.has\(l\.url\)\)\]/, "new urls no longer go before retries");
+  assert.match(ensure, /due = ordered\.slice\(0, granted\);/, "a fetch joins the list without being granted from the writer's day");
   const left = ensure.indexOf('budgetLeft("previewFetches", memberId)');
   const spend = ensure.indexOf('spendBudget("previewFetches", memberId, room)');
   const fetch = ensure.indexOf("resolveAndStore(");
@@ -427,7 +430,7 @@ test("C6-03: a draft is counted against its ceiling before it is written, and ne
   const create = body.indexOf("prisma.post.create(");
   assert.ok(twin !== -1 && spend > twin, "the draft ceiling runs before the twin check, so a double-submitted last draft is refused");
   assert.ok(create > spend, "a draft is written before its ceiling is counted");
-  assert.match(body.slice(body.lastIndexOf("if (isDraft)", spend), spend), /requireVerifiedEmail\(\)/, "the ceiling no longer follows whether the email is confirmed");
+  assert.match(body.slice(body.lastIndexOf("if (isDraft && !IS_DEMO)", spend), spend), /requireVerifiedEmail\(\)/, "the ceiling no longer follows whether the email is confirmed");
   for (const [name, limit] of [["letterDrafts", 20], ["letterDraftsUnconfirmed", 3]]) {
     const entry = budgets.find((b) => b.name === name)?.text ?? "";
     assert.match(entry, new RegExp(`limit: ${limit},`), `${name}' ceiling moved; re-argue it in daily-budget.ts`);

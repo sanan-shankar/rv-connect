@@ -15,6 +15,7 @@ if the month is new), and add one line here, at the top of that month's list.
 
 ## November 2026 — [full entries](docs/history/progress-2026-11.md)
 
+- 2026-11-03 (budgets, review) — bug audit 3, O2's write-path review: the meters count what they refuse, and a retried preview is paid for
 - 2026-11-03 (budgets) — bug audit 3, unit O2: one daily budget for what an account may spend, a sweep that every door spends one, and four doors closed
 - 2026-11-03 (catchups) — bug audit 3, unit H4 (stopped part-way): every Catch-up failure reaches the owner, a missing column is not a missing table, and the Edition page and the home read less
 - 2026-11-03 (demo) — bug audit 3, unit L5 (stopped part-way): a nested write is judged by the model it reaches, and the tables a visitor can grow stop at a ceiling

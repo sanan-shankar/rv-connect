@@ -133,10 +133,11 @@ const BUDGETS = {
   },
   /** Links the server fetches on a member's behalf per day (bug audit 3,
    *  T2b-02): a page of up to 512 KB, an image of up to 5 MB, a decode and
-   *  one permanent object each. Counted on NEW urls only, ones with no
-   *  LinkPreview row yet, so re-saving a letter, or every reader of it,
-   *  costs nothing; charged to whoever wrote the link, at every door that
-   *  schedules one (link-preview.ts). 40 is four link-heavy letters a day:
+   *  one permanent object each. Counted on every fetch, a new url or the
+   *  daily retry of one that failed; a url with a card costs nothing, so
+   *  re-saving a letter, or every reader of it, spends nothing; charged to
+   *  whoever wrote the link, at every door that schedules one
+   *  (link-preview.ts). 40 is four link-heavy letters a day:
    *  eight previews exist after two months, and the busiest body holds two.
    *  Silent: the link prints as an ordinary link until a later save or view
    *  finds room. Closed, because a preview is decoration: an Upstash outage
@@ -182,6 +183,10 @@ function windowFor(name: BudgetName, limit: number): Ratelimit | null {
       limiter: Ratelimit.slidingWindow(limit, "24 h"),
       prefix: `bd:${process.env.NODE_ENV === "production" ? "p" : "d"}:${name}`,
       timeout: 3000,
+      // The library's own cache would hold a refused subject until the
+      // 24-hour bucket ends (UTC midnight); `spent` below does that job,
+      // capped at fifteen minutes.
+      ephemeralCache: false,
     });
     limiters.set(name, limiter);
   }
@@ -255,7 +260,10 @@ export async function spendBudget(
   if (!limiter) return onOutage(name, s);
   if (spent.known(memoKey(name, subject))) return refusal(name, s);
   try {
-    const { success, remaining, reset } = await limiter.limit(subject, { rate: cost });
+    const { success, remaining, reset, reason } = await limiter.limit(subject, { rate: cost });
+    // A timeout resolves as a success the library never checked: it is an
+    // outage, and this entry's own posture answers it.
+    if (reason === "timeout") return onOutage(name, s);
     if (!success || remaining <= 0) spent.remember(memoKey(name, subject), reset);
     if (success) return { ok: true };
   } catch (err) {

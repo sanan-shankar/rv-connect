@@ -88,3 +88,19 @@ test("the sign-in door asks what is free before what costs", () => {
   assert.ok(memoUnverified < meters, "a tokenless flood reads the door's two meters before its own known refusal");
   assert.ok(meters < unverified, "the order of the paid reads changed; re-argue it in auth.ts");
 });
+
+/* The write-path review of L5-02 and O-09: the library's own cache blocks a
+   refused key without counting it, so a meter read by getRemaining and spent
+   by limit() could say yes to attempts nothing counted. */
+test("a spend that finds the key full is remembered, so a cache-blocked key is not waved through", () => {
+  const body = balancedBody(LIMIT, "export async function consume");
+  assert.ok(body, "consume moved; re-point this test");
+  assert.match(body, /if \(!success \|\| remaining <= 0\) spent\.remember\(/, "consume no longer feeds the memo");
+});
+
+test("the daily budgets keep no library cache, and a timeout is an outage, not a pass", () => {
+  const src = decomment(read("src/lib/daily-budget.ts"));
+  assert.match(src, /ephemeralCache: false/, "a refused subject would wait for UTC midnight, not the memo's cap");
+  const body = balancedBody(src, "export async function spendBudget");
+  assert.match(body ?? "", /if \(reason === "timeout"\) return onOutage\(name, s\);/, "a slow Upstash would pass a closed budget");
+});

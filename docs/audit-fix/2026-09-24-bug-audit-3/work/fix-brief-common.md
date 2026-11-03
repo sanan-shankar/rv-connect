@@ -37,7 +37,7 @@ the row: if a finding does not hold at today's code, do not fix it; write its le
 - Never run `npm run check` while Playwright (`npm run visual` / e2e) runs anywhere in this checkout:
   `pgrep -f "[p]laywright"` first, and wait if it is running. They produce false diffs together.
 - Stage by name and commit with a pathspec: `git commit -F - -- <paths>`; `git status --short` before
-  and after. The shared files (`fix-prompt.md`, `progress.md`, `docs/history/progress-2026-10.md`):
+  and after. The shared files (`fix-prompt.md`, `progress.md`, `docs/history/progress-<current month>.md` (November 2026: `progress-2026-11.md`)):
   `git diff` them first; if one holds a hunk that is not yours, stage only your own hunk
   (`git apply --cached` of a trimmed patch) and use a bare `git commit` for that commit.
 - Commit message: conventional and plain, **at most 150 words** including the subject; usually a
@@ -46,7 +46,7 @@ the row: if a finding does not hold at today's code, do not fix it; write its le
 - **Name no member** (no real person) in a commit message, doc, test or comment: the repository is
   public. The test account may be called "the test account".
 - Progress log: one line per UNIT at the top of October's list in `progress.md`, plus its entry at
-  the top of `docs/history/progress-2026-10.md`, in the unit's last commit, together with your
+  the top of `docs/history/progress-<current month>.md` (November 2026: `progress-2026-11.md`), in the unit's last commit, together with your
   phase's "Rows left" on the board.
 - Scratch files go in `/tmp` and are deleted by the command that made them. Never add a file to the
   repository root.
@@ -63,7 +63,7 @@ keep that safe:
    their half-done edit, or yours would ride in theirs). Do not edit it; do the rest of your unit,
    check again later, and park the row if it is still busy.
 2. **The shared files are behind one lock.** `fix-prompt.md`, `progress.md`,
-   `docs/history/progress-2026-10.md`, `prisma/schema.prisma` and anything in `prisma/migrations-manual/`
+   `docs/history/progress-<current month>.md` (November 2026: `progress-2026-11.md`), `prisma/schema.prisma` and anything in `prisma/migrations-manual/`
    are edited only while you hold it, and you commit before you let go:
    ```
    until mkdir /tmp/rv-ba3-docs.lock 2>/dev/null; do sleep 5; done    # take it

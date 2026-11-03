@@ -365,7 +365,14 @@ export async function consume(name: LimitName, key: string, cost = 1): Promise<v
   const limiter = limiterFor(name);
   if (!limiter) return;
   try {
-    await limiter.limit(key, { rate: cost });
+    const { success, remaining, reset } = await limiter.limit(key, { rate: cost });
+    /* A spend that finds the key full is remembered like hasBudget's read.
+       The library then blocks this key in its own cache until the window's
+       bucket ends and stops counting it, while getRemaining, which ignores
+       that cache, watches the sliding window drain and says yes again: the
+       sign-in door would let attempts through that nothing counted. With
+       this, at most one does per memo window (L5-02's write-path review). */
+    if (!success || remaining <= 0) spent.remember(memoKey(name, key), reset);
   } catch (err) {
     reportLimiterFailure(name, "consume", err);
   }

@@ -1,3 +1,20 @@
+## 2026-11-03 (budgets, review) — bug audit 3, O2's write-path review: the meters count what they refuse, and a retried preview is paid for
+
+The runner verified O2 itself (diffs, the gate, the SearchLog index read back valid on both databases,
+13 searches on the busiest member-day and 8 previews confirmed) and pinned the 16-link cap, which
+nothing tested. A write-path review found nothing serious and four things worth fixing, each checked
+against the code and `@upstash/ratelimit` 2.0.8 before it was changed:
+
+- `consume` remembers a key it finds full. The library's cache blocks a refused key without counting
+  it while `getRemaining` drains and says yes, so tokenless sign-ins could pass uncounted.
+- The daily budgets keep no library cache (a refused member waited for UTC midnight) and treat a 3 s
+  timeout, which the library resolves as a pass, as an outage.
+- A failed preview's daily retry is paid from the writer's day and waits for a verified writer.
+- The demo's shared visitor is not held to one account's twenty drafts.
+
+Three low findings are recorded on the T2b-02 ledger line, not fixed. The campaign's handover for the
+next runner is dated 2026-11-03 in `fix-prompt.md`. Nothing pushed.
+
 ## 2026-11-03 (budgets) — bug audit 3, unit O2: one daily budget for what an account may spend, a sweep that every door spends one, and four doors closed
 
 Six commits, `npm run check` green before each. One migration, applied to both databases before the

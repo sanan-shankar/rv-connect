@@ -18,6 +18,7 @@ import { postCounts, type PostCounts } from "@/lib/page-counts";
 import { requireVerifiedMember } from "@/lib/member-gate";
 import { requireVerifiedEmail } from "@/lib/email-verification";
 import { spendBudget } from "@/lib/daily-budget";
+import { IS_DEMO } from "@/lib/demo";
 import { rateLimit } from "@/lib/rate-limit";
 import { canViewPost, canViewPostOfComment, POST_NOT_VISIBLE } from "@/lib/post-visibility";
 import { storedBatchTargets } from "@/lib/post-visibility-rule";
@@ -289,8 +290,10 @@ export async function createPost(formData: FormData) {
      never confirmed its email could store a 20,000-character letter every
      ten seconds. Three until the address is confirmed, twenty after, counted
      here, after the twin check: a double-submitted twentieth draft is
-     handed back, not refused. */
-  if (isDraft) {
+     handed back, not refused. Not on the demo, where every visitor is one
+     shared account and twenty drafts would close the desk for everyone
+     until the reset; its Post ceiling (demo.ts) bounds it there. */
+  if (isDraft && !IS_DEMO) {
     const confirmed = (await requireVerifiedEmail()).ok;
     const room = await spendBudget(confirmed ? "letterDrafts" : "letterDraftsUnconfirmed", session.user.id);
     if (!room.ok) return { error: room.error };
