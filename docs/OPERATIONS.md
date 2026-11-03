@@ -560,10 +560,14 @@ members**, and Hobby is for non-commercial use while the site takes contribution
 plan for 2,000.
 
 A bot can still spend what members never would. On Hobby it spends allowance rather than money:
-a script at ten requests a second uses a month's requests in about a day, and a few thousand
-query-string variations of one photo use the month's image transformations (bug audit 3, L8-04
-and C5-01). The one firewall rate-limit rule Hobby allows per project is the owner's switch
-(check D). On Pro, **Spend Management** (Settings → Billing) caps the money instead.
+a script at ten requests a second uses a month's requests in about a day (bug audit 3, L8-04). A
+few thousand query-string variations of one photo used to spend the month's image
+transformations; that door is closed in code since 2026-11-03 and live from the next push (C5-01).
+What is left there is bounded: every
+avatar and post photo at each of the 16 permitted widths, about 2,600 transformations at today's
+164 such photos, once per cache lifetime (L5-11). The one firewall rate-limit rule Hobby allows
+per project is the owner's switch (check D). On Pro, **Spend Management** (Settings → Billing)
+caps the money instead.
 
 ### Supabase (Free)
 

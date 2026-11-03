@@ -26,6 +26,12 @@ const IS_DEMO = process.env.DEMO_MODE === "1";
  * deliberately public -- avatars render on /login -- so the allowlist is the
  * only thing standing there.
  *
+ * The host is only one of the allowlist's three axes, and closing it left the
+ * other two open on our own host (bug audit 3, C5-01): a pattern that names no
+ * `search` admits ANY query string, and `?n=1`, `?n=2`... on one real photo
+ * were each a new source URL to Vercel, so each was a fresh transformation.
+ * See OPTIMIZED_PATHS below for the other two.
+ *
  * upload-shared.ts already made exactly this call for the ownership check, in
  * these words: "The exact host, not a `pub-*.r2.dev` wildcard: a wildcard
  * would vouch for anybody else's bucket, and vouching is what this file
@@ -49,6 +55,27 @@ const imageHosts = [
     ].filter(Boolean)
   ),
 ];
+
+/* The folders on those hosts that next/image really renders, and nothing else
+ * (bug audit 3, C5-01). Counted from the code and the live rows on 2026-11-03:
+ *
+ *   avatars/   User.photoUrl, written only by updateAvatar; BirdAvatar and the
+ *              profile sheet draw it through next/image.
+ *   uploads/   a post's, a letter's and a Catch-up answer's photographs, and an
+ *              uploaded Catch-up picture: every one is held to `uploads/` by
+ *              isUploadedImageUrl / ownedUploadUrls before it is stored, and
+ *              image-cdn.ts or next/image serves it.
+ *
+ * Left out on purpose: `collection/` (the archive serves its own stored copies
+ * with a plain <img>, and its originals run to 40 megapixels: open, any one of
+ * 3,870 could be asked for at 3,840 px), `link-previews/` (a plain <img>),
+ * `staging/` and `audio/`. A new surface that sends another folder through the
+ * optimizer gets a 400 until its folder is added here, which is the point.
+ *
+ * `search: ""` on every pattern: no stored image URL carries a query string
+ * (0 of 4,114 rows across every stored image column, the same day), so the only
+ * URLs a query string could ever name are ones an attacker made up. */
+const OPTIMIZED_PATHS = ["/avatars/**", "/uploads/**"];
 
 /* Content-Security-Policy (audit H7). Built as a directive map so each entry
  * carries the reason a host is on it. The tight ones first:
@@ -381,9 +408,12 @@ const nextConfig: NextConfig = {
 
   images: {
     // The optimizer will fetch and transform anything matching this list, for
-    // anybody, without a session -- so it is the exact hosts and nothing more.
-    // See imageHosts above for what a wildcard here was paying for.
-    remotePatterns: imageHosts.map((hostname) => ({ protocol: "https" as const, hostname })),
+    // anybody, without a session -- so it is the exact hosts, the folders it
+    // actually serves, and no query string. See imageHosts and OPTIMIZED_PATHS
+    // above for what each looser shape was paying for.
+    remotePatterns: imageHosts.flatMap((hostname) =>
+      OPTIMIZED_PATHS.map((pathname) => ({ protocol: "https" as const, hostname, pathname, search: "" }))
+    ),
     /* 1456 is the only addition to Next's defaults, and it exists for one
      * reason: a full-width feed card is 728 CSS px, so a retina screen wants
      * exactly 1456. Without this rung the nearest permitted width below it is

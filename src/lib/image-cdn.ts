@@ -46,10 +46,14 @@
  *  VIEWER fetches -- and the viewer must keep fetching the original (its
  *  Download button saves the real file; see next.config.ts connect-src).
  *
- *  No new attack surface: /_next/image only fetches hosts listed in
- *  next.config.ts remotePatterns, which is the exact-host allowlist audit
- *  C-134 put there. Local dev/demo paths are passed through untouched --
- *  the optimizer would just proxy them.
+ *  The surface this adds is bounded by next.config.ts remotePatterns: our
+ *  exact hosts (audit C-134), only the `avatars/` and `uploads/` folders, and
+ *  no query string (bug audit 3, C5-01). Before that last pin, `?n=1`, `?n=2`
+ *  on any photo here were each a fresh, metered transformation. What is left
+ *  is every stored photo at each permitted width, once per cache lifetime,
+ *  which is why this ladder and next.config.ts's sizes stay short (L5-11).
+ *  Local dev/demo paths are passed through untouched -- the optimizer would
+ *  just proxy them.
  * ------------------------------------------------------------------ */
 
 const WIDTHS = [750, 1080, 1456, 1920] as const;

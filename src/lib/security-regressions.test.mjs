@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { existsSync } from "node:fs";
+import { createRequire } from "node:module";
 import { relative, resolve } from "node:path";
 import {
   ROOT,
@@ -225,6 +226,67 @@ test("the wildcard pin sees each shape that used to walk past it", async () => {
   ];
   for (const [config, expected] of cases) {
     assert.ok((await wildcardHosts(config)).includes(expected), `the pin missed ${expected}`);
+  }
+});
+
+/* Next's own matcher, the function the optimizer calls on every request, so the
+   pin below asks the question the server asks rather than re-deriving it. */
+const { hasRemoteMatch } = createRequire(resolve(ROOT, "package.json"))(
+  "next/dist/shared/lib/match-remote-pattern.js"
+);
+const optimizes = (config, url) => hasRemoteMatch([], config.images?.remotePatterns ?? [], new URL(url));
+
+/** Patterns that leave the query string open, or name no folder. */
+function looseImagePatterns(config) {
+  return (config.images?.remotePatterns ?? [])
+    .filter((p) => p.search !== "" || !p.pathname || p.pathname === "**" || p.pathname === "/**")
+    .map((p) => `${p.hostname}${p.pathname ?? ""} search=${JSON.stringify(p.search)}`);
+}
+
+test("C5-01: the optimizer takes no query string, and only the folders it renders", async () => {
+  /* With no `search`, a remote pattern admits ANY query string, and to Vercel
+     `<photo>?n=1`, `?n=2`... are each a new source URL: a fresh, metered
+     transformation per request, signed out, on any photo a stranger has seen.
+     Hobby includes 5,000 a month for the whole account and a spent allowance
+     stops new photographs rendering for 30 days. No stored image URL carries a
+     query string, so `search: ""` costs the site nothing.
+
+     And with no `pathname`, the Collection's full-resolution originals (up to
+     40 megapixels) could be asked for at 3,840 px, though nothing renders them
+     through next/image. Only `avatars/` and `uploads/` are; see OPTIMIZED_PATHS
+     in next.config.ts for how that was counted. */
+  const config = await nextConfig();
+  assert.deepEqual(looseImagePatterns(config), [], "a remote pattern leaves the query string or the path open");
+
+  const host = "https://images.rishivalley.space";
+  for (const path of ["/avatars/u1/2026/10/a.webp", "/uploads/u1/2026/10/b.webp"]) {
+    assert.ok(optimizes(config, host + path), `the optimizer refuses ${path}, which the site renders`);
+    assert.ok(!optimizes(config, `${host}${path}?n=1`), `the optimizer takes ${path}?n=1`);
+  }
+  for (const path of [
+    "/collection/u1/2026/10/c.webp",
+    "/staging/u1/2026/10/d.jpg",
+    "/link-previews/2026/10/e.webp",
+    "/audio/u1/2026/10/f.webm",
+    "/g.webp",
+  ]) {
+    assert.ok(!optimizes(config, host + path), `the optimizer would transform ${path}, which nothing renders through it`);
+  }
+  assert.ok(!optimizes(config, "https://evil.example.com/avatars/a.webp"), "the host pin (C-134) has gone");
+});
+
+test("C5-01: the loose-pattern pin sees the shapes that used to walk past it", async () => {
+  const real = await nextConfig();
+  const host = "images.rishivalley.space";
+  const cases = [
+    [{ protocol: "https", hostname: host }, `${host} search=undefined`],
+    [{ protocol: "https", hostname: host, pathname: "/avatars/**" }, `${host}/avatars/** search=undefined`],
+    [{ protocol: "https", hostname: host, search: "" }, `${host} search=""`],
+    [{ protocol: "https", hostname: host, pathname: "/**", search: "" }, `${host}/** search=""`],
+  ];
+  for (const [pattern, expected] of cases) {
+    const config = { ...real, images: { ...real.images, remotePatterns: [pattern] } };
+    assert.ok(looseImagePatterns(config).includes(expected), `the pin missed ${expected}`);
   }
 });
 

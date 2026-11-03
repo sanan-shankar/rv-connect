@@ -277,6 +277,19 @@ is only the first:
 5. The addresses already in the database -- six columns across five tables. New uploads write the
    new host; everything written before that does not.
 
+**`remotePatterns` has three axes, and one left out means "anything".** C-134 pinned the host;
+bug audit 3's C5-01 found the query string still open, because a pattern with no `search` admits
+any, and Vercel keys its image cache on the source URL. Measured on production on 2026-11-03: a
+never-seen `?c501=1` on a real avatar came back `x-vercel-cache: MISS`, `age: 0`, a fresh metered
+transformation per request (Hobby includes 5,000 a month). Every pattern now pins `search: ""` and a
+`pathname` for each folder next/image really renders (`OPTIMIZED_PATHS` in `next.config.ts`), and
+`security-regressions.test.mjs` asks Next's own matcher. Two spellings no pattern can see, a bare
+trailing `?` and a `#fragment`, behave differently on the two optimizers: `next dev` keys each as a
+new entry (`#x1`, `#x2` each a MISS), while Vercel's answered both from the bare URL's cached copy
+(HIT, the same age). So a measurement of the optimizer on localhost is not evidence about production,
+in either direction. What stays open is bounded: each stored photo in those folders at each of the
+16 permitted widths (L5-11).
+
 **Keep the old host working in code, not just in DNS.** `publicBaseFor` in `upload-shared.ts`
 carries a list of every base this bucket has served from, and both `keyForUrl` and
 `isUploadedImageUrl` read it. A URL the code cannot claim is a photograph whose bytes survive its

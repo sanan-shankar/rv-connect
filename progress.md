@@ -13,6 +13,10 @@ build if an entry's body is written here instead of in its month file.
 **Writing an entry:** append the full entry to `docs/history/progress-<YYYY-MM>.md` (create it
 if the month is new), and add one line here, at the top of that month's list.
 
+## November 2026 — [full entries](docs/history/progress-2026-11.md)
+
+- 2026-11-03 (images) — bug audit 3, unit O1: the image optimizer takes no query string, and only the folders it renders
+
 ## October 2026 — [full entries](docs/history/progress-2026-10.md)
 
 - 2026-10-30 (announcement) — a window that opens once over the Feed: the new birds and the ask
