@@ -569,6 +569,18 @@ avatar and post photo at each of the 16 permitted widths, about 2,600 transforma
 per project is the owner's switch (check D). On Pro, **Spend Management** (Settings → Billing)
 caps the money instead.
 
+**Check D, the firewall rule.** Production's rule is **"Sign-in and sign-up doors"**, a per-IP
+rate limit over `/`, `/login`, `/signup`, the reset and confirmation pages, `/catchups/join/`,
+signed-out `/_next/image`, and every path under `/api/auth/`, which is where the sign-in form
+posts (`POST /api/auth/callback/credentials`); the demo's is one rule over everything but
+`/_next/static`. The rule, its numbers and how they were measured:
+`docs/audit-fix/2026-09-24-bug-audit-3/work/o09-budget-design.md` §8. It is the only thing that
+slows a flood before it costs a function call. Behind it, in code, a sign-in the meters have
+refused once costs no Upstash command until its window turns (`knownSpent`, bug audit 3, L5-02),
+so a flood from one machine can no longer empty the month's 500,000 commands and switch every
+limiter off. If a member ever reports "Too many requests" at sign-in, this rule is the first
+suspect.
+
 ### Supabase (Free)
 
 Free quotas: database 500 MB per project, egress 5 GB a month, log ingestion 1 GB (as the

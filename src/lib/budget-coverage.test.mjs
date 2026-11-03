@@ -174,7 +174,7 @@ const BUDGET_EXEMPT = {
   },
   "src/app/api/auth/[...nextauth]/route.ts": {
     GET: "own-page: NextAuth's session and CSRF reads",
-    POST: "bounded: NextAuth's handlers; the one that writes, the credentials callback, is metered inside authorize (auth.ts: login-ip, login-account, login-unverified)",
+    POST: "bounded: NextAuth's handlers; the one that writes, the credentials callback, is metered inside authorize (auth.ts: login-ip, login-account, login-unverified), and a known refusal costs nothing (L5-02, spent-memo.test.mjs)",
   },
   "src/app/api/auth/stale/route.ts": {
     GET: "own-page: clears the caller's own stale cookies",

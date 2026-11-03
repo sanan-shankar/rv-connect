@@ -22,6 +22,7 @@ import { IS_DEMO } from "./demo";
 
 import { RATE_LIMITED } from "./rate-limit-message";
 import { reportSwallowed } from "@/lib/report-error";
+import { createSpentMemo } from "@/lib/spent-memo";
 
 /**
  * Every limit in the app, with the argument for its number. All windows
@@ -309,18 +310,41 @@ export async function rateLimit(
   }
 }
 
+/* Keys this instance has already seen with no budget (bug audit 3, L5-02).
+   `limit()` has the library's own cache for this; `getRemaining()`, which
+   hasBudget reads, has none, so a refused sign-in cost an Upstash command on
+   every attempt for as long as the flood lasted. spent-memo.ts says why it
+   can never refuse a key Upstash would not have. */
+const spent = createSpentMemo();
+const memoKey = (name: LimitName, key: string) => `${name}\0${key}`;
+
+/**
+ * Whether this instance already knows `key` has no budget for `name`, asking
+ * nobody. The sign-in door reads it before anything that costs a command or a
+ * network call, so a flood that has been refused once is refused for free.
+ */
+export function knownSpent(name: LimitName, key: string): boolean {
+  return !IS_DEMO && spent.known(memoKey(name, key));
+}
+
 /**
  * Is there budget for `cost` more (one by default), WITHOUT spending any? The
  * login path uses this at the door and spends via `consume` only when the
  * attempt fails, so successful sign-ins — a member's, or a QA script's
  * hundredth of the day — never eat into anyone's allowance.
+ *
+ * A key already seen with none answers from memory until its window turns
+ * (`knownSpent`), and only a key with NONE left is remembered: "not enough
+ * for 50" says nothing about 1.
  */
 export async function hasBudget(name: LimitName, key: string, cost = 1): Promise<boolean> {
   if (IS_DEMO) return true;
   const limiter = limiterFor(name);
   if (!limiter) return true;
+  if (spent.known(memoKey(name, key))) return false;
   try {
-    const { remaining } = await limiter.getRemaining(key);
+    const { remaining, reset } = await limiter.getRemaining(key);
+    if (remaining <= 0) spent.remember(memoKey(name, key), reset);
     return remaining >= cost;
   } catch (err) {
     reportLimiterFailure(name, "read", err);

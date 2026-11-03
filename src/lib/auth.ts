@@ -5,7 +5,7 @@ import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { recordLoginAttempt } from "@/lib/login-attempt";
 import { botCheckDetail } from "@/lib/bot-check-detail";
-import { hasBudget, consume, ipFromRequest } from "@/lib/rate-limit";
+import { hasBudget, consume, knownSpent, ipFromRequest } from "@/lib/rate-limit";
 import { checkTurnstile, devBypassAllowed, hostFromRequest } from "@/lib/turnstile";
 import { humanPassValid, humanPassFromCookieHeader } from "@/lib/human-pass-rule";
 import { appSecret } from "@/lib/app-secret";
@@ -99,15 +99,15 @@ const nextAuth = NextAuth({
           const ip = ipFromRequest(request);
           const acctKey = normalizeEmail(email);
 
-          /* H6: the door itself is metered. Read-only here — a successful
-             sign-in must never spend anyone's budget, or the QA scripts and
-             any member who signs in often would rate-limit themselves — and
-             spent only in the failure branches below (see fail()). */
-          const [ipOk, acctOk] = await Promise.all([
-            hasBudget("login-ip", ip),
-            hasBudget("login-account", acctKey),
-          ]);
-          if (!ipOk || !acctOk) {
+          /* L5-02: a refusal must cost nothing. Every question below that
+             asks Upstash spends one of the month's 500,000 commands, for
+             every limiter in the app at once, and a flood that the meters
+             had already refused used to spend two to four on each attempt
+             -- ten a second emptied the month in hours, and every meter then
+             failed open until it reset. So the door first asks what this
+             instance already knows (rate-limit.ts, `knownSpent`), for
+             free, and only then anything that costs. */
+          if (knownSpent("login-ip", ip) || knownSpent("login-account", acctKey)) {
             recordLoginAttempt({ email, ok: false, reason: "rate-limited" });
             throw new RateLimitedLogin();
           }
@@ -117,7 +117,15 @@ const nextAuth = NextAuth({
              earned (no network), the QA bypass (refused outright in
              production), then a live Turnstile token checked with
              Cloudflare. bcrypt never runs for a caller the last of these
-             cannot vouch for AND who has no spare budget below. */
+             cannot vouch for AND who has no spare budget below.
+
+             Asked BEFORE the door's meters since L5-02, because the verdict
+             is free in Upstash terms and the meters are not: a script with
+             no token, or a junk one, is refused by the unverified allowance
+             below and never spends a `login-ip` failure, so with the meters
+             first it paid their two reads on every attempt however long it
+             had been refused. The form re-arms the widget after any refusal,
+             so a token checked here and then refused is no loss to anyone. */
           const vouched =
             humanPassValid(
               humanPassFromCookieHeader(request.headers.get("cookie")),
@@ -133,6 +141,31 @@ const nextAuth = NextAuth({
                 ip,
                 hostFromRequest(request),
               );
+
+          /* This address's unverified allowance is already known spent: the
+             refusal the branch below would reach, reached without asking. */
+          if (!verdict.ok && knownSpent("login-unverified", ip)) {
+            recordLoginAttempt({
+              email,
+              ok: false,
+              reason: "bot-check",
+              detail: botCheckDetail(verdict.why, credentials?.botFailHint as string | undefined, verdict.detail),
+            });
+            throw new BotCheckFailed();
+          }
+
+          /* H6: the door itself is metered. Read-only here — a successful
+             sign-in must never spend anyone's budget, or the QA scripts and
+             any member who signs in often would rate-limit themselves — and
+             spent only in the failure branches below (see fail()). */
+          const [ipOk, acctOk] = await Promise.all([
+            hasBudget("login-ip", ip),
+            hasBudget("login-account", acctKey),
+          ]);
+          if (!ipOk || !acctOk) {
+            recordLoginAttempt({ email, ok: false, reason: "rate-limited" });
+            throw new RateLimitedLogin();
+          }
 
           if (!verdict.ok) {
             /* THE BOT CHECK COULD NOT ANSWER FOR THIS BROWSER. It is not a

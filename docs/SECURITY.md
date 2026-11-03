@@ -293,6 +293,15 @@ five guesses an hour with the ordinary `login-ip` (30 failures a quarter hour), 
 the reset REQUEST keep the hard refusal: a bot minting accounts is what Turnstile is most for, and
 someone turned away there has a human to write to.
 
+**The order the door asks in (2026-11-03, bug audit 3, L5-02).** What this instance already knows
+is spent is refused first, for free (`knownSpent` in `rate-limit.ts`); then the bot check; then the
+meters, each of which costs an Upstash command. A flood with no token, or a junk one, is refused
+by `login-unverified` and never spends a `login-ip` failure, so while the meters came first it paid
+their two reads on every attempt, and one machine at ten a second could empty the 500,000-command
+month in hours, after which every limiter in the app fails open. Now such a flood costs a few
+commands per instance per quarter hour. The memo holds only keys already refused, at most fifteen
+minutes (`spent-memo.ts`).
+
 And the refusal now says why. `LoginAttempt.detail` carries `no-token/timeout`,
 `no-token/error-110200`, `refused/timeout-or-duplicate`, shown in /admin/audit. The half after the
 slash is the widget's own account, sent with the request, allowlisted by `bot-check-detail.ts` and
