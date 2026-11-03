@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { isSameSearch } from "@/lib/search-continuation";
 import { statsWritesEnabled } from "@/lib/stats-exclusion";
+import { spendBudget } from "@/lib/daily-budget";
 
 /* ------------------------------------------------------------------ *
  *  What people look for.
@@ -86,6 +87,12 @@ export async function logSearch(input: {
         return;
       }
     }
+
+    /* A new row, so it is one of the member's day's 200 (bug audit 3,
+     * C6-04). The dedupe above is for a person typing; this is for a caller
+     * that never types a continuation. Over it the search has still
+     * answered, and the log simply does not hear of it. */
+    if (input.userId && !(await spendBudget("searchRows", input.userId)).ok) return;
 
     await prisma.searchLog.create({
       data: {

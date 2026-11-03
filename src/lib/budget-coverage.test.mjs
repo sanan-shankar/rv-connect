@@ -372,3 +372,13 @@ test("T2a-03: adding people to a Catch-up spends catchupAdds, per person added",
   assert.match(body, /hasBudget\("catchupAdds"/, "addCatchupMembers no longer checks its meter");
   assert.match(body, /consume\("catchupAdds"/, "addCatchupMembers no longer spends its meter");
 });
+
+test("C6-04: a new search row is one of the member's 200 a day, spent before it is written", () => {
+  const body = fnBody(decomment(read("src/lib/search-log.ts")), "logSearch") ?? "";
+  const spend = body.indexOf('spendBudget("searchRows", input.userId)');
+  const create = body.indexOf("searchLog.create(");
+  assert.ok(spend !== -1 && create > spend, "logSearch writes a row without spending searchRows first");
+  const entry = budgets.find((b) => b.name === "searchRows")?.text ?? "";
+  assert.match(entry, /limit: 200,/, "searchRows' ceiling moved; re-argue it in daily-budget.ts");
+  assert.match(entry, /sentence: null/, "a refused search row must be silent: the search itself has answered");
+});

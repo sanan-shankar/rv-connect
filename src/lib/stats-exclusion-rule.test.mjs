@@ -66,6 +66,10 @@ test("no file outside the known ones reads the activity tables", () => {
     // A member's own rows, in their own copy of their data (bug audit 3,
     // T6-03): not a statistic, so nothing is left out of it.
     "src/app/api/account/export/route.ts",
+    // One member's own search rows of the last day, counted against their
+    // daily ceiling before another is written (bug audit 3, C6-04): a
+    // ceiling, not a statistic, so nobody is left out of it.
+    "src/lib/daily-budget.ts",
   ]);
   const strays = walk(`${ROOT}/src`)
     .map((f) => relative(ROOT, f))

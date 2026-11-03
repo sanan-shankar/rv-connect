@@ -1,4 +1,5 @@
 import { Ratelimit } from "@upstash/ratelimit";
+import { prisma } from "@/lib/prisma";
 import { upstashRedis, reportLimiterFailure } from "@/lib/rate-limit";
 import { IS_DEMO } from "@/lib/demo";
 import { reportSwallowed } from "@/lib/report-error";
@@ -75,7 +76,28 @@ type BudgetSpec = {
  * land with the change that spends them; budget-coverage.test fails one that
  * nothing spends.
  */
-const BUDGETS = {} as const satisfies Record<string, BudgetSpec>;
+const BUDGETS = {
+  /** Searches written to the log per member per day (bug audit 3, C6-04).
+   *  logSearch's dedupe folds one person typing into one row; it never
+   *  bounded a caller alternating two words, which wrote a row a request,
+   *  about 170,000 a day through the city picker's own meter, kept 90 days
+   *  and drawn on the owner's analytics. 200 is fifteen times the most any
+   *  member has searched in one day (13, every row kept, 2026-11-03), so it
+   *  meets nobody; at the ceiling an account holds about 6 MB of rows.
+   *  Silent: the search still answers, only the row is not written. Closed:
+   *  if the count cannot be asked, the row is not worth writing either. */
+  searchRows: {
+    per: "account",
+    limit: 200,
+    window: "24 h",
+    store: "rows",
+    index: "SearchLog(userId, createdAt)",
+    count: (subject, since) =>
+      prisma.searchLog.count({ where: { userId: subject, ...(since ? { createdAt: { gte: since } } : {}) } }),
+    outage: "closed",
+    sentence: null,
+  },
+} as const satisfies Record<string, BudgetSpec>;
 
 export type BudgetName = keyof typeof BUDGETS;
 

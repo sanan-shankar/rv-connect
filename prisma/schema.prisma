@@ -1596,6 +1596,9 @@ model SearchLog {
   // The retention sweep's predicate. The composite above leads on `scope`, so
   // it cannot serve a bare `createdAt < cutoff` (bug audit B-093).
   @@index([createdAt])
+  // One member's searches in the last day: the searchRows budget's count
+  // (daily-budget.ts, bug audit 3, C6-04), run before every new row.
+  @@index([userId, createdAt])
 }
 
 // ─── Who looks at what, and how often ───────────────────────────────────────
