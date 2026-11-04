@@ -15,6 +15,7 @@ if the month is new), and add one line here, at the top of that month's list.
 
 ## November 2026 — [full entries](docs/history/progress-2026-11.md)
 
+- 2026-11-04 (collection) — the Centenary folder: copies out, sorted by subject, every photograph's date explained, and a local page to decide on each
 - 2026-11-03 (budgets, review) — bug audit 3, O2's write-path review: the meters count what they refuse, and a retried preview is paid for
 - 2026-11-03 (budgets) — bug audit 3, unit O2: one daily budget for what an account may spend, a sweep that every door spends one, and four doors closed
 - 2026-11-03 (catchups) — bug audit 3, unit H4 (stopped part-way): every Catch-up failure reaches the owner, a missing column is not a missing table, and the Edition page and the home read less

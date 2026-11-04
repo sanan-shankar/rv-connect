@@ -1,3 +1,46 @@
+## 2026-11-04 (collection) — the Centenary folder: copies out, sorted by subject, every photograph's date explained, and a local page to decide on each
+
+The owner added a OneDrive download of school material to `sanan's stuff/Centenary Content/` (gitignored):
+1,095 files, 12 GB, 21 folders and about 150 loose photographs. He asked for the objective trimming to be
+done for him (exact copies, black, blurred) and the rest to be made easy for him to judge, and, mid-session,
+for nothing to go up to the site, not even to the review room, until he has cut it down by hand.
+
+What was in it: 876 photographs, 183 audio files (37 of them 364-byte FrontPage stubs), 24 videos (about
+7 GB, mostly full dance performances), two slide decks, a history of the school's first 40 years as .doc
+and .pdf, and six .rar/.zip archives whose every file was already unpacked beside them.
+
+Set aside first, with a note naming the kept copy of each, then deleted on his word (823 MB): 67
+byte-identical copies, 10 weaker copies of a photograph also kept (a second scan, a re-save, the same
+print with its album border), 30 burst or bracketed frames of a moment whose sharpest frame stayed, one
+frame shaken to nothing, the archives and the stubs. Audio was compared by fingerprint, not loudness:
+a loudness curve called dozens of different folk tunes identical, because each starts with a quiet
+lead-in. Two real audio copies; the 32 numbered folk tunes are different recordings and stay. When a
+copy carried the better name (a date, the people in it), the kept file took that name.
+
+The rest is filed under the Collection's buckets (`Photos/People`, `School life`, `Campus`, `Nature`,
+`Birds`), plus `Music`, `Video`, `Documents and slides`, and `Not ours, or not photos` (internet images
+of Krishnaji, a Facebook screenshot, a sunset named for Kabini). Every move is in `.catalogue/moves.tsv`;
+the archives' stored dates and the EXIF survey were kept there before the pile went.
+
+Dates, of the 770 photographs kept: 363 carry a camera date to trust, 42 a date someone wrote in a file or
+folder name, and 365 need a person. Three traps found on the way, each now explained per photograph in
+`.catalogue/catalogue.json`. A scan's date is the day it was scanned. A Kodak whose clock was never set
+dated 94 photographs from 1 January 2004 onwards. And 46 Nikon frames of 10 June 2015 are photographs of
+1950s-70s prints, so their date is the copying, not the picture. One photographer's rename template also
+stamped "Valparai 17.09.2025" on the banyan mural, which the camera and its folder place in July 2026.
+OneDrive's own dates would not have helped: its "modified" date on a scan is the scan date too, which is
+exactly what the archives preserved.
+
+`scripts/dev/review-photos.mjs` is the page for his pass: one photograph large with the filmstrip of its
+folder, K keep, X drop, S important, and boxes for when, who and a caption, prefilled where the file name already said. What he types
+for when is read on the server with the Collection's own `photoDate()` and shown as the site will
+print it, and that shape is what the decisions file stores, so a 1919 is flagged as undated now rather
+than at import. It decodes with the import's own rules, so a file it cannot show is one the import
+would refuse. Local only, 127.0.0.1, saves on every change.
+Verified in a browser at 1440x900: 770 photographs listed, a decision, a star, a name and a date written
+to disk and logged, then removed again. Not checked at phone size: it is served from this Mac only.
+Visible on the site: nothing.
+
 ## 2026-11-03 (budgets, review) — bug audit 3, O2's write-path review: the meters count what they refuse, and a retried preview is paid for
 
 The runner verified O2 itself (diffs, the gate, the SearchLog index read back valid on both databases,
