@@ -1,3 +1,33 @@
+## 2026-11-05 (feed, letters) — the rail pins by its bottom edge when it is taller than the window, Letters moves to its foot, and Usha Reddy's centenary poem goes up
+
+**The rail.** The owner asked for "This week in Letters" below "New in the directory", and then
+noticed that the card he had just moved could not be reached. The rail was `sticky top-7`, pinned
+by its top edge whatever its height, and deliberately not a scroll container, so a rail taller
+than the window kept its foot below the fold until the feed ran out. Measured with three modules
+showing: pinned from 28px to 910px at every window height, so the last card lost 10px at 1440x900,
+110px at 1440x800 and all of itself at 1280x720. Before the move, the clipped card was the
+directory's last rows, which nobody had missed.
+
+`StickyRail` (`src/components/feed/rail/sticky-rail.tsx`) sets `top` to the smaller of 28px and
+"window minus rail minus 28px", from a ResizeObserver on the box. A rail that fits pins 28px from
+the top as before. A taller one travels with the feed until its last card sits 28px off the
+bottom, then stops. Measured after: a 28px gap below the last card at 1440x900 (top −10px) and
+1280x720 (top −190px), and at 1440x1200, where the rail fits, still 28px at the top. The order is
+now Collection, Directory, Letters, and the skeleton's two cards already matched it.
+
+`e2e/feed-rail.spec.ts` pins it at 1280x720: after scrolling, the rail's outer gap is 28 either
+way. Run against the old `top: 1.75rem` it fails at −190, the same number measured by hand.
+
+**The letter.** A Word document from Dr Usha Reddy (account "Usha Rani Reddy", joined this
+morning) went up as a letter under her name: "Oh Rishi Valley, Our Valley!", fourteen four-line
+stanzas, her words untouched. Written straight to `Post`, the same row `createPost` would make,
+since the body has no mention, link or image and nothing caches /feed or /letters. The subtitle
+"A Centenary Tribute" was dropped: in the body it would lead the feed teaser ("A Centenary Tribute
+Where mornings bloomed…"), and stanza thirteen already says a hundred years. Her sign-off went at
+the owner's word, since the byline carries it, and so did the one-line last stanza, rejoined to
+make four. The signature said ICSE 1975 while her profile says left 1976, batch of '78; nothing
+was changed there.
+
 ## 2026-11-04 (collection) — the Centenary folder: copies out, sorted by subject, every photograph's date explained, and a local page to decide on each
 
 The owner added a OneDrive download of school material to `sanan's stuff/Centenary Content/` (gitignored):

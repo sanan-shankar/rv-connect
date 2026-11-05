@@ -1,6 +1,7 @@
 import { LettersModule } from "./rail/letters-module";
 import { CollectionModule } from "./rail/collection-module";
 import { DirectoryModule } from "./rail/directory-module";
+import { StickyRail } from "./rail/sticky-rail";
 import type { RailViewer } from "./rail/rail-viewer";
 
 /**
@@ -9,9 +10,14 @@ import type { RailViewer } from "./rail/rail-viewer";
  * hiding itself when it has nothing real to show, so the rail never looks
  * broken or padded:
  *
- *   1. This week in Letters
- *   2. From the Collection
- *   3. New in the directory
+ *   1. From the Collection
+ *   2. New in the directory
+ *   3. This week in Letters
+ *
+ * Letters went from first to last on 2026-11-05 (owner). It is the one
+ * module that comes and goes with the week, so at the foot it no longer
+ * shifts the two that are nearly always there. The foot is only reachable
+ * because StickyRail pins a tall rail by its bottom edge.
  */
 export async function FeedRail({ userId, viewer }: { userId: string; viewer: RailViewer }) {
   return (
@@ -28,12 +34,11 @@ export async function FeedRail({ userId, viewer }: { userId: string; viewer: Rai
        pointer on the rail must never steal the wheel from the page, the same
        rule the profile page's segmented pill follows.
 
-       top-7 (28px) is the shell's own sm:p-7 padding, so the pinned rail keeps
-       the page's top margin rather than kissing the viewport edge. */
-    <div className="sticky top-7 space-y-4">
-      <LettersModule viewer={viewer} />
+       Where it pins, top edge or bottom edge, is StickyRail's to decide. */
+    <StickyRail>
       <CollectionModule />
       <DirectoryModule userId={userId} />
-    </div>
+      <LettersModule viewer={viewer} />
+    </StickyRail>
   );
 }
