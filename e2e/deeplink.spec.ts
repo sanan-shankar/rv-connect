@@ -32,8 +32,8 @@ async function offsetOf(page: import("@playwright/test").Page, id: string) {
   return page.evaluate((postId) => {
     const el = document.getElementById(postId);
     if (!el) return null;
-    const { top } = el.getBoundingClientRect();
-    return { top, viewport: window.innerHeight };
+    const { top, height } = el.getBoundingClientRect();
+    return { top, height, viewport: window.innerHeight };
   }, id);
 }
 
@@ -44,11 +44,17 @@ test("a notification's fragment scrolls its post into view, arriving fresh", asy
   await page.goto("/letters");
   await page.goto(`/feed#${id}`);
 
+  /* Centred, to within 2px, and not merely somewhere on screen. The cards
+   * above the target finish laying out a render after they mount (each
+   * "Read more" fold measures its lines), and a scroll aimed before that lands
+   * off by however much they shrank: 190px on 2026-11-05, which put a tall
+   * target's top above the window. "Somewhere on screen" only notices that
+   * when the target is tall; "centred" notices it whatever the feed holds. */
   await expect
     .poll(async () => {
       const box = await offsetOf(page, id);
-      return box ? box.top > 0 && box.top < box.viewport : false;
-    }, { message: "the deep-linked post never came into view", timeout: 15000 })
+      return box ? Math.abs(box.top + box.height / 2 - box.viewport / 2) <= 2 : false;
+    }, { message: "the deep-linked post did not land centred", timeout: 15000 })
     .toBe(true);
 });
 

@@ -189,9 +189,29 @@ export function PostFeed({
     flashTimer.current = window.setTimeout(() => el.classList.remove("deeplink-flash"), 2100);
   }, []);
 
-  // Landing on /feed#<id> from somewhere else: the cards arrive after mount.
+  /* Landing on /feed#<id> from somewhere else: the cards arrive after mount,
+     and they are not finished when they do. Each card's "Read more" fold
+     measures its lines in a layout effect and sets state, and React flushes
+     THIS effect before rendering that update, so a scroll aimed from here was
+     aimed at the cards' unfolded heights. Measured 2026-11-05: a ten-line post
+     above the target was 496px at the call and 320px a frame later, and the
+     target, meant to land centred with its top at 61px, landed at -129px. So
+     the scroll waits for the web font (the fold measures again when it lands)
+     and then two frames, by which time every fold has rendered. */
   useEffect(() => {
-    if (posts.length > 0) goToHash();
+    if (posts.length === 0) return;
+    let live = true;
+    let frame = 0;
+    void document.fonts.ready.then(() => {
+      if (!live) return;
+      frame = requestAnimationFrame(() => {
+        frame = requestAnimationFrame(goToHash);
+      });
+    });
+    return () => {
+      live = false;
+      cancelAnimationFrame(frame);
+    };
   }, [posts, goToHash]);
 
   /* Already ON the feed when the notification is tapped. The bell navigates

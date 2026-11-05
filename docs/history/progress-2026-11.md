@@ -1,3 +1,27 @@
+## 2026-11-05 (feed) — a notification's deep link waits for the cards to settle, and lands the post centred
+
+Found by the full Playwright run before the push: `deeplink.spec.ts`'s fresh-arrival case failed on
+both viewports, with or without the rail change. Today's new letter moved every post down one place,
+so the spec's ninth post became the three-photograph Banyan mural, 778px tall at 1440x900, and it
+landed with its top at −129px.
+
+The aim was wrong, not the target's size. Recorded at the moment of the call: the ten-line post
+above it was 496px and settled at 320px one render later. Each card's "Read more" fold measures its
+lines in a layout effect and sets state, and React flushes PostFeed's passive effect, the one that
+scrolls, before rendering that update. So the scroll was aimed at the unfolded heights, 190px past
+the post. The bug has been there since the deep link shipped (C-052). The spec only asked whether
+the post was somewhere on screen, which a short target still passed.
+
+PostFeed now waits for `document.fonts.ready` (the fold measures again when the web font lands) and
+two animation frames before scrolling. Measured after: the call sees the settled heights, and the
+post lands centred, top at 61px of 900 and 86px of 844 under the mobile bar. The spec now asserts
+"centred to within 2px", which catches a mis-aim whatever the feed holds. It fails on the old
+effect at both viewports.
+
+Considered and not taken: aligning a post taller than the window by its top. No post on the first
+page comes near (the tallest is 778px against an 868px threshold), because photographs reserve their
+frames and text folds at seven lines.
+
 ## 2026-11-05 (feed, letters) — the rail pins by its bottom edge when it is taller than the window, Letters moves to its foot, and Usha Reddy's centenary poem goes up
 
 **The rail.** The owner asked for "This week in Letters" below "New in the directory", and then

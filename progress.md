@@ -15,6 +15,7 @@ if the month is new), and add one line here, at the top of that month's list.
 
 ## November 2026 — [full entries](docs/history/progress-2026-11.md)
 
+- 2026-11-05 (feed) — a notification's deep link waits for the cards to settle, and lands the post centred
 - 2026-11-05 (feed, letters) — the rail pins by its bottom edge when it is taller than the window, Letters moves to its foot, and Usha Reddy's centenary poem goes up
 - 2026-11-04 (collection) — the Centenary folder: copies out, sorted by subject, every photograph's date explained, and a local page to decide on each
 - 2026-11-03 (budgets, review) — bug audit 3, O2's write-path review: the meters count what they refuse, and a retried preview is paid for
