@@ -39,7 +39,7 @@
     "@phosphor-icons/react": "^2.1.10",
     "@prisma/adapter-pg": "^7.10.0",
     "@prisma/client": "^7.10.0",
-    "@sentry/nextjs": "^10.76.2",
+    "@sentry/nextjs": "^11.15.0",
     "@upstash/ratelimit": "^2.0.8",
     "@upstash/redis": "^1.38.2",
     "@vercel/functions": "^3.10.5",
