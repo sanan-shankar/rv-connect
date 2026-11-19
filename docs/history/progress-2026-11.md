@@ -1,3 +1,20 @@
+## 2026-11-19 (deps) — Next.js 16.4.3 to 16.4.6: two cache advisories closed, and the visual suite green again
+
+The dev overlay had started showing "1 Insight" on every page: `next dev` flagging that 16.4.3 is
+covered by two moderate advisories, GHSA-mfr8-8qww-v76h and GHSA-vc7v-qv4w-wrv8 (data leaking
+across root params through `'use cache'`, both fixed after 16.4.4). The badge sat in the corner of
+every screenshot, so `npm run visual` failed on 19 of 25 routes with nothing else wrong. The repo's
+own advisory gate passed throughout because it only fails on high or critical.
+
+Upgraded to 16.4.6, the latest. The lockfile moved only `next`, `@next/env` and the `@next/swc-*`
+binaries. Checked after: the server starts with no warning, the overlay shows nothing,
+`npm audit` no longer lists next, `npm run check` passes, and `npm run visual` passes 25 of 25. The
+catchups route failed once on a Supabase connection blip ("Can't reach database server") and passed
+on its own re-run.
+
+Not done: `@sentry/nextjs` carries its own moderate advisory, and its fix is a major version. Left
+for Renovate. Visible: nothing.
+
 ## 2026-11-19 (signup, lab) — the Join button that runs from one visitor
 
 The owner's prank. When the principal signs up, the Join button at the foot of the form can never be
