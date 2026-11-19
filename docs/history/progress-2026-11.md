@@ -1,3 +1,70 @@
+## 2026-11-19 (signup, lab) — the Join button that runs from one visitor
+
+The owner's prank. When the principal signs up, the Join button at the foot of the form can never be
+pressed. Everyone else gets the button they always had. He wants it on until he says otherwise, and
+retiring it is one line: `RUNAWAY_ENABLED = false` in `src/lib/runaway-visitor.ts`.
+
+How it knows her. The name boxes are read as she types, in her browser; nothing is sent anywhere.
+`runaway-visitor.ts` folds each word: no case, no accents, no h, y read as i, doubled letters single.
+So Anantha and Ananta, Jyothi, Jyoti, Jyothy and Jothi all meet. Both words must be there, in either
+box, in either order, or run together. An initial for the first name counts only alongside Teacher.
+The school's principal@ address counts on its own. It matches whole words, so Anantharaman and
+Jyothirmayi go through. A name typed on the way to another arms it only until the next keystroke.
+Once it has actually run, the browser is remembered (localStorage), so a reload or a new name does
+not let her in.
+
+How it behaves (`runaway-brain.ts`, pure and tested). It is not a radius check, which is what every
+runaway button online is. It reads where the pointer is heading and how soon it will arrive, a
+reaction time late, so a slow drift can pass close and a lunge sends it early. A press is a reflex:
+it flinches on pointerdown, so even when it comes home as bait and lets the pointer sit on it, the
+click finds nothing. It chooses a move for the moment: a sidestep, a hop, a dash round the pointer,
+or a duck behind the photograph or the screen's edge to peek back out. While the pointer is still it
+creeps home a step at a time, and freezes when the pointer moves (Grandmother's Footsteps). Chasing
+makes it jumpier; calm settles it. It leans, crouches, lifts off the page with its shadow dropping
+away, squashes when it lands, and its label lags a hair. On first waking the full-width bar pulls in
+from its far end like an inchworm and leaves the app's dashed "not here yet" pill in its slot. Home
+again, it spreads back into the bar. The page's hoopoe follows the chase with its head and giggles
+at every miss, its wings still over its eyes for the password.
+
+The owner played with it mid-session. Hiding until he held still felt like the game ending, so
+hiding is now an interlude. It comes back out by itself after a second or two of peeking, moving or
+not. Found once or twice, it bursts back into the open with a hop. A test pins that.
+
+How it sits in the page. SignupForm is not changed at all. `runaway-stage.tsx` wraps it, reads the
+fields by the names registerUser already reads, and once they are hers turns every submit away in
+the capture phase, before the form's own handler can hear it. Enter or a phone's Go key makes the
+button jump. Only then does it load the runner (`runaway-join.tsx`, about 9 KB gzipped), as its own
+chunk, so nobody else downloads any of it. Three locks keep the form shut: that submit capture,
+the runner being `type="button"`, and the real Join hiding on the press itself. The runner draws
+itself from the real Button's own classes, so the handoff between them stays invisible if the
+Button is ever retuned. It adds a clipped layer to the column (`data-runaway-column`) only while
+she is armed. That clip is what lets it hide behind the photograph on a desktop, or off either
+edge of a phone, without the page ever scrolling sideways. Its frame loop sleeps while it sits
+home with nothing near, which is most of the time she spends typing. "Hover never moves a
+control" is broken here, on purpose and for her alone, in transforms and opacity only.
+
+A four-way review (reuse, simplification, efficiency, altitude) before committing moved the prank
+out of SignupForm and lazy-loaded it. It also caught two behaviours: a press grazing the pill's
+edge sent it on a long dash instead of a flinch, and leaving the window and coming back read as a
+lunge. Both are fixed and pinned by tests.
+
+/lab/runaway is the real register step at full size. It runs from anyone by default. "Her only" waits
+for her name as /signup does, so detection can be tried without the trivia question, which records
+every answer in the live database. The lab's form never sends a signup and never marks the browser.
+"Show what it thinks" draws what it sees, where it reckons the pointer is going, and every spot it
+weighed.
+
+Verified. Unit tests cover the spellings and the look-alikes, the reflex at the centre and at the
+edge, a full-speed chase, the walk home, the freeze, resting whole on screen, hiding that ends, and
+a pointer coming back into the window. In a real browser it was chased
+and recorded at 1440x900, and by touch at 390x844: no console errors, no sideways scroll, never
+submitted. The wiring was checked end to end in her-only mode. A near-miss name got the plain button
+and sent nothing; "Ananta Jyoti" brought it alive. `npm run check` passed. `npm run visual` failed
+on 19 routes, and every diff is the Next dev tools "1 Insight" badge (the dev server flagging a
+Next.js advisory), none of them this change. Not rebaselined.
+
+Visible: only to her on /signup, and in the lab.
+
 ## 2026-11-05 (feed) — a notification's deep link waits for the cards to settle, and lands the post centred
 
 Found by the full Playwright run before the push: `deeplink.spec.ts`'s fresh-arrival case failed on

@@ -7,6 +7,7 @@ import { ArrowLeft } from "lucide-react";
 import { AnimatePresence, m } from "motion/react";
 import { TriviaGate } from "@/components/auth/trivia-gate";
 import { SignupForm } from "@/components/auth/signup-form";
+import { RunawayStage } from "@/components/auth/runaway-stage";
 import { Hoopoe } from "@/components/mascot/hoopoe";
 import { useHoopoe } from "@/components/mascot/use-hoopoe";
 import { AuthHeading, AuthPhotoPanel } from "@/components/auth/auth-panel";
@@ -107,7 +108,13 @@ export default function SignupClient({
           gentle spring while the photo half stays anchored (lateral pass from the
           landing), the way /login does. The hoopoe sits above the steps and stays
           mounted across the trivia -> register swap; only the step content crossfades. */}
-      <div className="flex min-h-screen flex-col bg-background px-[var(--space-l)] py-[var(--space-l)]">
+      {/* `relative` and the data attribute: the Join button's stage, for the
+          one visitor it runs from (runaway-stage.tsx). It adds its own
+          clipped layer here only when she is on the form. */}
+      <div
+        data-runaway-column
+        className="relative flex min-h-screen flex-col bg-background px-[var(--space-l)] py-[var(--space-l)]"
+      >
         <Link
           href="/"
           className="inline-flex items-center gap-1 self-start rounded-sm text-sm text-muted-foreground transition-colors duration-150 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
@@ -186,19 +193,21 @@ export default function SignupClient({
                     said, and the calm is the point (owner reference:
                     Revolut's one-heading form, 2026-08-14). */}
                 <AuthHeading title="A bit about yourself" />
-                <SignupForm
-                  hoopoe={hoopoe}
-                  turnstileSiteKey={turnstileSiteKey}
-                  /* ?next= rides on to /welcome so it survives onboarding
-                     too: someone who followed a Catch-up invite with no
-                     account goes signup -> the five setup steps -> the
-                     invitation, instead of being dropped on the feed. */
-                  onSuccess={() =>
-                    router.push(
-                      `/welcome?next=${encodeURIComponent(nextPathFromLocation())}`
-                    )
-                  }
-                />
+                <RunawayStage hoopoe={hoopoe}>
+                  <SignupForm
+                    hoopoe={hoopoe}
+                    turnstileSiteKey={turnstileSiteKey}
+                    /* ?next= rides on to /welcome so it survives onboarding
+                       too: someone who followed a Catch-up invite with no
+                       account goes signup -> the five setup steps -> the
+                       invitation, instead of being dropped on the feed. */
+                    onSuccess={() =>
+                      router.push(
+                        `/welcome?next=${encodeURIComponent(nextPathFromLocation())}`
+                      )
+                    }
+                  />
+                </RunawayStage>
               </m.div>
             )}
           </AnimatePresence>

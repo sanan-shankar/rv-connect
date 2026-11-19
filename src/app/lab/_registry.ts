@@ -166,6 +166,13 @@ export const REGISTRY: LabEntry[] = [
     note: "The real screen you get after adding photographs, played with sample ones: they drop into a pile, the bird cheers, pecks at them and keeps pottering. Tap the bird, hover the buttons, press the green one to watch it fly off.",
   },
   {
+    href: "/lab/runaway",
+    title: "The Join button that runs",
+    group: "Delight",
+    status: "active",
+    note: "The signup form as the principal will meet it: try to press Join. On the real page it runs for her alone, once she types her name. Show what it thinks to watch it weigh every escape.",
+  },
+  {
     href: "/lab/hoopoe",
     title: "The hoopoe mascot control room",
     group: "Delight",
