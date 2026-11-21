@@ -78,7 +78,7 @@
     "@types/topojson-client": "^3.1.5",
     "dotenv": "^17.3.1",
     "eslint": "^9",
-    "eslint-config-next": "16.3.8",
+    "eslint-config-next": "16.4.6",
     "pg": "^8.22.0",
     "puppeteer": "^25.16.0",
     "tailwindcss": "^4",
